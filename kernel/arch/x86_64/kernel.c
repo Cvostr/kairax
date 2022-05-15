@@ -29,8 +29,6 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 
 	init_interrupts_handler();
 	init_ints_keyboard();
-
-	print_string("Interrupts initialized\n");
 	
 	load_pci_devices_list();
 	printf("PCI devices %i\n", get_pci_devices_count());	
@@ -45,7 +43,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 
   	//uint64_t* p = (uint64_t *) (0xDEADBEAF);
 	uint64_t* p = (uint64_t *) (15ull*1024*1024*1024);
-	memcpy(p, "xui pizda\n", 11);
+	memcpy(p, "this text is in 15G offset\n", 28);
 	print_string(p);
 
 	printf("%i\n", get_physical_address(get_kernel_pml4(), 15ull*1024*1024*1024));

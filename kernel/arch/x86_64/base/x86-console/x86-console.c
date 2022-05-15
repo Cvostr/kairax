@@ -1,10 +1,14 @@
 #include "memory/hh_offset.h"
 #include "x86-console.h"
 #include "stdint.h"
+#include "string.h"
 #include "io.h"
 
-uint32 passed_chars = 0;
+uint32_t passed_chars = 0;
 char text_printing_color = 0x07;
+
+char text_buffer[80 * 25 * 2]; //4000 chars
+int overstep = 0;
 
 volatile char* getTextVmemPtr(){
 	return (volatile char*)(P2V(0xB8000));
@@ -46,6 +50,15 @@ void clear_console(){
   	passed_chars = 0;
 }
 
+void checkForRefill(){
+	if(passed_chars >= 80 * 25 * 2){
+		strncpy(&(text_buffer[0]), (char*)getTextVmemPtr() + 160, 4000 - 160);
+		clear_console();
+		strncpy((char*)getTextVmemPtr(), &(text_buffer[overstep]), 4000 - 160);
+		passed_chars = 4000 - 160;
+	}
+}
+
 void print_char(char chr){
 	volatile char* step = getTextVmemPtr() + passed_chars; //We'll move this pointer
 	if(chr != '\n'){
@@ -53,12 +66,12 @@ void print_char(char chr){
 		step++; //Move pointer
 		*step = text_printing_color;
 		passed_chars += 2;
-		//checkForRefill();
+		checkForRefill();
 	}else{
 		passed_chars += (160 - (passed_chars % 160)) - 2; //-2 means we avoid space
 		*step = ' ';
 		passed_chars += 2;
-		//checkForRefill();
+		checkForRefill();
 	}
 }
 

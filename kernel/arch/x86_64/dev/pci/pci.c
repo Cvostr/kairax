@@ -31,15 +31,15 @@ int get_pci_device(uint8 bus, uint8 device, uint8 func, pci_device_desc* device_
 	if(device_probe != 0xFFFF){
 		device_desc->pci_bus = bus; //шина устройства
 		device_desc->device = device; //номер устройства
-    		device_desc->function = func;
+    	device_desc->function = func;
 
-    		device_desc->vendor_id = pci_config_read16(bus,device, func, 0); //Смещение 0, размер 2б - номер производителя
-    		device_desc->device_id = pci_config_read16(bus,device, func, 2); //Смещение 2, размер 2 - ID устройства
+    	device_desc->vendor_id = pci_config_read16(bus,device, func, 0); //Смещение 0, размер 2б - номер производителя
+    	device_desc->device_id = pci_config_read16(bus,device, func, 2); //Смещение 2, размер 2 - ID устройства
 		device_desc->command = pci_config_read16(bus,device, func, 4); //Смещение 4, размер 2 - Номер команды
 		device_desc->status = pci_config_read16(bus,device, func, 6); //Смещение 6, размер 2 - Статус
-    		uint16 devclass = pci_config_read16(bus,device, func, 10);  //Смещение 10, размер 2 (Класс - Подкласс)
-    		device_desc->device_class = (uint8_t)((devclass >> 8) & 0xFF);		//Старшие 8 бит - класс
-    		device_desc->device_subclass = (uint8_t)(devclass & 0xFF);		//Младшие 8 бит - подкласс
+    	uint16 devclass = pci_config_read16(bus,device, func, 10);  //Смещение 10, размер 2 (Класс - Подкласс)
+    	device_desc->device_class = (uint8_t)((devclass >> 8) & 0xFF);		//Старшие 8 бит - класс
+    	device_desc->device_subclass = (uint8_t)(devclass & 0xFF);		//Младшие 8 бит - подкласс
 
 		uint16 prog_if_revision = pci_config_read16(bus,device, func, 8); //Смещение 8, размер 2 - PIF, Revision
     		device_desc->prog_if = (uint8)((prog_if_revision >> 8) & 0xFF);		//Старшие 8 бит - PIF
