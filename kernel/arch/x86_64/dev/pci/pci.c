@@ -6,6 +6,11 @@
 
 #define MAX_PCI_DEVICES 128
 
+#define PCI_BAR_IO 0x01
+#define PCI_BAR_LOWMEM 0x02
+#define PCI_BAR_64 0x04
+#define PCI_BAR_PREFETCH 0x08
+
 static pci_device_desc pci_devices_descs[MAX_PCI_DEVICES];
 int pci_devices_count = 0;
 
@@ -33,15 +38,20 @@ uint32_t pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t 
 	return tmp;
 }
 
-void get_pci_bar_desc(uint32 bar, uint8* region_type, uint8* locatable, uint8* prefetchable, uint32* base_addr){
-	if(region_type != NULL)
-		*region_type = 	bar & 0b1;
-	if(locatable != NULL)
-		*locatable = 	bar & 0b110;
-	if(prefetchable != NULL)
-		*prefetchable = bar & 0b1000;
-	if(base_addr != NULL)
-		*base_addr = 	bar & 0xFFFFFFF0; 
+void pci_config_write32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset, uint32_t data)
+{
+	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
+	outl(0xCF8, address);
+	outl(0xCFC, data);
+}
+
+void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_index, uint32_t* address, uint32_t* mask){
+	uint32_t offset = 0x10 + 4 * bar_index;
+	*address = pci_config_read32(bus, device, func, offset);
+	pci_config_write32(bus, device, func, offset, 0xffffffff);
+
+	*mask = pci_config_read32(bus, device, func, offset);
+	pci_config_write32(bus, device, func, offset, *address);
 }
 
 int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc){
@@ -60,39 +70,58 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
     	device_desc->device_class = (uint8_t)((devclass >> 8) & 0xFF);		//Старшие 8 бит - класс
     	device_desc->device_subclass = (uint8_t)(devclass & 0xFF);		//Младшие 8 бит - подкласс
 
-		uint16 prog_if_revision = pci_config_read16(bus,device, func, 8); //Смещение 8, размер 2 - PIF, Revision
-    	device_desc->prog_if = (uint8)((prog_if_revision >> 8) & 0xFF);		//Старшие 8 бит - PIF
-		device_desc->revision_id = (uint8)(prog_if_revision & 0xFF);	//Младшие 8 бит - Номер ревизии
+		uint16_t prog_if_revision = pci_config_read16(bus,device, func, 8); //Смещение 8, размер 2 - PIF, Revision
+    	device_desc->prog_if = (uint8_t)((prog_if_revision >> 8) & 0xFF);		//Старшие 8 бит - PIF
+		device_desc->revision_id = (uint8_t)(prog_if_revision & 0xFF);	//Младшие 8 бит - Номер ревизии
 
-		uint16 cache_latency = pci_config_read16(bus,device, func, 12); //Смещение 12, размер 2 - cache line size - latency timer
-		device_desc->cache_line_size = (uint8)(cache_latency & 0xFF);
-		device_desc->latency_timer = (uint8)((cache_latency >> 8) & 0xFF);
+		uint16_t cache_latency = pci_config_read16(bus,device, func, 12); //Смещение 12, размер 2 - cache line size - latency timer
+		device_desc->cache_line_size = (uint8_t)(cache_latency & 0xFF);
+		device_desc->latency_timer = (uint8_t)((cache_latency >> 8) & 0xFF);
 
-		uint16 bist_header = pci_config_read16(bus,device, func, 14); //Смещение 14, размер 2 - BIST, и тип заголовка
-		device_desc->bist = (uint8)((bist_header >> 8) & 0xFF);	  //Старшие 8 бит - BIST
-		device_desc->header_type = (uint8)(bist_header & 0xFF);	//Младшие 8 бит - тип заголовка
+		uint16_t bist_header = pci_config_read16(bus,device, func, 14); //Смещение 14, размер 2 - BIST, и тип заголовка
+		device_desc->bist = (uint8_t)((bist_header >> 8) & 0xFF);	  //Старшие 8 бит - BIST
+		device_desc->header_type = (uint8_t)(bist_header & 0xFF);	//Младшие 8 бит - тип заголовка
 		//Чтение базовых адресов
-		device_desc->BAR0 = pci_config_read32(bus, device, func, 0x10);
-		device_desc->BAR1 = pci_config_read32(bus, device, func, 0x14);
-		device_desc->BAR2 = pci_config_read32(bus, device, func, 0x18);
 
-		device_desc->BAR3 = pci_config_read32(bus, device, func, 0x1C);
-		device_desc->BAR4 = pci_config_read32(bus, device, func, 0x20);
-		device_desc->BAR5 = pci_config_read32(bus, device, func, 0x24);
+		if(device_desc->header_type != 0)
+			return 0;
 
-		//uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL | PAGE_DMA ;
-		//map_page(get_kernel_pml4(), device_desc->BAR5, pageFlags);
+		for(int i = 0; i < 6; i ++){
+			uint32_t address = 0;
+			uint32_t mask = 0;
+			read_pci_bar(bus, device, func, i, &address, &mask);
 
-		//printf("%i %i %i %i %i %i\n", device_desc->BAR0, device_desc->BAR1, device_desc->BAR2, device_desc->BAR3, device_desc->BAR4,device_desc->BAR5);
+			pci_bar_t* bar_ptr = &device_desc->BAR[i];
+
+			if (mask & PCI_BAR_64) {
+				// 64-bit MMIO
+				uint32_t addressHigh;
+				uint32_t maskHigh;
+				read_pci_bar(bus, device, func, i + 1, &addressHigh, &maskHigh);
+
+				bar_ptr->address = (uintptr_t)(((uint32_t)addressHigh << 16) | (address & ~0xf));
+				bar_ptr->size = ~(((uint32_t)maskHigh << 16) | (mask & ~0xf)) + 1;
+				bar_ptr->flags = address & 0xf;
+			} else if (mask & PCI_BAR_IO) {
+				//deprecated
+			} else {
+				// 32-bit MMIO
+				bar_ptr->address = (uintptr_t)(uint32_t)(address & ~0xf);
+				bar_ptr->size = ~(mask & ~0xf) + 1;
+				bar_ptr->flags = mask & 0xf;
+			}
+
+			//uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL | PAGE_DMA ;
+			//map_page(get_kernel_pml4(), bar_ptr->address, pageFlags);
+
+		}
 
 		//Чтение 32х битного указателя на структуру cardbus
-		uint16 cardbus_ptr_low = pci_config_read16(bus,device, func, 0x28);
-		uint16 cardbus_ptr_high = pci_config_read16(bus,device, func, 0x2A);
-		device_desc->cardbus_ptr = (cardbus_ptr_high << 16) | cardbus_ptr_low;
+		device_desc->cardbus_ptr = pci_config_read32(bus, device, func, 0x28);
 
-		int16 interrupts = pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
-		device_desc->interrupt_line = (uint8)(cache_latency & 0xFF);
-		device_desc->interrupt_pin = (uint8)((cache_latency >> 8) & 0xFF);
+		uint16_t interrupts = pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
+		device_desc->interrupt_line = (uint8_t)(cache_latency & 0xFF);
+		device_desc->interrupt_pin = (uint8_t)((cache_latency >> 8) & 0xFF);
 
 		return 1;
 	}

@@ -6,7 +6,7 @@
 typedef struct PACKED {
 	uintptr_t 	address;
 	size_t 		size;
-	int 		flags;
+	uint32_t 		flags;
 }pci_bar_t;
 
 typedef struct PACKED {
@@ -30,12 +30,7 @@ typedef struct PACKED {
 	uint8_t 		header_type;
 	uint8_t 		bist;
 
-	uint32_t		BAR0;
-	uint32_t		BAR1;
-	uint32_t		BAR2;
-	uint32_t		BAR3;
-	uint32_t		BAR4;
-	uint32_t		BAR5;
+	pci_bar_t		BAR[6];
 
 	uint32_t 		cardbus_ptr;
 
@@ -52,7 +47,5 @@ void load_pci_devices_list();
 int get_pci_devices_count();
 
 pci_device_desc* get_pci_devices_descs();
-
-void get_pci_bar_desc(uint32_t bar, uint8* region_type, uint8* locatable, uint8* prefetchable, uint32* base_addr);
 
 #endif

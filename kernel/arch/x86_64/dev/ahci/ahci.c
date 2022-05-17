@@ -86,17 +86,13 @@ void ahci_init(){
 			device_desc->function,
 			device_desc->command);
 
-			/*HBA_MEMORY* mem1 = 0;
-			uint8 reg_type = 5;
-			uint8 locatable = 0;
-			get_pci_bar_desc(device_desc->BAR5, &reg_type, &locatable, NULL, &mem1);
+			HBA_MEMORY* mem1 = (HBA_MEMORY*)device_desc->BAR[5].address;
 
 			mem1->ghc |= (uint32_t)1 << 31 | 1 << 1;
     		mem1->bohc |= 1 << 1;
 
-			//HBA_MEMORY* mem = (HBA_MEMORY*)((uint64_t)(device_desc->BAR5));
-			printf("%i %i %i\n ",reg_type, locatable, mem1);
-			probe_port(mem1);*/
+			printf("%i %i %i\n ", device_desc->BAR[5].address, device_desc->BAR[5].size, device_desc->BAR[5].flags);
+			probe_port(mem1);
 		}
 
 
