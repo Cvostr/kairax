@@ -3,27 +3,27 @@
 #include "stdint.h"
 
 typedef struct PACKED {
-  uint32 type;
-  uint32 size;
-  uint8 data[];
+  uint32_t type;
+  uint32_t size;
+  uint8_t data[];
 } tag_t;
 
 typedef struct PACKED {
-  uint32 total_size;
-  uint32 reserved;
+  uint32_t total_size;
+  uint32_t reserved;
   tag_t tags[];
 } taglist_t;
 
 typedef struct PACKED {
-  uint64 base;
-  uint64 len;
-  uint32 type;
-  uint32 reserved;
+  uint64_t base;
+  uint64_t len;
+  uint32_t type;
+  uint32_t reserved;
 } mmap_entry_t;
 
 typedef struct PACKED {
-  uint32 entry_size;
-  uint32 entry_version;
+  uint32_t entry_size;
+  uint32_t entry_version;
   mmap_entry_t entries[];
 } mmap_t ;
 

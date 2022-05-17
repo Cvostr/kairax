@@ -27,6 +27,7 @@ gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/pci/pci.c -o ./bin/pci.o
 gcc $GCC_ARGS $x64_SRC/dev/ahci/ahci.c -o ./bin/ahci.o
 
+gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread.o
 
 gcc $GCC_ARGS $x64_SRC/base/x86-console/x86-console.c -o ./bin/x86-console.o

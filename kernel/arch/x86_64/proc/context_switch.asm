@@ -3,23 +3,47 @@ global switch_context
 section .text
 
 switch_context:
-    ;Сохранение значений регистров предыдущего потока
-    push rbp
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
 
-    mov [rdi], rsp   ;Адрес стека записывается в 1й аргумент
-    mov rsp, [rsi]   ;Из второго аргумента берется адрес стека следующего потока
+    mov r15, QWORD [rdi + 0x20]
+    mov r14, QWORD [rdi + 0x28]
+    mov r13, QWORD [rdi + 0x30]
+    mov r12, QWORD [rdi + 0x38]
+    mov r11, QWORD [rdi + 0x40]
+    mov r10, QWORD [rdi + 0x48]
+    mov r9,  QWORD [rdi + 0x50]
+    mov r8,  QWORD [rdi + 0x58]
 
-    ;Возвращение значений регистров
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    pop rbp
+    mov rcx, QWORD [rdi + 0x68]
+    mov rdx, QWORD [rdi + 0x70]
+    mov rbx, QWORD [rdi + 0x78]
+    mov rsi, QWORD [rdi + 0x80]
 
-    ret ;Переход на адрес в стеке
+
+    ; DATA SELECTOR
+    push QWORD KERNEL_DATA_SELECTOR
+    ; RSP
+    mov rax, QWORD [rdi + 0xC0]
+    push rax
+    ; rflags
+    mov rax, QWORD [rdi + 0xB8]
+    push rax
+    popfq
+    pushfq
+
+    push QWORD 0x8
+    ; RIP
+    mov rax, QWORD [rdi + 0xA8]
+    push rax
+
+    ; RBP
+    mov rbp, QWORD [rdi + 0x90]
+
+    ; RAX/RDI
+    mov rax, QWORD [rdi + 0x60]
+    mov rdi, QWORD [rdi + 0x88]
+    iretq

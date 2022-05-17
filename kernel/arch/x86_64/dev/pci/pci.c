@@ -1,6 +1,8 @@
 #include "pci.h"
 #include "io.h"
 #include "string.h"
+#include "memory/paging.h"
+#include "stdio.h"
 
 #define MAX_PCI_DEVICES 128
 
@@ -15,21 +17,38 @@ pci_device_desc* get_pci_devices_descs(){
 	return pci_devices_descs;
 }
 
-uint16 pci_config_read16(uint8 bus, uint8 slot, uint8 func, uint8 offset){
-	uint32 lbus  = (uint32)bus;
-    	uint32 lslot = (uint32)slot;
-    	uint32 lfunc = (uint32)func;
-	uint32 address = (uint32)((lbus << 16) | (lslot << 11) | (lfunc << 8) | (offset & 0xFC) | ((uint32)0x80000000));
+uint16_t pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset){
+	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
 
 	outl(0xCF8, address);
-	return (uint16)((inl(0xCFC) >> ((offset & 2) * 8)) & 0xFFFF);
+	uint16_t tmp = (uint16_t)((inl(0xCFC) >> ((offset & 2) * 8)) & 0xFFFF);
+	return tmp;
 }
 
-int get_pci_device(uint8 bus, uint8 device, uint8 func, pci_device_desc* device_desc){
-	uint16 device_probe = pci_config_read16(bus, device, func, 0);
+uint32_t pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset){
+	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
+
+	outl(0xCF8, address);
+	uint32_t tmp = (inl(0xCFC));
+	return tmp;
+}
+
+void get_pci_bar_desc(uint32 bar, uint8* region_type, uint8* locatable, uint8* prefetchable, uint32* base_addr){
+	if(region_type != NULL)
+		*region_type = 	bar & 0b1;
+	if(locatable != NULL)
+		*locatable = 	bar & 0b110;
+	if(prefetchable != NULL)
+		*prefetchable = bar & 0b1000;
+	if(base_addr != NULL)
+		*base_addr = 	bar & 0xFFFFFFF0; 
+}
+
+int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc){
+	uint16_t device_probe = pci_config_read16(bus, device, func, 0);
 	//проверка, существует ли устройство
 	if(device_probe != 0xFFFF){
-		device_desc->pci_bus = bus; //шина устройства
+		device_desc->bus = bus; //шина устройства
 		device_desc->device = device; //номер устройства
     	device_desc->function = func;
 
@@ -37,12 +56,12 @@ int get_pci_device(uint8 bus, uint8 device, uint8 func, pci_device_desc* device_
     	device_desc->device_id = pci_config_read16(bus,device, func, 2); //Смещение 2, размер 2 - ID устройства
 		device_desc->command = pci_config_read16(bus,device, func, 4); //Смещение 4, размер 2 - Номер команды
 		device_desc->status = pci_config_read16(bus,device, func, 6); //Смещение 6, размер 2 - Статус
-    	uint16 devclass = pci_config_read16(bus,device, func, 10);  //Смещение 10, размер 2 (Класс - Подкласс)
+    	uint16_t devclass = pci_config_read16(bus,device, func, 10);  //Смещение 10, размер 2 (Класс - Подкласс)
     	device_desc->device_class = (uint8_t)((devclass >> 8) & 0xFF);		//Старшие 8 бит - класс
     	device_desc->device_subclass = (uint8_t)(devclass & 0xFF);		//Младшие 8 бит - подкласс
 
 		uint16 prog_if_revision = pci_config_read16(bus,device, func, 8); //Смещение 8, размер 2 - PIF, Revision
-    		device_desc->prog_if = (uint8)((prog_if_revision >> 8) & 0xFF);		//Старшие 8 бит - PIF
+    	device_desc->prog_if = (uint8)((prog_if_revision >> 8) & 0xFF);		//Старшие 8 бит - PIF
 		device_desc->revision_id = (uint8)(prog_if_revision & 0xFF);	//Младшие 8 бит - Номер ревизии
 
 		uint16 cache_latency = pci_config_read16(bus,device, func, 12); //Смещение 12, размер 2 - cache line size - latency timer
@@ -52,6 +71,20 @@ int get_pci_device(uint8 bus, uint8 device, uint8 func, pci_device_desc* device_
 		uint16 bist_header = pci_config_read16(bus,device, func, 14); //Смещение 14, размер 2 - BIST, и тип заголовка
 		device_desc->bist = (uint8)((bist_header >> 8) & 0xFF);	  //Старшие 8 бит - BIST
 		device_desc->header_type = (uint8)(bist_header & 0xFF);	//Младшие 8 бит - тип заголовка
+		//Чтение базовых адресов
+		device_desc->BAR0 = pci_config_read32(bus, device, func, 0x10);
+		device_desc->BAR1 = pci_config_read32(bus, device, func, 0x14);
+		device_desc->BAR2 = pci_config_read32(bus, device, func, 0x18);
+
+		device_desc->BAR3 = pci_config_read32(bus, device, func, 0x1C);
+		device_desc->BAR4 = pci_config_read32(bus, device, func, 0x20);
+		device_desc->BAR5 = pci_config_read32(bus, device, func, 0x24);
+
+		//uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL | PAGE_DMA ;
+		//map_page(get_kernel_pml4(), device_desc->BAR5, pageFlags);
+
+		//printf("%i %i %i %i %i %i\n", device_desc->BAR0, device_desc->BAR1, device_desc->BAR2, device_desc->BAR3, device_desc->BAR4,device_desc->BAR5);
+
 		//Чтение 32х битного указателя на структуру cardbus
 		uint16 cardbus_ptr_low = pci_config_read16(bus,device, func, 0x28);
 		uint16 cardbus_ptr_high = pci_config_read16(bus,device, func, 0x2A);
@@ -71,8 +104,8 @@ void load_pci_devices_list(){
 	memset(pci_devices_descs, 0, sizeof(pci_device_desc) * MAX_PCI_DEVICES);
 
 	for (int bus = 0; bus < 256; bus ++){
-		for(uint8 device = 0; device < 32; device ++){
-    			for(uint8 func = 0; func < 8; func++){
+		for(uint8_t device = 0; device < 32; device ++){
+    			for(uint8_t func = 0; func < 8; func++){
       				int result = get_pci_device(bus, device, func, &pci_devices_descs[pci_devices_count]);
 				if(result == 1)
 					pci_devices_count++;

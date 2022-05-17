@@ -3,12 +3,13 @@
 
 #include "stdint.h"
 
-#define PAGE_PRESENT 		0x1
-#define PAGE_WRITABLE 		0x2
+#define PAGE_PRESENT 		    0x1
+#define PAGE_WRITABLE 		    0x2
 #define PAGE_USER_ACCESSIBLE 	0x4
-#define PAGE_HUGE 		0x80
-#define PAGE_GLOBAL 		0x100
-#define PAGE_STACK_GUARD	0x200
+#define PAGE_HUGE 		        0x80
+#define PAGE_GLOBAL 		    0x100
+#define PAGE_STACK_GUARD	    0x200
+#define PAGE_DMA                (1 << 5)
 
 #define PAGE_ENTRY_NBR  0x200
 #define INDEX_MASK      0x1FF
@@ -29,13 +30,17 @@ typedef struct PACKED {
     table_entry_t entries[512]; 
 } page_table_t;
 
+//Базовая корневая страница 4-го уровня ядра
 page_table_t* get_kernel_pml4();
 
-//Maps page with specified virtual address
+page_table_t* new_page_table();
+//Создать виртуальную страницу с указанным адресом и назначить ей указанный физический
+void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
+//Создать виртуальную страницу с указанным адресом
 void map_page(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
-
-void unmap_page(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
-
+//Удалить виртуальную страницу
+int unmap_page(page_table_t* root, uintptr_t virtual_addr);
+//Получить физический адрес из виртуального для указанной корневой таблицы
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
 
 int is_mapped(page_table_t* root, uintptr_t virtual_addr);

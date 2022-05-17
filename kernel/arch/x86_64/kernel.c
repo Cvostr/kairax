@@ -16,6 +16,16 @@
 #include "boot/multiboot.h"
 #include "string.h"
 
+void threaded(){
+	while(1){
+		for(int i = 0; i < 100000000; i ++){
+			asm volatile("nop");
+		}
+
+		printf("aa ");
+	}
+}
+
 void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	clear_console();
 	print_string("Kairax Kernel v0.1\n");
@@ -30,28 +40,27 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_interrupts_handler();
 	init_ints_keyboard();
 	
+	init_pmm();
+
 	load_pci_devices_list();
 	printf("PCI devices %i\n", get_pci_devices_count());	
 
 	uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL | PAGE_USER_ACCESSIBLE;
-	init_pmm();
+	
 
 	page_table_t* pt = (void*)0x608000;
 	map_page(get_kernel_pml4(), (uint64_t)(15ull*1024*1024*1024), pageFlags);
 	map_page(get_kernel_pml4(), (uint64_t)0xDEADBEAF, pageFlags);
-	//switch_pml4(V2P(get_kernel_pml4()));
 
   	//uint64_t* p = (uint64_t *) (0xDEADBEAF);
-	uint64_t* p = (uint64_t *) (15ull*1024*1024*1024);
+	char* p = (char *) (15ull*1024*1024*1024);
 	memcpy(p, "this text is in 15G offset\n", 28);
 	print_string(p);
 
+	unmap_page(get_kernel_pml4(), (uint64_t)0xDEADBEAF);
+
 	printf("%i\n", get_physical_address(get_kernel_pml4(), 15ull*1024*1024*1024));
 	printf("%i\n", get_physical_address(get_kernel_pml4(), 0xDEADBEAF));
-
-	printf("IS MAPPED %i\n", is_mapped(get_kernel_pml4(), 0xDEADBEAF));
-
-	print_string("Paging\n");
 
 	ahci_init();	
 	

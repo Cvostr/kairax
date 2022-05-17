@@ -3,6 +3,20 @@
 
 #include "stdint.h"
 
+#define AHCI_DEV_NULL 0
+#define AHCI_DEV_SATA 1
+#define AHCI_DEV_SEMB 2
+#define AHCI_DEV_PM 3
+#define AHCI_DEV_SATAPI 4
+
+#define HBA_PORT_IPM_ACTIVE 1
+#define HBA_PORT_DET_PRESENT 3
+
+#define	SATA_SIG_ATA	0x00000101	// SATA drive
+#define	SATA_SIG_ATAPI	0xEB140101	// SATAPI drive
+#define	SATA_SIG_SEMB	0xC33C0101	// Enclosure management bridge
+#define	SATA_SIG_PM	    0x96690101	// Port multiplier
+
 typedef enum
 {
 	FIS_TYPE_REG_HOST_TO_DEV	= 0x27,	// Register FIS - host to device
@@ -189,20 +203,20 @@ typedef volatile struct __attribute__((packed))
 typedef volatile struct __attribute__((packed))
 {
 	// 0x00 - 0x2B, Generic Host Control
-	uint32 cap;		// 0x00, Host capability
-	uint32 ghc;		// 0x04, Global host control
-	uint32 is;		// 0x08, Interrupt status
-	uint32 pi;		// 0x0C, Port implemented
-	uint32 vs;		// 0x10, Version
-	uint32 ccc_ctl;	// 0x14, Command completion coalescing control
-	uint32 ccc_pts;	// 0x18, Command completion coalescing ports
+	uint32 cap;		    // 0x00, Host capability
+	uint32 ghc;		    // 0x04, Global host control
+	uint32 is;		    // 0x08, Interrupt status
+	uint32 pi;		    // 0x0C, Port implemented
+	uint32 vs;		    // 0x10, Version
+	uint32 ccc_ctl;	    // 0x14, Command completion coalescing control
+	uint32 ccc_pts;	    // 0x18, Command completion coalescing ports
 	uint32 em_loc;		// 0x1C, Enclosure management location
 	uint32 em_ctl;		// 0x20, Enclosure management control
 	uint32 cap2;		// 0x24, Host capabilities extended
 	uint32 bohc;		// 0x28, BIOS/OS handoff control and status
 	uint8  reserved[0xA0-0x2C];
 	uint8  vendor[0x100-0xA0];
-	HBA_PORT	ports[1];	// 1 ~ 32
+	HBA_PORT	ports[32];	// 1 ~ 32
 } HBA_MEMORY;
 
 typedef volatile struct __attribute__((packed))
