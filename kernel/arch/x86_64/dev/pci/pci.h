@@ -40,6 +40,12 @@ typedef struct PACKED {
 
 uint16_t pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 
+uint32_t pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
+
+void pci_config_write32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset, uint32_t data);
+
+void pci_enable_busmaster(pci_device_desc* device);
+
 int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc);
 
 void load_pci_devices_list();

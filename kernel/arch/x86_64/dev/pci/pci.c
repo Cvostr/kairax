@@ -11,6 +11,8 @@
 #define PCI_BAR_64 0x04
 #define PCI_BAR_PREFETCH 0x08
 
+#define PCI_DEV_BUSMASTER_ENABLE 0x00000004
+
 static pci_device_desc pci_devices_descs[MAX_PCI_DEVICES];
 int pci_devices_count = 0;
 
@@ -52,6 +54,12 @@ void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_ind
 
 	*mask = pci_config_read32(bus, device, func, offset);
 	pci_config_write32(bus, device, func, offset, *address);
+}
+
+void pci_enable_busmaster(pci_device_desc* device){
+	uint32_t cmd = pci_config_read16(device->bus, device->device, device->function, 0x4);
+	cmd |= PCI_DEV_BUSMASTER_ENABLE;
+	pci_config_write32(device->bus, device->device, device->function, 0x4, cmd);
 }
 
 int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc){
@@ -111,7 +119,7 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 				bar_ptr->flags = mask & 0xf;
 			}
 
-			//uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL | PAGE_DMA ;
+			//uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_UNCACHED;
 			//map_page(get_kernel_pml4(), bar_ptr->address, pageFlags);
 
 		}

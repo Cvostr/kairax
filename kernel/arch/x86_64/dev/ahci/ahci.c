@@ -88,6 +88,11 @@ void ahci_init(){
 
 			HBA_MEMORY* mem1 = (HBA_MEMORY*)device_desc->BAR[5].address;
 
+			uint64_t pageFlags = PAGE_WRITE_THROUGH | PAGE_WRITABLE | PAGE_UNCACHED | PAGE_PRESENT;
+			map_page(get_kernel_pml4(), mem1, pageFlags);
+
+			pci_enable_busmaster(device_desc);
+
 			mem1->ghc |= (uint32_t)1 << 31 | 1 << 1;
     		mem1->bohc |= 1 << 1;
 

@@ -16,6 +16,8 @@
 #include "boot/multiboot.h"
 #include "string.h"
 
+#include "proc/thread_scheduler.h"
+
 void threaded(){
 	while(1){
 		for(int i = 0; i < 100000000; i ++){
@@ -62,8 +64,10 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	printf("%i\n", get_physical_address(get_kernel_pml4(), 15ull*1024*1024*1024));
 	printf("%i\n", get_physical_address(get_kernel_pml4(), 0xDEADBEAF));
 
-	ahci_init();	
+	//ahci_init();	
 	
+	init_scheduler();
+
 	while(1){
 	
 	}

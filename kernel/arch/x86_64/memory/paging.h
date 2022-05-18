@@ -9,7 +9,8 @@
 #define PAGE_HUGE 		        0x80
 #define PAGE_GLOBAL 		    0x100
 #define PAGE_STACK_GUARD	    0x200
-#define PAGE_DMA                (1 << 5)
+#define PAGE_WRITE_THROUGH      0x8
+#define PAGE_UNCACHED           (1 << 4)
 
 #define PAGE_ENTRY_NBR  0x200
 #define INDEX_MASK      0x1FF
