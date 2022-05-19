@@ -11,7 +11,8 @@
 #define PCI_BAR_64 0x04
 #define PCI_BAR_PREFETCH 0x08
 
-#define PCI_DEV_BUSMASTER_ENABLE 0x00000004
+#define PCI_DEV_BUSMASTER_ENABLE 0x4
+#define PCI_DEV_MSA_ENABLE 0x2
 
 static pci_device_desc pci_devices_descs[MAX_PCI_DEVICES];
 int pci_devices_count = 0;
@@ -58,7 +59,8 @@ void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_ind
 
 void pci_enable_busmaster(pci_device_desc* device){
 	uint32_t cmd = pci_config_read16(device->bus, device->device, device->function, 0x4);
-	cmd |= PCI_DEV_BUSMASTER_ENABLE;
+	printf("CMD %i\n", cmd);
+	cmd |= (PCI_DEV_BUSMASTER_ENABLE | PCI_DEV_MSA_ENABLE);
 	pci_config_write32(device->bus, device->device, device->function, 0x4, cmd);
 }
 
@@ -128,8 +130,8 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 		device_desc->cardbus_ptr = pci_config_read32(bus, device, func, 0x28);
 
 		uint16_t interrupts = pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
-		device_desc->interrupt_line = (uint8_t)(cache_latency & 0xFF);
-		device_desc->interrupt_pin = (uint8_t)((cache_latency >> 8) & 0xFF);
+		device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
+		device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
 
 		return 1;
 	}

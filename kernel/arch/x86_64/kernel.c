@@ -20,11 +20,22 @@
 
 void threaded(){
 	while(1){
-		for(int i = 0; i < 100000000; i ++){
+		for(int i = 0; i < 10000000; i ++){
+			asm volatile("nop");
+		}
+		for(int i = 0; i < 3; i ++){
+			printf("thread 1 - %i \n", i);
+		}
+	}
+}
+
+void threaded2(){
+	while(1){
+		for(int i = 0; i < 10000000; i ++){
 			asm volatile("nop");
 		}
 
-		printf("aa ");
+		printf("thread 2 \n");
 	}
 }
 
@@ -66,9 +77,14 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 
 	//ahci_init();	
 	
+	thread_t* thr = create_new_thread(NULL, threaded);
+	thread_t* thr2 = create_new_thread(NULL, threaded2);
+	
+
 	init_scheduler();
 
-	while(1){
-	
-	}
+	add_thread(thr);
+	add_thread(thr2);
+
+	start_scheduler();
 }

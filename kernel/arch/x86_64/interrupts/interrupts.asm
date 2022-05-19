@@ -16,6 +16,7 @@ idt_descriptors:
 	resb 4096
 
 extern int_handler ;Обработчик прерываний
+extern scheduler_handler ;Обработчик прерываний
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
@@ -56,10 +57,7 @@ extern int_handler ;Обработчик прерываний
     pop rax
 %endmacro
 
-;;;
-; isr_stub()
-; called by the separate isr handlers. Gives a
-; uniform method of handling an isr
+
 section .text
 isr_stub:
     ; Поместить все 64-битные регистры в стек
@@ -96,7 +94,47 @@ isr_stub:
     ; And pop all the registers
     popaq
     add rsp, 16 ; Pops the error number off the stack
-    ;add rsp, 16 ; Pops the interrupt number off the stack
+    iretq
+
+section .text
+isr_stub_sc:
+    ; Поместить все 64-битные регистры в стек
+    pushaq
+    ; Push all the data segments (Stack alignment is kept because all segments add up to 64-bits here)
+    mov ax, ds
+    push ax
+    mov ax, es
+    push ax
+    mov ax, fs
+    push ax
+    mov ax, gs
+    push ax
+    ; Load the kernel data segments
+    mov ax, KERNEL_DATA_SEG
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    ;push rsp
+    ; And we get into it
+    mov rdi, rsp
+    cld
+    call scheduler_handler
+
+    ;pop rsp
+	;nop
+    ; Pop all the data segments
+    pop ax
+    mov ax, gs
+    pop ax
+    mov ax, fs
+    pop ax
+    mov ax, es
+    pop ax
+    mov ax, ds
+    ; And pop all the registers
+    popaq
     iretq
 
 ; We'll start by making all of our ISRs. From 0 to 255
@@ -126,10 +164,17 @@ isr_%1:
     jmp isr_stub ; And go to the isr_stub
 %endmacro
 
+isr_32:
+    cli
+    jmp isr_stub_sc ; And go to the isr_stub
+
 ; Create all 256 interrupt vectors.
 %assign i 0
 %rep 256
+    %if i != 32
     isr_wrapper i
+    %endif
+
     %assign i i+1
 %endrep
 

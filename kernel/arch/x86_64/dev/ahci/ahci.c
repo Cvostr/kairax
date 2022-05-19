@@ -2,7 +2,8 @@
 #include "ahci_defines.h"
 #include "stdio.h"
 #include "io.h"
-#include "memory/hh_offset.h"
+#include "interrupts/handle/handler.h"
+#include "interrupts/pic.h"
 
 #include "memory/paging.h"
 
@@ -72,6 +73,12 @@ void probe_port(HBA_MEMORY *abar)
 	}
 }
 
+void ahci_int_handler(interrupt_frame_t* frame){
+	
+    printf("TIMER ");
+
+	pic_eoi(11);
+}
 
 void ahci_init(){
 	//найти необходимое PCI устройство
@@ -80,18 +87,22 @@ void ahci_init(){
 		pci_device_desc* device_desc = &get_pci_devices_descs()[device_i];
 
 		if(device_desc->device_class == 0x1 && device_desc->device_subclass == 0x6 && device_desc->prog_if == 0x01){
-			printf("SATA - AHCI controller found on bus: %i, device: %i func: %i command %i \n", 
+			printf("SATA - AHCI controller found on bus: %i, device: %i func: %i command %i IRQ: %i \n", 
 			device_desc->bus,
 			device_desc->device,
 			device_desc->function,
-			device_desc->command);
+			device_desc->command,
+			device_desc->interrupt_line);
+
+			register_interrupt_handler(0x20 + 11, ahci_int_handler);
+    		pic_unmask(0x20 + 11);
 
 			HBA_MEMORY* mem1 = (HBA_MEMORY*)device_desc->BAR[5].address;
 
-			uint64_t pageFlags = PAGE_WRITE_THROUGH | PAGE_WRITABLE | PAGE_UNCACHED | PAGE_PRESENT;
-			map_page(get_kernel_pml4(), mem1, pageFlags);
-
 			pci_enable_busmaster(device_desc);
+
+			uint64_t pageFlags = PAGE_WRITABLE | PAGE_UNCACHED | PAGE_PRESENT;
+			map_page(get_kernel_pml4(), mem1, pageFlags);
 
 			mem1->ghc |= (uint32_t)1 << 31 | 1 << 1;
     		mem1->bohc |= 1 << 1;

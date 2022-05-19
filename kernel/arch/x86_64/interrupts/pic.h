@@ -37,7 +37,7 @@
 
 #define PIC_EOI 0x20
 //необходимо вызывать после каждого IRQ прерывания
-static inline void pic_eoi(uint8 irq)
+static inline void pic_eoi(uint8_t irq)
 {
     if(irq >= 0x8) //Если прерывание относится ко второму контроллеру (Slave), то необходимо сбросить оба
         outb(PORT_PIC_SLAVE_CMD, PIC_EOI);
@@ -47,8 +47,8 @@ static inline void pic_eoi(uint8 irq)
 //Инициализация PIC
 void init_pic(void);
 //Разрешить прерывание IRQ
-void pic_unmask(uint8 irq);
+void pic_unmask(uint8_t irq);
 
-void pic_mask(uint8 irq);
+void pic_mask(uint8_t irq);
 
 #endif
