@@ -4,8 +4,8 @@
 #include "stdint.h"
 
 typedef struct PACKED {
-	uintptr_t 	address;
-	size_t 		size;
+	uintptr_t 		address;
+	size_t 			size;
 	uint32_t 		flags;
 }pci_bar_t;
 
@@ -38,13 +38,21 @@ typedef struct PACKED {
 	uint8_t 		interrupt_pin;
 } pci_device_desc;
 
+#define PCI_DEVCMD_BUSMASTER_ENABLE 0x4
+#define PCI_DEVCMD_MSA_ENABLE 0x2
+#define PCI_DEVCMP_INTERRUPTS_DISABLE (1 << 10)
+
 uint16_t pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 
 uint32_t pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 
 void pci_config_write32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset, uint32_t data);
 
-void pci_enable_busmaster(pci_device_desc* device);
+uint16_t pci_get_command_reg(pci_device_desc* device);
+
+void pci_set_command_reg(pci_device_desc* device, uint16_t flags);
+
+void pci_device_set_enable_interrupts(pci_device_desc* device, int enable);
 
 int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc);
 

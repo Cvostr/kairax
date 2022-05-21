@@ -48,4 +48,11 @@ static inline uint16_t inw(uint16_t port)
 static inline void io_wait(void){
 	outb(0x80, 0);
 }
+
+static inline void io_delay(unsigned long long microseconds)
+{
+    for (unsigned long long i = 0; i < microseconds; ++i)
+        inb(0x80);
+}
+
 #endif

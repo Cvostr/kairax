@@ -23,6 +23,7 @@ gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exception
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
 gcc $GCC_ARGS $x64_SRC/memory/pmm.c -o ./bin/pmm.o
 gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging.o
+gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/pci/pci.c -o ./bin/pci.o
 gcc $GCC_ARGS $x64_SRC/dev/ahci/ahci.c -o ./bin/ahci.o

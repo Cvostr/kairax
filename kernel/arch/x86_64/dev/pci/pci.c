@@ -11,9 +11,6 @@
 #define PCI_BAR_64 0x04
 #define PCI_BAR_PREFETCH 0x08
 
-#define PCI_DEV_BUSMASTER_ENABLE 0x4
-#define PCI_DEV_MSA_ENABLE 0x2
-
 static pci_device_desc pci_devices_descs[MAX_PCI_DEVICES];
 int pci_devices_count = 0;
 
@@ -48,6 +45,13 @@ void pci_config_write32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t off
 	outl(0xCFC, data);
 }
 
+void pci_config_write16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset, uint16_t data)
+{
+	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
+	outl(0xCF8, address);
+	outw(0xCFC, data);
+}
+
 void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_index, uint32_t* address, uint32_t* mask){
 	uint32_t offset = 0x10 + 4 * bar_index;
 	*address = pci_config_read32(bus, device, func, offset);
@@ -57,11 +61,23 @@ void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_ind
 	pci_config_write32(bus, device, func, offset, *address);
 }
 
-void pci_enable_busmaster(pci_device_desc* device){
-	uint32_t cmd = pci_config_read16(device->bus, device->device, device->function, 0x4);
-	printf("CMD %i\n", cmd);
-	cmd |= (PCI_DEV_BUSMASTER_ENABLE | PCI_DEV_MSA_ENABLE);
-	pci_config_write32(device->bus, device->device, device->function, 0x4, cmd);
+void pci_set_command_reg(pci_device_desc* device, uint16_t flags){
+	pci_config_write16(device->bus, device->device, device->function, 0x4, flags);
+}
+
+uint16_t pci_get_command_reg(pci_device_desc* device){
+	return pci_config_read16(device->bus, device->device, device->function, 0x4);
+}
+
+void pci_device_set_enable_interrupts(pci_device_desc* device, int enable){
+	uint16_t cmd = pci_get_command_reg(device);
+	if(enable > 0){
+		cmd = cmd & ~(PCI_DEVCMP_INTERRUPTS_DISABLE);
+	}else{
+		cmd = cmd | PCI_DEVCMP_INTERRUPTS_DISABLE;
+	}
+
+	pci_set_command_reg(device, cmd);
 }
 
 int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc){
@@ -132,6 +148,8 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 		uint16_t interrupts = pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
 		device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
 		device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
+
+		pci_device_set_enable_interrupts(device_desc, 0);
 
 		return 1;
 	}

@@ -4,7 +4,10 @@
 #include "io.h"
 #include "interrupts/handle/handler.h"
 #include "interrupts/pic.h"
-
+#include "stddef.h"
+#include "atomic.h"
+#include "memory/pmm.h"
+#include "string.h"
 #include "memory/paging.h"
 
 // Check device type
@@ -14,8 +17,6 @@ static int check_type(HBA_PORT *port)
  
 	uint8_t ipm = (ssts >> 8) & 0x0F;
 	uint8_t det = ssts & 0x0F;
- 
-	printf("SSTS %i IPM %i DET %i SIG %i", ssts, ipm, det, port->sig);
 
 	if (det != HBA_PORT_DET_PRESENT)	// Check drive status
 		return AHCI_DEV_NULL;
@@ -34,18 +35,16 @@ static int check_type(HBA_PORT *port)
 		return AHCI_DEV_SATA;
 	}
 }
-
-void probe_port(HBA_MEMORY *abar)
-{
+void ahci_controller_probe_ports(ahci_controller_t* controller){
+	HBA_MEMORY* hba_mem = controller->hba_mem;
 	// Search disk in implemented ports
-	uint32_t pi = abar->pi;
+	uint32_t pi = hba_mem->pi;
 	int i = 0;
 	while (i<32)
 	{
 		if (pi & 1)
 		{
-			int dt = check_type(&abar->ports[i]);
-			printf("DT %i ", dt);
+			int dt = check_type(&hba_mem->ports[i]);
 			if (dt == AHCI_DEV_SATA)
 			{
 				printf("SATA drive found at port %i\n", i);
@@ -75,9 +74,31 @@ void probe_port(HBA_MEMORY *abar)
 
 void ahci_int_handler(interrupt_frame_t* frame){
 	
-    printf("TIMER ");
+    printf("AHCI ");
 
 	pic_eoi(11);
+}
+
+int ahci_controller_reset(ahci_controller_t* controller){
+	controller->hba_mem->ghc = 1;
+
+    full_memory_barrier();
+    size_t retry = 0;
+
+    while (1) {
+        if (retry > 1000)
+            return 0;
+        if (!(controller->hba_mem->ghc & 1))
+            break;
+        io_delay(1000);
+        retry++;
+    }
+    
+    return 1;
+}
+
+void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller){
+	controller->hba_mem->ghc |= (1 << 1);
 }
 
 void ahci_init(){
@@ -91,26 +112,43 @@ void ahci_init(){
 			device_desc->bus,
 			device_desc->device,
 			device_desc->function,
-			device_desc->command,
+			pci_get_command_reg(device_desc),
 			device_desc->interrupt_line);
+
+			ahci_controller_t* controller = (ahci_controller_t*)alloc_page();
+			memset(controller, 0, sizeof(ahci_controller_t));
+
+			controller->pci_device = device_desc;
+			controller->hba_mem = 0x2234560000;
+			//Включить прерывания, DMA и MSA
+			pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
+			pci_device_set_enable_interrupts(device_desc, 1);
+
+			//создать виртуальную страницу с адресом BAR5 
+			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
+			map_page_mem(get_kernel_pml4(), controller->hba_mem, device_desc->BAR[5].address, pageFlags);
+
+
+			int reset = ahci_controller_reset(controller);
+			if(!reset){
+				printf("AHCI controller reset failed !\n");
+			}
+			
+			printf("AHCI controller version %i\n", controller->hba_mem->version);
+			
+			
 
 			register_interrupt_handler(0x20 + 11, ahci_int_handler);
     		pic_unmask(0x20 + 11);
 
-			HBA_MEMORY* mem1 = (HBA_MEMORY*)device_desc->BAR[5].address;
+			ahci_controller_enable_interrupts_ghc(controller);
 
-			pci_enable_busmaster(device_desc);
+			uint32_t capabilities = controller->hba_mem->cap;
+    		uint32_t extended_capabilities = controller->hba_mem->cap2;
 
-			uint64_t pageFlags = PAGE_WRITABLE | PAGE_UNCACHED | PAGE_PRESENT;
-			map_page(get_kernel_pml4(), mem1, pageFlags);
+			printf("AHCI CAP %i %i\n", capabilities, extended_capabilities);
 
-			mem1->ghc |= (uint32_t)1 << 31 | 1 << 1;
-    		mem1->bohc |= 1 << 1;
-
-			printf("%i %i %i\n ", device_desc->BAR[5].address, device_desc->BAR[5].size, device_desc->BAR[5].flags);
-			probe_port(mem1);
+			ahci_controller_probe_ports(controller);
 		}
-
-
 	}
 }

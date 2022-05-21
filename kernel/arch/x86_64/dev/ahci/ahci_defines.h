@@ -196,7 +196,8 @@ typedef volatile struct __attribute__((packed))
 	uint32 ci;		// 0x38, command issue
 	uint32 sntf;		// 0x3C, SATA notification (SCR4:SNotification)
 	uint32 fbs;		// 0x40, FIS-based switch control
-	uint32 rsv1[11];	// 0x44 ~ 0x6F, Reserved
+    uint32 devslp;  // 0x44, Device sleep
+	uint32 rsv1[10];	// 0x44 ~ 0x6F, Reserved
 	uint32 vendor[4];	// 0x70 ~ 0x7F, vendor specific
 } HBA_PORT;
 
@@ -207,15 +208,16 @@ typedef volatile struct __attribute__((packed))
 	uint32 ghc;		    // 0x04, Global host control
 	uint32 is;		    // 0x08, Interrupt status
 	uint32 pi;		    // 0x0C, Port implemented
-	uint32 vs;		    // 0x10, Version
+	uint32 version;		    // 0x10, Version
 	uint32 ccc_ctl;	    // 0x14, Command completion coalescing control
 	uint32 ccc_pts;	    // 0x18, Command completion coalescing ports
 	uint32 em_loc;		// 0x1C, Enclosure management location
 	uint32 em_ctl;		// 0x20, Enclosure management control
 	uint32 cap2;		// 0x24, Host capabilities extended
 	uint32 bohc;		// 0x28, BIOS/OS handoff control and status
-	uint8  reserved[0xA0-0x2C];
-	uint8  vendor[0x100-0xA0];
+	uint8  reserved[52];
+    uint8   nvmhci[64];
+	uint8  vendor[96];
 	HBA_PORT	ports[32];	// 1 ~ 32
 } HBA_MEMORY;
 

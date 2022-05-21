@@ -21,7 +21,7 @@
 #define GET_2_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x15) & INDEX_MASK) 
 #define GET_1_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x0C) & INDEX_MASK) 
 #define GET_PAGE_OFFSET(x) ((uint64)(x) & (4096 - 0x1)) 
-#define GET_PAGE_FRAME(x)   (void*)(((uint64)(x) >> 12) << 12)
+#define GET_PAGE_FRAME(x)   (void*)((uint64)(x) & ~(0xFFF))
 
 typedef uintptr_t virtual_addr_t;
 typedef uintptr_t physical_addr_t;

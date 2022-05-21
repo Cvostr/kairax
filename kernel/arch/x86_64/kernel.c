@@ -17,10 +17,11 @@
 #include "string.h"
 
 #include "proc/thread_scheduler.h"
+#include "dev/cmos/cmos.h"
 
 void threaded(){
 	while(1){
-		for(int i = 0; i < 10000000; i ++){
+		for(int i = 0; i < 100000000; i ++){
 			asm volatile("nop");
 		}
 		for(int i = 0; i < 3; i ++){
@@ -59,32 +60,31 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	printf("PCI devices %i\n", get_pci_devices_count());	
 
 	uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL | PAGE_USER_ACCESSIBLE;
-	
+
+	cmos_datetime_t datetime = cmos_rtc_get_datetime();
+	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
 
 	page_table_t* pt = (void*)0x608000;
 	map_page(get_kernel_pml4(), (uint64_t)(15ull*1024*1024*1024), pageFlags);
-	map_page(get_kernel_pml4(), (uint64_t)0xDEADBEAF, pageFlags);
 
-  	//uint64_t* p = (uint64_t *) (0xDEADBEAF);
 	char* p = (char *) (15ull*1024*1024*1024);
 	memcpy(p, "this text is in 15G offset\n", 28);
 	print_string(p);
 
-	unmap_page(get_kernel_pml4(), (uint64_t)0xDEADBEAF);
-
-	printf("%i\n", get_physical_address(get_kernel_pml4(), 15ull*1024*1024*1024));
-	printf("%i\n", get_physical_address(get_kernel_pml4(), 0xDEADBEAF));
-
-	//ahci_init();	
+	ahci_init();	
 	
 	thread_t* thr = create_new_thread(NULL, threaded);
 	thread_t* thr2 = create_new_thread(NULL, threaded2);
 	
 
-	init_scheduler();
+	/*init_scheduler();
 
 	add_thread(thr);
 	add_thread(thr2);
 
-	start_scheduler();
+	start_scheduler();*/
+
+	while(1){
+
+	}
 }
