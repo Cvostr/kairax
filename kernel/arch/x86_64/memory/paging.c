@@ -6,9 +6,16 @@
 #include "stddef.h"
 
 extern page_table_t p4_table;
+page_table_t* root_pml4 = NULL;
 
 page_table_t* get_kernel_pml4(){
-    return (&p4_table);
+    if(root_pml4 == NULL)
+        return (&p4_table);
+    return root_pml4;
+}
+
+void set_kernel_pml4(page_table_t* pml4){
+    root_pml4 = pml4;
 }
 
 page_table_t* new_page_table(){

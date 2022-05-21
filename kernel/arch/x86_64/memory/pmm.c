@@ -11,19 +11,19 @@ uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
 
 void set_bit(uint64_t bit) {
-    bitmap[bit / 64] |=  (1ull << (bit % 64));
+    bitmap[bit / 64] |=  (1ULL << (bit % 64));
 }
 
 void unset_bit(uint64_t bit) {
-    bitmap[bit / 64] &= ~(1ull << (bit % 64));
+    bitmap[bit / 64] &= ~(1ULL << (bit % 64));
 }
 
 int test_bit(uint64_t bit)
 {
-    return (bitmap[bit / 64] & (1ull << (bit % 64)));
+    return (bitmap[bit / 64] & (1ULL << (bit % 64)));
 }
 
-uint64_t first_free_page()
+uint64_t find_free_page()
 {
 	uint64_t i = 0;
 	int bitpos;
@@ -48,30 +48,75 @@ uint64_t first_free_page()
 	return i;
 }
 
-uint64_t *alloc_page() {
-  	uint64_t addr;
+int find_free_pages(int pages) {
+  	int bitpos;
+  	uint64_t i = 0;
+  	int nfound = 0;
+  	while (i < MAX_BITMASK_DATA) {
+		//сначала пропускаем все полностью заполненные 64-битные блоки
+    	while (bitmap[i] == 0xFFFFFFFFFFFFFFFF) {
+    		i++;
+    	}
+		uint64_t bits = bitmap[i];
+		for (bitpos = 0; bitpos<64; bitpos++) {
+			if ((bits & 1) != 0) {
+				nfound = 0;
+				bits >>= 1;
+			} else {
+				nfound++;
+				if (pages == nfound) {
+					i = i * (sizeof(uint64_t) * 8) + bitpos - pages + 1;
+					return i;
+				}
+			}
+		}
+    	i++;   
+  	}
 
-  	uint64_t i = first_free_page();
-
-	if (i<0) {
-		return 0;
-	}
-
-	set_bit(i);
-
-	i *= PAGE_SIZE;
-	pages_used++;
-
-	return (uint64_t*)i;
+  return -1;
 }
 
-uintptr_t* alloc_pages(int pages){
+
+uintptr_t* alloc_page() {
+	//Найти номер первой свободной страницы
+  	uint64_t i = find_free_page();
+	if (i < 0) {
+		return NULL;
+	}
+	//Установить бит занятости страницы
+	set_bit(i);
+
+	pages_used++;
+	return (uintptr_t*)(i * PAGE_SIZE);
+}
+
+uintptr_t* alloc_pages(uint32_t pages){
+	uint64_t i = find_free_pages(pages);
+
+	if (i < 0) {
+		return NULL;
+	}
+	//Установить бит занятости нескольких страниц
+	for(uint32_t page_i = 0; page_i < pages; page_i ++){
+		set_bit(i + page_i);
+	}
 	
+	pages_used += pages;
+
+	return (uintptr_t*)(i * PAGE_SIZE);
 }
 
 void free_page(uint64_t addr) { 
   	unset_bit(addr / PAGE_SIZE);
   	pages_used--;
+}
+
+void free_pages(uintptr_t* addr, uint32_t pages){
+	uint64_t page_index = ((uint64_t)addr) / PAGE_SIZE;
+	for(uint32_t page_i = 0; page_i < pages; page_i ++){
+		set_bit(page_index + page_i);
+	}
+	pages_used -= pages;
 }
 
 void set_mem_region(uint64_t offset, uint64_t size){

@@ -1,5 +1,6 @@
 #include "ahci_port.h"
 #include "memory/pmm.h"
+#include "string.h"
 
 static int get_device_type(HBA_PORT *port)
 {
@@ -28,8 +29,10 @@ static int get_device_type(HBA_PORT *port)
 
 ahci_port_t* initialize_port(uint32_t index, HBA_PORT* port_desc){
     ahci_device_type device_type = get_device_type(port_desc);
-
-    ahci_port_t* result = alloc_page();
+	if(device_type == 0)
+		return NULL;
+		
+    ahci_port_t* result = (ahci_port_t*)alloc_page();
     memset(result, 0, sizeof(ahci_port_t));
 
     result->port_reg = port_desc;
@@ -42,4 +45,12 @@ ahci_port_t* initialize_port(uint32_t index, HBA_PORT* port_desc){
     result->prd = (HBA_PRDT_ENTRY*)alloc_page();
 
     return result;
+}
+
+void ahci_port_power_on(ahci_port_t* port){
+	port->port_reg->cmd = port->port_reg->cmd | (1 << 2);
+}
+
+void ahci_port_spin_up(ahci_port_t* port){
+	port->port_reg->cmd = port->port_reg->cmd | (1 << 1);
 }

@@ -14,7 +14,8 @@ char text_buffer[BUFFER_SIZE]; //4000 chars
 int overstep = 0;
 
 volatile char* getTextVmemPtr(){
-	return (volatile char*)(P2V(0xB8000));
+	//return (volatile char*)(P2V(0xB8000));
+	return (volatile char*)(0xB8000);
 }
 
 void set_console_print_color(char color){

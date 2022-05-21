@@ -68,8 +68,14 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	cmos_datetime_t datetime = cmos_rtc_get_datetime();
 	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
 
-	page_table_t* pt = (void*)0x608000;
-	map_page(get_kernel_pml4(), (uint64_t)(15ull*1024*1024*1024), pageFlags);
+	page_table_t* new_pt = new_page_table();
+	memcpy(new_pt, get_kernel_pml4(), 4096);
+	//for(uint32_t i = 0; i < 1024 * 1024 * 20; i += 4096){
+	//	map_page_mem(new_pt, i, i, PAGE_PRESENT | PAGE_WRITABLE);
+	//}
+	
+	map_page(new_pt, (uint64_t)(15ull*1024*1024*1024), pageFlags);
+	switch_pml4(new_pt);
 
 	char* p = (char *) (15ull*1024*1024*1024);
 	memcpy(p, "this text is in 15G offset\n", 28);
@@ -78,16 +84,19 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	ahci_init();	
 	init_nvme();
 	
-	thread_t* thr = create_new_thread(NULL, threaded);
+	process_t* proc = create_new_process();
+	process_brk(proc, (void *)0x10100);
+
+	thread_t* thr = create_new_thread(proc, threaded);
 	thread_t* thr2 = create_new_thread(NULL, threaded2);
 	
 
-	/*init_scheduler();
+	init_scheduler();
 
 	add_thread(thr);
 	add_thread(thr2);
 
-	start_scheduler();*/
+	start_scheduler();
 
 	while(1){
 

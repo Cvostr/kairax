@@ -19,6 +19,6 @@ typedef struct PACKED {
 
 process_t*  create_new_process();
 
-void        process_brk(process_t* process, void* addr);
+uintptr_t        process_brk(process_t* process, void* addr);
 
 #endif

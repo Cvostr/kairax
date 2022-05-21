@@ -10,11 +10,9 @@
 #include "string.h"
 #include "memory/paging.h"
 
-// Check device type
-
 void ahci_controller_probe_ports(ahci_controller_t* controller){
 	HBA_MEMORY* hba_mem = controller->hba_mem;
-	// Search disk in implemented ports
+	// Поиск дисков в доступных портах
 	uint32_t pi = hba_mem->pi;
 	uint32_t i = 0;
 	while (i<32)
@@ -23,7 +21,9 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 		{
 			HBA_PORT* hba_port = &hba_mem->ports[i]; 
 			ahci_port_t* port = initialize_port(i, hba_port);
-			/*int dt = check_type(&hba_mem->ports[i]);
+			controller->ports[i] = port;
+			
+			int dt = port->device_type;
 			if (dt == AHCI_DEV_SATA)
 			{
 				printf("SATA drive found at port %i\n", i);
@@ -43,7 +43,7 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 			else
 			{
 				printf("No drive found at port %i\n", i);
-			}*/
+			}
 		}
  
 		pi >>= 1;
@@ -106,7 +106,6 @@ void ahci_init(){
 			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
 			map_page_mem(get_kernel_pml4(), controller->hba_mem, device_desc->BAR[5].address, pageFlags);
 
-
 			int reset = ahci_controller_reset(controller);
 			if(!reset){
 				printf("AHCI controller reset failed !\n");
@@ -114,7 +113,7 @@ void ahci_init(){
 			
 			printf("AHCI controller version %i\n", controller->hba_mem->version);
 
-			register_interrupt_handler(0x20 + 11, ahci_int_handler);
+			/*register_interrupt_handler(0x20 + 11, ahci_int_handler);
     		pic_unmask(0x20 + 11);
 
 			ahci_controller_enable_interrupts_ghc(controller);
@@ -123,7 +122,7 @@ void ahci_init(){
     		uint32_t extended_capabilities = controller->hba_mem->cap2;
 
 			printf("AHCI CAP %i %i\n", capabilities, extended_capabilities);
-
+*/
 			ahci_controller_probe_ports(controller);
 		}
 	}

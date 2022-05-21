@@ -20,7 +20,6 @@ void remove_thread(thread_t* thread){
 }
 
 void scheduler_handler(thread_frame_t* frame){
-	
     if(prev_thread != NULL){
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
     }
@@ -33,6 +32,14 @@ void scheduler_handler(thread_frame_t* frame){
         curr_thread++;
         if(curr_thread >= threads_list->size)
             curr_thread = 0;
+
+        process_t* process = new_thread->process;
+        if(process != NULL){
+            //switch_pml4(process->pml4);
+        }else{
+            //page_table_t* pt = (void*)0x610000;
+            //switch_pml4(pt);
+        }
     }
 
 	pic_eoi(0);

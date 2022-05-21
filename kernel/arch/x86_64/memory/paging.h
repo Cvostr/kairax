@@ -34,6 +34,8 @@ typedef struct PACKED {
 //Базовая корневая страница 4-го уровня ядра
 page_table_t* get_kernel_pml4();
 
+void set_kernel_pml4(page_table_t* pml4);
+
 page_table_t* new_page_table();
 //Создать виртуальную страницу с указанным адресом и назначить ей указанный физический
 void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);

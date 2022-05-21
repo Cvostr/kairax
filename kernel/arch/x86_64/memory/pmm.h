@@ -7,10 +7,12 @@
 
 void init_pmm();
 
-uint64_t *alloc_page();
+uintptr_t* alloc_page();
 
-uintptr_t* alloc_pages(int pages);
+uintptr_t* alloc_pages(uint32_t pages);
 
 void free_page(uint64_t addr);
+
+void free_pages(uintptr_t* addr, uint32_t pages);
 
 #endif
