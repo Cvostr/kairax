@@ -5,9 +5,10 @@
 #include "interrupts/pic.h"
 #include "interrupts/handle/handler.h"
 #include "dev/keyboard/int_keyboard.h"
-#include "dev/pci/pci.h"
+#include "bus/pci/pci.h"
 
-#include "dev/ahci/ahci.h"
+#include "drivers/storage/ahci/ahci.h"
+#include "drivers/storage/nvme/nvme.h"
 
 #include "memory/hh_offset.h"
 #include "memory/pmm.h"
@@ -25,6 +26,9 @@ void threaded(){
 			asm volatile("nop");
 		}
 		for(int i = 0; i < 3; i ++){
+			for(int i = 0; i < 10000000; i ++){
+				asm volatile("nop");
+			}
 			printf("thread 1 - %i \n", i);
 		}
 	}
@@ -72,6 +76,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	print_string(p);
 
 	ahci_init();	
+	init_nvme();
 	
 	thread_t* thr = create_new_thread(NULL, threaded);
 	thread_t* thr2 = create_new_thread(NULL, threaded2);

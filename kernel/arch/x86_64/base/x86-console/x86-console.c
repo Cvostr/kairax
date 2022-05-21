@@ -4,10 +4,13 @@
 #include "string.h"
 #include "io.h"
 
+#define BUFFER_SIZE 4000 	//80 * 25 * 2
+#define BUFFER_LINE_SIZE 160	//80 * 2
+
 uint32_t passed_chars = 0;
 char text_printing_color = 0x07;
 
-char text_buffer[80 * 25 * 2]; //4000 chars
+char text_buffer[BUFFER_SIZE]; //4000 chars
 int overstep = 0;
 
 volatile char* getTextVmemPtr(){
@@ -42,7 +45,7 @@ void set_cursor_pos(int cursorx, int cursory){
 void clear_console(){
 	volatile char* vidptr = getTextVmemPtr();
 	int j = 0;
-  	while(j < 80 * 25 * 2){
+  	while(j < BUFFER_SIZE){
     		vidptr[j] = ' ';
 		vidptr[j+1] = text_printing_color;
 		j = j + 2;
@@ -51,11 +54,11 @@ void clear_console(){
 }
 
 void checkForRefill(){
-	if(passed_chars >= 80 * 25 * 2){
-		strncpy(&(text_buffer[0]), (char*)getTextVmemPtr() + 160, 4000 - 160);
+	if(passed_chars >= BUFFER_SIZE){
+		strncpy(&(text_buffer[0]), (char*)getTextVmemPtr() + BUFFER_LINE_SIZE, BUFFER_SIZE - BUFFER_LINE_SIZE);
 		clear_console();
-		strncpy((char*)getTextVmemPtr(), &(text_buffer[overstep]), 4000 - 160);
-		passed_chars = 4000 - 160;
+		strncpy((char*)getTextVmemPtr(), &(text_buffer[overstep]), BUFFER_SIZE - BUFFER_LINE_SIZE);
+		passed_chars = BUFFER_SIZE - BUFFER_LINE_SIZE;
 	}
 }
 
@@ -68,7 +71,7 @@ void print_char(char chr){
 		passed_chars += 2;
 		checkForRefill();
 	}else{
-		passed_chars += (160 - (passed_chars % 160)) - 2; //-2 means we avoid space
+		passed_chars += (BUFFER_LINE_SIZE - (passed_chars % BUFFER_LINE_SIZE)) - 2; //-2 means we avoid space
 		*step = ' ';
 		passed_chars += 2;
 		checkForRefill();

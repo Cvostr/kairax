@@ -11,40 +11,19 @@
 #include "memory/paging.h"
 
 // Check device type
-static int check_type(HBA_PORT *port)
-{
-	uint32_t ssts = port->ssts;
- 
-	uint8_t ipm = (ssts >> 8) & 0x0F;
-	uint8_t det = ssts & 0x0F;
 
-	if (det != HBA_PORT_DET_PRESENT)	// Check drive status
-		return AHCI_DEV_NULL;
-	if (ipm != HBA_PORT_IPM_ACTIVE)
-		return AHCI_DEV_NULL;
-
-	switch (port->sig)
-	{
-	case SATA_SIG_ATAPI:
-		return AHCI_DEV_SATAPI;
-	case SATA_SIG_SEMB:
-		return AHCI_DEV_SEMB;
-	case SATA_SIG_PM:
-		return AHCI_DEV_PM;
-	default:
-		return AHCI_DEV_SATA;
-	}
-}
 void ahci_controller_probe_ports(ahci_controller_t* controller){
 	HBA_MEMORY* hba_mem = controller->hba_mem;
 	// Search disk in implemented ports
 	uint32_t pi = hba_mem->pi;
-	int i = 0;
+	uint32_t i = 0;
 	while (i<32)
 	{
 		if (pi & 1)
 		{
-			int dt = check_type(&hba_mem->ports[i]);
+			HBA_PORT* hba_port = &hba_mem->ports[i]; 
+			ahci_port_t* port = initialize_port(i, hba_port);
+			/*int dt = check_type(&hba_mem->ports[i]);
 			if (dt == AHCI_DEV_SATA)
 			{
 				printf("SATA drive found at port %i\n", i);
@@ -64,7 +43,7 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 			else
 			{
 				printf("No drive found at port %i\n", i);
-			}
+			}*/
 		}
  
 		pi >>= 1;
@@ -108,11 +87,10 @@ void ahci_init(){
 		pci_device_desc* device_desc = &get_pci_devices_descs()[device_i];
 
 		if(device_desc->device_class == 0x1 && device_desc->device_subclass == 0x6 && device_desc->prog_if == 0x01){
-			printf("SATA - AHCI controller found on bus: %i, device: %i func: %i command %i IRQ: %i \n", 
+			printf("SATA - AHCI controller found on bus: %i, device: %i func: %i IRQ: %i \n", 
 			device_desc->bus,
 			device_desc->device,
 			device_desc->function,
-			pci_get_command_reg(device_desc),
 			device_desc->interrupt_line);
 
 			ahci_controller_t* controller = (ahci_controller_t*)alloc_page();
@@ -135,8 +113,6 @@ void ahci_init(){
 			}
 			
 			printf("AHCI controller version %i\n", controller->hba_mem->version);
-			
-			
 
 			register_interrupt_handler(0x20 + 11, ahci_int_handler);
     		pic_unmask(0x20 + 11);

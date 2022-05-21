@@ -137,9 +137,6 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 				bar_ptr->flags = mask & 0xf;
 			}
 
-			//uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_UNCACHED;
-			//map_page(get_kernel_pml4(), bar_ptr->address, pageFlags);
-
 		}
 
 		//Чтение 32х битного указателя на структуру cardbus
@@ -148,7 +145,7 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 		uint16_t interrupts = pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
 		device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
 		device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
-
+		//Отключение прерываний у устройства
 		pci_device_set_enable_interrupts(device_desc, 0);
 
 		return 1;

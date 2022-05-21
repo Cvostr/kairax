@@ -1,7 +1,7 @@
 #ifndef _AHCI_H
 #define _AHCI_H
 
-#include "dev/pci/pci.h"
+#include "bus/pci/pci.h"
 #include "ahci_defines.h"
 
 #define AHCI_CAPABILITY_64BIT       (uint32_t)(1 << 31)
@@ -20,15 +20,12 @@
 #define AHCI_CAPABILITY_EX_NVMHCI           (1 << 1)
 #define AHCI_CAPABILITY_EX_BHOFF            (1)
 
+#include "ahci_port.h"
+
 typedef struct PACKED {
     pci_device_desc* pci_device;
     HBA_MEMORY* hba_mem;
 } ahci_controller_t;
-
-typedef struct PACKED {
-    uint32_t index;
-    HBA_PORT* port;
-} ahci_device_t;
 
 int ahci_controller_reset(ahci_controller_t* controller);
 

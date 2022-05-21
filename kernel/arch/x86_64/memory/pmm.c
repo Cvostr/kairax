@@ -65,6 +65,10 @@ uint64_t *alloc_page() {
 	return (uint64_t*)i;
 }
 
+uintptr_t* alloc_pages(int pages){
+	
+}
+
 void free_page(uint64_t addr) { 
   	unset_bit(addr / PAGE_SIZE);
   	pages_used--;

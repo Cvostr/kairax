@@ -27,7 +27,6 @@ thread_t* create_new_thread(process_t* process, void (*function)(void)){
     thread->context.gs = (selector);
     //поток в пространстве ядра
     thread->context.cs = 0x8;
-    thread->context.ds = 0x10;
     //Состояние
     thread->state = THREAD_CREATED;
 
