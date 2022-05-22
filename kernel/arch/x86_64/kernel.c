@@ -69,15 +69,15 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
 
 	page_table_t* new_pt = new_page_table();
-	memcpy(new_pt, get_kernel_pml4(), 4096);
-	//for(uint32_t i = 0; i < 1024 * 1024 * 20; i += 4096){
-	//	map_page_mem(new_pt, i, i, PAGE_PRESENT | PAGE_WRITABLE);
-	//}
-	
-	map_page(new_pt, (uint64_t)(15ull*1024*1024*1024), pageFlags);
+	for(uint32_t i = 0; i <= 1024 * 1024 * 8; i += 4096){
+		map_page_mem(new_pt, i, i, PAGE_PRESENT | PAGE_WRITABLE);
+		map_page_mem(new_pt, 0xFFFFFFFF80000000 + i, i, PAGE_PRESENT | PAGE_WRITABLE);
+	}
 	switch_pml4(new_pt);
+	set_kernel_pml4(new_pt);
 
 	char* p = (char *) (15ull*1024*1024*1024);
+	map_page(new_pt, (uint64_t)(p), pageFlags);
 	memcpy(p, "this text is in 15G offset\n", 28);
 	print_string(p);
 
@@ -85,11 +85,11 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_nvme();
 	
 	process_t* proc = create_new_process();
-	process_brk(proc, (void *)0x10100);
+	process_brk(proc, (void *)0x31000);
+	copy_to_vm(proc->pml4, 0x10000, (void *)(uintptr_t)threaded, 200);
 
-	thread_t* thr = create_new_thread(proc, threaded);
+	thread_t* thr = create_new_thread(NULL, threaded);
 	thread_t* thr2 = create_new_thread(NULL, threaded2);
-	
 
 	init_scheduler();
 
@@ -97,6 +97,8 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	add_thread(thr2);
 
 	start_scheduler();
+
+	
 
 	while(1){
 

@@ -38,7 +38,7 @@ void scheduler_handler(thread_frame_t* frame){
             //switch_pml4(process->pml4);
         }else{
             //page_table_t* pt = (void*)0x610000;
-            //switch_pml4(pt);
+            //switch_pml4(get_kernel_pml4());
         }
     }
 

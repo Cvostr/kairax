@@ -2,7 +2,7 @@
 #include "string.h"
 #include "stdio.h"
 
-#define MAX_BITMASK_DATA 655356
+#define MAX_BITMASK_DATA 657356
 
 extern uintptr_t __KERNEL_START;
 extern uintptr_t __KERNEL_END;
@@ -48,7 +48,7 @@ uint64_t find_free_page()
 	return i;
 }
 
-int find_free_pages(int pages) {
+uint64_t find_free_pages(int pages) {
   	int bitpos;
   	uint64_t i = 0;
   	int nfound = 0;
@@ -139,4 +139,8 @@ void init_pmm(){
 	set_mem_region(0x0, 0x100000);
 
 	set_mem_region(0x100000, kernel_size);
+}
+
+uint64_t get_used_pages(){
+	return pages_used;
 }

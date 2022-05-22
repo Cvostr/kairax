@@ -39,8 +39,7 @@ void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t ph
     if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
         //Страница не существует
         //Выделить память под страницу
-        pdp_table = (page_table_t*)alloc_page();
-        memset(pdp_table, 0, 4096);
+        pdp_table = new_page_table();
         //Записать страницу в родительское дерево
         root->entries[level4_index] = ((uint64_t)pdp_table | flags);  
     }
@@ -49,9 +48,8 @@ void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t ph
 
     if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
         //Выделить память под страницу
-        pd_table = (page_table_t*)alloc_page();
-        memset(pd_table, 0, 4096);
-
+        pd_table = new_page_table();
+        //Записать страницу в родительское дерево
         pdp_table->entries[level3_index] = ((uint64_t)pd_table | flags);  
     }
 
@@ -59,9 +57,8 @@ void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t ph
 
     if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
         //Выделить память под страницу
-        pt_table = (page_table_t*)alloc_page();
-        memset(pt_table, 0, 4096);
-
+        pt_table = new_page_table();
+        //Записать страницу в родительское дерево
         pd_table->entries[level2_index] = ((uint64_t)pt_table | flags);  
     }
 
@@ -165,6 +162,19 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
     }
 
     return pt_table->entries[level1_index] & PAGE_PRESENT;
+}
+
+int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size){
+    int copied = 0;
+
+    for(size_t i = 0; i < size; i ++){
+        char* phys_addr = get_physical_address(root, dst + i);
+        //printf("%i", phys_addr);
+        if(phys_addr == NULL)
+            return copied;
+        *phys_addr = *(char*)src + i;
+    }
+    return copied;
 }
 
 void switch_pml4(page_table_t* pml4){
