@@ -1,11 +1,16 @@
 %include "memory/hh_offset.asm"
 
 global gdtptr
+global gdtptr_hh
 extern tss_size
 section .rodata
 gdtptr:
     dw gdt_end - gdt_start - 0x1
     dd V2P(gdt)
+
+gdtptr_hh:
+    dw gdt_end - gdt_start - 0x1
+    dq gdt
 
 section .data
 align 16
@@ -48,7 +53,7 @@ gdt_user_data: equ $ - gdt_start   ; The user data descriptor.
     db 0     
 
 gdt_tss: equ $ - gdt_start
-    	dw tss_size                 ; Limit
+    dw tss_size                 ; Limit
 	dw 0x0                      ; Base (bytes 0-2)
 	db 0x0                      ; Base (byte 3)
 	db 10001001b                ; Type, present

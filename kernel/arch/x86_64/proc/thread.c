@@ -26,10 +26,13 @@ thread_t* create_new_thread(process_t* process, void (*function)(void)){
     thread->context.es = (selector);
     thread->context.fs = (selector);
     thread->context.gs = (selector);
+    thread->context.ss = (selector);
     //поток в пространстве ядра
     thread->context.cs = 0x8;
     //Состояние
     thread->state = THREAD_CREATED;
+
+    //printf("%i ", V2P(ctx->rip));
 
     return P2V(thread);
 }

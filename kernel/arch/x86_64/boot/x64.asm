@@ -4,6 +4,7 @@ bits 64
 
 global init_x64
 extern kernel_stack_top
+extern gdtptr_hh
 extern kmain
 
 section .text
@@ -18,6 +19,8 @@ init_x64:
     mov gs, ax              ; G-segment
     mov ss, ax              ; stack segment
 
+    mov ebx, V2P(gdtptr_hh)
+    lgdt [ebx]
     mov rsp, kernel_stack_top
     lea rax, [kmain]
     call rax

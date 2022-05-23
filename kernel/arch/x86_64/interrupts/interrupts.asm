@@ -116,14 +116,11 @@ isr_stub_sc:
     mov fs, ax
     mov gs, ax
 
-    ;push rsp
     ; And we get into it
     mov rdi, rsp
     cld
     call scheduler_handler
 
-    ;pop rsp
-	;nop
     ; Pop all the data segments
     pop ax
     mov ax, gs
@@ -135,6 +132,7 @@ isr_stub_sc:
     mov ax, ds
     ; And pop all the registers
     popaq
+    ;mov rax, 0xdeadbeef
     iretq
 
 ; We'll start by making all of our ISRs. From 0 to 255

@@ -19,8 +19,10 @@
 
 #include "proc/thread_scheduler.h"
 #include "dev/cmos/cmos.h"
+#include "dev/acpi/acpi.h"
 
 void threaded(){
+	//asm volatile("hlt");
 	while(1){
 		for(int i = 0; i < 100000000; i ++){
 			asm volatile("nop");
@@ -29,7 +31,7 @@ void threaded(){
 			for(int i = 0; i < 10000000; i ++){
 				asm volatile("nop");
 			}
-			printf("thread 1 - %i \n", i);
+			printf(P2V("thread 1 - %i \n"), i);
 		}
 	}
 }
@@ -51,6 +53,8 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);
 	printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
 	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
+
+	acpi_init();
 
 	init_pic();
 	setup_idt();
@@ -95,7 +99,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_scheduler();
 
 	add_thread(thr);
-	add_thread(thr2);
+	//add_thread(thr2);
 
 	start_scheduler();
 

@@ -34,7 +34,7 @@ typedef struct PACKED {
     uint64_t rip; /*!< The program register prior to the interrupt call */
     uint64_t cs; /*!< The code segment prior to the interrupt call */
     uint64_t rflags; /*!< The rflags register prior to the interrupt call */
-    uint64_t userrsp; /*!< The stack pointer prior to the interrupt call */
+    uint64_t rsp; /*!< The stack pointer prior to the interrupt call */
     uint64_t ss; /*!< The stack segment selctor prior to the interrupt call */
 } interrupt_frame_t;
 

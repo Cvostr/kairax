@@ -23,4 +23,8 @@ void ahci_port_power_on(ahci_port_t* port);
 
 void ahci_port_spin_up(ahci_port_t* port);
 
+void ahci_port_activate_link(ahci_port_t* port);
+
+void ahci_enable_fis_receive_enable(ahci_port_t* port);
+
 #endif
