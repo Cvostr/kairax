@@ -6,11 +6,11 @@
 #include "stddef.h"
 
 extern page_table_t p4_table;
-page_table_t* root_pml4 = NULL;
+page_table_t* root_pml4 = &p4_table;
 
 page_table_t* get_kernel_pml4(){
-    if(root_pml4 == NULL)
-        return (&p4_table);
+    //if(root_pml4 == NULL)
+    //    return (&p4_table);
     return root_pml4;
 }
 

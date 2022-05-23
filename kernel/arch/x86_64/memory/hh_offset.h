@@ -1,5 +1,4 @@
-#define KERNEL_OFFSET 0xFFFFFF8000000000
-
+#define KERNEL_OFFSET 0xFFFFFFFF80000000
 
 #include "stdint.h"
 

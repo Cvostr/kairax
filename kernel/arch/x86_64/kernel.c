@@ -55,9 +55,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_pic();
 	setup_idt();
 
-	init_interrupts_handler();
-	init_ints_keyboard();
-	
+	init_interrupts_handler(); 
 	init_pmm();
 
 	load_pci_devices_list();
@@ -68,11 +66,13 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	cmos_datetime_t datetime = cmos_rtc_get_datetime();
 	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
 
+	uint64_t npageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	page_table_t* new_pt = new_page_table();
-	for(uint32_t i = 0; i <= 1024 * 1024 * 8; i += 4096){
-		map_page_mem(new_pt, i, i, PAGE_PRESENT | PAGE_WRITABLE);
-		map_page_mem(new_pt, 0xFFFFFFFF80000000 + i, i, PAGE_PRESENT | PAGE_WRITABLE);
+	for(uintptr_t i = 0; i <= 1024 * 1024 * 32; i += 4096){
+		map_page_mem(new_pt, i, i, npageFlags);
+		map_page_mem(new_pt, P2V(i), i, npageFlags);
 	}
+	
 	switch_pml4(new_pt);
 	set_kernel_pml4(new_pt);
 
@@ -85,11 +85,12 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_nvme();
 	
 	process_t* proc = create_new_process();
-	process_brk(proc, (void *)0x31000);
-	copy_to_vm(proc->pml4, 0x10000, (void *)(uintptr_t)threaded, 200);
+	process_t* proc1 = create_new_process();
+	//process_brk(proc, (void *)0x1100000);
+	//copy_to_vm(proc->pml4, 0x10000, (void *)(uintptr_t)threaded, 200);
 
-	thread_t* thr = create_new_thread(NULL, threaded);
-	thread_t* thr2 = create_new_thread(NULL, threaded2);
+	thread_t* thr = create_new_thread(proc, threaded);
+	thread_t* thr2 = create_new_thread(proc1, threaded2);
 
 	init_scheduler();
 
