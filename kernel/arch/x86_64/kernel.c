@@ -96,12 +96,13 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	thread_t* thr = create_new_thread(proc, threaded);
 	thread_t* thr2 = create_new_thread(proc1, threaded2);
 
-	init_scheduler();
+	/*init_scheduler();
 
 	add_thread(thr);
-	//add_thread(thr2);
+	add_thread(thr2);
 
-	start_scheduler();
+	start_scheduler();*/
+	
 
 	
 

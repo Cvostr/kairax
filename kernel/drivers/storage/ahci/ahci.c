@@ -20,30 +20,7 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 		if (pi & 1)
 		{
 			HBA_PORT* hba_port = &hba_mem->ports[i]; 
-			ahci_port_t* port = initialize_port(i, hba_port);
-			controller->ports[i] = port;
-			
-			int dt = port->device_type;
-			if (dt == AHCI_DEV_SATA)
-			{
-				printf("SATA drive found at port %i\n", i);
-			}
-			else if (dt == AHCI_DEV_SATAPI)
-			{
-				printf("SATAPI drive found at port %i\n", i);
-			}
-			else if (dt == AHCI_DEV_SEMB)
-			{
-				printf("SEMB drive found at port %i\n", i);
-			}
-			else if (dt == AHCI_DEV_PM)
-			{
-				printf("PM drive found at port %i\n", i);
-			}
-			else
-			{
-				printf("No drive found at port %i\n", i);
-			}
+			ahci_port_t* port = initialize_port(&controller->ports[i], i, hba_port);
 		}
  
 		pi >>= 1;
@@ -97,7 +74,7 @@ void ahci_init(){
 			memset(controller, 0, sizeof(ahci_controller_t));
 
 			controller->pci_device = device_desc;
-			controller->hba_mem = 0x2234560000;
+			controller->hba_mem = device_desc->BAR[5].address;
 			//Включить прерывания, DMA и MSA
 			pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			pci_device_set_enable_interrupts(device_desc, 1);
@@ -124,6 +101,45 @@ void ahci_init(){
 			printf("AHCI CAP %i %i\n", capabilities, extended_capabilities);
 */
 			ahci_controller_probe_ports(controller);
+
+			for(int i = 0; i < 6; i ++){
+				int dt = controller->ports[i].device_type;
+				if (dt == AHCI_DEV_SATA)
+				{
+					printf("SATA drive found at port %i", i);
+				}
+				else if (dt == AHCI_DEV_SATAPI)
+				{
+					printf("SATAPI drive found at port %i\n", i);
+				}
+				else if (dt == AHCI_DEV_SEMB)
+				{
+					printf("SEMB drive found at port %i\n", i);
+				}
+				else if (dt == AHCI_DEV_PM)
+				{
+					printf("PM drive found at port %i\n", i);
+				}
+				else
+				{
+					printf("No drive found at port %i\n", i);
+					continue;
+				}
+				switch (controller->ports[i].speed) {
+					case 1:
+						printf(" link speed 1.5Gb/s\n", __func__, i);
+						break;
+					case 2:
+						printf(" link speed 3.0Gb/s\n", __func__, i);
+						break;
+					case 3:
+						printf(" link speed 6.0Gb/s\n", __func__, i);
+						break;
+					default:
+						printf(" link speed unrestricted\n", __func__, i);
+						break;
+				}
+			}
 		}
 	}
 }

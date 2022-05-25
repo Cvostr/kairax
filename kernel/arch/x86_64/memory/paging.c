@@ -164,6 +164,22 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
     return pt_table->entries[level1_index] & PAGE_PRESENT;
 }
 
+virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count){
+    for(virtual_addr_t addr = 0; addr < MAX_PAGES_4; addr += PAGE_SIZE){
+        if(!is_mapped(root, addr)){
+            int free = 0;
+            for(virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; addr += PAGE_SIZE){
+                if(!is_mapped(root, saddr)){
+                    free++;
+                    if(free = pages_count)
+                        return addr;
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
 int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size){
     int copied = 0;
 

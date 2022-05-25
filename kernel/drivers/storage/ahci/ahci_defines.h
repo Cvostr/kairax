@@ -19,8 +19,10 @@ typedef uint32_t ahci_device_type;
 #define	SATA_SIG_SEMB	0xC33C0101	// Enclosure management bridge
 #define	SATA_SIG_PM	    0x96690101	// Port multiplier
 
+#define HBA_PORT_SPD_MASK		0x000000f0	// Interface speed
+
 #define COMMAND_LIST_ENTRY_COUNT 32
-#define PRD_TABLE_ENTRY_COUNT 168
+#define PRD_TABLE_ENTRY_COUNT COMMAND_LIST_ENTRY_COUNT * 8 //8 per each cmdslot
 
 typedef enum
 {
@@ -238,11 +240,11 @@ typedef volatile struct PACKED
     uint8_t clear_on_ok : 1;
     uint8_t reserved : 1;
     uint8_t port_multiplier : 4;
-    uint16_t physical_region_descriptor_count;
-    uint32_t physical_region_decriptor_byte_transferred;
+    uint16_t prdtl;
+    volatile uint32_t prdbc;
 
-    uint32_t command_table_descriptor_low;
-    uint32_t command_table_descriptor_up;
+    uint32_t ctdba_low;
+    uint32_t ctdba_up;
 
     uint32_t reserved1[4];
 } HBA_COMMAND;
@@ -262,7 +264,7 @@ typedef struct PACKED
 	uint8_t  cfis[64];	// Command FIS
 	uint8_t  acmd[16];	// ATAPI command, 12 or 16 bytes
 	uint8_t  reserved[48];	    
-	HBA_PRDT_ENTRY	prdt_entry[1];	// Physical region descriptor table entries, 0 ~ 65535
+	HBA_PRDT_ENTRY	prdt_entry[8];	// Physical region descriptor table entries, 0 ~ 65535
 } HBA_COMMAND_TABLE;
 
 #endif

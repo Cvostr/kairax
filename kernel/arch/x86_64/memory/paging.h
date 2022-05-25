@@ -2,6 +2,7 @@
 #define _PAGING_H
 
 #include "stdint.h"
+#include "hh_offset.h"
 
 #define PAGE_PRESENT 		    0x1
 #define PAGE_WRITABLE 		    0x2
@@ -11,9 +12,12 @@
 #define PAGE_STACK_GUARD	    0x200
 #define PAGE_WRITE_THROUGH      0x8
 #define PAGE_UNCACHED           0b10000
+#define PAGE_EXEC_DISABLE       (1ULL << 63)
 
 #define PAGE_ENTRY_NBR  0x200
 #define INDEX_MASK      0x1FF
+
+#define MAX_PAGES_4     (512 * 512 * 512 * 512)
 
 //получить из 48-битного виртуального адреса индекс записи в таблице 4-го уровня (0x27 = 39)
 #define GET_4_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x27) & INDEX_MASK) 
@@ -47,6 +51,8 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr);
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
 //Проверить, создана ли запись для указанного виртуального адреса
 int is_mapped(page_table_t* root, uintptr_t virtual_addr);
+
+virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count);
 
 int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size);
 //Переключить текущую 4х уровневую таблицу страниц

@@ -26,7 +26,6 @@ void scheduler_handler(thread_frame_t* frame){
     if(prev_thread != NULL){
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
     }
-    
     thread_t* new_thread = list_get(threads_list, curr_thread);
     //printf(" %i", V2P(new_thread));
     if(new_thread != NULL){
@@ -39,7 +38,7 @@ void scheduler_handler(thread_frame_t* frame){
 
         process_t* process = new_thread->process;
         if(process != NULL){
-            switch_pml4(process->pml4);
+            //switch_pml4(process->pml4);
         }else{
             //switch_pml4(get_kernel_pml4());
         }

@@ -1,4 +1,5 @@
 qemu-system-x86_64 -m 2G -cdrom os.iso -d int \
+			-smp 4 \
 			-drive id=disk,file=drive.img,if=none,format=raw \
  			-device ahci,id=ahci \
 			-device nvme,serial=deadbeef \
