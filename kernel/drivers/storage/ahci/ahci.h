@@ -25,7 +25,6 @@
 typedef struct PACKED {
     pci_device_desc*    pci_device;
     HBA_MEMORY*         hba_mem;
-
     ahci_port_t        ports[32];
 } ahci_controller_t;
 
@@ -34,6 +33,10 @@ int ahci_controller_reset(ahci_controller_t* controller);
 void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller);
 
 void ahci_controller_probe_ports(ahci_controller_t* controller);
+
+void ahci_controller_get_capabilities(ahci_controller_t* controller, uint32_t* capabilities, uint32_t* capabilities_ext);
+
+uint32_t ahci_controller_get_version(ahci_controller_t* controller);
 
 void ahci_init();
 

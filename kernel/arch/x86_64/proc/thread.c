@@ -34,5 +34,5 @@ thread_t* create_new_thread(process_t* process, void (*function)(void)){
 
     //printf("%i ", V2P(ctx->rip));
 
-    return P2V(thread);
+    return (thread_t*)(P2V(thread));
 }

@@ -31,7 +31,7 @@ void threaded(){
 			for(int i = 0; i < 10000000; i ++){
 				asm volatile("nop");
 			}
-			printf(P2V("thread 1 - %i \n"), i);
+			printf("thread 1 - %i \n", i);
 		}
 	}
 }
@@ -55,11 +55,15 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
 
 	acpi_init();
+	for(uint32_t i = 0; i < acpi_get_cpus_apic_count(); i ++){
+		printf("APIC on CPU %i Id : %i \n", acpi_get_cpus_apic()[i]->acpi_cpu_id, acpi_get_cpus_apic()[i]->apic_id);
+	}
 
 	init_pic();
 	setup_idt();
 
 	init_interrupts_handler(); 
+	init_ints_keyboard();
 	init_pmm();
 
 	load_pci_devices_list();
@@ -80,14 +84,10 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	switch_pml4(new_pt);
 	set_kernel_pml4(new_pt);
 
-	char* p = (char *) (15ull*1024*1024*1024);
-	map_page(new_pt, (uint64_t)(p), pageFlags);
-	memcpy(p, "this text is in 15G offset\n", 28);
-	print_string(p);
-
 	ahci_init();	
 	init_nvme();
-	
+
+
 	process_t* proc = create_new_process();
 	process_t* proc1 = create_new_process();
 	//process_brk(proc, (void *)0x1100000);
@@ -96,13 +96,13 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	thread_t* thr = create_new_thread(proc, threaded);
 	thread_t* thr2 = create_new_thread(proc1, threaded2);
 
-	/*init_scheduler();
+	init_scheduler();
 
 	add_thread(thr);
 	add_thread(thr2);
 
-	start_scheduler();*/
-	
+	//start_scheduler();
+
 
 	
 

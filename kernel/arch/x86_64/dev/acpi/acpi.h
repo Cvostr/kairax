@@ -16,6 +16,12 @@ typedef struct PACKED {
     uint8_t     reserved[3];
 } acpi_rsdp_t;
 
+acpi_fadt_t* acpi_get_fadt();
+
+uint32_t acpi_get_cpus_apic_count();
+
+apic_local_cpu_t** acpi_get_cpus_apic();
+
 void acpi_parse_apic_madt(acpi_madt_t* madt);
 
 int acpi_init();

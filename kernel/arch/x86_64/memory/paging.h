@@ -42,9 +42,9 @@ void set_kernel_pml4(page_table_t* pml4);
 
 page_table_t* new_page_table();
 //Создать виртуальную страницу с указанным адресом и назначить ей указанный физический
-void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
+void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
 //Создать виртуальную страницу с указанным адресом
-void map_page(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
+void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags);
 //Удалить виртуальную страницу
 int unmap_page(page_table_t* root, uintptr_t virtual_addr);
 //Получить физический адрес из виртуального для указанной корневой таблицы

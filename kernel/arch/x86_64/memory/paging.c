@@ -24,7 +24,7 @@ page_table_t* new_page_table(){
     return table;
 }
 
-void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags){
+void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags){
     //Вычисление индексов страниц
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
@@ -70,7 +70,7 @@ void map_page_mem(page_table_t* root, uintptr_t virtual_addr, physical_addr_t ph
     }
 }
 
-void map_page(page_table_t* root, uintptr_t virtual_addr, uint64_t flags) {
+void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags) {
     map_page_mem(root, virtual_addr, (physical_addr_t)alloc_page(), flags);
 }
 

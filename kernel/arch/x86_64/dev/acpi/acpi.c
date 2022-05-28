@@ -8,11 +8,25 @@
 acpi_rsdp_t acpi_rsdp;
 
 acpi_fadt_t* acpi_fadt;
-
 acpi_madt_t* acpi_apic;
 
+#define MAX_CPU_COUNT 8
+uint32_t            cpus_apic_count = 0;
+apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
+
+acpi_fadt_t* acpi_get_fadt(){
+    return acpi_fadt;
+}
+
+uint32_t acpi_get_cpus_apic_count(){
+    return cpus_apic_count;
+}
+
+apic_local_cpu_t** acpi_get_cpus_apic(){
+    return cpus_apic;
+}
+
 void acpi_parse_apic_madt(acpi_madt_t* madt){
-    printf("APIC on addr %i \n", madt);
     acpi_apic = madt;
 
     uint8_t *p = (uint8_t *)(madt + 1);
@@ -27,7 +41,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
         case 0:
             //Это контроллер для одного из ядер процессора
             apic_local_cpu_t* cpu_apic = (apic_local_cpu_t*)p;
-            printf("APIC on CPU %i \n", cpu_apic->acpi_cpu_id);
+            cpus_apic[cpus_apic_count++] = cpu_apic;
             break;
         
         default:
@@ -40,6 +54,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
 
 void acpi_parse_dt(acpi_header_t* dt)
 {
+    map_page_mem(V2P(get_kernel_pml4()), dt, dt, PAGE_PRESENT);
     uint32_t signature = dt->signature;
 
     if (signature == 0x50434146)
@@ -48,7 +63,7 @@ void acpi_parse_dt(acpi_header_t* dt)
     }
     else if (signature == 0x43495041)
     {
-        acpi_parse_apic_madt(dt);
+        acpi_parse_apic_madt((acpi_madt_t*)dt);
     }
 }
 

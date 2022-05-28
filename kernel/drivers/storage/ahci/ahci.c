@@ -57,6 +57,15 @@ void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller){
 	controller->hba_mem->ghc |= (1 << 1);
 }
 
+void ahci_controller_get_capabilities(ahci_controller_t* controller, uint32_t* capabilities, uint32_t* capabilities_ext){
+	*capabilities = controller->hba_mem->cap;
+	*capabilities_ext = controller->hba_mem->cap2;
+}
+
+uint32_t ahci_controller_get_version(ahci_controller_t* controller){
+	return controller->hba_mem->version;
+}
+
 void ahci_init(){
 	//найти необходимое PCI устройство
 	int pci_devices_count = get_pci_devices_count();
@@ -87,26 +96,35 @@ void ahci_init(){
 			if(!reset){
 				printf("AHCI controller reset failed !\n");
 			}
-			
-			printf("AHCI controller version %i\n", controller->hba_mem->version);
 
-			/*register_interrupt_handler(0x20 + 11, ahci_int_handler);
+			register_interrupt_handler(0x20 + 11, ahci_int_handler);
     		pic_unmask(0x20 + 11);
 
 			ahci_controller_enable_interrupts_ghc(controller);
 
-			uint32_t capabilities = controller->hba_mem->cap;
-    		uint32_t extended_capabilities = controller->hba_mem->cap2;
-
-			printf("AHCI CAP %i %i\n", capabilities, extended_capabilities);
-*/
 			ahci_controller_probe_ports(controller);
 
-			for(int i = 0; i < 6; i ++){
+			for(int i = 0; i < 7; i ++){
+				if(controller->ports[i].implemented == 0)
+					continue;
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
 					printf("SATA drive found at port %i", i);
+
+					char* wr = "HELLO WORLD";
+					//ahci_port_write_lba48(&controller->ports[i], 0, 0, 1, V2P(wr));
+
+					for(int si = 0; si < 2000; si++){
+						uint8_t data[512];
+						ahci_port_read_lba48(&controller->ports[i], si, 0, 1, V2P(data));
+						for(int pi = 0; pi < 256; pi ++){
+							printf("%c", data[pi]);
+						}
+						for(int ii = 0; ii < 1000000000; ii ++){
+							asm volatile("nop");
+						}
+					}
 				}
 				else if (dt == AHCI_DEV_SATAPI)
 				{

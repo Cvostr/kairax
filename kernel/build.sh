@@ -52,4 +52,6 @@ gcc $GCC_ARGS drivers/storage/nvme/nvme.c -o ./bin/nvme.o
 #generic sync
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 
+gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
+
 ld -n -o kernel.bin -T ./arch/x86_64/link.ld bin/*.o

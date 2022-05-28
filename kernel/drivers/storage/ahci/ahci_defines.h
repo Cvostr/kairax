@@ -19,10 +19,15 @@ typedef uint32_t ahci_device_type;
 #define	SATA_SIG_SEMB	0xC33C0101	// Enclosure management bridge
 #define	SATA_SIG_PM	    0x96690101	// Port multiplier
 
+#define AHCI_DEV_BUSY 0x80
+#define AHCI_DEV_DRQ 0x08
+
 #define HBA_PORT_SPD_MASK		0x000000f0	// Interface speed
 
 #define COMMAND_LIST_ENTRY_COUNT 32
 #define PRD_TABLE_ENTRY_COUNT COMMAND_LIST_ENTRY_COUNT * 8 //8 per each cmdslot
+
+#define HBA_PxIS_TFE            (1 << 30)
 
 typedef enum
 {
@@ -82,11 +87,11 @@ typedef volatile struct PACKED
     uint8_t reserved : 3;
     uint8_t cmd_ctrl : 1; //Если 1 - то команда, 0 - управление
     uint8_t command;
-    uint8_t feature_1;
+    uint8_t feature_l;
     uint8_t lba[3];
     uint8_t device;
     uint8_t lba2[3];
-    uint8_t feature_2;
+    uint8_t feature_h;
 
     uint8_t count_l;
     uint8_t count_h;
@@ -230,7 +235,7 @@ typedef volatile struct PACKED
 
 typedef volatile struct PACKED
 {
-    uint8_t command_len : 5; // multiplied by 4 byte
+    uint8_t cmd_fis_len : 5; // multiplied by 4 byte
     uint8_t atapi : 1;
     uint8_t write : 1;
     uint8_t prefetchable : 1;
