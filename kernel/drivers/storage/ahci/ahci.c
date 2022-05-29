@@ -9,6 +9,7 @@
 #include "memory/pmm.h"
 #include "string.h"
 #include "memory/paging.h"
+#include "mem/kheap.h"
 
 void ahci_controller_probe_ports(ahci_controller_t* controller){
 	HBA_MEMORY* hba_mem = controller->hba_mem;
@@ -79,7 +80,7 @@ void ahci_init(){
 			device_desc->function,
 			device_desc->interrupt_line);
 
-			ahci_controller_t* controller = (ahci_controller_t*)alloc_page();
+			ahci_controller_t* controller = (ahci_controller_t*)kmalloc(sizeof(ahci_controller_t));
 			memset(controller, 0, sizeof(ahci_controller_t));
 
 			controller->pci_device = device_desc;
@@ -140,7 +141,7 @@ void ahci_init(){
 				}
 				else
 				{
-					printf("No drive found at port %i\n", i);
+					//printf("No drive found at port %i\n", i);
 					continue;
 				}
 				switch (controller->ports[i].speed) {

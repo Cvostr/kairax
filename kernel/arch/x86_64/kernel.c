@@ -13,6 +13,7 @@
 #include "memory/hh_offset.h"
 #include "memory/pmm.h"
 #include "memory/paging.h"
+#include "mem/kheap.h"
 
 #include "boot/multiboot.h"
 #include "string.h"
@@ -20,6 +21,8 @@
 #include "proc/thread_scheduler.h"
 #include "dev/cmos/cmos.h"
 #include "dev/acpi/acpi.h"
+
+#define KHEAP_PAGES_SIZE 1024
 
 void threaded(){
 	//asm volatile("hlt");
@@ -83,6 +86,9 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	
 	switch_pml4(new_pt);
 	set_kernel_pml4(new_pt);
+
+	virtual_addr_t addr = get_first_free_pages(new_pt, KHEAP_PAGES_SIZE);
+	kheap_init(addr, addr + KHEAP_PAGES_SIZE * 4096, 4096);
 
 	ahci_init();	
 	init_nvme();

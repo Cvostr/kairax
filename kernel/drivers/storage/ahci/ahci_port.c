@@ -221,7 +221,6 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	{
 		// In some longer duration reads, it may be helpful to spin on the DPS bit 
 		// in the PxIS port field as well (1 << 5)
-		printf("\nREADING %i", hba_port->ci);
 		if ((hba_port->ci & (1 << slot)) == 0) 
 			break;
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
@@ -310,7 +309,6 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	{
 		// In some longer duration reads, it may be helpful to spin on the DPS bit 
 		// in the PxIS port field as well (1 << 5)
-		printf("\nWriting %i", hba_port->ci);
 		if ((hba_port->ci & (1 << slot)) == 0) 
 			break;
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error

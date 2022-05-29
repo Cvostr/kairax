@@ -17,15 +17,15 @@
 #define PAGE_ENTRY_NBR  0x200
 #define INDEX_MASK      0x1FF
 
-#define MAX_PAGES_4     (512 * 512 * 512 * 512)
+#define MAX_PAGES_4     (1ULL << 36)
 
 //получить из 48-битного виртуального адреса индекс записи в таблице 4-го уровня (0x27 = 39)
-#define GET_4_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x27) & INDEX_MASK) 
-#define GET_3_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x1E) & INDEX_MASK)
-#define GET_2_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x15) & INDEX_MASK) 
-#define GET_1_LEVEL_PAGE_INDEX(x) ((((uint64)(x)) >> 0x0C) & INDEX_MASK) 
-#define GET_PAGE_OFFSET(x) ((uint64)(x) & (4096 - 0x1)) 
-#define GET_PAGE_FRAME(x)   (void*)((uint64)(x) & ~(0xFFF))
+#define GET_4_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x27) & INDEX_MASK) 
+#define GET_3_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x1E) & INDEX_MASK)
+#define GET_2_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x15) & INDEX_MASK) 
+#define GET_1_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x0C) & INDEX_MASK) 
+#define GET_PAGE_OFFSET(x)        ((uint64_t)(x) & (4096 - 0x1)) 
+#define GET_PAGE_FRAME(x)         (void*)((uint64_t)(x) & ~(0xFFF))
 
 typedef uintptr_t virtual_addr_t;
 typedef uintptr_t physical_addr_t;

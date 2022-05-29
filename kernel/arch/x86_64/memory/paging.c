@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "hh_offset.h"
 #include "stddef.h"
+#include "stdio.h"
 
 extern page_table_t p4_table;
 page_table_t* root_pml4 = &p4_table;
@@ -115,22 +116,22 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
 
     //printf("%i %i %i %i", level4_index, level3_index, level2_index, level1_index);
     if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
-        return 0x0;
+        return NULL;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
-        return 0x0;  
+        return NULL;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
-        return 0x0;
+        return NULL;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
-        return 0x0;
+        return NULL;
     }
 
     return pt_table->entries[level1_index] + offset;
@@ -142,24 +143,21 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
 
-    if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
+    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
         return FALSE;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
-    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))){
         return FALSE;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))){
         return FALSE;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
-    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
-        return FALSE;
-    }
 
     return pt_table->entries[level1_index] & PAGE_PRESENT;
 }
@@ -168,11 +166,14 @@ virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count){
     for(virtual_addr_t addr = 0; addr < MAX_PAGES_4; addr += PAGE_SIZE){
         if(!is_mapped(root, addr)){
             int free = 0;
-            for(virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; addr += PAGE_SIZE){
+            for(virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; saddr += PAGE_SIZE){
                 if(!is_mapped(root, saddr)){
                     free++;
-                    if(free = pages_count)
+                    if(free = pages_count){
                         return addr;
+                    }
+                }else{
+                    break;
                 }
             }
         }

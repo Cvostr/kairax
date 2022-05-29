@@ -15,22 +15,23 @@ struct kheap_item
 typedef struct kheap_item kheap_item_t;
 
 typedef struct {
-    virtual_addr_t kheap_start;
-    virtual_addr_t kheap_end;
-
-    kheap_item_t*  kheap_item_head;
-    kheap_item_t*  kheap_item_tail;
-
-    uint64_t allocated_pages;
-    uint64_t allocated_memory;
+    uint64_t start_vaddr;
+    uint64_t end_vaddr;
+    uint64_t ceil_vaddr;
+    kheap_item_t* head;
+    kheap_item_t* tail;
 } kheap_t;
 
-int kheap_init(virtual_addr_t kheap_start);
+int kheap_init(uint64_t start_vaddr, uint64_t ceil_vaddr, uint64_t initial_size);
 
-void* kheap_alloc(uint64_t size);
+kheap_item_t* heap_allocate_memory(uint64_t size);
 
-void* kheap_alloc_aligned(uint64_t size, uint64_t alignment);
+void heap_free_memory(kheap_item_t* seg);
 
-int kheap_free(void* address);
+void* kmalloc(uint64_t size);
+
+void kfree(void* mem);
+
+void print_seq();
 
 #endif
