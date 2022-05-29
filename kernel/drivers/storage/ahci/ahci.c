@@ -114,6 +114,7 @@ void ahci_init(){
 					printf("SATA drive found at port %i", i);
 
 					char* wr = "HELLO WORLD";
+					ahci_port_identity(&controller->ports[i]);
 					//ahci_port_write_lba48(&controller->ports[i], 0, 0, 1, V2P(wr));
 
 					for(int si = 0; si < 2000; si++){

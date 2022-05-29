@@ -55,7 +55,7 @@ typedef enum
     FIS_CMD_DATA_MANAGEMENT     = 0x06,
     FIS_CMD_EJECT               = 0xed,
 
-    FIS_CMD_IDENTIFY_DEVICE     = 0xec,
+    FIS_CMD_IDENTIFY_DEVICE     = 0xEC,
     FIS_CMD_IDENTIFY_PACKET_DEVICE = 0xa1,
 
     FIS_CMD_READ_DMA            = 0xc8,

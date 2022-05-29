@@ -34,6 +34,8 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 
+int ahci_port_identity(ahci_port_t *port);
+
 void ahci_port_power_on(ahci_port_t* port);
 
 void ahci_port_spin_up(ahci_port_t* port);

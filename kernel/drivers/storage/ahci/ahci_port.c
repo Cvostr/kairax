@@ -152,10 +152,13 @@ void ahci_port_clear_error_register(ahci_port_t* port)
 	ahci_port_flush_posted_writes(port);
 }
 
-int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){
+int ahci_port_identity(ahci_port_t *port){
+	char buffer[512];
+	memset(buffer, 0, 512);
+
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
-	int spin = 0; // Spin lock timeout counter
+	int spin = 0; 
 	int slot = ahci_port_get_free_cmdslot(port);
 	if (slot == -1)
 		return 0;
@@ -164,7 +167,66 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	cmdheader += slot;
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
 	cmdheader->write = 0;		// Чтение с диска
-	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// PRDT entries count
+	cmdheader->prdtl = 1;		// количество PRDT
+	cmdheader->prefetchable = 1;
+	//cmdheader->prdbc = 512;
+
+	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);
+	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE));
+
+
+	cmdtbl->prdt_entry[0].dba = (uint32_t)V2P(buffer);
+	cmdtbl->prdt_entry[0].dbau = 0;
+	cmdtbl->prdt_entry[0].dbc = 512 - 1;
+	cmdtbl->prdt_entry[0].i = 1;
+
+
+	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
+	memset(cmdfis, 0, sizeof(FIS_HOST_TO_DEV));
+ 
+	cmdfis->fis_type = FIS_TYPE_REG_HOST_TO_DEV;
+	cmdfis->cmd_ctrl = 1;							// Команда
+	cmdfis->command = FIS_CMD_IDENTIFY_DEVICE;		// Команда идентификации
+	cmdfis->device = 0;
+	
+
+	while ((hba_port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000)
+	{
+		spin++;
+	}
+	if (spin == 1000000)
+	{
+		printf("Port is hung\n");
+		return 0;
+	}
+
+	hba_port->ci = (1 << slot);	// Issue command
+
+	while (1)
+	{
+		if ((hba_port->ci & (1 << slot)) == 0) 
+			break;
+		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
+		{
+			printf("Disk identity error\n");
+			return 0;
+		}
+	}
+}
+
+int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){
+	HBA_PORT* hba_port = port->port_reg;
+	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
+	int spin = 0; 
+	int slot = ahci_port_get_free_cmdslot(port);
+	if (slot == -1)
+		return 0;
+
+	HBA_COMMAND *cmdheader = (HBA_COMMAND*)hba_port->clb;
+	cmdheader += slot;
+	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
+	cmdheader->write = 0;									// Чтение с диска
+	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// необходимое количество PRDT
 	
 	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE) +
