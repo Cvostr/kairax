@@ -1,22 +1,17 @@
 #include "list.h"
-#include "memory/pmm.h"
+#include "mem/kheap.h"
 #include "stddef.h"
 
-void* malloc(int sz){
-    return alloc_page();
-}
-
 list_t* create_list(){
-    list_t* result = malloc(sizeof(list_t));
+    list_t* result = kmalloc(sizeof(list_t));
     result->size = 0;
     result->head = NULL;
     result->tail = NULL;
     return result;
 }
 
-
 void list_add(list_t* list, void* element){
-    list_node_t* new_node = malloc(sizeof(list_node_t));
+    list_node_t* new_node = kmalloc(sizeof(list_node_t));
     new_node->element = element;
     new_node->next = NULL;
 

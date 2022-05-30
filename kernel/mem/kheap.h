@@ -22,7 +22,9 @@ typedef struct {
     kheap_item_t* tail;
 } kheap_t;
 
-int kheap_init(uint64_t start_vaddr, uint64_t ceil_vaddr, uint64_t initial_size);
+int kheap_init_verbose(uint64_t start_vaddr, uint64_t ceil_vaddr, uint64_t initial_size);
+
+int kheap_init(uint64_t start_vaddr, uint64_t size);
 
 kheap_item_t* heap_allocate_memory(uint64_t size);
 

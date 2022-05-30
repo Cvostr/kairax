@@ -43,7 +43,7 @@ static uint64_t heap_expand(uint64_t size)
         return 0;
 
     pages_count = get_pages_count(new_size);
-    pages_paddr = alloc_pages(pages_count);
+    pages_paddr = (uint64_t)alloc_pages(pages_count);
     if (pages_paddr == 0)
         return 0;
     
@@ -86,7 +86,11 @@ static kheap_item_t* heap_next_free_segment(uint64_t size)
     return heap_next_free_segment(size);
 }
 
-int kheap_init(uint64_t start_vaddr, uint64_t ceil_vaddr, uint64_t initial_size)
+int kheap_init(uint64_t start_vaddr, uint64_t size){
+    kheap_init_verbose(start_vaddr, start_vaddr + size, 8192);
+}
+
+int kheap_init_verbose(uint64_t start_vaddr, uint64_t ceil_vaddr, uint64_t initial_size)
 {
     if (initial_size > ceil_vaddr - start_vaddr || initial_size < sizeof(kheap_item_t))
     {
@@ -105,7 +109,7 @@ int kheap_init(uint64_t start_vaddr, uint64_t ceil_vaddr, uint64_t initial_size)
     }
     kheap.head = kheap.tail;
 
-    printf("Kernel heap initialized at %i with size %i kB\n", kheap.start_vaddr, initial_size >> 10);
+    //printf("Kernel heap initialized at %i with size %i kB\n", kheap.start_vaddr, initial_size >> 10);
 
     return 0;
 }
@@ -154,7 +158,7 @@ void* kmalloc(uint64_t size){
 }
 
 void kfree(void* mem){
-    heap_free_memory(((char*)mem) - sizeof(kheap_item_t));
+    heap_free_memory(((kheap_item_t*)mem) - 1);
 }
 
 void print_seq(){

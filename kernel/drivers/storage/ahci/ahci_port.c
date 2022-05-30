@@ -4,7 +4,7 @@
 #include "memory/paging.h"
 #include "io.h"
 
-#define LO32(val) ((uint32_t)(val))
+#define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
 
 static int get_device_type(HBA_PORT *port)
@@ -152,8 +152,7 @@ void ahci_port_clear_error_register(ahci_port_t* port)
 	ahci_port_flush_posted_writes(port);
 }
 
-int ahci_port_identity(ahci_port_t *port){
-	char buffer[512];
+int ahci_port_identity(ahci_port_t *port, char* buffer){
 	memset(buffer, 0, 512);
 
 	HBA_PORT* hba_port = port->port_reg;
@@ -169,7 +168,7 @@ int ahci_port_identity(ahci_port_t *port){
 	cmdheader->write = 0;		// Чтение с диска
 	cmdheader->prdtl = 1;		// количество PRDT
 	cmdheader->prefetchable = 1;
-	//cmdheader->prdbc = 512;
+	cmdheader->prdbc = 512;
 
 	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE));
@@ -211,6 +210,31 @@ int ahci_port_identity(ahci_port_t *port){
 			printf("Disk identity error\n");
 			return 0;
 		}
+	}
+}
+
+uint32_t parse_identity_buffer(char* buffer, uint16_t* device_type, uint16_t* capabilities, uint32_t* cmd_sets, uint32_t* size, char* model){
+	*device_type = *((uint16_t*)(buffer + ATA_IDENT_DEVICETYPE));
+	*capabilities = *((uint16_t*)(buffer + ATA_IDENT_CAPABILITIES));
+	*cmd_sets =  *((uint32_t *)(buffer + ATA_IDENT_COMMANDSETS));
+
+	if (*cmd_sets & (1 << 26))
+        // 48 битный LBA
+        *size = *((uint32_t *)(buffer + ATA_IDENT_MAX_LBA_EXT));
+    else
+        // 28 битный CHS
+        *size = *((uint32_t *)(buffer + ATA_IDENT_MAX_LBA));
+
+	for (int k = 0; k < 40; k += 2) {
+        model[k] = buffer[ATA_IDENT_MODEL + k + 1];
+        model[k + 1] = buffer[ATA_IDENT_MODEL + k];
+    }
+	//удалить пробелы
+	for(int k = 39; k > 0; k --){
+		if(model[k] == ' ')
+			model[k] = '\0';
+		else 
+			break;
 	}
 }
 
@@ -298,7 +322,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 		printf("Read disk error\n");
 		return 0;
 	}
- 
+
 	return 1;
 }
 
@@ -313,7 +337,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	HBA_COMMAND *cmdheader = (HBA_COMMAND*)hba_port->clb;
 	cmdheader += slot;
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Command FIS size
-	cmdheader->write = 1;		// Write to device
+	cmdheader->write = 1;									// Запись на устройство
 	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// PRDT entries count
 	
 	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);

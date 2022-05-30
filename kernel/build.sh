@@ -48,6 +48,7 @@ gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o
 gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o
 gcc $GCC_ARGS drivers/storage/ahci/ahci_port.c -o ./bin/ahci_port.o
 gcc $GCC_ARGS drivers/storage/nvme/nvme.c -o ./bin/nvme.o
+gcc $GCC_ARGS drivers/storage/devices/storage_devices.c -o ./bin/storage_devices.o
 
 #generic fs
 gcc $GCC_ARGS fs/ext2/ext2.c -o ./bin/ext2.o

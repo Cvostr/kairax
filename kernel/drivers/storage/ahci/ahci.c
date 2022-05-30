@@ -10,6 +10,7 @@
 #include "string.h"
 #include "memory/paging.h"
 #include "mem/kheap.h"
+#include "drivers/storage/devices/storage_devices.h"
 
 void ahci_controller_probe_ports(ahci_controller_t* controller){
 	HBA_MEMORY* hba_mem = controller->hba_mem;
@@ -111,22 +112,22 @@ void ahci_init(){
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
-					printf("SATA drive found at port %i", i);
+					printf("SATA drive found at port %i, ", i);
 
-					char* wr = "HELLO WORLD";
-					ahci_port_identity(&controller->ports[i]);
-					//ahci_port_write_lba48(&controller->ports[i], 0, 0, 1, V2P(wr));
+					char identity_buffer[512];
+					ahci_port_identity(&controller->ports[i], identity_buffer);
 
-					for(int si = 0; si < 2000; si++){
-						uint8_t data[512];
-						ahci_port_read_lba48(&controller->ports[i], si, 0, 1, V2P(data));
-						for(int pi = 0; pi < 256; pi ++){
-							printf("%c", data[pi]);
-						}
-						for(int ii = 0; ii < 1000000000; ii ++){
-							asm volatile("nop");
-						}
-					}
+					drive_device_header_t* drive_header = new_drive_device_header();
+
+					uint16_t type, capabilities;
+					uint32_t cmd_sets;
+					parse_identity_buffer(identity_buffer, &type, &capabilities, &cmd_sets, &drive_header->sectors, drive_header->model);
+					drive_header->uses_lba48 = cmd_sets & (1 << 26);
+					drive_header->bytes = drive_header->sectors * 512;
+					drive_header->ident = &controller->ports[i];
+					drive_header->write = ahci_port_write_lba48;
+					drive_header->read = ahci_port_read_lba48;
+					add_storage_device(drive_header);
 				}
 				else if (dt == AHCI_DEV_SATAPI)
 				{

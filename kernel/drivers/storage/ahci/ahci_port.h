@@ -13,6 +13,18 @@
 #define HBA_PxCMD_FRE           0x0010
 #define HBA_PxCMD_CR            0x8000
 
+#define ATA_IDENT_DEVICETYPE   0
+#define ATA_IDENT_CYLINDERS    2
+#define ATA_IDENT_HEADS        6
+#define ATA_IDENT_SECTORS      12
+#define ATA_IDENT_SERIAL       20
+#define ATA_IDENT_MODEL        54
+#define ATA_IDENT_CAPABILITIES 98
+#define ATA_IDENT_FIELDVALID   106
+#define ATA_IDENT_MAX_LBA      120
+#define ATA_IDENT_COMMANDSETS  164
+#define ATA_IDENT_MAX_LBA_EXT  200
+
 typedef struct PACKED {
     uint32_t            implemented;
     uint32_t            index;
@@ -34,7 +46,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 
-int ahci_port_identity(ahci_port_t *port);
+int ahci_port_identity(ahci_port_t *port, char* buffer);
 
 void ahci_port_power_on(ahci_port_t* port);
 
@@ -50,7 +62,8 @@ static inline void ahci_port_flush_posted_writes(ahci_port_t* port)
 {
 	volatile uint32_t dummy = port->port_reg->cmd;
 	dummy = dummy;
-
 }
+
+uint32_t parse_identity_buffer(char* buffer, uint16_t* device_type, uint16_t* capabilities, uint32_t* cmd_sets, uint32_t* size, char* model);
 
 #endif
