@@ -25,6 +25,10 @@ void list_add(list_t* list, void* element){
     list->size++;
 }
 
+void list_remove(list_t* list, void* element){
+    
+}
+
 void* list_get(list_t* list, unsigned int i){
     list_node_t* current = list->head;
     for(unsigned int _i = 0; _i < i; _i++){

@@ -1,7 +1,7 @@
 #include "exceptions_handler.h"
 #include "handler.h"
 #include "stdlib.h"
-#include "x86-console/x86-console.h"
+#include "stdio.h"
 
 void exception_handler(interrupt_frame_t* frame); //; прототип
 
@@ -49,11 +49,7 @@ void register_exceptions_handlers(){
 }
 
 void exception_handler(interrupt_frame_t* frame){
-	print_string("Exception occured 0x");
-	print_string(itoa(frame->int_no, 16));
-	print_string(" (");
-	print_string(exception_message[frame->int_no]);
-	print_string(")\n");
-	print_string("Kernel terminated. Please reboot your computer");
+    printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
+    itoa(frame->int_no, 16), exception_message[frame->int_no]);
 	asm volatile("hlt");
 }

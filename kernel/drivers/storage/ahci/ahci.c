@@ -8,6 +8,7 @@
 #include "atomic.h"
 #include "memory/pmm.h"
 #include "string.h"
+#include "stdlib.h"
 #include "memory/paging.h"
 #include "mem/kheap.h"
 #include "drivers/storage/devices/storage_devices.h"
@@ -125,6 +126,12 @@ void ahci_init(){
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
 					drive_header->bytes = drive_header->sectors * 512;
 					drive_header->ident = &controller->ports[i];
+					
+					strcpy(drive_header->name, "ahci");
+					strcat(drive_header->name, itoa(0, 10));
+					strcat(drive_header->name, "n");
+					strcat(drive_header->name, itoa(i, 10));
+					
 					drive_header->write = ahci_port_write_lba48;
 					drive_header->read = ahci_port_read_lba48;
 					add_storage_device(drive_header);

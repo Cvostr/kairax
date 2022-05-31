@@ -25,3 +25,21 @@ uint32_t get_drive_devices_count(){
 drive_device_header_t** get_drive_devices(){
     return devices_headers;
 }
+
+uint32_t drive_device_read( drive_device_header_t* drive,
+                            uint32_t start_sector_low,
+                            uint32_t start_sector_high,
+                            uint32_t end_sector,
+                            char* buffer)
+{
+    return drive->read(drive->ident, start_sector_low, start_sector_high, end_sector, buffer);
+}
+
+uint32_t drive_device_write(drive_device_header_t* drive,
+                            uint32_t start_sector_low,
+                            uint32_t start_sector_high,
+                            uint32_t end_sector,
+                            char* buffer)
+{
+    return drive->write(drive->ident, start_sector_low, start_sector_high, end_sector, buffer);
+}

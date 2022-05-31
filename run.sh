@@ -1,8 +1,10 @@
-qemu-system-x86_64 -m 2G -cdrom os.iso -d int \
+qemu-system-x86_64 -m 2G -d int \
 			-smp 4 \
 			-drive id=disk,file=drive.img,if=none,format=raw \
+			-drive id=bootdisk,file=os.iso,if=none \
  			-device ahci,id=ahci \
 			-device nvme,serial=deadbeef \
- 			-device ide-hd,drive=disk,bus=ahci.0 \
+ 			-device ide-hd,drive=disk,bus=ahci.0,bootindex=4 \
+			-device ide-hd,drive=bootdisk,bus=ahci.1,bootindex=0 \
 			-no-reboot \
 			-no-shutdown      

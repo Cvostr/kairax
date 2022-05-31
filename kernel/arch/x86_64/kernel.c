@@ -22,6 +22,7 @@
 #include "dev/cmos/cmos.h"
 #include "dev/acpi/acpi.h"
 #include "drivers/storage/devices/storage_devices.h"
+#include "drivers/storage/partitions/storage_partitions.h"
 
 #define KERNEL_MEMORY_SIZE (1024ULL * 1024 * 32)
 #define KHEAP_PAGES_SIZE 4096		//16MB
@@ -95,9 +96,15 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 
 	for(int i = 0; i < get_drive_devices_count(); i ++){
 		drive_device_header_t* device = get_drive_devices()[i];
-		printf("Drive Model %s, Size : %i MiB\n", device->model, device->bytes / (1024UL * 1024));
+		printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
+		add_partitions_from_device(device);
 	}
 
+	for(int i = 0; i < get_partitions_count(); i ++){
+		drive_partition_header_t* partition = get_partition(i);
+		printf("Partition Name %s, Index : %i, Start : %i, Size : %i\n", partition->name, partition->index,
+		 																	partition->start_sector, partition->sectors);
+	}
 
 	process_t* proc = create_new_process();
 	process_t* proc1 = create_new_process();

@@ -18,6 +18,8 @@ list_t* create_list();
 
 void list_add(list_t* list, void* element);
 
+void list_remove(list_t* list, void* element);
+
 void* list_get(list_t* list, unsigned int i);
 
 void* list_head(list_t* list);
