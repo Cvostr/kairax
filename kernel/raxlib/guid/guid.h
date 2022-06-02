@@ -11,4 +11,8 @@ typedef struct PACKED {
     uint64_t    d5 : 48;
 } guid_t;
 
+int guid_cmp(guid_t* a, guid_t* b);
+
+int guid_is_zero(guid_t* a);
+
 #endif

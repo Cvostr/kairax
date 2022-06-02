@@ -3,6 +3,10 @@
 
 #include "stdint.h"
 
+#define MBR_PARTITION_TYPE_NULL 0x00
+#define MBR_PARTITION_TYPE_GPT 0xEE
+#define MBR_PARTITION_TYPE_EFI 0xEF
+
 #define MBR_CHECK_SIGNATURE     0xAA55
 
 typedef struct PACKED {

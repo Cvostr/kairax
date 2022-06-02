@@ -76,11 +76,11 @@ void ahci_init(){
 		pci_device_desc* device_desc = &get_pci_devices_descs()[device_i];
 
 		if(device_desc->device_class == 0x1 && device_desc->device_subclass == 0x6 && device_desc->prog_if == 0x01){
-			printf("SATA - AHCI controller found on bus: %i, device: %i func: %i IRQ: %i \n", 
+			/*printf("SATA - AHCI controller found on bus: %i, device: %i func: %i IRQ: %i \n", 
 			device_desc->bus,
 			device_desc->device,
 			device_desc->function,
-			device_desc->interrupt_line);
+			device_desc->interrupt_line);*/
 
 			ahci_controller_t* controller = (ahci_controller_t*)kmalloc(sizeof(ahci_controller_t));
 			memset(controller, 0, sizeof(ahci_controller_t));
@@ -124,7 +124,7 @@ void ahci_init(){
 					uint32_t cmd_sets;
 					parse_identity_buffer(identity_buffer, &type, &capabilities, &cmd_sets, &drive_header->sectors, drive_header->model);
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
-					drive_header->bytes = drive_header->sectors * 512;
+					drive_header->bytes = (uint64_t)drive_header->sectors * 512;
 					drive_header->ident = &controller->ports[i];
 					
 					strcpy(drive_header->name, "ahci");

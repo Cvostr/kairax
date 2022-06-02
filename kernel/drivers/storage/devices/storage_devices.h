@@ -38,7 +38,12 @@ uint32_t drive_device_read( drive_device_header_t* drive,
                             uint32_t start_sector_high,
                             uint32_t end_sector,
                             char* buffer);
-            
+
+uint32_t drive_device_read1( drive_device_header_t* drive,
+                            uint64_t start_lba,
+                            uint32_t end_sector,
+                            char* buffer);
+
 uint32_t drive_device_write( drive_device_header_t* drive,
                             uint32_t start_sector_low,
                             uint32_t start_sector_high,

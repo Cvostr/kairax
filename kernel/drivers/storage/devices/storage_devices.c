@@ -1,5 +1,6 @@
 #include "storage_devices.h"
 #include "mem/kheap.h"
+#include "raxlib/list/list.h"
 #include "string.h"
 
 #define MAX_STOR_DEVICES_HEADERS 300
@@ -33,6 +34,14 @@ uint32_t drive_device_read( drive_device_header_t* drive,
                             char* buffer)
 {
     return drive->read(drive->ident, start_sector_low, start_sector_high, end_sector, buffer);
+}
+
+uint32_t drive_device_read1( drive_device_header_t* drive,
+                            uint64_t start_lba,
+                            uint32_t end_sector,
+                            char* buffer)
+{
+    return drive->read(drive->ident, (uint32_t)start_lba, (uint32_t)(start_lba >> 32), end_sector, buffer);
 }
 
 uint32_t drive_device_write(drive_device_header_t* drive,

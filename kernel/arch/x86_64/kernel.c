@@ -99,7 +99,6 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 		printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
 		add_partitions_from_device(device);
 	}
-
 	for(int i = 0; i < get_partitions_count(); i ++){
 		drive_partition_header_t* partition = get_partition(i);
 		printf("Partition Name %s, Index : %i, Start : %i, Size : %i\n", partition->name, partition->index,

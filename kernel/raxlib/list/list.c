@@ -30,6 +30,8 @@ void list_remove(list_t* list, void* element){
 }
 
 void* list_get(list_t* list, unsigned int i){
+    if(list == NULL)
+        return NULL;
     list_node_t* current = list->head;
     for(unsigned int _i = 0; _i < i; _i++){
         current = current->next;

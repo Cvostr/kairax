@@ -26,6 +26,15 @@ typedef struct PACKED {
     char        rsv1[GPT_BLOCK_SIZE - 0x5C];
 } gpt_header_t;
 
+typedef struct PACKED {
+    guid_t      type_guid;
+    guid_t      partition_guid;
+    uint64_t    start_lba;
+    uint64_t    end_lba;
+    uint64_t    attrs;
+    char        name[];
+} gpt_entry_t;
+
 int check_gpt_header_signature(gpt_header_t* header);
 
 #endif

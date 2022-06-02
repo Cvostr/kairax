@@ -40,6 +40,7 @@ gcc $GCC_ARGS $x64_SRC/base/stdc/stdio.c -o ./bin/stdc_stdio.o
 
 #raxlib
 gcc $GCC_ARGS $RAXLIB_PATH/list/list.c -o ./bin/list.o
+gcc $GCC_ARGS $RAXLIB_PATH/guid/guid.c -o ./bin/guid.o
 
 #generic bus
 gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o
