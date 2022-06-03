@@ -5,11 +5,13 @@
 
 #define MAX_STOR_DEVICES_HEADERS 300
 
-drive_device_header_t* devices_headers[MAX_STOR_DEVICES_HEADERS];
-uint32_t storage_devices_count = 0;
+list_t* drives = NULL;
 
 void add_storage_device(drive_device_header_t* device){
-    devices_headers[storage_devices_count++] = device;
+    if(drives == NULL)
+        drives = create_list();
+
+    list_add(drives, device);
 }
 
 drive_device_header_t* new_drive_device_header(){
@@ -20,11 +22,13 @@ drive_device_header_t* new_drive_device_header(){
 }
 
 uint32_t get_drive_devices_count(){
-    return storage_devices_count;
+    if(drives == NULL)
+        return 0;
+    return drives->size;
 }
 
-drive_device_header_t** get_drive_devices(){
-    return devices_headers;
+drive_device_header_t* get_drive(uint32_t index){
+    return (drive_device_header_t*)list_get(drives, index);
 }
 
 uint32_t drive_device_read( drive_device_header_t* drive,

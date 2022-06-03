@@ -22,17 +22,15 @@ gcc $GCC_ARGS $x64_SRC/interrupts/idt.c -o ./bin/idt.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/handler.c -o ./bin/ints_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exceptions_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
-gcc $GCC_ARGS $x64_SRC/memory/pmm.c -o ./bin/pmm.o
 gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging.o
 gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
+gcc $GCC_ARGS $x64_SRC/dev/b8-console/b8-console.c -o ./bin/b8-console.o
 
 gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
-
-gcc $GCC_ARGS $x64_SRC/base/x86-console/x86-console.c -o ./bin/x86-console.o
 #stdc
 gcc $GCC_ARGS $x64_SRC/base/stdc/stdlib.c -o ./bin/stdc_stdlib.o
 gcc $GCC_ARGS $x64_SRC/base/stdc/string.c -o ./bin/stdc_string.o
@@ -60,6 +58,11 @@ gcc $GCC_ARGS fs/vfs/vfs.c -o ./bin/vfs.o
 #generic sync
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 
+#generic memory
 gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
+gcc $GCC_ARGS mem/pmm.c -o ./bin/pmm.o
+
+gcc $GCC_ARGS misc/bootshell/bootshell.c -o ./bin/bootshell.o
+gcc $GCC_ARGS misc/bootshell/bootshell_cmdproc.c -o ./bin/bootshell_cmdproc.o
 
 ld -n -o kernel.bin -T ./arch/x86_64/link.ld bin/*.o

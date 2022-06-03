@@ -12,4 +12,8 @@ typedef struct PACKED {
 
 int vfs_mount(char* mount_path, drive_partition_header_t* partition);
 
+vfs_mount_info_t vfs_get_mounted_partition(char* path);
+
+
+
 #endif

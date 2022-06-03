@@ -141,6 +141,6 @@ void init_pmm(){
 	set_mem_region(0x100000, kernel_size);
 }
 
-uint64_t get_used_pages(){
+uint64_t pmm_get_used_pages(){
 	return pages_used;
 }

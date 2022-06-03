@@ -1,5 +1,5 @@
 #include "paging.h"
-#include "pmm.h"
+#include "mem/pmm.h"
 #include "string.h"
 #include "stdio.h"
 #include "hh_offset.h"

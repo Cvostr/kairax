@@ -1,11 +1,11 @@
 #include "stdio.h"
-#include "x86-console/x86-console.h"
+#include "dev/b8-console/b8-console.h"
 #include "stdarg.h"
 #include "string.h"
 #include "stdlib.h"
 
 int putchar(int ic) {
-	print_char((char)ic);
+	b8_console_print_char((char)ic);
 	return ic;
 }
 

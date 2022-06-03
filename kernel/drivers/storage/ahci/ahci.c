@@ -6,7 +6,7 @@
 #include "interrupts/pic.h"
 #include "stddef.h"
 #include "atomic.h"
-#include "memory/pmm.h"
+#include "mem/pmm.h"
 #include "string.h"
 #include "stdlib.h"
 #include "memory/paging.h"
@@ -113,7 +113,7 @@ void ahci_init(){
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
-					printf("SATA drive found at port %i, ", i);
+					//printf("SATA drive found at port %i, ", i);
 
 					char identity_buffer[512];
 					ahci_port_identity(&controller->ports[i], identity_buffer);
@@ -153,7 +153,7 @@ void ahci_init(){
 					//printf("No drive found at port %i\n", i);
 					continue;
 				}
-				switch (controller->ports[i].speed) {
+				/*switch (controller->ports[i].speed) {
 					case 1:
 						printf(" link speed 1.5Gb/s\n", __func__, i);
 						break;
@@ -166,7 +166,7 @@ void ahci_init(){
 					default:
 						printf(" link speed unrestricted\n", __func__, i);
 						break;
-				}
+				}*/
 			}
 		}
 	}

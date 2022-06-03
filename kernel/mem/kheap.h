@@ -34,6 +34,6 @@ void* kmalloc(uint64_t size);
 
 void kfree(void* mem);
 
-void print_seq();
+kheap_item_t* kheap_get_head_item();
 
 #endif

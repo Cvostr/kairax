@@ -26,4 +26,8 @@ void acpi_parse_apic_madt(acpi_madt_t* madt);
 
 int acpi_init();
 
+char* acpi_get_oem_str();
+
+int acpi_get_revision();
+
 #endif

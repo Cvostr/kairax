@@ -31,7 +31,7 @@ drive_device_header_t* new_drive_device_header();
 
 uint32_t get_drive_devices_count();
 
-drive_device_header_t** get_drive_devices();
+drive_device_header_t* get_drive(uint32_t index);
 
 uint32_t drive_device_read( drive_device_header_t* drive,
                             uint32_t start_sector_low,

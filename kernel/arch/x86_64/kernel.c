@@ -1,4 +1,4 @@
-#include "base/x86-console/x86-console.h"
+#include "dev/b8-console/b8-console.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "interrupts/idt.h"
@@ -11,7 +11,7 @@
 #include "drivers/storage/nvme/nvme.h"
 
 #include "memory/hh_offset.h"
-#include "memory/pmm.h"
+#include "mem/pmm.h"
 #include "memory/paging.h"
 #include "mem/kheap.h"
 
@@ -23,6 +23,8 @@
 #include "dev/acpi/acpi.h"
 #include "drivers/storage/devices/storage_devices.h"
 #include "drivers/storage/partitions/storage_partitions.h"
+
+#include "misc/bootshell/bootshell.h"
 
 #define KERNEL_MEMORY_SIZE (1024ULL * 1024 * 32)
 #define KHEAP_PAGES_SIZE 4096		//16MB
@@ -53,8 +55,8 @@ void threaded2(){
 }
 
 void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
-	clear_console();
-	print_string("Kairax Kernel v0.1\n");
+	b8_console_clear();
+	printf("Kairax Kernel v0.1\n");
 
 	parse_mb2_tags(multiboot_struct_ptr);
 	printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
@@ -72,8 +74,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_ints_keyboard();
 	init_pmm();
 
-	load_pci_devices_list();
-	printf("PCI devices %i\n", get_pci_devices_count());	
+	load_pci_devices_list();	
 
 	cmos_datetime_t datetime = cmos_rtc_get_datetime();
 	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
@@ -95,14 +96,9 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_nvme();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++){
-		drive_device_header_t* device = get_drive_devices()[i];
-		printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
+		drive_device_header_t* device = get_drive(i);
+		//printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
 		add_partitions_from_device(device);
-	}
-	for(int i = 0; i < get_partitions_count(); i ++){
-		drive_partition_header_t* partition = get_partition(i);
-		printf("Partition Name %s, Index : %i, Start : %i, Size : %i\n", partition->name, partition->index,
-		 																	partition->start_sector, partition->sectors);
 	}
 
 	process_t* proc = create_new_process();
@@ -110,15 +106,15 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	//process_brk(proc, (void *)0x1100000);
 	//copy_to_vm(proc->pml4, 0x10000, (void *)(uintptr_t)threaded, 200);
 
-	thread_t* thr = create_new_thread(proc, threaded);
-	thread_t* thr2 = create_new_thread(proc1, threaded2);
+	thread_t* thr = create_new_thread(proc, bootshell);
+	//thread_t* thr2 = create_new_thread(proc1, threaded2);
 
 	init_scheduler();
 
 	add_thread(thr);
-	add_thread(thr2);
+	//add_thread(thr2);
 
-	//start_scheduler();
+	start_scheduler();
 
 
 	

@@ -1,5 +1,5 @@
 #include "ahci_port.h"
-#include "memory/pmm.h"
+#include "mem/pmm.h"
 #include "string.h"
 #include "memory/paging.h"
 #include "io.h"

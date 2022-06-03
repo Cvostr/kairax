@@ -1,6 +1,6 @@
 #include "process.h"
 #include "memory/paging.h"
-#include "memory/pmm.h"
+#include "mem/pmm.h"
 #include "string.h"
 #include "memory/hh_offset.h"
 

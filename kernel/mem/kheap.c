@@ -1,6 +1,6 @@
 #include "kheap.h"
 #include "stddef.h"
-#include "memory/pmm.h"
+#include "pmm.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -29,6 +29,10 @@ uint64_t align_4kb(uint64_t size){
 
 uint64_t get_pages_count(uint64_t size){
     return align_4kb(size) / PAGE_SIZE;
+}
+
+kheap_item_t* kheap_get_head_item(){
+    return kheap.head;
 }
 
 static uint64_t heap_expand(uint64_t size)
@@ -159,12 +163,4 @@ void* kmalloc(uint64_t size){
 
 void kfree(void* mem){
     heap_free_memory(((kheap_item_t*)mem) - 1);
-}
-
-void print_seq(){
-    kheap_item_t* current_item = kheap.head;
-    while(current_item != NULL){
-        printf("ITEM Addr : %i, Size : %i, Free : %i\n", current_item, current_item->size, current_item->free);
-        current_item = current_item->next;
-    }
 }

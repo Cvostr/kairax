@@ -110,20 +110,16 @@ int acpi_read_rsdp(uint8_t *p)
 
     memcpy(acpi_rsdp.oem_id, p + 9, 6);
     acpi_rsdp.oem_id[6] = '\0';
-    printf("ACPI OEM = %s\n", acpi_rsdp.oem_id);
 
     // Считать версию ACPI
     acpi_rsdp.revision = p[15];
     if (acpi_rsdp.revision == 0)
     {
-        printf("ACPI Version = 1\n");
         acpi_rsdp.rsdt_addr = *(uint32_t*)(&p[16]);
         acpi_parse_rsdt(to_acpi_header(acpi_rsdp.rsdt_addr));
     }
     else if (acpi_rsdp.revision == 2)
     {
-        printf("ACPI Version = 2\n");
-
         acpi_rsdp.rsdt_addr = *(uint32_t*)(p + 16);
         acpi_rsdp.xsdt_addr = *(uint64_t*)(p + 24);
 
@@ -161,4 +157,15 @@ int acpi_init(){
         p += 16;
     } 
     return 1;
+}
+
+char* acpi_get_oem_str(){
+    return acpi_rsdp.oem_id;
+}
+
+int acpi_get_revision(){
+    if(acpi_rsdp.revision == 0)
+        return 1;
+    else if(acpi_rsdp.revision == 2)
+        return 2;
 }
