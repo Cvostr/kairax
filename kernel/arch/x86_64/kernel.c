@@ -24,6 +24,8 @@
 #include "drivers/storage/devices/storage_devices.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
+#include "fs/vfs/vfs.h"
+
 #include "misc/bootshell/bootshell.h"
 
 #define KERNEL_MEMORY_SIZE (1024ULL * 1024 * 32)
@@ -92,12 +94,12 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	virtual_addr_t addr = P2V(KERNEL_MEMORY_SIZE);
 	kheap_init(addr, KHEAP_PAGES_SIZE * 4096);
 
+	vfs_init();
 	ahci_init();	
 	init_nvme();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++){
 		drive_device_header_t* device = get_drive(i);
-		//printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
 		add_partitions_from_device(device);
 	}
 

@@ -10,9 +10,60 @@
 #include "mem/pmm.h"
 
 #include "dev/acpi/acpi.h"
+#include "fs/vfs/vfs.h"
 
 void bootshell_process_cmd(char* cmdline){
-    if(strcmp(cmdline, "list disks") == 0){
+    char cmd[20];
+    char* args = NULL;
+    char* space_index = strchr(cmdline, ' ');
+    if(space_index != NULL){
+        memcpy(cmd, cmdline, space_index - cmdline);
+        args = space_index + 1;
+    }
+
+    if(strcmp(cmd, "mount") == 0){
+        char* args_space_index = strchr(args, ' ');
+        int partition_name_len = args_space_index - args;
+        int mount_path_len = strlen(args_space_index + 1);
+
+        char* partition_name = kmalloc(partition_name_len + 1);
+        strncpy(partition_name, args, partition_name_len);
+
+        char* mnt_path = kmalloc(mount_path_len + 1);
+        strcpy(mnt_path, args_space_index + 1);
+
+        printf("Mounting partition %s to path %s\n", partition_name, mnt_path);
+
+        drive_partition_header_t* partition = get_partition_with_name(partition_name);
+        if(partition == NULL){
+            printf("ERROR: No partition with name %s\n", partition_name);
+        }
+
+        int result = vfs_mount(mnt_path, get_partition_with_name(partition_name));
+        if(result < 0){
+            printf("ERROR: vfs_mount returned with code %i\n", result);
+        }
+    }
+    if(strcmp(cmd, "path") == 0){
+        int offset = 0;
+        vfs_mount_info_t* result = vfs_get_mounted_partition_split(args, &offset);
+        if(result == NULL){
+            printf("No path");
+        }
+        printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
+        
+    }
+    /*else if(strcmp(cmdline, "vfs") == 0){
+        vfs_mount_info_t** mounts = vfs_get_mounts();
+        for(int i = 0; i < 100; i ++){
+            vfs_mount_info_t* mount = mounts[i];
+            //printf("%i", mount);
+            if(mount != NULL){
+                printf("Mounted partition %s to path %s\n", mount->partition->device->name, mount->mount_path);
+            }
+        }
+    }*/
+    else if(strcmp(cmdline, "list disks") == 0){
         for(int i = 0; i < get_drive_devices_count(); i ++){
             drive_device_header_t* device = get_drive(i);
             printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));

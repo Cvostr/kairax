@@ -2,7 +2,7 @@ bits 32
 
 %include "memory/hh_offset.asm"
 
-%define KERNEL_STACK_SIZE         (2048)
+%define KERNEL_STACK_SIZE         (4096)
 %define MAGIC_HEADER_MB2          0xE85250D6
 %define MAGIC_BOOTLOADER_MB2      0x36d76289
 
