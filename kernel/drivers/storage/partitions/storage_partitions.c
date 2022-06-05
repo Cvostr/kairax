@@ -10,13 +10,13 @@
 
 list_t* partitions = NULL;
 
-drive_partition_header_t* new_drive_partition_header(){
-    drive_partition_header_t* result = (drive_partition_header_t*)kmalloc(sizeof(drive_partition_header_t));
-    memset(result, 0, sizeof(drive_partition_header_t));
+drive_partition_t* new_drive_partition_header(){
+    drive_partition_t* result = (drive_partition_t*)kmalloc(sizeof(drive_partition_t));
+    memset(result, 0, sizeof(drive_partition_t));
     return result;
 }
 
-void add_partitions_from_device(drive_device_header_t* device){
+void add_partitions_from_device(drive_device_t* device){
     char first_sector[512];
     char second_sector[512];
 
@@ -36,7 +36,7 @@ void add_partitions_from_device(drive_device_header_t* device){
 
             if(mbr_partition->lba_sectors == 0 || mbr_partition->type == MBR_PARTITION_TYPE_GPT)
                 continue;
-            drive_partition_header_t* partition = new_drive_partition_header();
+            drive_partition_t* partition = new_drive_partition_header();
             partition->device = device;
             partition->index = i;
             partition->start_sector = mbr_partition->lba_start;
@@ -65,7 +65,7 @@ void add_partitions_from_device(drive_device_header_t* device){
                     break;
                 }
 
-                drive_partition_header_t* partition = new_drive_partition_header();
+                drive_partition_t* partition = new_drive_partition_header();
                 partition->device = device;
                 partition->index = found_partitions;
                 partition->start_sector = entry->start_lba;
@@ -84,7 +84,7 @@ void add_partitions_from_device(drive_device_header_t* device){
 
 }
 
-void add_partition_header(drive_partition_header_t* partition_header){
+void add_partition_header(drive_partition_t* partition_header){
     if(partitions == NULL)
         partitions = create_list();
 
@@ -97,13 +97,13 @@ uint32_t get_partitions_count(){
     return partitions->size;
 }
 
-drive_partition_header_t* get_partition(uint32_t index){
-    return (drive_partition_header_t*)list_get(partitions, index);
+drive_partition_t* get_partition(uint32_t index){
+    return (drive_partition_t*)list_get(partitions, index);
 }
 
-drive_partition_header_t* get_partition_with_name(char* name){
+drive_partition_t* get_partition_with_name(char* name){
     for(uint32_t i = 0; i < partitions->size; i ++){
-        drive_partition_header_t* partition = (drive_partition_header_t*)list_get(partitions, i);
+        drive_partition_t* partition = (drive_partition_t*)list_get(partitions, i);
         if(strcmp(partition->name, name) == 0)
             return partition;
     }

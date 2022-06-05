@@ -6,13 +6,13 @@
 
 
 typedef struct PACKED {
-    drive_partition_header_t*   partition;
+    drive_partition_t*   partition;
     char                        mount_path[64];
 } vfs_mount_info_t;
 
 void vfs_init();
 
-int vfs_mount(char* mount_path, drive_partition_header_t* partition);
+int vfs_mount(char* mount_path, drive_partition_t* partition);
 
 int vfs_unmount(char* mount_path);
 

@@ -268,7 +268,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	
 	// Last entry
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) buf;
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count<<9)-1;	// 512 bytes per sector
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9)-1;	// 512 bytes per sector
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = 1;
 	
 	// Setup command
@@ -279,13 +279,13 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	cmdfis->command = FIS_CMD_READ_DMA_EXT;
  
 	cmdfis->lba[0] = (uint8_t)startl;
-	cmdfis->lba[1] = (uint8_t)(startl>>8);
-	cmdfis->lba[2] = (uint8_t)(startl>>16);
+	cmdfis->lba[1] = (uint8_t)(startl >> 8);
+	cmdfis->lba[2] = (uint8_t)(startl >> 16);
 	cmdfis->device = (1 << 6);	// режим LBA
  
-	cmdfis->lba2[0] = (uint8_t)(startl>>24);
+	cmdfis->lba2[0] = (uint8_t)(startl >> 24);
 	cmdfis->lba2[1] = (uint8_t)starth;
-	cmdfis->lba2[2] = (uint8_t)(starth>>8);
+	cmdfis->lba2[2] = (uint8_t)(starth >> 8);
  
 	cmdfis->count_l = count & 0xFF;
 	cmdfis->count_h = (count >> 8) & 0xFF;

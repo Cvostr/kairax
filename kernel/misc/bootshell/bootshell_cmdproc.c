@@ -13,11 +13,13 @@
 #include "fs/vfs/vfs.h"
 
 void bootshell_process_cmd(char* cmdline){
-    char cmd[20];
+    char* cmd = NULL;
     char* args = NULL;
     char* space_index = strchr(cmdline, ' ');
     if(space_index != NULL){
-        memcpy(cmd, cmdline, space_index - cmdline);
+        int cmdlen = space_index - cmdline;
+        cmd = kmalloc(cmdlen + 1);
+        strncpy(cmd, cmdline, cmdlen);
         args = space_index + 1;
     }
 
@@ -34,55 +36,66 @@ void bootshell_process_cmd(char* cmdline){
 
         printf("Mounting partition %s to path %s\n", partition_name, mnt_path);
 
-        drive_partition_header_t* partition = get_partition_with_name(partition_name);
+        drive_partition_t* partition = get_partition_with_name(partition_name);
         if(partition == NULL){
             printf("ERROR: No partition with name %s\n", partition_name);
         }
 
-        int result = vfs_mount(mnt_path, get_partition_with_name(partition_name));
+        int result = vfs_mount(mnt_path, partition);
         if(result < 0){
             printf("ERROR: vfs_mount returned with code %i\n", result);
         }
+
+        kfree(partition_name);
+        kfree(mnt_path);
     }
     if(strcmp(cmd, "path") == 0){
         int offset = 0;
         vfs_mount_info_t* result = vfs_get_mounted_partition_split(args, &offset);
         if(result == NULL){
-            printf("No path");
-        }
-        printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
+            printf("No mounted device\n");
+        }else 
+            printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
         
     }
-    /*else if(strcmp(cmdline, "vfs") == 0){
+    else if(strcmp(cmdline, "mounts") == 0){
         vfs_mount_info_t** mounts = vfs_get_mounts();
         for(int i = 0; i < 100; i ++){
             vfs_mount_info_t* mount = mounts[i];
-            //printf("%i", mount);
             if(mount != NULL){
-                printf("Mounted partition %s to path %s\n", mount->partition->device->name, mount->mount_path);
+                printf("Partition %s mounted to path %s\n", mount->partition->device->name, mount->mount_path);
             }
         }
-    }*/
+    }
     else if(strcmp(cmdline, "list disks") == 0){
         for(int i = 0; i < get_drive_devices_count(); i ++){
-            drive_device_header_t* device = get_drive(i);
+            drive_device_t* device = get_drive(i);
             printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
         }
     }
     if(strcmp(cmdline, "list partitions") == 0){
         for(int i = 0; i < get_partitions_count(); i ++){
-            drive_partition_header_t* partition = get_partition(i);
+            drive_partition_t* partition = get_partition(i);
             printf("Partition Name %s, Index : %i, Start : %i, Size : %i\n", partition->name, partition->index,
                                                                         partition->start_sector, partition->sectors);
 	    }
     }
     if(strcmp(cmdline, "mem") == 0){
         printf("Physical mem used pages : %i\n", pmm_get_used_pages());
-        /*kheap_item_t* current_item = kheap_get_head_item();
+
+        uint64_t total_free_bytes = 0;
+        uint64_t total_used_bytes = 0;
+        kheap_item_t* current_item = kheap_get_head_item();
         while(current_item != NULL){
-            printf("kheap item Addr : %i, Size : %i, Free : %i\n", current_item, current_item->size, current_item->free);
+            if(current_item->free)
+                total_free_bytes += current_item->size;
+            else
+                total_used_bytes += current_item->size;
+            //printf("kheap item Addr : %i, Size : %i, Free : %i\n", current_item, current_item->size, current_item->free);
             current_item = current_item->next;
-        }*/
+        }
+        printf("Kheap free space: %i\n", total_free_bytes);
+        printf("Kheap used space: %i\n", total_used_bytes);
     }
     if(strcmp(cmdline, "acpi") == 0){
         printf("ACPI OEM = %s\n", acpi_get_oem_str());
@@ -174,5 +187,9 @@ void bootshell_process_cmd(char* cmdline){
         printf("\n");
 
         }
+    }
+
+    if(cmd != NULL){
+        kfree(cmd);
     }
 }

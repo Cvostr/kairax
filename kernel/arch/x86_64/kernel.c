@@ -99,7 +99,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	init_nvme();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++){
-		drive_device_header_t* device = get_drive(i);
+		drive_device_t* device = get_drive(i);
 		add_partitions_from_device(device);
 	}
 

@@ -107,18 +107,18 @@ void ahci_init(){
 
 			ahci_controller_probe_ports(controller);
 
-			for(int i = 0; i < 7; i ++){
+			for(int i = 0; i < 32; i ++){
 				if(controller->ports[i].implemented == 0)
 					continue;
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
-					//printf("SATA drive found at port %i, ", i);
+					//printf("SATA drive found at port %i, \n", i);
 
 					char identity_buffer[512];
 					ahci_port_identity(&controller->ports[i], identity_buffer);
 
-					drive_device_header_t* drive_header = new_drive_device_header();
+					drive_device_t* drive_header = new_drive_device_header();
 
 					uint16_t type, capabilities;
 					uint32_t cmd_sets;

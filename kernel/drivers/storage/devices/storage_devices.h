@@ -23,28 +23,28 @@ typedef struct PACKED {
     uint32_t (*read)(drive_ident_t, uint32_t, uint32_t, uint32_t, char*);
     uint32_t (*write)(drive_ident_t, uint32_t, uint32_t, uint32_t, char*);    
 
-} drive_device_header_t;
+} drive_device_t;
 
-void add_storage_device(drive_device_header_t* device);
+void add_storage_device(drive_device_t* device);
 
-drive_device_header_t* new_drive_device_header();
+drive_device_t* new_drive_device_header();
 
 uint32_t get_drive_devices_count();
 
-drive_device_header_t* get_drive(uint32_t index);
+drive_device_t* get_drive(uint32_t index);
 
-uint32_t drive_device_read( drive_device_header_t* drive,
+uint32_t drive_device_read( drive_device_t* drive,
                             uint32_t start_sector_low,
                             uint32_t start_sector_high,
                             uint32_t end_sector,
                             char* buffer);
 
-uint32_t drive_device_read1( drive_device_header_t* drive,
+uint32_t drive_device_read1( drive_device_t* drive,
                             uint64_t start_lba,
                             uint32_t end_sector,
                             char* buffer);
 
-uint32_t drive_device_write( drive_device_header_t* drive,
+uint32_t drive_device_write( drive_device_t* drive,
                             uint32_t start_sector_low,
                             uint32_t start_sector_high,
                             uint32_t end_sector,

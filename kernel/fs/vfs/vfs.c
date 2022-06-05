@@ -24,7 +24,7 @@ int vfs_get_free_mount_info_pos(){
     return -1;
 }
 
-int vfs_mount(char* mount_path, drive_partition_header_t* partition){
+int vfs_mount(char* mount_path, drive_partition_t* partition){
     if(vfs_get_mounted_partition(mount_path) != NULL){
         return -1;  //Данный путь уже используется
     }
@@ -90,8 +90,10 @@ vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset){
     vfs_mount_info_t* result = NULL;
     while(result == NULL){
         result = vfs_get_mounted_partition(temp);
-        
+
         if(result == NULL){
+            if(strlen(temp) == 0)
+                return NULL;
             path_to_slash(temp);
         }
     }
