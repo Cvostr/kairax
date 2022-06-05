@@ -78,12 +78,15 @@ void strcpy(char* dst, char* src){
   	for(uint32_t it = 0; it < len; it ++){
     		*(dst++) = src[it];
   	}
+
+	*(dst++) = '\0';
 }
 
 void strncpy(char* dst, char* src, size_t size){
 	for(uint32_t it = 0; it < size; it ++){
     		*(dst++) = src[it];
   	}
+	*(dst++) = '\0';
 }
 
 char* strchr(const char * string, int symbol){

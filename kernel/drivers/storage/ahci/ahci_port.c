@@ -238,6 +238,10 @@ uint32_t parse_identity_buffer(char* buffer, uint16_t* device_type, uint16_t* ca
 	}
 }
 
+int ahci_port_read_lba(ahci_port_t *port, uint64_t start, uint64_t count, uint16_t *buf){
+	return ahci_port_read_lba48(port, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, buf);
+}
+
 int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
@@ -324,6 +328,10 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	}
 
 	return 1;
+}
+
+int ahci_port_write_lba(ahci_port_t *port, uint64_t start, uint64_t count, uint16_t *buf){
+	return ahci_port_write_lba48(port, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, buf);
 }
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){

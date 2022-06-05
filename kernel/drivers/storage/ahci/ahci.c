@@ -132,8 +132,8 @@ void ahci_init(){
 					strcat(drive_header->name, "n");
 					strcat(drive_header->name, itoa(i, 10));
 					
-					drive_header->write = ahci_port_write_lba48;
-					drive_header->read = ahci_port_read_lba48;
+					drive_header->write = ahci_port_write_lba;
+					drive_header->read = ahci_port_read_lba;
 					add_storage_device(drive_header);
 				}
 				else if (dt == AHCI_DEV_SATAPI)

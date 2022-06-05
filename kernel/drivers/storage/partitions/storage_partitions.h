@@ -8,7 +8,7 @@ typedef struct PACKED {
     drive_device_t*  device;
     uint32_t                index;
 
-    uint64_t                start_sector;
+    uint64_t                start_lba;
     uint64_t                sectors;
 
 } drive_partition_t;
@@ -25,6 +25,8 @@ drive_partition_t* get_partition(uint32_t index);
 //Получить раздел по указанному имени
 drive_partition_t* get_partition_with_name(char* name);
 
-//uint32_t   partition_read(drive_partition_t*, uint64_t lba_start, uint)
+uint32_t   partition_read(drive_partition_t*, uint64_t lba_start, uint64_t lba_end, uint16_t* buffer);
+
+uint32_t   partition_write(drive_partition_t*, uint64_t lba_start, uint64_t lba_end, uint16_t* buffer);
 
 #endif

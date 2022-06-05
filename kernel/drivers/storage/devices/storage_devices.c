@@ -32,27 +32,18 @@ drive_device_t* get_drive(uint32_t index){
 }
 
 uint32_t drive_device_read( drive_device_t* drive,
-                            uint32_t start_sector_low,
-                            uint32_t start_sector_high,
-                            uint32_t end_sector,
-                            char* buffer)
-{
-    return drive->read(drive->ident, start_sector_low, start_sector_high, end_sector, buffer);
-}
-
-uint32_t drive_device_read1( drive_device_t* drive,
                             uint64_t start_lba,
-                            uint32_t end_sector,
+                            uint64_t end_lba,
                             char* buffer)
 {
-    return drive->read(drive->ident, (uint32_t)start_lba, (uint32_t)(start_lba >> 32), end_sector, buffer);
+    return drive->read(drive->ident, start_lba, end_lba, buffer);
 }
 
 uint32_t drive_device_write(drive_device_t* drive,
-                            uint32_t start_sector_low,
-                            uint32_t start_sector_high,
-                            uint32_t end_sector,
+                            uint64_t start_lba,
+                            uint64_t end_lba,
                             char* buffer)
 {
-    return drive->write(drive->ident, start_sector_low, start_sector_high, end_sector, buffer);
+    return drive->write(drive->ident, start_lba, end_lba, buffer);
 }
+

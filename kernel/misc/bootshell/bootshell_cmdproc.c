@@ -77,7 +77,7 @@ void bootshell_process_cmd(char* cmdline){
         for(int i = 0; i < get_partitions_count(); i ++){
             drive_partition_t* partition = get_partition(i);
             printf("Partition Name %s, Index : %i, Start : %i, Size : %i\n", partition->name, partition->index,
-                                                                        partition->start_sector, partition->sectors);
+                                                                        partition->start_lba, partition->sectors);
 	    }
     }
     if(strcmp(cmdline, "mem") == 0){
@@ -119,7 +119,10 @@ void bootshell_process_cmd(char* cmdline){
                         printf(" controller");
                     } 
                     break;
+                case 0x8: printf("Mass Storage NVME controller"); 
+                    break;
                 }
+                
             break;
             }
             case 0x2: {//Internet

@@ -20,8 +20,8 @@ typedef struct PACKED {
     uint32_t        sectors;        //Количество секторов
     uint64_t        bytes;          //Вместимость в байтах  
 
-    uint32_t (*read)(drive_ident_t, uint32_t, uint32_t, uint32_t, char*);
-    uint32_t (*write)(drive_ident_t, uint32_t, uint32_t, uint32_t, char*);    
+    uint32_t (*read)(drive_ident_t, uint64_t, uint64_t, char*);
+    uint32_t (*write)(drive_ident_t, uint32_t, uint64_t, char*);    
 
 } drive_device_t;
 
@@ -34,19 +34,12 @@ uint32_t get_drive_devices_count();
 drive_device_t* get_drive(uint32_t index);
 
 uint32_t drive_device_read( drive_device_t* drive,
-                            uint32_t start_sector_low,
-                            uint32_t start_sector_high,
-                            uint32_t end_sector,
-                            char* buffer);
-
-uint32_t drive_device_read1( drive_device_t* drive,
                             uint64_t start_lba,
-                            uint32_t end_sector,
+                            uint64_t end_lba,
                             char* buffer);
 
 uint32_t drive_device_write( drive_device_t* drive,
-                            uint32_t start_sector_low,
-                            uint32_t start_sector_high,
-                            uint32_t end_sector,
+                            uint64_t start_lba,
+                            uint64_t end_lba,
                             char* buffer);
 #endif

@@ -20,8 +20,8 @@ void add_partitions_from_device(drive_device_t* device){
     char first_sector[512];
     char second_sector[512];
 
-    drive_device_read(device, 0, 0, 1, V2P(first_sector));
-    drive_device_read(device, 1, 0, 1, V2P(second_sector));
+    drive_device_read(device, 0, 1, V2P(first_sector));
+    drive_device_read(device, 1, 1, V2P(second_sector));
     
     mbr_header_t* mbr_header = (mbr_header_t*)first_sector;
     gpt_header_t* gpt_header = (gpt_header_t*)second_sector; 
@@ -39,7 +39,7 @@ void add_partitions_from_device(drive_device_t* device){
             drive_partition_t* partition = new_drive_partition_header();
             partition->device = device;
             partition->index = i;
-            partition->start_sector = mbr_partition->lba_start;
+            partition->start_lba = mbr_partition->lba_start;
             partition->sectors = mbr_partition->lba_sectors;
 
             strcpy(partition->name, device->name);
@@ -56,7 +56,7 @@ void add_partitions_from_device(drive_device_t* device){
         uint32_t found_partitions = 0;
         for(int i = 0; i < entries_num; i ++){
             char entry_buffer[GPT_BLOCK_SIZE];
-            drive_device_read1(device, current_lba, 1, V2P(entry_buffer));
+            drive_device_read(device, current_lba, 1, V2P(entry_buffer));
             for(int offset = 0; offset < GPT_BLOCK_SIZE; offset += gpt_header->gpea_entry_size){
                 gpt_entry_t* entry = (gpt_entry_t*)(entry_buffer + offset);
 
@@ -68,7 +68,7 @@ void add_partitions_from_device(drive_device_t* device){
                 drive_partition_t* partition = new_drive_partition_header();
                 partition->device = device;
                 partition->index = found_partitions;
-                partition->start_sector = entry->start_lba;
+                partition->start_lba = entry->start_lba;
                 partition->sectors = (entry->end_lba - entry->start_lba) + 1;
 
                 strcpy(partition->name, device->name);
@@ -108,4 +108,12 @@ drive_partition_t* get_partition_with_name(char* name){
             return partition;
     }
     return NULL;
+}
+
+uint32_t partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t lba_end, uint16_t* buffer){
+    return drive_device_read(partition, lba_start + partition->start_lba, lba_end, buffer);
+}
+
+uint32_t partition_write(drive_partition_t* partition, uint64_t lba_start, uint64_t lba_end, uint16_t* buffer){
+    return drive_device_write(partition, lba_start + partition->start_lba, lba_end, buffer);
 }
