@@ -18,16 +18,28 @@ typedef struct PACKED {
 
 acpi_fadt_t* acpi_get_fadt();
 
+uint32_t acpi_fadt_get_smi_cmd_port();
+
 uint32_t acpi_get_cpus_apic_count();
 
 apic_local_cpu_t** acpi_get_cpus_apic();
 
 void acpi_parse_apic_madt(acpi_madt_t* madt);
 
+void acpi_parse_dsdt(acpi_header_t* dsdt);
+
 int acpi_init();
 
 char* acpi_get_oem_str();
 
 int acpi_get_revision();
+
+uint16_t acpi_is_enabled();
+
+void acpi_enable();
+
+int acpi_aml_is_struct_valid(uint8_t* struct_address);
+
+void acpi_poweroff();
 
 #endif

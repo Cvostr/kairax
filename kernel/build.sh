@@ -25,6 +25,7 @@ gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
 gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging.o
 gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
+gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/b8-console/b8-console.c -o ./bin/b8-console.o
 

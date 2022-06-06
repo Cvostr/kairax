@@ -12,6 +12,8 @@
 #include "dev/acpi/acpi.h"
 #include "fs/vfs/vfs.h"
 
+#include "stdio.h"
+
 void bootshell_process_cmd(char* cmdline){
     char* cmd = NULL;
     char* args = NULL;
@@ -49,6 +51,9 @@ void bootshell_process_cmd(char* cmdline){
         kfree(partition_name);
         kfree(mnt_path);
     }
+    if(strcmp(cmd, "unmount") == 0){
+        int result = vfs_unmount(args);
+    }
     if(strcmp(cmd, "path") == 0){
         int offset = 0;
         vfs_mount_info_t* result = vfs_get_mounted_partition_split(args, &offset);
@@ -63,7 +68,7 @@ void bootshell_process_cmd(char* cmdline){
         for(int i = 0; i < 100; i ++){
             vfs_mount_info_t* mount = mounts[i];
             if(mount != NULL){
-                printf("Partition %s mounted to path %s\n", mount->partition->device->name, mount->mount_path);
+                printf("Partition %s mounted to path %s/\n", mount->partition->name, mount->mount_path);
             }
         }
     }
@@ -100,6 +105,12 @@ void bootshell_process_cmd(char* cmdline){
     if(strcmp(cmdline, "acpi") == 0){
         printf("ACPI OEM = %s\n", acpi_get_oem_str());
         printf("ACPI version = %i\n", acpi_get_revision());
+        for(uint32_t i = 0; i < acpi_get_cpus_apic_count(); i ++){
+		    printf("APIC on CPU %i Id : %i \n", acpi_get_cpus_apic()[i]->acpi_cpu_id, acpi_get_cpus_apic()[i]->apic_id);
+	    }
+    }
+    else if(strcmp(cmdline, "shutdown") == 0){
+        acpi_poweroff();
     }
     if(strcmp(cmdline, "pci") == 0){
         printf("PCI devices %i \n", get_pci_devices_count());

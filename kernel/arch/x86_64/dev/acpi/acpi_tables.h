@@ -52,6 +52,15 @@ typedef struct PACKED
 
 typedef struct PACKED
 {
+  uint8_t address_space;
+  uint8_t bit_width;
+  uint8_t bit_offset;
+  uint8_t access_size;
+  uint64_t address;
+} acpi_fadt_generic_address_struct_t;
+
+typedef struct PACKED
+{
     acpi_header_t   header;
     uint32_t        firmware_ctrl;
     uint32_t        dsdt;
@@ -91,7 +100,21 @@ typedef struct PACKED
     uint8_t         month_alarm;
     uint8_t         century;
 
+    //Используется начиная с версии 2
     uint16_t        boot_architecture_flags;
+
+    uint8_t         reserved2;
+    uint32_t        flags;
+
+    acpi_fadt_generic_address_struct_t  reset_reg;
+
+    uint8_t         reset_value;
+    uint8_t         reserved3[3];
+
+    uint64_t        x_firmware_ctrl;
+    uint64_t        x_dsdt;
+
+    acpi_fadt_generic_address_struct_t  x_pm1a_event_block;
 } acpi_fadt_t;
 
 #endif

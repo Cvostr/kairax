@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "memory/paging.h"
+#include "io.h"
 
 #define to_acpi_header(x)  (acpi_header_t*)(uintptr_t)(x)
 
@@ -16,6 +17,10 @@ apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 
 acpi_fadt_t* acpi_get_fadt(){
     return acpi_fadt;
+}
+
+uint32_t acpi_fadt_get_smi_cmd_port(){
+    return acpi_fadt->smi_cmd_port;
 }
 
 uint32_t acpi_get_cpus_apic_count(){
@@ -60,6 +65,10 @@ void acpi_parse_dt(acpi_header_t* dt)
     if (signature == 0x50434146)
     {
         acpi_fadt = dt;
+        if(acpi_get_revision() == 1)
+            acpi_parse_dsdt(acpi_fadt->dsdt);
+        else if(acpi_get_revision() == 2)
+            acpi_parse_dsdt(acpi_fadt->x_dsdt);
     }
     else if (signature == 0x43495041)
     {
@@ -136,6 +145,32 @@ int acpi_read_rsdp(uint8_t *p)
     return 1;
 }
 
+uint16_t acpi_is_enabled(){
+    return inw((uint32_t) acpi_fadt->pm1a_control_block) & 1;
+}
+
+void acpi_enable(){
+    int acpi_enabled = acpi_is_enabled();
+    if(acpi_enabled == 0){
+        printf("Enabling ACPI ...  ");
+        if(acpi_fadt->smi_cmd_port != 0 && acpi_fadt->acpi_enable){
+
+            outb((uint32_t)acpi_fadt->smi_cmd_port, acpi_fadt->acpi_enable);
+
+            while(1){
+                io_delay(100);
+                acpi_enabled = acpi_is_enabled();
+                if(acpi_enabled){
+                    printf("Success\n");
+                    break;
+                }
+            }
+        }else{
+            //ACPI не может быть включен
+        }
+    }
+}
+
 int acpi_init(){
     memset(&acpi_rsdp, 0, sizeof(acpi_rsdp_t));
 
@@ -156,6 +191,7 @@ int acpi_init(){
 
         p += 16;
     } 
+
     return 1;
 }
 
