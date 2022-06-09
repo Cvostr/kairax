@@ -25,6 +25,7 @@
 #include "drivers/storage/partitions/storage_partitions.h"
 
 #include "fs/vfs/vfs.h"
+#include "fs/ext2/ext2.h"
 
 #include "misc/bootshell/bootshell.h"
 
@@ -92,6 +93,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	kheap_init(addr, KHEAP_PAGES_SIZE * 4096);
 
 	vfs_init();
+	ext2_init();
 	ahci_init();	
 	init_nvme();
 

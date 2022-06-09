@@ -43,7 +43,7 @@ void acpi_parse_dsdt(acpi_header_t* dsdt) {
                 if (*data_address == 0x0A)
                     data_address++;  
                 
-                SLP_TYPb = *(data_address)<<10;
+                SLP_TYPb = *(data_address) << 10;
             }
         }else if(memcmp(data_address, "_S1_", 4) == 0){
             if(acpi_aml_is_struct_valid(data_address)){

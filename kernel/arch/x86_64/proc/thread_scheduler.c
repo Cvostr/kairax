@@ -20,7 +20,7 @@ void remove_thread(thread_t* thread){
 }
 
 void scheduler_handler(thread_frame_t* frame){
-    //switch_pml4(get_kernel_pml4());
+    switch_pml4(get_kernel_pml4());
     //uint64_t* ripn = (uint64_t*)((uintptr_t)frame - 8);
     //printf("%i %i", V2P(frame), V2P(*ripn));
     if(prev_thread != NULL){
@@ -46,7 +46,6 @@ void scheduler_handler(thread_frame_t* frame){
     }
 
 	pic_eoi(0);
-    //printf(" %i", 223);
 }
 
 void init_scheduler(){

@@ -5,7 +5,8 @@ mkdir bin
 
 x64_SRC=./arch/x86_64
 RAXLIB_PATH=./raxlib
-GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=large -mno-red-zone -fno-stack-protector -fno-omit-frame-pointer -nostartfiles -static"
+STDC_PATH=./stdc
+GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=large -mno-red-zone -fno-stack-protector -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
 
 nasm $NASM_ARGS $x64_SRC/boot/start.asm -o ./bin/start.o
@@ -33,13 +34,16 @@ gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 #stdc
-gcc $GCC_ARGS $x64_SRC/base/stdc/stdlib.c -o ./bin/stdc_stdlib.o
-gcc $GCC_ARGS $x64_SRC/base/stdc/string.c -o ./bin/stdc_string.o
 gcc $GCC_ARGS $x64_SRC/base/stdc/stdio.c -o ./bin/stdc_stdio.o
 
 #raxlib
 gcc $GCC_ARGS $RAXLIB_PATH/list/list.c -o ./bin/list.o
 gcc $GCC_ARGS $RAXLIB_PATH/guid/guid.c -o ./bin/guid.o
+
+#generic stdc
+gcc $GCC_ARGS $STDC_PATH/string.c -o ./bin/stdc_string.o
+gcc $GCC_ARGS $STDC_PATH/stdlib.c -o ./bin/stdc_stdlib.o
+gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
 
 #generic bus
 gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o

@@ -10,8 +10,6 @@ extern page_table_t p4_table;
 page_table_t* root_pml4 = &p4_table;
 
 page_table_t* get_kernel_pml4(){
-    //if(root_pml4 == NULL)
-    //    return (&p4_table);
     return root_pml4;
 }
 
@@ -66,8 +64,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
 
     if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
-        uint64_t* freepage = (uint64_t*)physical_addr;
-        pt_table->entries[level1_index] = ((uint64_t)freepage | flags);
+        pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
     }
 }
 
@@ -112,29 +109,28 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
-    uint16_t offset = GET_PAGE_OFFSET(virtual_addr);
 
-    //printf("%i %i %i %i", level4_index, level3_index, level2_index, level1_index);
-    if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
+    //printf("S %i %i %i %i %i\n", level4_index, level3_index, level2_index, level1_index, GET_PAGE_OFFSET(virtual_addr));
+    if (!(root->entries[level4_index] & PAGE_PRESENT)) {
         return NULL;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
-    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
         return NULL;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
         return NULL;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
-    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pt_table->entries[level1_index] & PAGE_PRESENT)){
         return NULL;
     }
 
-    return pt_table->entries[level1_index] + offset;
+    return GET_PAGE_FRAME(pt_table->entries[level1_index]) + GET_PAGE_OFFSET(virtual_addr);
 }
 
 int is_mapped(page_table_t* root, uintptr_t virtual_addr){

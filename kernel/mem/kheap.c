@@ -52,7 +52,13 @@ static uint64_t heap_expand(uint64_t size)
         return 0;
     
     for(uintptr_t i = 0; i < pages_count; i ++){
-        map_page_mem(get_kernel_pml4(), kheap.end_vaddr + i * PAGE_SIZE, pages_paddr + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE);
+        virtual_addr_t virt_addr = kheap.end_vaddr + i * PAGE_SIZE;
+        physical_addr_t phys_addr = pages_paddr + i * PAGE_SIZE;
+        map_page_mem(get_kernel_pml4(), virt_addr, phys_addr, PAGE_PRESENT | PAGE_WRITABLE);
+        //printf("D %i", (pages_paddr + i * PAGE_SIZE));
+        //physical_addr_t dd = get_physical_address(get_kernel_pml4(), virt_addr);
+        //if(dd != phys_addr)
+        //    printf("D %i %i %i ", dd % PAGE_SIZE, phys_addr % PAGE_SIZE, virt_addr % PAGE_SIZE);
     }
     mapped_size = PAGE_SIZE * pages_count;
     kheap.end_vaddr += mapped_size;
@@ -163,4 +169,8 @@ void* kmalloc(uint64_t size){
 
 void kfree(void* mem){
     heap_free_memory(((kheap_item_t*)mem) - 1);
+}
+
+void* kheap_get_phys_address(void* mem){
+    return get_physical_address(get_kernel_pml4(), mem);
 }

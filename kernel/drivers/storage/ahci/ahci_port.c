@@ -3,6 +3,7 @@
 #include "string.h"
 #include "memory/paging.h"
 #include "io.h"
+#include "ctype.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
@@ -213,7 +214,14 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	}
 }
 
-uint32_t parse_identity_buffer(char* buffer, uint16_t* device_type, uint16_t* capabilities, uint32_t* cmd_sets, uint32_t* size, char* model){
+uint32_t parse_identity_buffer(char* buffer,
+							   uint16_t* device_type,
+							   uint16_t* capabilities,
+							   uint32_t* cmd_sets,
+							   uint32_t* size,
+							   char* model,
+							   char* serial)
+{
 	*device_type = *((uint16_t*)(buffer + ATA_IDENT_DEVICETYPE));
 	*capabilities = *((uint16_t*)(buffer + ATA_IDENT_CAPABILITIES));
 	*cmd_sets =  *((uint32_t *)(buffer + ATA_IDENT_COMMANDSETS));
@@ -224,15 +232,27 @@ uint32_t parse_identity_buffer(char* buffer, uint16_t* device_type, uint16_t* ca
     else
         // 28 битный CHS
         *size = *((uint32_t *)(buffer + ATA_IDENT_MAX_LBA));
-
+	//Копирование модели диска (каждая буква в модели поменяна с соседней местами)
 	for (int k = 0; k < 40; k += 2) {
         model[k] = buffer[ATA_IDENT_MODEL + k + 1];
         model[k + 1] = buffer[ATA_IDENT_MODEL + k];
     }
-	//удалить пробелы
+	//Копирование серийного номера
+	for (int k = 0; k < 34; k += 2) {
+        serial[k] = buffer[ATA_IDENT_SERIAL + k + 1];
+        serial[k + 1] = buffer[ATA_IDENT_SERIAL + k];
+    }
+	//удалить пробелы для модели
 	for(int k = 39; k > 0; k --){
 		if(model[k] == ' ')
 			model[k] = '\0';
+		else 
+			break;
+	}
+	//удалить пробелы для серийного номера
+	for(int p = strlen(serial) - 1; p > 0; p --){
+		if(serial[p] == ' ')
+			serial[p] = '\0';
 		else 
 			break;
 	}

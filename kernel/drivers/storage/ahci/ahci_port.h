@@ -68,6 +68,12 @@ static inline void ahci_port_flush_posted_writes(ahci_port_t* port)
 	dummy = dummy;
 }
 
-uint32_t parse_identity_buffer(char* buffer, uint16_t* device_type, uint16_t* capabilities, uint32_t* cmd_sets, uint32_t* size, char* model);
+uint32_t parse_identity_buffer(char* buffer,
+                               uint16_t* device_type,
+                               uint16_t* capabilities,
+                               uint32_t* cmd_sets,
+                               uint32_t* size,
+                               char* model,
+                               char* serial);
 
 #endif

@@ -1,9 +1,16 @@
 #include "vfs.h"
 #include "string.h"
+#include "filesystems.h"
 
 #define MAX_MOUNTS 100
 
 vfs_mount_info_t* vfs_mounts[MAX_MOUNTS];
+
+vfs_inode_t* new_vfs_inode(){
+    vfs_inode_t* result = kmalloc(sizeof(vfs_inode_t));
+    memset(result, 0, sizeof(vfs_inode_t));
+    return result;
+}
 
 void vfs_init(){
     memset(vfs_mounts, 0, sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
@@ -34,7 +41,11 @@ int vfs_mount(char* mount_path, drive_partition_t* partition){
 
     vfs_mount_info_t* mount_info = new_vfs_mount_info();
     mount_info->partition = partition;
+    mount_info->filesystem = filesystem_get_by_name("ext2"); //Захардкожено!!!
     strcpy(mount_info->mount_path, mount_path);
+    //вызов функции монтирования, если она определена
+    if(mount_info->filesystem->mount)
+        mount_info->root_node = mount_info->filesystem->mount(partition);
 
     //Удалить / в конце, если есть
     int path_len = strlen(mount_info->mount_path);
@@ -107,4 +118,43 @@ vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset){
 
 vfs_mount_info_t** vfs_get_mounts(){
     return vfs_mounts;
+}
+
+vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name){
+    if(node)
+        if(node->operations.finddir)
+            node->operations.finddir(node, name);
+}
+
+vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index){
+    if(node)
+        if(node->operations.readdir)
+            node->operations.readdir(node, index);
+}
+
+void vfs_open(vfs_inode_t* node, uint32_t flags){
+
+}
+
+vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
+    int offset = 0;
+    vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);
+
+    vfs_inode_t* curr_node = mount_info->root_node;
+
+    offset += 1;
+    char* fs_path = path + offset;
+    char* temp = kmalloc(strlen(fs_path) + 1);
+
+    while(strlen(fs_path) > 0){
+        int len = 0;
+        char* slash_pos = strchr(fs_path, '/');
+        if(slash_pos != NULL)
+            len = slash_pos - fs_path;
+        else 
+            len = strlen(fs_path);
+        strncpy(temp, fs_path, len);
+        printf(" %s |", temp);
+        fs_path += len + 1;
+    }
 }

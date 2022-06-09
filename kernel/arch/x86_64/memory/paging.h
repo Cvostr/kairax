@@ -24,7 +24,7 @@
 #define GET_3_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x1E) & INDEX_MASK)
 #define GET_2_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x15) & INDEX_MASK) 
 #define GET_1_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x0C) & INDEX_MASK) 
-#define GET_PAGE_OFFSET(x)        ((uint64_t)(x) & (4096 - 0x1)) 
+#define GET_PAGE_OFFSET(x)        ((uint64_t)(x) & (0xFFF)) 
 #define GET_PAGE_FRAME(x)         (void*)((uint64_t)(x) & ~(0xFFF))
 
 typedef uintptr_t virtual_addr_t;

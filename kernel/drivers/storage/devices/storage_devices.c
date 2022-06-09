@@ -33,17 +33,17 @@ drive_device_t* get_drive(uint32_t index){
 
 uint32_t drive_device_read( drive_device_t* drive,
                             uint64_t start_lba,
-                            uint64_t end_lba,
+                            uint64_t count,
                             char* buffer)
 {
-    return drive->read(drive->ident, start_lba, end_lba, buffer);
+    return drive->read(drive->ident, start_lba, count, buffer);
 }
 
 uint32_t drive_device_write(drive_device_t* drive,
                             uint64_t start_lba,
-                            uint64_t end_lba,
+                            uint64_t count,
                             char* buffer)
 {
-    return drive->write(drive->ident, start_lba, end_lba, buffer);
+    return drive->write(drive->ident, start_lba, count, buffer);
 }
 

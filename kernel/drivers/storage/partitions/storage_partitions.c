@@ -110,10 +110,11 @@ drive_partition_t* get_partition_with_name(char* name){
     return NULL;
 }
 
-uint32_t partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t lba_end, uint16_t* buffer){
-    return drive_device_read(partition, lba_start + partition->start_lba, lba_end, buffer);
+uint32_t partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
+    //printf("Reading from %i", lba_start + partition->start_lba);
+    return drive_device_read(partition->device, lba_start + partition->start_lba, count, buffer);
 }
 
-uint32_t partition_write(drive_partition_t* partition, uint64_t lba_start, uint64_t lba_end, uint16_t* buffer){
-    return drive_device_write(partition, lba_start + partition->start_lba, lba_end, buffer);
+uint32_t partition_write(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
+    return drive_device_write(partition->device, lba_start + partition->start_lba, count, buffer);
 }

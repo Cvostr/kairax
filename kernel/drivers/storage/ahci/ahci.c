@@ -122,7 +122,13 @@ void ahci_init(){
 
 					uint16_t type, capabilities;
 					uint32_t cmd_sets;
-					parse_identity_buffer(identity_buffer, &type, &capabilities, &cmd_sets, &drive_header->sectors, drive_header->model);
+					parse_identity_buffer(identity_buffer, 
+										  &type,
+										  &capabilities,
+										  &cmd_sets,
+										  &drive_header->sectors,
+										  drive_header->model,
+										  drive_header->serial);
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
 					drive_header->bytes = (uint64_t)drive_header->sectors * 512;
 					drive_header->ident = &controller->ports[i];

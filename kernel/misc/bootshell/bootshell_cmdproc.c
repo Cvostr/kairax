@@ -63,6 +63,9 @@ void bootshell_process_cmd(char* cmdline){
             printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
         
     }
+    if(strcmp(cmd, "open") == 0){
+        vfs_inode_t* inode = vfs_fopen(args, 0);        
+    }
     else if(strcmp(cmdline, "mounts") == 0){
         vfs_mount_info_t** mounts = vfs_get_mounts();
         for(int i = 0; i < 100; i ++){
@@ -75,7 +78,7 @@ void bootshell_process_cmd(char* cmdline){
     else if(strcmp(cmdline, "list disks") == 0){
         for(int i = 0; i < get_drive_devices_count(); i ++){
             drive_device_t* device = get_drive(i);
-            printf("Drive Name %s, Model %s, Size : %i MiB\n", device->name, device->model, device->bytes / (1024UL * 1024));
+            printf("Drive Name %s, Model %s, Serial %s, Size : %i MiB\n", device->name, device->model, device->serial, device->bytes / (1024UL * 1024));
         }
     }
     if(strcmp(cmdline, "list partitions") == 0){

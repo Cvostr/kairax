@@ -3,17 +3,26 @@
 
 #include "stdint.h"
 #include "drivers/storage/partitions/storage_partitions.h"
+#include "file.h"
 
 typedef struct PACKED {
-    const char*     name;
-    int             flags;
+    
+} superblock_operations_t;
 
-    int             (*mount)(drive_partition_t*);
-    int             (*unmount)(drive_partition_t*);
+typedef struct PACKED {
+    const char*         name;
+    int                 flags;
+
+    vfs_inode_t*        (*mount)(drive_partition_t*);   //Вызывается при монтировании
+    int                 (*unmount)(drive_partition_t*); //Вызывается при размонтировании
 } filesystem_t;
+
+filesystem_t* new_filesystem();
 
 void filesystem_register(filesystem_t* filesystem);
 
 void filesystem_unregister(filesystem_t* filesystem);
+
+filesystem_t* filesystem_get_by_name(char* name);
 
 #endif
