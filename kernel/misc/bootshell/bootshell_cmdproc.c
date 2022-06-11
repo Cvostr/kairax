@@ -41,6 +41,9 @@ void bootshell_process_cmd(char* cmdline){
         drive_partition_t* partition = get_partition_with_name(partition_name);
         if(partition == NULL){
             printf("ERROR: No partition with name %s\n", partition_name);
+            kfree(partition_name);
+            kfree(mnt_path);
+            return;
         }
 
         int result = vfs_mount(mnt_path, partition);

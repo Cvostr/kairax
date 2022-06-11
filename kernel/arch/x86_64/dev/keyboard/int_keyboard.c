@@ -161,6 +161,9 @@ char keyboard_get_key_ascii(char keycode){
     case 0x36:
       return '/';
       break;
+    case 0x35:
+      return '.';
+      break;
 	}
 	return 0;
 }

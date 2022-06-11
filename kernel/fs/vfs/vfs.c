@@ -161,16 +161,14 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
 
         vfs_inode_t* next = vfs_finddir(curr_node, temp);
         if(is_dir == 1){
-            printf("DIR %s \n", temp);
             if(next != NULL){
-                printf(" FOUND DIR");
+                kfree(curr_node);
                 curr_node = next;
             }else 
                 return NULL;
         }else{
-            printf("FILE %s \n", temp);
             if(next != NULL){
-                printf(" FOUND FILE");
+                //Открыть найденый файл
                 vfs_open(next, flags);
             }
             return next;

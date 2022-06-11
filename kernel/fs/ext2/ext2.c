@@ -156,7 +156,7 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
     vfs_inode_t* result = new_vfs_inode();
     result->inode = dirent->inode;
     result->fs_d = inst;
-    strncpy(result, dirent->name, dirent->name_len);
+    strncpy(result->name, dirent->name, dirent->name_len);
     result->uid = inode->userid;
     result->gid = inode->gid;
     result->size = inode->size;
@@ -191,7 +191,7 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
 }
 
 void ext2_open(vfs_inode_t* inode, uint32_t flags){
-    printf("OPENING NODE %i NAME %s", inode->inode, inode->name);
+    printf("OPENING NODE %i NAME %s\n", inode->inode, inode->name);
 }
 
 uint32_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer){
@@ -227,8 +227,6 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
     ext2_inode_t* parent_inode = new_ext2_inode();
     ext2_inode(inst, parent_inode, parent->inode);
     //Переменные
-    uint32_t expected_size;
-    uint32_t real_size;
     uint32_t curr_offset = 0;
     uint32_t block_offset = 0;
     uint32_t in_block_offset = 0;
@@ -237,7 +235,6 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
     char* buffer_phys = kheap_get_phys_address(buffer);
 
     ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
-    //printf("INODE SIZE %i\n", parent_inode->size);
     while(curr_offset < parent_inode->size) {
         //Проверка, не прочитан ли весь блок?
         if(in_block_offset >= inst->block_size){
@@ -247,25 +244,17 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
-        printf("DIRENT ID %i, NAME %s\n", curr_entry->inode, curr_entry->name);
         if(curr_entry->inode != 0){
             if(strncmp(curr_entry->name, name, curr_entry->name_len) == 0){
+                //printf("FOUND DIRENT ID %i, NAME %s\n", curr_entry->inode, curr_entry->name, curr_entry->name_len);
                 ext2_inode_t* inode = new_ext2_inode();
                 ext2_inode(inst, inode, curr_entry->inode);
+                vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
                 kfree(buffer);
-                return ext2_inode_to_vfs_inode(inst, inode, curr_entry);
+                return result;
             }
         }
 
-        if(((sizeof(ext2_direntry_t) + curr_entry->name_len) & 0x00000003) != 0)
-            expected_size = ((sizeof(ext2_direntry_t) + curr_entry->name_len) & 0xfffffffc) + 0x4;
-        else
-            expected_size = ((sizeof(ext2_direntry_t) + curr_entry->name_len) & 0xfffffffc);
-
-        real_size = curr_entry->size;
-        if(real_size != expected_size) {
-            break;
-        }
         in_block_offset += curr_entry->size;
         curr_offset += curr_entry->size;
     }
