@@ -78,22 +78,22 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr){
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
 
-    if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
+    if (!(root->entries[level4_index] & PAGE_PRESENT)) {
         return 1;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
-    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
         return 1;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
         return 1;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
-    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pt_table->entries[level1_index] & PAGE_PRESENT)){
         return 1;
     }else{
         uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
@@ -139,17 +139,17 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
 
-    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
+    if (!(root->entries[level4_index] & PAGE_PRESENT)) {
         return FALSE;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
-    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))){
+    if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
         return FALSE;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))){
+    if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
         return FALSE;
     }
 

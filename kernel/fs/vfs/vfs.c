@@ -133,7 +133,9 @@ vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index){
 }
 
 void vfs_open(vfs_inode_t* node, uint32_t flags){
-
+    if(node)
+        if(node->operations.open)
+            node->operations.open(node, flags);
 }
 
 vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
@@ -148,13 +150,31 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
 
     while(strlen(fs_path) > 0){
         int len = 0;
+        int is_dir = 0;
         char* slash_pos = strchr(fs_path, '/');
-        if(slash_pos != NULL)
+        if(slash_pos != NULL){ //Это директория
             len = slash_pos - fs_path;
-        else 
+            is_dir = 1;
+        }else 
             len = strlen(fs_path);
         strncpy(temp, fs_path, len);
-        printf(" %s |", temp);
+
+        vfs_inode_t* next = vfs_finddir(curr_node, temp);
+        if(is_dir == 1){
+            printf("DIR %s \n", temp);
+            if(next != NULL){
+                printf(" FOUND DIR");
+                curr_node = next;
+            }else 
+                return NULL;
+        }else{
+            printf("FILE %s \n", temp);
+            if(next != NULL){
+                printf(" FOUND FILE");
+                vfs_open(next, flags);
+            }
+            return next;
+        }
         fs_path += len + 1;
     }
 }

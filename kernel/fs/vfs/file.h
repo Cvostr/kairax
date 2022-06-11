@@ -12,7 +12,7 @@ typedef struct PACKED {
     uint64_t    size;
 } dirent_t;
 
-typedef void      (*open_type_t)(struct vfs_inode*);
+typedef void      (*open_type_t)(struct vfs_inode*, uint32_t);
 typedef void      (*close_type_t)(struct vfs_inode*);
 typedef uint32_t  (*read_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
 typedef uint32_t  (*write_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);

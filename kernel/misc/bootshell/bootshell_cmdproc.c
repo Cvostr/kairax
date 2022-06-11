@@ -71,7 +71,7 @@ void bootshell_process_cmd(char* cmdline){
         for(int i = 0; i < 100; i ++){
             vfs_mount_info_t* mount = mounts[i];
             if(mount != NULL){
-                printf("Partition %s mounted to path %s/\n", mount->partition->name, mount->mount_path);
+                printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, mount->mount_path, mount->filesystem->name);
             }
         }
     }

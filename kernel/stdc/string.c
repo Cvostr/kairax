@@ -72,6 +72,14 @@ int strcmp(char* str1, char* str2){
   	return 0;
 }
 
+int strncmp(char* str1, char* str2, size_t len){
+  	for(int i = 0; i < len; i ++){
+    		if(str1[i] != str2[i]) 
+			return 1;
+  	}
+  	return 0;
+}
+
 void strcpy(char* dst, char* src){
 	size_t len = strlen(src);
 

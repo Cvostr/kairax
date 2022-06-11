@@ -107,6 +107,7 @@ typedef struct PACKED {
     drive_partition_t*  partition;
     ext2_superblock_t*  superblock;
     ext2_bgd_t*         bgds;
+    ext2_inode_t*       root_inode;
 
     size_t              block_size;
     uint64_t            total_groups;
@@ -114,21 +115,44 @@ typedef struct PACKED {
     uint64_t            bgds_blocks;
 } ext2_instance_t;
 
+#define EXT2_INODE_SOCK   0xC000
+#define EXT2_INODE_LINK    0xA000
+#define EXT2_INODE_FILE    0x8000
+#define EXT2_INODE_BLOCK    0x6000
+#define EXT2_INODE_DIR    0x4000
+#define EXT2_INODE_CHR    0x2000
+#define EXT2_INODE_FIFO    0x1000
+
+
 void ext2_init();
 
-int ext2_partition_read_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer);
+ext2_inode_t* new_ext2_inode();
+
+uint32_t ext2_partition_read_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer);
+
+uint32_t ext2_partition_write_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer);
+
+uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block_index);
+
+uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
 
 vfs_inode_t* ext2_mount(drive_partition_t* drive);
 
-void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint64_t node_index);
+void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
-vfs_inode_t* ext2_inode_to_vfs_inode(ext2_inode_t* inode);
+vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent);
+
+void ext2_open(vfs_inode_t* inode, uint32_t flags);
 
 void ext2_mkdir(vfs_inode_t* parent, char* dir_name);
 
 void ext2_mkfile(vfs_inode_t* parent, char* file_name);
 
 void ext2_chmod(vfs_inode_t * file, uint32_t mode);
+
+vfs_inode_t* ext2_finddir(vfs_inode_t* parent, char *name);
+
+dirent_t* ext2_readdir(vfs_inode_t* dir, uint32_t index);
 
 uint32_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
 
