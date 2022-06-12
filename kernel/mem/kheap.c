@@ -47,7 +47,7 @@ static uint64_t heap_expand(uint64_t size)
         return 0;
 
     pages_count = get_pages_count(new_size);
-    pages_paddr = (uint64_t)alloc_pages(pages_count);
+    pages_paddr = (uint64_t)pmm_alloc_pages(pages_count);
     if (pages_paddr == 0)
         return 0;
     
@@ -55,10 +55,6 @@ static uint64_t heap_expand(uint64_t size)
         virtual_addr_t virt_addr = kheap.end_vaddr + i * PAGE_SIZE;
         physical_addr_t phys_addr = pages_paddr + i * PAGE_SIZE;
         map_page_mem(get_kernel_pml4(), virt_addr, phys_addr, PAGE_PRESENT | PAGE_WRITABLE);
-        //printf("D %i", (pages_paddr + i * PAGE_SIZE));
-        //physical_addr_t dd = get_physical_address(get_kernel_pml4(), virt_addr);
-        //if(dd != phys_addr)
-        //    printf("D %i %i %i ", dd % PAGE_SIZE, phys_addr % PAGE_SIZE, virt_addr % PAGE_SIZE);
     }
     mapped_size = PAGE_SIZE * pages_count;
     kheap.end_vaddr += mapped_size;

@@ -162,15 +162,21 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
         vfs_inode_t* next = vfs_finddir(curr_node, temp);
         if(is_dir == 1){
             if(next != NULL){
-                kfree(curr_node);
+                if(curr_node != mount_info->root_node)
+                    kfree(curr_node);
                 curr_node = next;
-            }else 
+            }else {
+                kfree(temp);
                 return NULL;
+            }
         }else{
             if(next != NULL){
                 //Открыть найденый файл
                 vfs_open(next, flags);
             }
+            if(curr_node != mount_info->root_node)
+                kfree(curr_node);
+            kfree(temp);
             return next;
         }
         fs_path += len + 1;

@@ -91,6 +91,7 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 
 	virtual_addr_t addr = P2V(KERNEL_MEMORY_SIZE);
 	kheap_init(addr, KHEAP_PAGES_SIZE * 4096);
+	//kheap_init(addr);
 
 	vfs_init();
 	ext2_init();

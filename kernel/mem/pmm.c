@@ -77,7 +77,7 @@ uint64_t find_free_pages(int pages) {
 }
 
 
-uintptr_t* alloc_page() {
+uintptr_t* pmm_alloc_page() {
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
 	if (i < 0) {
@@ -90,7 +90,7 @@ uintptr_t* alloc_page() {
 	return (uintptr_t*)(i * PAGE_SIZE);
 }
 
-uintptr_t* alloc_pages(uint32_t pages){
+uintptr_t* pmm_alloc_pages(uint32_t pages){
 	uint64_t i = find_free_pages(pages);
 
 	if (i < 0) {

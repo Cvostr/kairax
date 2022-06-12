@@ -6,10 +6,10 @@
 int last_id = 0;
 
 thread_t* create_new_thread(process_t* process, void (*function)(void)){
-    thread_t* thread    = (thread_t*)alloc_page();
+    thread_t* thread    = (thread_t*)pmm_alloc_page();
     thread->thread_id   = last_id++;
     thread->process     = P2V(process);
-    thread->stack_ptr   = (thread_t*)alloc_page() + PAGE_SIZE; //FIX LATER
+    thread->stack_ptr   = (thread_t*)pmm_alloc_page() + PAGE_SIZE; //FIX LATER
     //Подготовка контекста
     memset((void *)(&(thread->context)), 0x0, sizeof(thread_frame_t));
 

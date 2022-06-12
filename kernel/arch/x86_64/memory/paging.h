@@ -54,6 +54,8 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr);
 
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count);
 
+virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count);
+
 int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size);
 //Переключить текущую 4х уровневую таблицу страниц
 void switch_pml4(page_table_t* pml4);

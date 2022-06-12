@@ -7,7 +7,7 @@
 int last_pid = 0;
 
 process_t*  create_new_process(){
-    process_t* process = (process_t*)alloc_page();
+    process_t* process = (process_t*)pmm_alloc_page();
 
     page_table_t* pml4 = new_page_table();
     //memcpy(pml4, get_kernel_pml4(), 4096);
@@ -28,7 +28,7 @@ process_t*  create_new_process(){
 
 uintptr_t process_brk(process_t* process, void* addr){
     while((uint64_t)addr > process->brk){
-        map_page_mem(process->pml4, process->brk, alloc_page(), PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
+        map_page_mem(process->pml4, process->brk, pmm_alloc_page(), PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
         process->brk += PAGE_SIZE;
     }
     return process->brk;

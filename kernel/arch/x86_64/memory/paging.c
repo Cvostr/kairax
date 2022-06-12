@@ -18,7 +18,7 @@ void set_kernel_pml4(page_table_t* pml4){
 }
 
 page_table_t* new_page_table(){
-    page_table_t* table = (page_table_t*)alloc_page();
+    page_table_t* table = (page_table_t*)pmm_alloc_page();
     memset(table, 0, 4096);
     return table;
 }
@@ -69,7 +69,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
 }
 
 void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags) {
-    map_page_mem(root, virtual_addr, (physical_addr_t)alloc_page(), flags);
+    map_page_mem(root, virtual_addr, (physical_addr_t)pmm_alloc_page(), flags);
 }
 
 int unmap_page(page_table_t* root, uintptr_t virtual_addr){
@@ -159,7 +159,11 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
 }
 
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count){
-    for(virtual_addr_t addr = 0; addr < MAX_PAGES_4; addr += PAGE_SIZE){
+    return get_first_free_pages_from(0, root, pages_count);
+}
+
+virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count){
+    for(virtual_addr_t addr = start; addr < MAX_PAGES_4; addr += PAGE_SIZE){
         if(!is_mapped(root, addr)){
             int free = 0;
             for(virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; saddr += PAGE_SIZE){

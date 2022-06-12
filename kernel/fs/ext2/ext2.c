@@ -37,9 +37,9 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
         return inode->blocks[inode_block_index];
     }
     //Выделение временной памяти под считываемые блоки
-    unsigned int* tmp = kmalloc(inst->block_size);
+    uint32_t* tmp = kmalloc(inst->block_size);
     //Получение физического адреса выделенной памяти
-    unsigned int* tmp_phys = kheap_get_phys_address(tmp);
+    uint32_t* tmp_phys = kheap_get_phys_address(tmp);
     int b = a - p;
     if(b < 0){
         ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, tmp_phys);
@@ -75,6 +75,7 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
 uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer){
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
+    //printf("INODE BLK %i", (uint64_t)inode_block_abs * 8);
     return ext2_partition_read_block(inst, inode_block_abs, 1, buffer);
 }
 
@@ -90,14 +91,16 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive){
     //Сохранить некоторые полезные значения
     instance->block_size = (1024 << instance->superblock->log2block_size);
     instance->total_groups = instance->superblock->total_blocks / instance->superblock->blocks_per_group;
-    if(instance->superblock->blocks_per_group * instance->total_groups < instance->superblock->total_blocks)
+    while(instance->superblock->blocks_per_group * instance->total_groups < instance->superblock->total_blocks)
         instance->total_groups++;
     //необходимое количество блоков дескрипторов групп (BGD)
     instance->bgds_blocks = (instance->total_groups * sizeof(ext2_bgd_t)) / instance->block_size;
-    if(instance->bgds_blocks * instance->block_size < instance->total_groups * sizeof(ext2_bgd_t))
+    while(instance->bgds_blocks * instance->block_size < instance->total_groups * sizeof(ext2_bgd_t))
         instance->bgds_blocks++;
 
-    instance->bgds = kmalloc(sizeof(ext2_bgd_t) * instance->bgds_blocks * instance->block_size);
+    //printf("GROUPS %i, BLOCKS %i\n", instance->total_groups, instance->bgds_blocks);
+
+    instance->bgds = kmalloc(instance->bgds_blocks * instance->block_size);
     uint64_t bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
     ext2_partition_read_block(instance, bgd_start_block, instance->bgds_blocks, kheap_get_phys_address(instance->bgds));
@@ -146,8 +149,13 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
     //printf("INODE GROUP %i, TB %i, OFFSET %i\n", inode_group, inode_table_block, offset_in_block);
 
     char* buffer = kmalloc(inst->block_size);
+
+    //printf("INODE %i (%i + %i), GROUP %i\n", inode_table_block + block_offset, inode_table_block, block_offset, inode_group);
+
     ext2_partition_read_block(inst, inode_table_block + block_offset, 1, kheap_get_phys_address(buffer));
     memcpy(inode, buffer + offset_in_block * inst->superblock->inode_size, sizeof(ext2_inode_t));
+
+    //printf("COPIED\n");
 
     kfree(buffer);
 }
@@ -219,6 +227,42 @@ dirent_t* ext2_readdir(vfs_inode_t* dir, uint32_t index){
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();
     ext2_inode(inst, parent_inode, dir->inode);
+    //Переменные
+    uint32_t curr_offset = 0;
+    uint32_t block_offset = 0;
+    uint32_t in_block_offset = 0;
+    uint32_t passed_entries = 0;
+    //Выделить временную память под буфер блоков
+    char* buffer = kmalloc(inst->block_size);
+    char* buffer_phys = kheap_get_phys_address(buffer);
+    //Прочитать начальный блок иноды
+    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+    //Проверка, не прочитан ли весь блок?
+    while(curr_offset < parent_inode->size) {
+        if(in_block_offset >= inst->block_size){
+            block_offset++;
+            in_block_offset = 0;
+            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+        }
+        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
+        if(curr_entry->inode != 0){
+            if(passed_entries == index){
+                ext2_inode_t* inode = new_ext2_inode();
+                ext2_inode(inst, inode, curr_entry->inode);
+                vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
+                kfree(buffer);
+                kfree(inode);
+                kfree(parent_inode);
+                return result;
+            }
+            passed_entries++;
+        }
+        in_block_offset += curr_entry->size;
+        curr_offset += curr_entry->size;
+    }
+    kfree(parent_inode);
+    kfree(buffer);
+    return NULL;
 }
 
 vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
@@ -233,8 +277,9 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
     char* buffer_phys = kheap_get_phys_address(buffer);
-
+    //Прочитать начальный блок иноды
     ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+    //Пока не прочитаны все блоки
     while(curr_offset < parent_inode->size) {
         //Проверка, не прочитан ли весь блок?
         if(in_block_offset >= inst->block_size){
@@ -244,19 +289,22 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
-        if(curr_entry->inode != 0){
-            if(strncmp(curr_entry->name, name, curr_entry->name_len) == 0){
-                //printf("FOUND DIRENT ID %i, NAME %s\n", curr_entry->inode, curr_entry->name, curr_entry->name_len);
-                ext2_inode_t* inode = new_ext2_inode();
-                ext2_inode(inst, inode, curr_entry->inode);
-                vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
-                kfree(buffer);
-                return result;
-            }
+        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)){
+            //printf("FOUND DIRENT ID %i, NAME %s\n", curr_entry->inode, curr_entry->name, curr_entry->name_len);
+            ext2_inode_t* inode = new_ext2_inode();
+            ext2_inode(inst, inode, curr_entry->inode);
+            vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
+            kfree(buffer);
+            kfree(inode);
+            kfree(parent_inode);
+            return result;
         }
 
         in_block_offset += curr_entry->size;
         curr_offset += curr_entry->size;
     }
+
+    kfree(parent_inode);
+    kfree(buffer);
     return NULL;
 }

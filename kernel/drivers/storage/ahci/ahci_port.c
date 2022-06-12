@@ -47,7 +47,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     result->device_type = device_type;
 
 	void* port_mem_v = get_first_free_pages(get_kernel_pml4(), 1);
-    void* port_mem = (void*)alloc_page();
+    void* port_mem = (void*)pmm_alloc_page();
     memset(port_mem, 0, 4096);
 	map_page_mem(get_kernel_pml4(), port_mem_v, port_mem, PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED);
 	//port_mem = port_mem_v;
@@ -65,7 +65,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     uint32_t pages = cmd_tables_mem_sz / PAGE_SIZE + 1;
 
 	HBA_COMMAND_TABLE* cmd_tables_mem_v = get_first_free_pages(get_kernel_pml4(), pages);
-    HBA_COMMAND_TABLE* cmd_tables_mem = (HBA_COMMAND_TABLE*)alloc_pages(pages);
+    HBA_COMMAND_TABLE* cmd_tables_mem = (HBA_COMMAND_TABLE*)pmm_alloc_pages(pages);
     memset(cmd_tables_mem, 0, pages * PAGE_SIZE	);
 	map_page_mem(get_kernel_pml4(), cmd_tables_mem_v, cmd_tables_mem, PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED);
 	//cmd_tables_mem = cmd_tables_mem_v;
@@ -259,10 +259,10 @@ uint32_t parse_identity_buffer(char* buffer,
 }
 
 int ahci_port_read_lba(ahci_port_t *port, uint64_t start, uint64_t count, uint16_t *buf){
-	return ahci_port_read_lba48(port, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, buf);
+	return ahci_port_read_lba48(port, start, (uint32_t)count, buf);
 }
 
-int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){
+int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint16_t *buf){
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; 
@@ -302,14 +302,14 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	cmdfis->cmd_ctrl = 1;	// Команда, а не управление
 	cmdfis->command = FIS_CMD_READ_DMA_EXT;
  
-	cmdfis->lba[0] = (uint8_t)startl;
-	cmdfis->lba[1] = (uint8_t)(startl >> 8);
-	cmdfis->lba[2] = (uint8_t)(startl >> 16);
+	cmdfis->lba[0] = (uint8_t)start;
+	cmdfis->lba[1] = (uint8_t)(start >> 8);
+	cmdfis->lba[2] = (uint8_t)(start >> 16);
 	cmdfis->device = (1 << 6);	// режим LBA
  
-	cmdfis->lba2[0] = (uint8_t)(startl >> 24);
-	cmdfis->lba2[1] = (uint8_t)starth;
-	cmdfis->lba2[2] = (uint8_t)(starth >> 8);
+	cmdfis->lba2[0] = (uint8_t)(start >> 24);
+	cmdfis->lba2[1] = (uint8_t)(start >> 32);
+	cmdfis->lba2[2] = (uint8_t)(start >> 40);
  
 	cmdfis->count_l = count & 0xFF;
 	cmdfis->count_h = (count >> 8) & 0xFF;
@@ -335,7 +335,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 			break;
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
 		{
-			printf("Read disk error\n");
+			printf("Read disk error (%i, %i)\n", start, count);
 			return 0;
 		}
 	}
@@ -343,7 +343,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, ui
 	// Check again
 	if (hba_port->is & HBA_PxIS_TFE)
 	{
-		printf("Read disk error\n");
+		printf("Read disk error (%i, %i)\n", start, count);
 		return 0;
 	}
 

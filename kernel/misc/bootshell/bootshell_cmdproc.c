@@ -67,7 +67,19 @@ void bootshell_process_cmd(char* cmdline){
         
     }
     if(strcmp(cmd, "open") == 0){
-        vfs_inode_t* inode = vfs_fopen(args, 0);        
+        vfs_inode_t* inode = vfs_fopen(args, 0);
+        kfree(inode);     
+    }
+    if(strcmp(cmd, "ls") == 0){
+        uint32_t index = 0;
+        vfs_inode_t* inode = vfs_fopen(args, 0);
+        vfs_inode_t* child = NULL;
+        while((child = vfs_readdir(inode, index++)) != NULL){
+            printf("NAME %s, SIZE %i\n", child->name, child->size);
+            kfree(child);
+        }
+
+        kfree(inode);     
     }
     else if(strcmp(cmdline, "mounts") == 0){
         vfs_mount_info_t** mounts = vfs_get_mounts();
@@ -102,7 +114,7 @@ void bootshell_process_cmd(char* cmdline){
                 total_free_bytes += current_item->size;
             else
                 total_used_bytes += current_item->size;
-            //printf("kheap item Addr : %i, Size : %i, Free : %i\n", current_item, current_item->size, current_item->free);
+            printf("kheap item Addr : %i, Size : %i, Free : %i\n", current_item, current_item->size, current_item->free);
             current_item = current_item->next;
         }
         printf("Kheap free space: %i\n", total_free_bytes);
