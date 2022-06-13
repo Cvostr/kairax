@@ -3,6 +3,7 @@
 #include "string.h"
 #include "memory/hh_offset.h"
 #include "mem/kheap.h"
+#include "mem/pmm.h"
 
 void ext2_init(){
     filesystem_t* ext2fs = new_filesystem();
@@ -76,8 +77,13 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
 uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer){
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
-    //printf("INODE BLK %i", (uint64_t)inode_block_abs * 8);
     return ext2_partition_read_block(inst, inode_block_abs, 1, buffer);
+}
+
+uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer){
+    //Получить номер блока иноды внутри всего раздела
+    uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
+    return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
 }
 
 vfs_inode_t* ext2_mount(drive_partition_t* drive){
@@ -89,6 +95,13 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive){
     instance->block_size = 1024;
     ext2_partition_read_block(instance, 1, 1, kheap_get_phys_address(instance->superblock));
     
+    //Проверить магическую константу ext2 61267
+    if(instance->superblock->ext2_magic != 61267){
+        kfree(instance->superblock);
+        kfree(instance);
+        return NULL;
+    }
+
     //Сохранить некоторые полезные значения
     instance->block_size = (1024 << instance->superblock->log2block_size);
     instance->total_groups = instance->superblock->total_blocks / instance->superblock->blocks_per_group;
@@ -99,8 +112,6 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive){
     while(instance->bgds_blocks * instance->block_size < instance->total_groups * sizeof(ext2_bgd_t))
         instance->bgds_blocks++;
 
-    //printf("GROUPS %i, BLOCKS %i\n", instance->total_groups, instance->bgds_blocks);
-
     instance->bgds = (ext2_bgd_t*)kmalloc(instance->bgds_blocks * instance->block_size);
     uint64_t bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
@@ -109,8 +120,6 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive){
     ext2_inode_t* ext2_inode_root = new_ext2_inode();
     ext2_inode(instance, ext2_inode_root, 2);
     instance->root_inode = ext2_inode_root;
-
-    printf("%s %i %i\n", instance->superblock->vol_name, instance->superblock->ext2_magic, instance->block_size);
     //Создать объект VFS корневой иноды файловой системы 
     vfs_inode_t* result = new_vfs_inode();
     strcpy(result->name, "/");
@@ -137,9 +146,7 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive){
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf){
     //Защита от выхода за границы файла
-    uint32_t end_offset = offset + size;//(inode->size >= offset + size) ? (offset + size) : (inode->size);
-
-    //printf("OFFSET %i, SIZE %i, ENDOFF %i, IS %i \n", offset, size, end_offset, inode->size);
+    uint32_t end_offset = (inode->size >= offset + size) ? (offset + size) : (inode->size);
     //Номер начального блока
     uint32_t start_fs_block =  offset / inst->block_size;
     //Смещение в начальном блоке
@@ -150,7 +157,6 @@ uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
     uint32_t end_size = end_offset - end_fs_block * inst->block_size;
 
     char* temp_buffer = (char*)kmalloc(inst->block_size);
-    //memset(temp_buffer, 0, inst->block_size);
     char* temp_buffer_phys = kheap_get_phys_address(temp_buffer);
     uint32_t current_offset = 0;
     for(uint32_t block_i = start_fs_block; block_i <= end_fs_block; block_i ++){
@@ -177,10 +183,7 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 
     uint32_t offset_in_block = (idx_in_group - 1) - block_offset * (inst->block_size / inst->superblock->inode_size);
 
-    //printf("INODE GROUP %i, TB %i, OFFSET %i\n", inode_group, inode_table_block, offset_in_block);
-
     char* buffer = kmalloc(inst->block_size);
-    //printf("INODE %i (%i + %i), GROUP %i\n", inode_table_block + block_offset, inode_table_block, block_offset, inode_group);
     ext2_partition_read_block(inst, inode_table_block + block_offset, 1, kheap_get_phys_address(buffer));
     memcpy(inode, buffer + offset_in_block * inst->superblock->inode_size, sizeof(ext2_inode_t));
     //Освободить временный буфер
@@ -228,7 +231,7 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
 }
 
 void ext2_open(vfs_inode_t* inode, uint32_t flags){
-    printf("OPENING NODE %i NAME %s\n", inode->inode, inode->name);
+
 }
 
 void ext2_close(vfs_inode_t* inode){
@@ -248,7 +251,7 @@ uint32_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buf
     ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
-
+    kfree(inode);
     return 0;
 }
 
@@ -332,7 +335,6 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name){
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
         if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)){
-            //printf("FOUND DIRENT ID %i, NAME %s\n", curr_entry->inode, curr_entry->name, curr_entry->name_len);
             ext2_inode_t* inode = new_ext2_inode();
             ext2_inode(inst, inode, curr_entry->inode);
             vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);

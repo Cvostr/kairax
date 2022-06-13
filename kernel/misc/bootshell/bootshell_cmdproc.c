@@ -49,6 +49,8 @@ void bootshell_process_cmd(char* cmdline){
         int result = vfs_mount(mnt_path, partition);
         if(result < 0){
             printf("ERROR: vfs_mount returned with code %i\n", result);
+        }else{
+            printf("Successfully mounted!\n");
         }
 
         kfree(partition_name);
@@ -66,15 +68,13 @@ void bootshell_process_cmd(char* cmdline){
             printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
         
     }
-    if(strcmp(cmd, "open") == 0){
-        vfs_inode_t* inode = vfs_fopen(args, 0);
-        kfree(inode);     
-    }
     if(strcmp(cmd, "ls") == 0){
         uint32_t index = 0;
         vfs_inode_t* inode = vfs_fopen(args, 0);
-        if(inode == NULL)
+        if(inode == NULL){
+            printf("Can't open directory with path : ", args);
             return 0;
+        }
         vfs_inode_t* child = NULL;
         while((child = vfs_readdir(inode, index++)) != NULL){
             printf("TYPE %s, NAME %s, SIZE %i\n", (child->flags == VFS_FLAG_FILE) ? "FILE" : "DIR", child->name, child->size);
@@ -86,12 +86,18 @@ void bootshell_process_cmd(char* cmdline){
     }
     if(strcmp(cmd, "cat") == 0){
         vfs_inode_t* inode = vfs_fopen(args, 0);
-        int size = 100;
+        if(inode == NULL){
+            printf("Can't open directory with path : ", args);
+            return 0;
+        }
+        int size = inode->size;
+        printf("%s: ", args);
         char* buffer = kmalloc(size);
         vfs_read(inode, 0, size, buffer);
         for(int i = 0; i < size; i++){
             printf("%c", buffer[i]);
         }
+        printf("\n");
         kfree(buffer);
         vfs_close(inode);
         kfree(inode);

@@ -53,6 +53,11 @@ int vfs_mount(char* mount_path, drive_partition_t* partition){
     //вызов функции монтирования, если она определена
     if(mount_info->filesystem->mount)
         mount_info->root_node = mount_info->filesystem->mount(partition);
+    else
+        return -4;  //Нет функции монтирования
+
+    if(mount_info->root_node == NULL)
+        return -5; //Ошибка при процессе монтирования
 
     //Удалить / в конце, если есть
     int path_len = strlen(mount_info->mount_path);
