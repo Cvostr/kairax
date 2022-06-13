@@ -1,6 +1,7 @@
 #include "vfs.h"
 #include "string.h"
 #include "filesystems.h"
+#include "mem/kheap.h"
 
 #define MAX_MOUNTS 100
 
@@ -8,6 +9,12 @@ vfs_mount_info_t* vfs_mounts[MAX_MOUNTS];
 
 vfs_inode_t* new_vfs_inode(){
     vfs_inode_t* result = kmalloc(sizeof(vfs_inode_t));
+    memset(result, 0, sizeof(vfs_inode_t));
+    return result;
+}
+
+dirent_t* new_vfs_dirent(){
+    dirent_t* result = kmalloc(sizeof(dirent_t));
     memset(result, 0, sizeof(vfs_inode_t));
     return result;
 }
@@ -120,16 +127,22 @@ vfs_mount_info_t** vfs_get_mounts(){
     return vfs_mounts;
 }
 
+uint32_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer){
+    if(file)
+        if(file->operations.read)
+            return file->operations.read(file, offset, size, buffer);
+}
+
 vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name){
     if(node)
         if(node->operations.finddir)
-            node->operations.finddir(node, name);
+            return node->operations.finddir(node, name);
 }
 
 vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index){
     if(node)
         if(node->operations.readdir)
-            node->operations.readdir(node, index);
+            return node->operations.readdir(node, index);
 }
 
 void vfs_open(vfs_inode_t* node, uint32_t flags){
@@ -138,15 +151,24 @@ void vfs_open(vfs_inode_t* node, uint32_t flags){
             node->operations.open(node, flags);
 }
 
+void vfs_close(vfs_inode_t* node){
+    if(node)
+        if(node->operations.close)
+            node->operations.close(node);
+}
+
 vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
     int offset = 0;
     vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);
-
     vfs_inode_t* curr_node = mount_info->root_node;
 
     offset += 1;
     char* fs_path = path + offset;
-    char* temp = kmalloc(strlen(fs_path) + 1);
+    char* temp = (char*)kmalloc(strlen(fs_path) + 1);
+
+    if(strlen(fs_path) == 0){
+        return curr_node;
+    }
 
     while(strlen(fs_path) > 0){
         int len = 0;

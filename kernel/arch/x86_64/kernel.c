@@ -32,21 +32,6 @@
 #define KERNEL_MEMORY_SIZE (1024ULL * 1024 * 32)
 #define KHEAP_PAGES_SIZE 4096		//16MB
 
-void threaded(){
-	//asm volatile("hlt");
-	while(1){
-		for(int i = 0; i < 100000000; i ++){
-			asm volatile("nop");
-		}
-		for(int i = 0; i < 3; i ++){
-			for(int i = 0; i < 10000000; i ++){
-				asm volatile("nop");
-			}
-			printf("thread 1 - %i \n", i);
-		}
-	}
-}
-
 void threaded2(){
 	while(1){
 		for(int i = 0; i < 10000000; i ++){

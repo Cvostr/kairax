@@ -27,10 +27,6 @@ uint64_t align_4kb(uint64_t size){
     return size + (4096 - (size % 4096));
 }
 
-uint64_t get_pages_count(uint64_t size){
-    return align_4kb(size) / PAGE_SIZE;
-}
-
 kheap_item_t* kheap_get_head_item(){
     return kheap.head;
 }
@@ -46,7 +42,7 @@ static uint64_t heap_expand(uint64_t size)
     if (kheap.end_vaddr + new_size > kheap.ceil_vaddr)
         return 0;
 
-    pages_count = get_pages_count(new_size);
+    pages_count = new_size / PAGE_SIZE;
     pages_paddr = (uint64_t)pmm_alloc_pages(pages_count);
     if (pages_paddr == 0)
         return 0;

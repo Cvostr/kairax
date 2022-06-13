@@ -4,7 +4,6 @@
 #include "stdio.h"
 #include "hh_offset.h"
 #include "stddef.h"
-#include "stdio.h"
 
 extern page_table_t p4_table;
 page_table_t* root_pml4 = &p4_table;

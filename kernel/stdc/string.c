@@ -61,7 +61,7 @@ void* memmove(void* dstptr, const void* srcptr, size_t size) {
 	return dstptr;
 }
 
-int strcmp(char* str1, char* str2){
+int strcmp(const char* str1, const char* str2){
 	if(strlen(str1) != strlen(str2))
 		return 1;
 

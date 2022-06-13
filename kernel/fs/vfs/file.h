@@ -6,17 +6,29 @@
 
 struct vfs_inode;
 
+#define DT_UNKNOWN       0
+#define DT_FIFO          1
+#define DT_CHR           2
+#define DT_DIR           4
+#define DT_BLK           6
+#define DT_REG           8
+#define DT_LNK          10
+#define DT_SOCK         12
+#define DT_WHT          14
+
 typedef struct PACKED {
-    char        name[256];
     uint64_t    inode;
-    uint64_t    size;
+    uint64_t    offset;
+    uint16_t    reclen;
+    uint8_t     type;
+    char        name[256];
 } dirent_t;
 
 typedef void      (*open_type_t)(struct vfs_inode*, uint32_t);
 typedef void      (*close_type_t)(struct vfs_inode*);
 typedef uint32_t  (*read_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
 typedef uint32_t  (*write_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
-typedef dirent_t* (*readdir_type_t)(struct vfs_inode*, uint32_t);
+typedef struct vfs_inode* (*readdir_type_t)(struct vfs_inode*, uint32_t);
 typedef struct vfs_inode*  (*finddir_type_t)(struct vfs_inode*, char*); 
 
 typedef void      (*chmod_type_t)(struct vfs_inode*, uint32_t);
@@ -51,10 +63,12 @@ typedef struct vfs_inode {
     uint32_t    mask;       //Разрешения
     uint32_t    uid;        // Идентификатор пользователя, владеющего файлом
     uint32_t    gid;        // Идентификатор группы
-    uint64_t    inode;  // Номер узла в драйвере файловой системы
+    uint64_t    inode;      // Номер узла в драйвере файловой системы
     uint64_t    size;       // Размер файла (байт)
+    uint32_t    hard_links;
 
     void*       fs_d;       // Указатель на данные драйвера
+    uint32_t    refs;
 
     uint64_t    create_time;
     uint64_t    access_time;

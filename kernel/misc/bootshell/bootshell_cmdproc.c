@@ -73,13 +73,28 @@ void bootshell_process_cmd(char* cmdline){
     if(strcmp(cmd, "ls") == 0){
         uint32_t index = 0;
         vfs_inode_t* inode = vfs_fopen(args, 0);
+        if(inode == NULL)
+            return 0;
         vfs_inode_t* child = NULL;
         while((child = vfs_readdir(inode, index++)) != NULL){
-            printf("NAME %s, SIZE %i\n", child->name, child->size);
+            printf("TYPE %s, NAME %s, SIZE %i\n", (child->flags == VFS_FLAG_FILE) ? "FILE" : "DIR", child->name, child->size);
             kfree(child);
         }
 
+        vfs_close(inode);
         kfree(inode);     
+    }
+    if(strcmp(cmd, "cat") == 0){
+        vfs_inode_t* inode = vfs_fopen(args, 0);
+        int size = 100;
+        char* buffer = kmalloc(size);
+        vfs_read(inode, 0, size, buffer);
+        for(int i = 0; i < size; i++){
+            printf("%c", buffer[i]);
+        }
+        kfree(buffer);
+        vfs_close(inode);
+        kfree(inode);
     }
     else if(strcmp(cmdline, "mounts") == 0){
         vfs_mount_info_t** mounts = vfs_get_mounts();
