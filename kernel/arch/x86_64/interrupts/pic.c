@@ -1,6 +1,6 @@
 #include "pic.h"
 
-void pic_outb(uint8 port, uint8 data)
+void pic_outb(uint8_t port, uint8_t data)
 {
     outb(port, data);
     io_wait();
@@ -25,18 +25,18 @@ void init_pic(void)
 }
 
 
-void pic_unmask(uint8 irq)
+void pic_unmask(uint8_t irq)
 {
     //получение текущей маски
-    uint8 curmask_master = inb(PORT_PIC_MASTER_DATA);
+    uint8_t curmask_master = inb(PORT_PIC_MASTER_DATA);
     /* if bit == 0 irq is enable*/
     outb(PORT_PIC_MASTER_DATA, curmask_master & ~(1 << irq));
 }
 
-void pic_mask(uint8 irq)
+void pic_mask(uint8_t irq)
 {
     //получение текущей маски
-    uint8 curmask_master = inb(PORT_PIC_SLAVE_DATA);
+    uint8_t curmask_master = inb(PORT_PIC_SLAVE_DATA);
     /* if bit == 0 irq is enable*/
     outb(PORT_PIC_MASTER_DATA, curmask_master | (1 << irq));
 }

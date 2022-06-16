@@ -150,6 +150,12 @@ vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index){
             return node->operations.readdir(node, index);
 }
 
+void vfs_chmod(vfs_inode_t* node, uint32_t mode){
+    if(node)
+        if(node->operations.chmod)
+            return node->operations.chmod(node, mode);
+}
+
 void vfs_open(vfs_inode_t* node, uint32_t flags){
     if(node)
         if(node->operations.open)

@@ -2,7 +2,7 @@ bits 32
 
 %include "memory/hh_offset.asm"
 
-%define KERNEL_STACK_SIZE         (4096)
+%define KERNEL_STACK_SIZE         (8192)
 %define MAGIC_HEADER_MB2          0xE85250D6
 %define MAGIC_BOOTLOADER_MB2      0x36d76289
 
@@ -143,7 +143,7 @@ beginning_memmap: ;Задает начальную конфигурацию дл
 	mov [V2P(p2_table) + ecx * 8], eax ; map ecx-th entry
 
 	inc ecx 		; увеличение счетчика на 1
-	cmp ecx, 32 	; уже создано 16 страниц
+	cmp ecx, 64 	; уже создано 64 страниц
 	jne .p1_loop
 	ret
 

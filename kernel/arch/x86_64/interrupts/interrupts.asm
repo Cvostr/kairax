@@ -9,11 +9,11 @@ idt_update:
 	lidt  [rdi]
     ret
 
-
 section .bss
 global idt_descriptors ;таблица дескрипторов прерываний
 idt_descriptors:
 	resb 4096
+
 
 extern int_handler ;Обработчик прерываний
 extern scheduler_handler ;Обработчик прерываний
@@ -132,7 +132,6 @@ isr_stub_sc:
     mov ax, ds
     ; And pop all the registers
     popaq
-    ;mov rax, 0xdeadbeef
     iretq
 
 ; We'll start by making all of our ISRs. From 0 to 255

@@ -135,7 +135,8 @@ void bootshell_process_cmd(char* cmdline){
                 total_free_bytes += current_item->size;
             else
                 total_used_bytes += current_item->size;
-            printf("kheap item Addr : %i, Size : %i, Free : %i\n", current_item, current_item->size, current_item->free);
+            printf("kheap item Addr : %i, Size : %i, Free : %i, Prev %i\n", 
+                V2P(current_item), current_item->size, current_item->free, V2P(current_item->prev));
             current_item = current_item->next;
         }
         printf("Kheap free space: %i\n", total_free_bytes);

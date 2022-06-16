@@ -105,7 +105,11 @@ void ahci_init(){
 
 			ahci_controller_enable_interrupts_ghc(controller);
 
+			printf("ALIVE");
+
 			ahci_controller_probe_ports(controller);
+
+			printf("ALIVE");
 
 			for(int i = 0; i < 32; i ++){
 				if(controller->ports[i].implemented == 0)

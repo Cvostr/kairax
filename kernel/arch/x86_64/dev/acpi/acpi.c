@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "memory/paging.h"
+#include "mem/pmm.h"
 #include "io.h"
 
 #define to_acpi_header(x)  (acpi_header_t*)(uintptr_t)(x)
@@ -14,6 +15,8 @@ acpi_madt_t* acpi_apic;
 #define MAX_CPU_COUNT 8
 uint32_t            cpus_apic_count = 0;
 apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
+
+#define P2V_P_END p = P2V(p); end = P2V(end);
 
 acpi_fadt_t* acpi_get_fadt(){
     return acpi_fadt;
@@ -34,8 +37,12 @@ apic_local_cpu_t** acpi_get_cpus_apic(){
 void acpi_parse_apic_madt(acpi_madt_t* madt){
     acpi_apic = madt;
 
+    madt = P2V(madt);
+
     uint8_t *p = (uint8_t *)(madt + 1);
     uint8_t *end = (uint8_t *)madt + madt->header.length;
+
+    P2V_P_END
 
     while(p < end){
         apic_header_t* apic_header = (apic_header_t*)p;
@@ -59,7 +66,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
 
 void acpi_parse_dt(acpi_header_t* dt)
 {
-    map_page_mem(V2P(get_kernel_pml4()), dt, dt, PAGE_PRESENT);
+    dt = P2V(dt);
     uint32_t signature = dt->signature;
 
     if (signature == 0x50434146)
@@ -77,10 +84,10 @@ void acpi_parse_dt(acpi_header_t* dt)
 }
 
 void acpi_read_xsdt(acpi_header_t* xsdt){
-    map_page_mem(V2P(get_kernel_pml4()), xsdt, xsdt, PAGE_PRESENT);
-
     uint64_t *p = (uint64_t *)(xsdt + 1);
     uint64_t *end = (uint64_t *)((uint8_t*)xsdt + xsdt->length);
+
+    P2V_P_END
 
     while (p < end)
     {
@@ -90,11 +97,12 @@ void acpi_read_xsdt(acpi_header_t* xsdt){
 }
 
 void acpi_parse_rsdt(acpi_header_t* rsdt){
-    map_page_mem(V2P(get_kernel_pml4()), rsdt, rsdt, PAGE_PRESENT);
+    rsdt = P2V(rsdt);
 
     uint32_t *p = (uint32_t *)(rsdt + 1);
     uint32_t *end = (uint32_t *)((uint8_t*)rsdt + rsdt->length);
 
+    P2V_P_END
     while (p < end)
     {
         uint32_t address = *(p++);
@@ -116,10 +124,10 @@ int acpi_read_rsdp(uint8_t *p)
         printf("ACPI RSDP Checksum failed\n");
         return 0;
     }
-
+    
     memcpy(acpi_rsdp.oem_id, p + 9, 6);
     acpi_rsdp.oem_id[6] = '\0';
-
+    
     // Считать версию ACPI
     acpi_rsdp.revision = p[15];
     if (acpi_rsdp.revision == 0)
@@ -176,11 +184,11 @@ int acpi_init(){
 
     uint8_t *p = (uint8_t *)0x000e0000;
     uint8_t *end = (uint8_t *)0x000fffff;
+    P2V_P_END
 
     while (p < end)
     {
         uint64_t signature = *(uint64_t*)p;
-
         if (signature == 0x2052545020445352) // 'RSD PTR '
         {
             if (acpi_read_rsdp(p))
@@ -190,7 +198,7 @@ int acpi_init(){
         }
 
         p += 16;
-    } 
+    }
 
     return 1;
 }

@@ -13,16 +13,12 @@ int acpi_aml_is_struct_valid(uint8_t* struct_address){
 }
 
 void acpi_parse_dsdt(acpi_header_t* dsdt) {
+    dsdt = P2V(dsdt);
     acpi_dsdt = dsdt;
     char* data = (char*)(dsdt);
-    map_page_mem(V2P(get_kernel_pml4()), dsdt, dsdt, PAGE_PRESENT);
 
     char* data_address = (char*)(dsdt + 1);
     uint32_t dsdt_size = dsdt->length;
-
-    for(uint32_t i = 1; i < dsdt_size / 4096; i ++){
-        map_page_mem(V2P(get_kernel_pml4()), data + i * 4096, data + i * 4096, PAGE_PRESENT);
-    }
     
     int it = 0;
     

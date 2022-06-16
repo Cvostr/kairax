@@ -1,5 +1,6 @@
 #include "ahci_port.h"
 #include "mem/pmm.h"
+#include "mem/kheap.h"
 #include "string.h"
 #include "memory/paging.h"
 #include "io.h"
@@ -50,7 +51,10 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     void* port_mem = (void*)pmm_alloc_page();
     memset(port_mem, 0, 4096);
 	map_page_mem(get_kernel_pml4(), port_mem_v, port_mem, PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED);
-	//port_mem = port_mem_v;
+	port_mem = port_mem_v;
+	//void* port_mem_v = kmalloc(4096);
+	//memset(port_mem_v, 0, 4096);
+	//void* port_mem = kheap_get_phys_address(port_mem_v);
 
     result->command_list = port_mem;
     result->fis = port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT;

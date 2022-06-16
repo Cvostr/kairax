@@ -1,10 +1,12 @@
 #include "idt.h"
 #include "memory/hh_offset.h"
+#include "mem/pmm.h"
+#include "mem/kheap.h"
 
 #define GDT_OFFSET_KERNEL_CODE 0x8
 #define IDT_MAX_DESCRIPTORS 256
 
-extern idt_descriptor_t* idt_descriptors;
+static idt_descriptor_t idt_descriptors[255];
 
 static idtr_t idtr; //структура, передаваемая в lidt
 
@@ -25,12 +27,13 @@ void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags){
 }
 
 void setup_idt(){
-
-	idtr.base = P2V((uintptr_t)&idt_descriptors[0]); //адрес таблицы дескрипторов
+    //idt_descriptors = (idt_descriptor_t*)pmm_alloc_page();
+    //idt_descriptors = P2V(idt_descriptors);
+	idtr.base = (idt_descriptors); //адрес таблицы дескрипторов
     idtr.limit = (uint16_t)sizeof(idt_descriptor_t) * IDT_MAX_DESCRIPTORS - 1;
 
 	for (uint8_t vector = 0; vector < 255; vector++) {
-      	set_int_descriptor(vector, P2V(isr_stub_table[vector]), 0, 0x8E);
+      	set_int_descriptor(vector, isr_stub_table[vector], 0, 0x8E);
     }
 
 	idt_update(P2V(&idtr));

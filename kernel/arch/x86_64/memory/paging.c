@@ -18,8 +18,9 @@ void set_kernel_pml4(page_table_t* pml4){
 
 page_table_t* new_page_table(){
     page_table_t* table = (page_table_t*)pmm_alloc_page();
+    table = P2V(table);
     memset(table, 0, 4096);
-    return table;
+    return P2V(table);
 }
 
 void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags){
@@ -39,28 +40,31 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
         //Выделить память под страницу
         pdp_table = new_page_table();
         //Записать страницу в родительское дерево
-        root->entries[level4_index] = ((uint64_t)pdp_table | flags);  
+        root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | flags);  
     }
 
     pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
+    pdp_table = P2V(pdp_table);
 
     if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
         //Выделить память под страницу
         pd_table = new_page_table();
         //Записать страницу в родительское дерево
-        pdp_table->entries[level3_index] = ((uint64_t)pd_table | flags);  
+        pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | flags);  
     }
 
     pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
+    pd_table = P2V(pd_table);
 
     if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
         //Выделить память под страницу
         pt_table = new_page_table();
         //Записать страницу в родительское дерево
-        pd_table->entries[level2_index] = ((uint64_t)pt_table | flags);  
+        pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | flags);  
     }
 
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    pt_table = P2V(pt_table);
 
     if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
         pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
@@ -143,16 +147,19 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
+    pdp_table = P2V(pdp_table);
     if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
         return FALSE;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
+    pd_table = P2V(pd_table);
     if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
         return FALSE;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    pt_table = P2V(pt_table);
 
     return pt_table->entries[level1_index] & PAGE_PRESENT;
 }

@@ -36,6 +36,8 @@ vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name);
 
 vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index);
 
+void vfs_chmod(vfs_inode_t* node, uint32_t mode);
+
 void vfs_open(vfs_inode_t* node, uint32_t flags);
 
 void vfs_close(vfs_inode_t* node);
