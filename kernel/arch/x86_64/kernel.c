@@ -29,13 +29,16 @@
 
 #include "misc/bootshell/bootshell.h"
 
+extern void lgdt_hh();
+extern void* gdtptr_hh;
+
 void threaded2(){
 	while(1){
 		for(int i = 0; i < 10000000; i ++){
 			asm volatile("nop");
 		}
 
-		printf("thread 2 \n");
+		//printf("thread 2 \n");
 	}
 }
 
@@ -51,13 +54,15 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	page_table_t* new_pt = new_page_table();
 	for(uintptr_t i = 0; i <= PHYSICAL_MEMORY_SIZE; i += PAGE_SIZE){
-		//map_page_mem(new_pt, i, i, pageFlags);
 		map_page_mem(new_pt, P2V(i), i, pageFlags);
 	}
+
 	switch_pml4(V2P(new_pt));
 	set_kernel_pml4((new_pt));
 
-	virtual_addr_t addr = P2V(PHYSICAL_MEMORY_SIZE);
+	lgdt_hh();
+
+	virtual_addr_t addr = P2V(PHYSICAL_MEMORY_SIZE- 10000000);
 	kheap_init(addr, 4096 * 1024 * 10);
 
 	acpi_init();
@@ -73,8 +78,6 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 
 	cmos_datetime_t datetime = cmos_rtc_get_datetime();
 	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
-
-	//kheap_init(addr);
 
 	
 
@@ -96,13 +99,13 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	//copy_to_vm(proc->pml4, 0x10000, (void *)(uintptr_t)threaded, 200);
 	
 	thread_t* thr = create_new_thread(proc, bootshell);
-	//thread_t* thr2 = create_new_thread(proc1, threaded2);
+	thread_t* thr2 = create_new_thread(NULL, threaded2);
 	
 	init_scheduler();
 	
 	add_thread(thr);
-	//add_thread(thr2);
-	//start_scheduler();
+	add_thread(thr2);
+	start_scheduler();
 
 	
 

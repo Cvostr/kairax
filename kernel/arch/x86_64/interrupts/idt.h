@@ -13,10 +13,10 @@ typedef struct PACKED {
 	uint32_t    reserved;     // Зарезервировано, устанавливается в 0
 } idt_descriptor_t;
 
-typedef struct {
+typedef struct PACKED {
 	uint16_t	limit;
 	uint64_t	base;
-} __attribute__((aligned(0x10)))  idtr_t;
+} idtr_t;
 
 void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags);
 

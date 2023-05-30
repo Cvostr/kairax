@@ -19,7 +19,7 @@ uint64_t kheap_expand(uint64_t size){
     for(int i = 0; i < pages_count; i ++){
         virtual_addr_t page_virtual = kheap.end_vaddr + PAGE_SIZE;
         physical_addr_t page_physical = pages_physaddr + i * PAGE_SIZE;
-        map_page_mem(get_kernel_pml4(), page_virtual, page_physical, PAGE_PRESENT | PAGE_WRITABLE);
+        map_page_mem(get_kernel_pml4(), page_virtual, page_physical, PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL);
 
         kheap.end_vaddr += PAGE_SIZE;
     }

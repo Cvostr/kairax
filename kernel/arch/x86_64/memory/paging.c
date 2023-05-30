@@ -20,7 +20,7 @@ page_table_t* new_page_table(){
     page_table_t* table = (page_table_t*)pmm_alloc_page();
     table = P2V(table);
     memset(table, 0, 4096);
-    return P2V(table);
+    return table;
 }
 
 void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags){

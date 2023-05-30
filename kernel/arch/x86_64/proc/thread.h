@@ -6,7 +6,7 @@
 
 #include "interrupts/handle/handler.h"
 
-#define STACK_SIZE 1024
+#define STACK_SIZE 4096
 
 enum thread_state {
     THREAD_RUNNING          = 0,
