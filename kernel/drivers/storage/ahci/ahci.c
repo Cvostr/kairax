@@ -22,7 +22,7 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 	{
 		if (pi & 1)
 		{
-			HBA_PORT* hba_port = &hba_mem->ports[i]; 
+			HBA_PORT* hba_port = P2V(&hba_mem->ports[i]); 
 			ahci_port_t* port = initialize_port(&controller->ports[i], i, hba_port);
 		}
  
@@ -91,9 +91,14 @@ void ahci_init(){
 			pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			pci_device_set_enable_interrupts(device_desc, 1);
 
-			//создать виртуальную страницу с адресом BAR5 
+			// Данная страница уже замаплена, но без PAGE_UNCACHED
+			// Перезамаппим её
 			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
-			map_page_mem(get_kernel_pml4(), controller->hba_mem, device_desc->BAR[5].address, pageFlags);
+			unmap_page(get_kernel_pml4(), P2V(device_desc->BAR[5].address));
+			map_page_mem(get_kernel_pml4(), P2V(device_desc->BAR[5].address), device_desc->BAR[5].address, pageFlags);
+
+			//!!!!
+			controller->hba_mem = P2V(controller->hba_mem);
 
 			int reset = ahci_controller_reset(controller);
 			if(!reset){
@@ -105,19 +110,15 @@ void ahci_init(){
 
 			ahci_controller_enable_interrupts_ghc(controller);
 
-			printf("ALIVE");
-
 			ahci_controller_probe_ports(controller);
 
-			printf("ALIVE");
-
-			for(int i = 0; i < 32; i ++){
+			for (int i = 0; i < 32; i ++) {
 				if(controller->ports[i].implemented == 0)
 					continue;
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
-					//printf("SATA drive found at port %i, \n", i);
+					printf("SATA drive found at port %i, \n", i);
 
 					char identity_buffer[512];
 					ahci_port_identity(&controller->ports[i], identity_buffer);
@@ -126,6 +127,7 @@ void ahci_init(){
 
 					uint16_t type, capabilities;
 					uint32_t cmd_sets;
+
 					parse_identity_buffer(identity_buffer, 
 										  &type,
 										  &capabilities,
@@ -133,6 +135,7 @@ void ahci_init(){
 										  &drive_header->sectors,
 										  drive_header->model,
 										  drive_header->serial);
+
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
 					drive_header->bytes = (uint64_t)drive_header->sectors * 512;
 					drive_header->ident = &controller->ports[i];
@@ -163,7 +166,7 @@ void ahci_init(){
 					//printf("No drive found at port %i\n", i);
 					continue;
 				}
-				/*switch (controller->ports[i].speed) {
+				switch (controller->ports[i].speed) {
 					case 1:
 						printf(" link speed 1.5Gb/s\n", __func__, i);
 						break;
@@ -176,7 +179,7 @@ void ahci_init(){
 					default:
 						printf(" link speed unrestricted\n", __func__, i);
 						break;
-				}*/
+				}
 			}
 		}
 	}

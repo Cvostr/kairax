@@ -66,7 +66,8 @@ void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags) {
     map_page_mem(root, virtual_addr, (physical_addr_t)pmm_alloc_page(), flags);
 }
 
-int unmap_page(page_table_t* root, uintptr_t virtual_addr){
+int unmap_page(page_table_t* root, uintptr_t virtual_addr)
+{
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
@@ -77,21 +78,23 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr){
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
-    if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
+    pdp_table = P2V(pdp_table);
+    if (!(pdp_table->entries[level3_index] & PAGE_PRESENT)) {
         return 1;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
-    if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
+    pd_table = P2V(pd_table);
+    if (!(pd_table->entries[level2_index] & PAGE_PRESENT)) {
         return 1;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
-    if(!(pt_table->entries[level1_index] & PAGE_PRESENT)){
+    pt_table = P2V(pt_table);
+    if (!(pt_table->entries[level1_index] & PAGE_PRESENT)) {
         return 1;
-    }else{
+    } else {
         uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
-        pmm_free_page(phys_addr);
         pt_table->entries[level1_index] = 0;
     }
 

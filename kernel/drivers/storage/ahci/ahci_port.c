@@ -47,14 +47,11 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     result->index = index;
     result->device_type = device_type;
 
-	void* port_mem_v = get_first_free_pages(get_kernel_pml4(), 1);
-    void* port_mem = (void*)pmm_alloc_page();
-    memset(port_mem, 0, 4096);
-	map_page_mem(get_kernel_pml4(), port_mem_v, port_mem, PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED);
-	port_mem = port_mem_v;
-	//void* port_mem_v = kmalloc(4096);
-	//memset(port_mem_v, 0, 4096);
-	//void* port_mem = kheap_get_phys_address(port_mem_v);
+	// Выделение памяти под буфер порта
+	char* port_mem = (char*)pmm_alloc_page();
+	uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
+	unmap_page(get_kernel_pml4(), P2V(port_mem));
+	map_page_mem(get_kernel_pml4(), P2V(port_mem), port_mem, pageFlags);
 
     result->command_list = port_mem;
     result->fis = port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT;
@@ -68,18 +65,18 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     size_t cmd_tables_mem_sz = COMMAND_LIST_ENTRY_COUNT * sizeof(HBA_COMMAND_TABLE);
     uint32_t pages = cmd_tables_mem_sz / PAGE_SIZE + 1;
 
-	HBA_COMMAND_TABLE* cmd_tables_mem_v = get_first_free_pages(get_kernel_pml4(), pages);
-    HBA_COMMAND_TABLE* cmd_tables_mem = (HBA_COMMAND_TABLE*)pmm_alloc_pages(pages);
-    memset(cmd_tables_mem, 0, pages * PAGE_SIZE	);
-	map_page_mem(get_kernel_pml4(), cmd_tables_mem_v, cmd_tables_mem, PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED);
-	//cmd_tables_mem = cmd_tables_mem_v;
+	//Выделить память под буфер команд
+	char* cmd_tables_mem = (char*)pmm_alloc_page();
+	unmap_page(get_kernel_pml4(), P2V(cmd_tables_mem));
+	map_page_mem(get_kernel_pml4(), P2V(cmd_tables_mem), cmd_tables_mem, pageFlags);
 
     for(int i = 0; i < 32; i ++){
-        result->command_list[i].prdtl = 8; //8 PRDT на каждую команду
+		HBA_COMMAND* hba_command_virtual = P2V(result->command_list);
+        hba_command_virtual[i].prdtl = 8; //8 PRDT на каждую команду
         HBA_COMMAND_TABLE* cmd_table = &cmd_tables_mem[i];
         //Записать адрес таблицы
-        result->command_list[i].ctdba_low = LO32(cmd_table);
-		result->command_list[i].ctdba_up = HI32(cmd_table);
+        hba_command_virtual[i].ctdba_low = LO32(cmd_table);
+		hba_command_virtual[i].ctdba_up = HI32(cmd_table);
     }
 
 	while(port->port_reg->cmd & HBA_PxCMD_CR);
@@ -167,7 +164,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	if (slot == -1)
 		return 0;
 
-	HBA_COMMAND *cmdheader = (HBA_COMMAND*)hba_port->clb;
+	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
 	cmdheader += slot;
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
 	cmdheader->write = 0;		// Чтение с диска
@@ -175,15 +172,13 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	cmdheader->prefetchable = 1;
 	cmdheader->prdbc = 512;
 
-	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);
+	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)P2V(((uintptr_t)cmdheader->ctdba_up << 32) | cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE));
-
 
 	cmdtbl->prdt_entry[0].dba = (uint32_t)V2P(buffer);
 	cmdtbl->prdt_entry[0].dbau = 0;
 	cmdtbl->prdt_entry[0].dbc = 512 - 1;
 	cmdtbl->prdt_entry[0].i = 1;
-
 
 	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
 	memset(cmdfis, 0, sizeof(FIS_HOST_TO_DEV));
@@ -204,7 +199,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 		return 0;
 	}
 
-	hba_port->ci = (1 << slot);	// Issue command
+	hba_port->ci = (1 << slot);	// Выполнить команду
 
 	while (1)
 	{
@@ -274,13 +269,13 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	if (slot == -1)
 		return 0;
 
-	HBA_COMMAND *cmdheader = (HBA_COMMAND*)hba_port->clb;
+	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
 	cmdheader += slot;
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
 	cmdheader->write = 0;									// Чтение с диска
 	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// необходимое количество PRDT
 	
-	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);
+	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)P2V(((uintptr_t)cmdheader->ctdba_up << 32) | cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE) +
  		(cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
 	
@@ -290,16 +285,16 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 		cmdtbl->prdt_entry[i].dba = (uint32_t) buf;
 		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = 1;
-		buf += 4 * 1024;	// 4K words
-		count -= 16;	// 16 sectors
+		buf += 4 * 1024;	// 4K слов
+		count -= 16;	// 16 секторов
 	}
 	
 	// Last entry
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) buf;
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9)-1;	// 512 bytes per sector
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9)-1;	// 512 байт в секторе
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = 1;
 	
-	// Setup command
+	// Подготовить команду
 	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
  
 	cmdfis->fis_type = FIS_TYPE_REG_HOST_TO_DEV;
@@ -328,9 +323,9 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 		printf("Port is hung\n");
 		return 0;
 	}
-	hba_port->ci = (1 << slot);	// Issue command
+	hba_port->ci = (1 << slot);	// Выполнить команду
  
-	// Wait for completion
+	// Ожидание завершения операции
 	while (1)
 	{
 		// In some longer duration reads, it may be helpful to spin on the DPS bit 
@@ -366,13 +361,13 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	if (slot == -1)
 		return 0;
 
-	HBA_COMMAND *cmdheader = (HBA_COMMAND*)hba_port->clb;
+	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
 	cmdheader += slot;
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Command FIS size
 	cmdheader->write = 1;									// Запись на устройство
 	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// PRDT entries count
 	
-	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)(cmdheader->ctdba_low);
+	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)P2V(((uintptr_t)cmdheader->ctdba_up << 32) | cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE) +
  		(cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
 	

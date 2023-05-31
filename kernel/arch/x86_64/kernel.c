@@ -95,15 +95,13 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	vfs_init();
 	ext2_init();
-	//ahci_init();	
+	ahci_init();	
 	init_nvme();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++){
 		drive_device_t* device = get_drive(i);
 		add_partitions_from_device(device);
 	}
-
-	
 
 	process_t* proc = create_new_process();
 	//process_t* proc1 = create_new_process();
