@@ -75,13 +75,8 @@ void ahci_init(){
 	for(int device_i = 0; device_i < pci_devices_count; device_i ++){
 		pci_device_desc* device_desc = &get_pci_devices_descs()[device_i];
 
+		// Поиск подходящего PCI устройства
 		if(device_desc->device_class == 0x1 && device_desc->device_subclass == 0x6 && device_desc->prog_if == 0x01){
-			/*printf("SATA - AHCI controller found on bus: %i, device: %i func: %i IRQ: %i \n", 
-			device_desc->bus,
-			device_desc->device,
-			device_desc->function,
-			device_desc->interrupt_line);*/
-
 			ahci_controller_t* controller = (ahci_controller_t*)kmalloc(sizeof(ahci_controller_t));
 			memset(controller, 0, sizeof(ahci_controller_t));
 

@@ -107,22 +107,24 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
 
-    //printf("S %i %i %i %i %i\n", level4_index, level3_index, level2_index, level1_index, GET_PAGE_OFFSET(virtual_addr));
     if (!(root->entries[level4_index] & PAGE_PRESENT)) {
         return NULL;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
+    pdp_table = P2V(pdp_table);
     if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
         return NULL;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
+    pd_table = P2V(pd_table);
     if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
         return NULL;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    pt_table = P2V(pt_table);
     if(!(pt_table->entries[level1_index] & PAGE_PRESENT)){
         return NULL;
     }
@@ -186,7 +188,6 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size){
 
     for(size_t i = 0; i < size; i ++){
         char* phys_addr = get_physical_address(root, dst + i);
-        //printf("%i", phys_addr);
         if(phys_addr == NULL)
             return copied;
         *phys_addr = *(char*)src + i;

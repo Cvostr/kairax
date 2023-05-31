@@ -84,6 +84,7 @@ void acpi_parse_dt(acpi_header_t* dt)
 }
 
 void acpi_read_xsdt(acpi_header_t* xsdt){
+    xsdt = P2V(xsdt);
     uint64_t *p = (uint64_t *)(xsdt + 1);
     uint64_t *end = (uint64_t *)((uint8_t*)xsdt + xsdt->length);
 
