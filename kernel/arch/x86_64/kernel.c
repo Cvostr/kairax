@@ -50,16 +50,34 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
 	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
 
+	uintptr_t physical_max_addr = 0;
+	uintptr_t phys_memory = 0;
+	for (int i = 0; i < get_kernel_boot_info()->mmap_len; i ++) {
+		uintptr_t start, end;
+		uint32_t type;
+		multiboot_get_memory_area(i, &start, &end, &type);
+		
+		if (end > physical_max_addr)
+			physical_max_addr = end;
+		
+		phys_memory += (end - start);
+
+		if (type == 2)
+			pmm_set_mem_region(start, end - start);
+
+		printf("REGION : %i %i %i\n", start, end, type);
+	}
+
 	init_pmm();
+	pmm_set_physical_mem_size(phys_memory);
 	
 	page_table_t* new_pt = create_kernel_vm_map();
-
 	switch_pml4(V2P(new_pt));
 
 	lgdt_hh();
 
-	virtual_addr_t addr = P2V(PHYSICAL_MEMORY_SIZE- 10000000);
-	kheap_init(addr, 4096 * 1024 * 10);
+	if (!kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE))
+		printf("FAILED kheap");
 
 	acpi_init();
 	acpi_enable();
@@ -74,8 +92,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	cmos_datetime_t datetime = cmos_rtc_get_datetime();
 	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
-
-	
 
 	vfs_init();
 	ext2_init();

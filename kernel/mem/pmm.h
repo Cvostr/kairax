@@ -7,14 +7,21 @@
 
 void init_pmm();
 
+// Занять определенный регион памяти
+void pmm_set_mem_region(uint64_t offset, uint64_t size);
+
 uintptr_t* pmm_alloc_page();
 
 uintptr_t* pmm_alloc_pages(uint32_t pages);
 
-void free_page(uint64_t addr);
+void pmm_free_page(uint64_t addr);
 
 void free_pages(uintptr_t* addr, uint32_t pages);
 
 uint64_t pmm_get_used_pages();
+
+size_t pmm_get_physical_mem_size();
+
+void pmm_set_physical_mem_size(size_t size);
 
 #endif

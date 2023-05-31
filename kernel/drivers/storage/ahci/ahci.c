@@ -18,7 +18,7 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 	// Поиск дисков в доступных портах
 	uint32_t pi = hba_mem->pi;
 	uint32_t i = 0;
-	while (i<32)
+	while (i < 32)
 	{
 		if (pi & 1)
 		{

@@ -11,7 +11,7 @@
 #define PCI_BAR_64 0x04
 #define PCI_BAR_PREFETCH 0x08
 
-static pci_device_desc pci_devices_descs[MAX_PCI_DEVICES];
+static pci_device_desc* pci_devices_descs;
 int pci_devices_count = 0;
 
 int get_pci_devices_count(){
@@ -155,6 +155,7 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 
 void load_pci_devices_list(){
 	pci_devices_count = 0;
+	pci_devices_descs = kmalloc(sizeof(pci_device_desc) * MAX_PCI_DEVICES);
 	memset(pci_devices_descs, 0, sizeof(pci_device_desc) * MAX_PCI_DEVICES);
 
 	for (int bus = 0; bus < 256; bus ++){

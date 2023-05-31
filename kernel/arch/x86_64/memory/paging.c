@@ -91,7 +91,7 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr){
         return 1;
     }else{
         uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
-        free_page(phys_addr);
+        pmm_free_page(phys_addr);
         pt_table->entries[level1_index] = 0;
     }
 

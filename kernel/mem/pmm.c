@@ -10,6 +10,16 @@ extern uintptr_t __KERNEL_END;
 uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
 
+size_t physical_mem_size = 0;
+
+size_t pmm_get_physical_mem_size() {
+	return physical_mem_size;
+}
+
+void pmm_set_physical_mem_size(size_t size) {
+	physical_mem_size = size;
+}
+
 void set_bit(uint64_t bit) {
     bitmap[bit / 64] |=  (1ULL << (bit % 64));
 }
@@ -106,12 +116,12 @@ uintptr_t* pmm_alloc_pages(uint32_t pages){
 	return (uintptr_t*)(i * PAGE_SIZE);
 }
 
-void free_page(uint64_t addr) { 
+void pmm_free_page(uint64_t addr) { 
   	unset_bit(addr / PAGE_SIZE);
   	pages_used--;
 }
 
-void free_pages(uintptr_t* addr, uint32_t pages){
+void free_pages(uintptr_t* addr, uint32_t pages) {
 	uint64_t page_index = ((uint64_t)addr) / PAGE_SIZE;
 	for(uint32_t page_i = 0; page_i < pages; page_i ++){
 		set_bit(page_index + page_i);
@@ -119,26 +129,26 @@ void free_pages(uintptr_t* addr, uint32_t pages){
 	pages_used -= pages;
 }
 
-void set_mem_region(uint64_t offset, uint64_t size){
+void pmm_set_mem_region(uint64_t offset, uint64_t size) {
   	if (size < PAGE_SIZE) {
     	set_bit(offset / PAGE_SIZE);
     	pages_used += 1;
   	} else {
-    	for (int i = 0; i< size / PAGE_SIZE; i++) {      
+    	for (int i = 0; i < size / PAGE_SIZE; i++) {      
       		set_bit(offset / PAGE_SIZE + i);
     	}
     	pages_used += size / PAGE_SIZE;
   	}
 }
 
-void init_pmm(){
+void init_pmm() {
 	memset(bitmap, 0, sizeof(uint64_t) * MAX_BITMASK_DATA);
 	pages_used = 0;
 	uint64_t kernel_size = (uint64_t)&__KERNEL_END - (uint64_t)&__KERNEL_START;
 	//Запретить выделение памяти в 1-м мегабайте
-	set_mem_region(0x0, 0x100000);
+	pmm_set_mem_region(0x0, 0x100000);
 
-	set_mem_region(0x100000, kernel_size);
+	pmm_set_mem_region(0x100000, kernel_size);
 }
 
 uint64_t pmm_get_used_pages(){

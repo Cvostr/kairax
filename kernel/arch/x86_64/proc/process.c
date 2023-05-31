@@ -8,18 +8,10 @@
 int last_pid = 0;
 
 process_t*  create_new_process(){
-    //process_t* process = (process_t*)pmm_alloc_page();
     process_t* process = (process_t*)kmalloc(sizeof(process_t));
 
     page_table_t* pml4 = new_page_table();
-    //memcpy(pml4, get_kernel_pml4(), 4096);
-    /*for(uintptr_t i = 0; i <= 1024 * 1024 * 32; i += 4096){
-        uint64_t npageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
-        //map_page_mem(pml4, i, i, npageFlags);    
-        map_page_mem(pml4, P2V(i), i, npageFlags);
-    }*/
-   // uint64_t npageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
-   // map_page_mem(pml4, 0x200, 0x200, npageFlags);
+    //...
 
     process->pml4 = pml4;   //should be physical
     process->brk = 0x0;
