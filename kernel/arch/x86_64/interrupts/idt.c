@@ -27,9 +27,7 @@ void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags){
 
 void setup_idt(){
     idtr_t idtr;
-    //idt_descriptors = (idt_descriptor_t*)pmm_alloc_page();
-    //idt_descriptors = P2V(idt_descriptors);
-	idtr.base = (idt_descriptors); //адрес таблицы дескрипторов
+	idtr.base = (uint64_t)(idt_descriptors); //адрес таблицы дескрипторов
     idtr.limit = (uint16_t)sizeof(idt_descriptor_t) * IDT_MAX_DESCRIPTORS - 1;
 
 	for (uint8_t vector = 0; vector < 255; vector++) {

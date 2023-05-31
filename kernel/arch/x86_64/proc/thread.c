@@ -19,8 +19,8 @@ thread_t* create_new_thread(process_t* process, void (*function)(void)){
     ctx->rip = P2V((uint64_t)function);
     ctx->rflags = 0x286;
     //Установить стек для потока
-    ctx->rbp = P2V((uint64_t)thread->stack_ptr) + STACK_SIZE;
-    ctx->rsp = P2V((uint64_t)thread->stack_ptr) + STACK_SIZE;
+    ctx->rbp = (uint64_t)thread->stack_ptr + STACK_SIZE;
+    ctx->rsp = (uint64_t)thread->stack_ptr + STACK_SIZE;
     //Назначить сегмент из GDT
     uint32_t selector = 0x10; //kernel data
     thread->context.ds = (selector);

@@ -12,7 +12,7 @@
 
 #include "memory/hh_offset.h"
 #include "mem/pmm.h"
-#include "memory/paging.h"
+#include "memory/kernel_vmm.h"
 #include "mem/kheap.h"
 
 #include "boot/multiboot.h"
@@ -42,7 +42,7 @@ void threaded2(){
 	}
 }
 
-void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
+void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	b8_console_clear();
 	printf("Kairax Kernel v0.1\n");
 
@@ -51,14 +51,10 @@ void kmain(uint multiboot_magic, void* multiboot_struct_ptr){
 	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
 
 	init_pmm();
-	uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
-	page_table_t* new_pt = new_page_table();
-	for(uintptr_t i = 0; i <= PHYSICAL_MEMORY_SIZE; i += PAGE_SIZE){
-		map_page_mem(new_pt, P2V(i), i, pageFlags);
-	}
+	
+	page_table_t* new_pt = create_kernel_vm_map();
 
 	switch_pml4(V2P(new_pt));
-	set_kernel_pml4((new_pt));
 
 	lgdt_hh();
 

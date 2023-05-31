@@ -40,6 +40,6 @@ int parse_mb2_tags(taglist_t *tags);
 
 kernel_boot_info_t* get_kernel_boot_info();
 
-int multiboot_get_memory_area(size_t entry_index, uintptr_t *start, uintptr_t *end, uint32 *type);
+int multiboot_get_memory_area(size_t entry_index, uintptr_t *start, uintptr_t *end, uint32_t *type);
 
 int multiboot_page_used(uintptr_t start);

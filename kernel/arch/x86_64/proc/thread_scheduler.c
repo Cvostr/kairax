@@ -28,11 +28,9 @@ void scheduler_handler(thread_frame_t* frame){
     }
 
     thread_t* new_thread = list_get(threads_list, curr_thread);
-    //printf("AAA\n");
     
     if(new_thread != NULL){
         memcpy(frame, &new_thread->context, sizeof(thread_frame_t));
-       // printf("SSS");
         prev_thread = new_thread;
 
         curr_thread++;
@@ -40,7 +38,6 @@ void scheduler_handler(thread_frame_t* frame){
             curr_thread = 0;
 
         process_t* process = new_thread->process;
-        //printf("KKK");
     }
 
 	pic_eoi(0);

@@ -23,6 +23,10 @@ void bootshell_process_cmd(char* cmdline){
         cmd = kmalloc(cmdlen + 1);
         strncpy(cmd, cmdline, cmdlen);
         args = space_index + 1;
+    } else {
+        int cmdline_len = strlen(cmdline);
+        cmd = kmalloc(cmdline_len + 1);
+        strncpy(cmd, cmdline, cmdline_len);
     }
 
     if(strcmp(cmd, "mount") == 0){

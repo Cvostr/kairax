@@ -115,7 +115,7 @@ void combine_forward(kheap_item_t* item){
 }
 
 void kfree(void* mem){
-    kheap_item_t* item = mem - sizeof(kheap_item_t);
+    kheap_item_t* item = (char*)mem - sizeof(kheap_item_t);
     item->free = 1;
 
     kheap_item_t* prev = item->prev;
