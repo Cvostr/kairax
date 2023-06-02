@@ -120,7 +120,7 @@ typedef volatile struct PACKED
     uint8_t reserved3[5];
 } FIS_DEV_TO_HOST;
 
-typedef volatile struct __attribute__((packed))
+typedef volatile struct PACKED
 {
     uint8_t fis_type;
     uint8_t port_multiplier : 4;
@@ -147,7 +147,7 @@ typedef volatile struct PACKED
     uint32_t reserved3;
 } FIS_DMA_SETUP;
 
-typedef volatile struct __attribute__((packed))
+typedef volatile struct PACKED
 {
     uint8_t fis_type;
     uint8_t port_multiplier : 4;
@@ -171,7 +171,7 @@ typedef volatile struct __attribute__((packed))
 
 } FIS_PIO_SETUP;
 
-typedef volatile struct __attribute__((packed))
+typedef volatile struct PACKED
 {
     FIS_DMA_SETUP dma_setup_fis;
     uint8_t pad[4];

@@ -9,4 +9,6 @@ page_table_t* get_kernel_pml4();
 
 page_table_t* create_kernel_vm_map();
 
+void* vmm_get_physical_addr(physical_addr_t physical_addr);
+
 #endif

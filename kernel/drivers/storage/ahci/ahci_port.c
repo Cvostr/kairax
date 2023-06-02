@@ -155,7 +155,7 @@ void ahci_port_clear_error_register(ahci_port_t* port)
 }
 
 int ahci_port_identity(ahci_port_t *port, char* buffer){
-	memset(buffer, 0, 512);
+	memset(P2V(buffer), 0, 512);
 
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits

@@ -77,7 +77,7 @@ void bootshell_process_cmd(char* cmdline){
         vfs_inode_t* inode = vfs_fopen(args, 0);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
-            return 0;
+            return;
         }
         vfs_inode_t* child = NULL;
         while((child = vfs_readdir(inode, index++)) != NULL){
@@ -92,7 +92,7 @@ void bootshell_process_cmd(char* cmdline){
         vfs_inode_t* inode = vfs_fopen(args, 0);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
-            return 0;
+            return;
         }
         int size = inode->size;
         printf("%s: ", args);

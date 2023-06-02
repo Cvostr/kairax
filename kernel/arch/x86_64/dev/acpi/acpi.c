@@ -16,8 +16,6 @@ acpi_madt_t* acpi_apic;
 uint32_t            cpus_apic_count = 0;
 apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 
-#define P2V_P_END p = P2V(p); end = P2V(end);
-
 int is_table_checksum_valid(acpi_header_t* acpi_header)
 {
     unsigned char sum = 0;
@@ -52,8 +50,6 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
 
     uint8_t *p = (uint8_t *)(madt + 1);
     uint8_t *end = (uint8_t *)madt + madt->header.length;
-
-    P2V_P_END
 
     while(p < end){
         apic_header_t* apic_header = (apic_header_t*)p;
@@ -98,8 +94,6 @@ void acpi_read_xsdt(acpi_header_t* xsdt){
     xsdt = P2V(xsdt);
     uint64_t *p = (uint64_t *)(xsdt + 1);
     uint64_t *end = (uint64_t *)((uint8_t*)xsdt + xsdt->length);
-
-    P2V_P_END
 
     while (p < end)
     {
@@ -202,9 +196,8 @@ int acpi_enable()
 int acpi_init(){
     memset(&acpi_rsdp, 0, sizeof(acpi_rsdp_t));
 
-    uint8_t *p = (uint8_t *)0x000e0000;
-    uint8_t *end = (uint8_t *)0x000fffff;
-    P2V_P_END
+    uint8_t *p = (uint8_t *)P2V(0x000e0000);
+    uint8_t *end = (uint8_t *)P2V(0x000fffff);
 
     while (p < end)
     {

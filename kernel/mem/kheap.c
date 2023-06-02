@@ -17,7 +17,7 @@ uint64_t kheap_expand(uint64_t size)
 
     int pages_count = size / PAGE_SIZE;
 
-    physical_addr_t pages_physaddr = pmm_alloc_pages(pages_count);
+    physical_addr_t pages_physaddr = (physical_addr_t)pmm_alloc_pages(pages_count);
     if (pages_physaddr == 0)
         return 0; //Не получилось выделить физическую память
     
@@ -108,8 +108,6 @@ void* kmalloc(uint64_t size)
         return NULL;
     }
 
-    //printf("CI %i\n", (uintptr_t)current_item / 2);
-
     return current_item + 1;
 }
 
@@ -144,7 +142,7 @@ void combine_forward(kheap_item_t* item)
 
 void kfree(void* mem)
 {
-    kheap_item_t* item = (char*)mem - sizeof(kheap_item_t);
+    kheap_item_t* item = (kheap_item_t*)mem - 1;
     item->free = 1;
 
     kheap_item_t* prev = item->prev;
@@ -155,7 +153,7 @@ void kfree(void* mem)
 
 void* kheap_get_phys_address(void* mem)
 {
-    return get_physical_address(get_kernel_pml4(), mem);
+    return get_physical_address(get_kernel_pml4(), (virtual_addr_t)mem);
 }
 
 kheap_item_t* kheap_get_head_item()

@@ -30,6 +30,7 @@ typedef struct PACKED {
 typedef struct {
   char* bootloader_string;
   char* command_line;
+  uint32_t load_base_addr;
 
   size_t mmap_size;
   unsigned int mmap_len;

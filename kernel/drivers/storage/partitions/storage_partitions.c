@@ -1,6 +1,7 @@
 #include "storage_partitions.h"
 #include "mem/kheap.h"
 #include "raxlib/list/list.h"
+#include "memory/kernel_vmm.h"
 #include "string.h"
 
 #include "formats/mbr.h"
@@ -20,8 +21,8 @@ void add_partitions_from_device(drive_device_t* device){
     char first_sector[512];
     char second_sector[512];
 
-    drive_device_read(device, 0, 1, V2P(first_sector));
-    drive_device_read(device, 1, 1, V2P(second_sector));
+    drive_device_read(device, 0, 1, vmm_get_physical_addr(first_sector));
+    drive_device_read(device, 1, 1, vmm_get_physical_addr(second_sector));
     
     mbr_header_t* mbr_header = (mbr_header_t*)first_sector;
     gpt_header_t* gpt_header = (gpt_header_t*)second_sector; 
@@ -101,17 +102,17 @@ drive_partition_t* get_partition(uint32_t index){
     return (drive_partition_t*)list_get(partitions, index);
 }
 
-drive_partition_t* get_partition_with_name(char* name){
-    for(uint32_t i = 0; i < partitions->size; i ++){
+drive_partition_t* get_partition_with_name(char* name)
+{
+    for (uint32_t i = 0; i < partitions->size; i ++) {
         drive_partition_t* partition = (drive_partition_t*)list_get(partitions, i);
-        if(strcmp(partition->name, name) == 0)
+        if (strcmp(partition->name, name) == 0)
             return partition;
     }
     return NULL;
 }
 
 uint32_t partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
-    //printf("Reading from %i", lba_start + partition->start_lba);
     return drive_device_read(partition->device, lba_start + partition->start_lba, count, buffer);
 }
 

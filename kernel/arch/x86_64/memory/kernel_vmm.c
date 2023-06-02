@@ -4,12 +4,19 @@
 
 extern uintptr_t __KERNEL_START;
 extern uintptr_t __KERNEL_END;
+extern uintptr_t __KERNEL_VIRT_END;
+extern uintptr_t __KERNEL_VIRT_LINK;
 
 page_table_t* root_pml4 = NULL;
 
 page_table_t* get_kernel_pml4()
 {
     return root_pml4;
+}
+
+void* vmm_get_physical_addr(physical_addr_t physical_addr) 
+{
+    return get_physical_address(root_pml4, physical_addr);
 }
 
 page_table_t* new_page_table_bt(){
@@ -74,23 +81,21 @@ page_table_t* create_kernel_vm_map()
     aligned_mem += (PAGE_SIZE - aligned_mem % PAGE_SIZE);
 
     //Размер ядра
-    size_t kernel_size = (uint64_t)&__KERNEL_END - (uint64_t)&__KERNEL_START;
+    size_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
     kernel_size += (PAGE_SIZE - kernel_size % PAGE_SIZE);
 
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
-	page_table_t* new_pt = new_page_table_bt();
+	root_pml4 = new_page_table_bt();
 
     // маппинг текста ядра 
-	for (uintptr_t i = 0; i <= kernel_size * 2; i += PAGE_SIZE) {
-		map_page_mem_bt(new_pt, P2K(i), i, pageFlags);
+	for (uintptr_t i = 0; i <= kernel_size; i += PAGE_SIZE) {
+		map_page_mem_bt(root_pml4, 0x100000 + P2K(i), 0x100000 + i, pageFlags);
 	}
 
     // маппинг физической памяти
 	for (uintptr_t i = 0; i <= aligned_mem; i += PAGE_SIZE) {
-		map_page_mem_bt(new_pt, P2V(i), i, pageFlags);
+		map_page_mem_bt(root_pml4, P2V(i), i, pageFlags);
 	}
 
-    root_pml4 = new_pt;
-
-    return new_pt;
+    return root_pml4;
 }

@@ -50,6 +50,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 
 int ahci_port_write_lba(ahci_port_t *port, uint64_t start, uint64_t count, uint16_t *buf);
 
+// Получить информацию об устройстве. buffer - должен быть физическим
 int ahci_port_identity(ahci_port_t *port, char* buffer);
 
 void ahci_port_power_on(ahci_port_t* port);

@@ -6,6 +6,7 @@
 #define MBOOT2_COMMANDLINE 1
 #define MBOOT2_BOOTLOADER 2
 #define MBOOT2_MMAP 6
+#define MBOOT2_IMAGE_BASE 21
 
 static kernel_boot_info_t kernel_boot_info;
 
@@ -26,8 +27,11 @@ int parse_mb2_tags(taglist_t *tags)
         break;
       case MBOOT2_MMAP:
         mmap = kernel_boot_info.mmap = (mmap_t*)tag->data;
-        kernel_boot_info.mmap_len = (tag->size - 8)/mmap->entry_size;
+        kernel_boot_info.mmap_len = (tag->size - 8) / mmap->entry_size;
         kernel_boot_info.mmap_size = (tag->size - 8);
+        break;
+      case MBOOT2_IMAGE_BASE:
+        kernel_boot_info.load_base_addr = *(uint32_t*)tag->data;
         break;
     }
     tag = &tags->tags[++index];

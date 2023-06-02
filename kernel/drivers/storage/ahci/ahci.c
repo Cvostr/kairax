@@ -9,7 +9,7 @@
 #include "mem/pmm.h"
 #include "string.h"
 #include "stdlib.h"
-#include "memory/paging.h"
+#include "memory/kernel_vmm.h"
 #include "mem/kheap.h"
 #include "drivers/storage/devices/storage_devices.h"
 
@@ -108,15 +108,21 @@ void ahci_init(){
 			ahci_controller_probe_ports(controller);
 
 			for (int i = 0; i < 32; i ++) {
-				if(controller->ports[i].implemented == 0)
+				
+				if(controller->ports[i].implemented == 0) {
 					continue;
+				}
+
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
 					printf("SATA drive found at port %i, \n", i);
 
-					char identity_buffer[512];
-					ahci_port_identity(&controller->ports[i], identity_buffer);
+					char* identity_buffer = kmalloc(512);
+					ahci_port_identity(&controller->ports[i], vmm_get_physical_addr(identity_buffer));
+
+					for(int j = 0; j > 512; j ++)
+						printf("%i", identity_buffer[j]);
 
 					drive_device_t* drive_header = new_drive_device_header();
 
@@ -130,6 +136,8 @@ void ahci_init(){
 										  &drive_header->sectors,
 										  drive_header->model,
 										  drive_header->serial);
+
+					kfree(identity_buffer);
 
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
 					drive_header->bytes = (uint64_t)drive_header->sectors * 512;
