@@ -8,7 +8,9 @@
 
 kheap_t kheap;
 
-uint64_t kheap_expand(uint64_t size){
+uint64_t kheap_expand(uint64_t size)
+{
+    // Выравнивание до размера страницы (4096)
     if(size % PAGE_SIZE > 0){
         size += (PAGE_SIZE - (size % PAGE_SIZE));
     }
@@ -30,7 +32,8 @@ uint64_t kheap_expand(uint64_t size){
     return pages_count * PAGE_SIZE;
 }
 
-int kheap_init(uint64_t start_vaddr, uint64_t size){
+int kheap_init(uint64_t start_vaddr, uint64_t size)
+{
     kheap.start_vaddr = start_vaddr;
     kheap.end_vaddr = kheap.start_vaddr;
 
@@ -66,6 +69,7 @@ kheap_item_t* get_suitable_item(uint64_t size)
         kheap.tail->size += allocated;
         return kheap.tail;
     }
+
     return NULL;
 }
 
@@ -100,13 +104,17 @@ void* kmalloc(uint64_t size)
         current_item->next = new_item;
         current_item->free = 0;
         current_item->size = size;
-    } else 
+    } else {
         return NULL;
+    }
+
+    //printf("CI %i\n", (uintptr_t)current_item / 2);
 
     return current_item + 1;
 }
 
-void combine_forward(kheap_item_t* item) {
+void combine_forward(kheap_item_t* item) 
+{
     if(item == NULL)
         return;
 
@@ -134,7 +142,8 @@ void combine_forward(kheap_item_t* item) {
     }
 }
 
-void kfree(void* mem){
+void kfree(void* mem)
+{
     kheap_item_t* item = (char*)mem - sizeof(kheap_item_t);
     item->free = 1;
 
@@ -144,10 +153,12 @@ void kfree(void* mem){
     //combine_forward(item->prev);
 }
 
-void* kheap_get_phys_address(void* mem){
+void* kheap_get_phys_address(void* mem)
+{
     return get_physical_address(get_kernel_pml4(), mem);
 }
 
-kheap_item_t* kheap_get_head_item(){
+kheap_item_t* kheap_get_head_item()
+{
     return kheap.head;
 }

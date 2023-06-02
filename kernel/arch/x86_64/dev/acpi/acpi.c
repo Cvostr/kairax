@@ -78,7 +78,6 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
 void acpi_parse_dt(acpi_header_t* dt)
 {
     dt = P2V(dt);
-    printf("RSDT TABLE READING %i", dt);
     uint32_t signature = dt->signature;
 
     if (signature == 0x50434146)
@@ -114,7 +113,6 @@ void acpi_parse_rsdt(acpi_header_t* rsdt){
 
     uint32_t *p = (uint32_t *)(rsdt + 1);
     uint32_t *end = (uint32_t *)((uint8_t*)rsdt + rsdt->length);
-    printf("RSDT TABLE %i %i, DIFF = %i", p, end, rsdt->length);
 
     while (p < end)
     {
@@ -140,18 +138,12 @@ int acpi_read_rsdp(uint8_t *p)
     
     memcpy(acpi_rsdp.oem_id, p + 9, 6);
     acpi_rsdp.oem_id[6] = '\0';
-    printf("OEM %s", acpi_rsdp.oem_id);
     
     // Считать версию ACPI
     acpi_rsdp.revision = p[15];
     if (acpi_rsdp.revision == 0)
     {
         acpi_rsdp.rsdt_addr = *(uint32_t*)(&p[16]);
-        printf("RSDT TABLE %i\n", acpi_rsdp.rsdt_addr);
-        if( get_physical_address(get_kernel_pml4(), P2V(acpi_rsdp.rsdt_addr)) != acpi_rsdp.rsdt_addr)
-            printf("INCOMPAT\n");
-        else 
-            printf("COMPAT\n");
         acpi_parse_rsdt(to_acpi_header(acpi_rsdp.rsdt_addr));
     }
     else if (acpi_rsdp.revision == 2)

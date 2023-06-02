@@ -3,6 +3,7 @@
 #include "string.h"
 #include "memory/paging.h"
 #include "stdio.h"
+#include "mem/kheap.h"
 
 #define MAX_PCI_DEVICES 128
 
@@ -14,15 +15,18 @@
 static pci_device_desc* pci_devices_descs;
 int pci_devices_count = 0;
 
-int get_pci_devices_count(){
+int get_pci_devices_count()
+{
 	return pci_devices_count;
 }
 
-pci_device_desc* get_pci_devices_descs(){
+pci_device_desc* get_pci_devices_descs()
+{
 	return pci_devices_descs;
 }
 
-uint16_t pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset){
+uint16_t pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset)
+{
 	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
 
 	outl(0xCF8, address);
@@ -30,7 +34,8 @@ uint16_t pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t 
 	return tmp;
 }
 
-uint32_t pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset){
+uint32_t pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset)
+{
 	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
 
 	outl(0xCF8, address);
@@ -52,7 +57,8 @@ void pci_config_write16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t off
 	outw(0xCFC, data);
 }
 
-void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_index, uint32_t* address, uint32_t* mask){
+void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_index, uint32_t* address, uint32_t* mask)
+{
 	uint32_t offset = 0x10 + 4 * bar_index;
 	*address = pci_config_read32(bus, device, func, offset);
 	pci_config_write32(bus, device, func, offset, 0xffffffff);
@@ -61,15 +67,18 @@ void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_ind
 	pci_config_write32(bus, device, func, offset, *address);
 }
 
-void pci_set_command_reg(pci_device_desc* device, uint16_t flags){
+void pci_set_command_reg(pci_device_desc* device, uint16_t flags)
+{
 	pci_config_write16(device->bus, device->device, device->function, 0x4, flags);
 }
 
-uint16_t pci_get_command_reg(pci_device_desc* device){
+uint16_t pci_get_command_reg(pci_device_desc* device)
+{
 	return pci_config_read16(device->bus, device->device, device->function, 0x4);
 }
 
-void pci_device_set_enable_interrupts(pci_device_desc* device, int enable){
+void pci_device_set_enable_interrupts(pci_device_desc* device, int enable)
+{
 	uint16_t cmd = pci_get_command_reg(device);
 	if(enable > 0){
 		cmd = cmd & ~(PCI_DEVCMP_INTERRUPTS_DISABLE);
@@ -80,10 +89,11 @@ void pci_device_set_enable_interrupts(pci_device_desc* device, int enable){
 	pci_set_command_reg(device, cmd);
 }
 
-int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc){
+int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc)
+{
 	uint16_t device_probe = pci_config_read16(bus, device, func, 0);
 	//проверка, существует ли устройство
-	if(device_probe != 0xFFFF){
+	if (device_probe != 0xFFFF){
 		device_desc->bus = bus; //шина устройства
 		device_desc->device = device; //номер устройства
     	device_desc->function = func;
@@ -109,10 +119,10 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 		device_desc->header_type = (uint8_t)(bist_header & 0xFF);	//Младшие 8 бит - тип заголовка
 		//Чтение базовых адресов
 
-		if(device_desc->header_type != 0)
+		if (device_desc->header_type != 0)
 			return 0;
 
-		for(int i = 0; i < 6; i ++){
+		for (int i = 0; i < 6; i ++){
 			uint32_t address = 0;
 			uint32_t mask = 0;
 			read_pci_bar(bus, device, func, i, &address, &mask);
@@ -150,19 +160,21 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 
 		return 1;
 	}
+	
 	return 0;
 }
 
-void load_pci_devices_list(){
+void load_pci_devices_list()
+{
 	pci_devices_count = 0;
 	pci_devices_descs = kmalloc(sizeof(pci_device_desc) * MAX_PCI_DEVICES);
 	memset(pci_devices_descs, 0, sizeof(pci_device_desc) * MAX_PCI_DEVICES);
 
-	for (int bus = 0; bus < 256; bus ++){
-		for(uint8_t device = 0; device < 32; device ++){
-    			for(uint8_t func = 0; func < 8; func++){
-      				int result = get_pci_device(bus, device, func, &pci_devices_descs[pci_devices_count]);
-				if(result == 1)
+	for (int bus = 0; bus < 256; bus ++) {
+		for (uint8_t device = 0; device < 32; device ++) {
+    		for (uint8_t func = 0; func < 8; func++) {
+      			int result = get_pci_device(bus, device, func, &pci_devices_descs[pci_devices_count]);
+				if (result == 1)
 					pci_devices_count++;
 			}
      

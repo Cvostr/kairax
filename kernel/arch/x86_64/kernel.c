@@ -71,13 +71,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_pmm();
 	pmm_set_physical_mem_size(phys_memory);
 	pmm_set_physical_mem_max_addr(physical_max_addr);
-
-	printf("MAX ADDR %i\n", physical_max_addr);
 	
 	printf("VMM: Creating kernel memory map\n");
 	page_table_t* new_pt = create_kernel_vm_map();
 	printf("VMM: Setting kernel memory map\n");
-	switch_pml4(V2P(new_pt));
+	switch_pml4(K2P(new_pt));
 
 	lgdt_hh();
 
@@ -102,6 +100,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_interrupts_handler(); 
 	init_ints_keyboard();
 
+	printf("Reading PCI devices\n");
 	load_pci_devices_list();	
 
 	cmos_datetime_t datetime = cmos_rtc_get_datetime();

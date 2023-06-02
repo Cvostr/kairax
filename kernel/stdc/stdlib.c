@@ -27,9 +27,9 @@ static char destination[32] = {0};
 char* itoa(int64 number, int base){
 
  	int count = 0;
-    	do {
+  do {
       	int digit = number % base;
-      	destination[count++] = (digit > 9) ? digit - 10 +'A' : digit + '0';
+      	destination[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
     	} while ((number /= base) != 0);
     	destination[count] = '\0';
     	int i;
