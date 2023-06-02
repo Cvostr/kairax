@@ -11,6 +11,7 @@ uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
 
 size_t physical_mem_size = 0;
+size_t physical_mem_max_address = 0;
 
 size_t pmm_get_physical_mem_size() {
 	return physical_mem_size;
@@ -18,6 +19,16 @@ size_t pmm_get_physical_mem_size() {
 
 void pmm_set_physical_mem_size(size_t size) {
 	physical_mem_size = size;
+}
+
+void pmm_set_physical_mem_max_addr(size_t size)
+{
+	physical_mem_max_address = size;
+}
+
+size_t pmm_get_physical_mem_max_addr()
+{
+	return physical_mem_max_address;
 }
 
 void set_bit(uint64_t bit) {

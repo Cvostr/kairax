@@ -70,17 +70,31 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	init_pmm();
 	pmm_set_physical_mem_size(phys_memory);
+	pmm_set_physical_mem_max_addr(physical_max_addr);
+
+	printf("MAX ADDR %i\n", physical_max_addr);
 	
+	printf("VMM: Creating kernel memory map\n");
 	page_table_t* new_pt = create_kernel_vm_map();
+	printf("VMM: Setting kernel memory map\n");
 	switch_pml4(V2P(new_pt));
 
 	lgdt_hh();
 
-	if (!kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE))
-		printf("FAILED kheap");
+	int rc = 0;
 
+	printf("KHEAP: Initialization...\n");
+	if ((rc = kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE)) != 1) {
+		printf("KHEAP: Initialization failed!");
+		goto fatal_error;
+	}
+
+	printf("ACPI: Initialization ...\n");
 	acpi_init();
-	acpi_enable();
+	if((rc = acpi_enable()) != 0) {
+		printf("ACPI: ERROR 0x%i\n", rc);
+		goto fatal_error;
+	}
 
 	init_pic();
 	setup_idt();
@@ -117,9 +131,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	add_thread(thr2);
 	start_scheduler();
 
-	
-
 	while(1){
 
 	}
+
+	fatal_error:
+		printf("Fatal Error!\nKernel terminated!");
+		asm("hlt");
 }

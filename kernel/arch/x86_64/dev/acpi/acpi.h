@@ -3,6 +3,9 @@
 
 #include "acpi_tables.h"
 
+#define ACPI_ERROR_NO_FADT 1
+#define ACPI_ERROR_ENABLE 2
+
 typedef struct PACKED {
     char        signature[8];
     uint8_t     checksum;
@@ -36,7 +39,7 @@ int acpi_get_revision();
 
 uint16_t acpi_is_enabled();
 
-void acpi_enable();
+int acpi_enable();
 
 int acpi_aml_is_struct_valid(uint8_t* struct_address);
 

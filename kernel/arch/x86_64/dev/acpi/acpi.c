@@ -1,7 +1,7 @@
 #include "acpi.h"
 #include "stdio.h"
 #include "string.h"
-#include "memory/paging.h"
+#include "memory/kernel_vmm.h"
 #include "mem/pmm.h"
 #include "io.h"
 
@@ -9,7 +9,7 @@
 
 acpi_rsdp_t acpi_rsdp;
 
-acpi_fadt_t* acpi_fadt;
+acpi_fadt_t* acpi_fadt = NULL;
 acpi_madt_t* acpi_apic;
 
 #define MAX_CPU_COUNT 8
@@ -18,11 +18,22 @@ apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 
 #define P2V_P_END p = P2V(p); end = P2V(end);
 
-acpi_fadt_t* acpi_get_fadt(){
+int is_table_checksum_valid(acpi_header_t* acpi_header)
+{
+    unsigned char sum = 0;
+    for (int i = 0; i < acpi_header->length; i++) {
+        sum += ((char*) acpi_header)[i];
+    }
+    return sum == 0;
+}
+
+acpi_fadt_t* acpi_get_fadt()
+{
     return acpi_fadt;
 }
 
-uint32_t acpi_fadt_get_smi_cmd_port(){
+uint32_t acpi_fadt_get_smi_cmd_port()
+{
     return acpi_fadt->smi_cmd_port;
 }
 
@@ -67,6 +78,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
 void acpi_parse_dt(acpi_header_t* dt)
 {
     dt = P2V(dt);
+    printf("RSDT TABLE READING %i", dt);
     uint32_t signature = dt->signature;
 
     if (signature == 0x50434146)
@@ -102,8 +114,8 @@ void acpi_parse_rsdt(acpi_header_t* rsdt){
 
     uint32_t *p = (uint32_t *)(rsdt + 1);
     uint32_t *end = (uint32_t *)((uint8_t*)rsdt + rsdt->length);
+    printf("RSDT TABLE %i %i, DIFF = %i", p, end, rsdt->length);
 
-    P2V_P_END
     while (p < end)
     {
         uint32_t address = *(p++);
@@ -128,12 +140,18 @@ int acpi_read_rsdp(uint8_t *p)
     
     memcpy(acpi_rsdp.oem_id, p + 9, 6);
     acpi_rsdp.oem_id[6] = '\0';
+    printf("OEM %s", acpi_rsdp.oem_id);
     
     // Считать версию ACPI
     acpi_rsdp.revision = p[15];
     if (acpi_rsdp.revision == 0)
     {
         acpi_rsdp.rsdt_addr = *(uint32_t*)(&p[16]);
+        printf("RSDT TABLE %i\n", acpi_rsdp.rsdt_addr);
+        if( get_physical_address(get_kernel_pml4(), P2V(acpi_rsdp.rsdt_addr)) != acpi_rsdp.rsdt_addr)
+            printf("INCOMPAT\n");
+        else 
+            printf("COMPAT\n");
         acpi_parse_rsdt(to_acpi_header(acpi_rsdp.rsdt_addr));
     }
     else if (acpi_rsdp.revision == 2)
@@ -154,11 +172,17 @@ int acpi_read_rsdp(uint8_t *p)
     return 1;
 }
 
-uint16_t acpi_is_enabled(){
+uint16_t acpi_is_enabled()
+{
     return inw((uint32_t) acpi_fadt->pm1a_control_block) & 1;
 }
 
-void acpi_enable(){
+int acpi_enable()
+{
+    if (!acpi_fadt) {
+        return ACPI_ERROR_NO_FADT;
+    }
+
     int acpi_enabled = acpi_is_enabled();
     if(acpi_enabled == 0){
         printf("Enabling ACPI ...  ");
@@ -166,7 +190,7 @@ void acpi_enable(){
 
             outb((uint32_t)acpi_fadt->smi_cmd_port, acpi_fadt->acpi_enable);
 
-            while(1){
+            while(1) {
                 io_delay(100);
                 acpi_enabled = acpi_is_enabled();
                 if(acpi_enabled){
@@ -176,8 +200,11 @@ void acpi_enable(){
             }
         }else{
             //ACPI не может быть включен
+            return ACPI_ERROR_ENABLE;
         }
     }
+
+    return 0;
 }
 
 int acpi_init(){
