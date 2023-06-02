@@ -13,8 +13,15 @@ char text_printing_color = 0x07;
 char text_buffer[BUFFER_SIZE]; //4000 chars
 int overstep = 0;
 
-volatile char* b8_get_text_addr(){
-	return (volatile char*)(P2V(0xB8000));
+void* b8_addr = 0xB8000;
+
+char* b8_get_text_addr(){
+	return b8_addr;
+}
+
+void b8_set_addr(void* addr) 
+{
+	b8_addr = addr;
 }
 
 void b8_console_set_print_color(char color){
@@ -43,7 +50,7 @@ void b8_console_set_cursor_pos(int cursorx, int cursory){
 }
 
 void b8_console_clear(){
-	volatile char* vidptr = b8_get_text_addr();
+	char* vidptr = b8_get_text_addr();
 	int j = 0;
   	while(j < BUFFER_SIZE){
     		vidptr[j] = ' ';
@@ -53,7 +60,8 @@ void b8_console_clear(){
   	passed_chars = 0;
 }
 
-void b8_check_for_refill(){
+void b8_check_for_refill()
+{
 	if(passed_chars >= BUFFER_SIZE){
 		strncpy(&(text_buffer[0]), (char*)b8_get_text_addr() + BUFFER_LINE_SIZE, BUFFER_SIZE - BUFFER_LINE_SIZE);
 		b8_console_clear();
@@ -62,15 +70,16 @@ void b8_check_for_refill(){
 	}
 }
 
-void b8_console_print_char(char chr){
-	volatile char* step = b8_get_text_addr() + passed_chars;
-	if(chr != '\n'){
+void b8_console_print_char(char chr)
+{
+	char* step = b8_get_text_addr() + passed_chars;
+	if (chr != '\n') {
 		*step = chr; //Записать в буфер
 		step++; //Сдвинуть указатеь на 1 байт
 		*step = text_printing_color;
 		passed_chars += 2;
 		b8_check_for_refill();
-	}else{
+	} else {
 		passed_chars += (BUFFER_LINE_SIZE - (passed_chars % BUFFER_LINE_SIZE)) - 2;
 		*step = ' ';
 		passed_chars += 2;

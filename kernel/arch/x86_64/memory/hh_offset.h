@@ -1,3 +1,4 @@
+#define MAX_ADDRESS             0xffffffffffffffff
 #define KERNEL_TEXT_OFFSET      0xFFFFFFFF80000000           //После этого адреса начинается область памяти ядра
 #define PHYSICAL_MEM_MAP_OFFSET 0xFFFF888000000000           //После этого адреса начинается физическая память 
 

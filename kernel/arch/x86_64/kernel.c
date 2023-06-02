@@ -30,6 +30,7 @@
 #include "misc/bootshell/bootshell.h"
 
 extern void lgdt_hh();
+extern page_table_t* p4_table;
 
 void threaded2(){
 	while(1){
@@ -42,12 +43,14 @@ void threaded2(){
 }
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
-	//printf("Kairax Kernel v0.1\n");
+	b8_set_addr(P2K(0xB8000));
+	b8_console_clear();
+	printf("Kairax Kernel v0.1\n");
 
 	parse_mb2_tags(multiboot_struct_ptr);
-	//printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
-	//printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
-	//printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
+	printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
+	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
+	printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
 
 	uintptr_t physical_max_addr = 0;
 	uintptr_t phys_memory = 0;
@@ -71,15 +74,25 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	pmm_set_physical_mem_size(phys_memory);
 	pmm_set_physical_mem_max_addr(physical_max_addr);
 	
-	//printf("VMM: Creating kernel memory map\n");
+	printf("VMM: Creating kernel memory map\n");
 	page_table_t* new_pt = create_kernel_vm_map();
-	//printf("VMM: Setting kernel memory map\n");
+	printf("VMM: Setting kernel memory map\n");
 	switch_pml4(K2P(new_pt));
+
+	for (uintptr_t i = 0; i <= physical_max_addr; i += PAGE_SIZE) {
+		if( get_physical_address(get_kernel_pml4(), P2V(i)) != i) {
+			//printf("INCOMPAT %i\n", i);
+			asm("hlt");
+			break;
+		}//else 
+		//  printf("COMPAT\n");
+	}
 
 	lgdt_hh();
 
+	b8_set_addr(P2V(0xB8000));
+
 	int rc = 0;
-	b8_console_clear();
 	printf("KHEAP: Initialization...\n");
 	if ((rc = kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE)) != 1) {
 		printf("KHEAP: Initialization failed!");
@@ -88,9 +101,12 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	printf("ACPI: Initialization ...\n");
 	acpi_init();
+	printf("Enabling ACPI ...  ");
 	if((rc = acpi_enable()) != 0) {
 		printf("ACPI: ERROR 0x%i\n", rc);
 		goto fatal_error;
+	} else {
+		printf("Success!\n");
 	}
 
 	init_pic();

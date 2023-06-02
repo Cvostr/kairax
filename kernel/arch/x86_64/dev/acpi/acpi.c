@@ -46,7 +46,7 @@ apic_local_cpu_t** acpi_get_cpus_apic(){
 void acpi_parse_apic_madt(acpi_madt_t* madt){
     acpi_apic = madt;
 
-    madt = P2V(madt);
+    madt = (acpi_madt_t*)P2V(madt);
 
     uint8_t *p = (uint8_t *)(madt + 1);
     uint8_t *end = (uint8_t *)madt + madt->header.length;
@@ -73,15 +73,15 @@ void acpi_parse_apic_madt(acpi_madt_t* madt){
 
 void acpi_parse_dt(acpi_header_t* dt)
 {
-    dt = P2V(dt);
+    dt = (acpi_header_t*)P2V(dt);
     uint32_t signature = dt->signature;
 
     if (signature == 0x50434146)
     {
         acpi_fadt = dt;
-        if(acpi_get_revision() == 1)
+        if (acpi_get_revision() == 1)
             acpi_parse_dsdt(acpi_fadt->dsdt);
-        else if(acpi_get_revision() == 2)
+        else if (acpi_get_revision() == 2)
             acpi_parse_dsdt(acpi_fadt->x_dsdt);
     }
     else if (signature == 0x43495041)
@@ -91,7 +91,7 @@ void acpi_parse_dt(acpi_header_t* dt)
 }
 
 void acpi_read_xsdt(acpi_header_t* xsdt){
-    xsdt = P2V(xsdt);
+    xsdt = (acpi_header_t*)P2V(xsdt);
     uint64_t *p = (uint64_t *)(xsdt + 1);
     uint64_t *end = (uint64_t *)((uint8_t*)xsdt + xsdt->length);
 
@@ -103,7 +103,7 @@ void acpi_read_xsdt(acpi_header_t* xsdt){
 }
 
 void acpi_parse_rsdt(acpi_header_t* rsdt){
-    rsdt = P2V(rsdt);
+    rsdt = (acpi_header_t*)P2V(rsdt);
 
     uint32_t *p = (uint32_t *)(rsdt + 1);
     uint32_t *end = (uint32_t *)((uint8_t*)rsdt + rsdt->length);
@@ -170,21 +170,20 @@ int acpi_enable()
     }
 
     int acpi_enabled = acpi_is_enabled();
-    if(acpi_enabled == 0){
-        printf("Enabling ACPI ...  ");
-        if(acpi_fadt->smi_cmd_port != 0 && acpi_fadt->acpi_enable){
+    if (acpi_enabled == 0) {
+        //ACPI не включен - включаем
+        if (acpi_fadt->smi_cmd_port != 0 && acpi_fadt->acpi_enable) {
 
             outb((uint32_t)acpi_fadt->smi_cmd_port, acpi_fadt->acpi_enable);
 
             while(1) {
                 io_delay(100);
                 acpi_enabled = acpi_is_enabled();
-                if(acpi_enabled){
-                    printf("Success\n");
+                if (acpi_enabled) {
                     break;
                 }
             }
-        }else{
+        } else {
             //ACPI не может быть включен
             return ACPI_ERROR_ENABLE;
         }

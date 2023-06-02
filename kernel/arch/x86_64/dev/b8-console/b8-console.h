@@ -1,6 +1,8 @@
 #ifndef _B8_CONSOLE
 #define _B8_CONSOLE
 
+void b8_set_addr(void* addr);
+
 void b8_console_hide_cursor();
 
 void b8_console_show_cursor();

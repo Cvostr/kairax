@@ -19,14 +19,16 @@ void* vmm_get_physical_addr(physical_addr_t physical_addr)
     return get_physical_address(root_pml4, physical_addr);
 }
 
-page_table_t* new_page_table_bt(){
+page_table_t* new_page_table_bt()
+{
     page_table_t* table = (page_table_t*)pmm_alloc_page();
     table = P2K(table);
     memset(table, 0, 4096);
     return table;
 }
 
-void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags){
+void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
+{
     //Вычисление индексов страниц
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
@@ -87,14 +89,15 @@ page_table_t* create_kernel_vm_map()
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	root_pml4 = new_page_table_bt();
 
+    uintptr_t iter = 0;
     // маппинг текста ядра 
-	for (uintptr_t i = 0; i <= kernel_size; i += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, 0x100000 + P2K(i), 0x100000 + i, pageFlags);
+	for (iter = 0; iter <= kernel_size; iter += PAGE_SIZE) {
+		map_page_mem_bt(root_pml4, 0x100000 + P2K(iter), 0x100000 + iter, pageFlags);
 	}
 
     // маппинг физической памяти
-	for (uintptr_t i = 0; i <= aligned_mem; i += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, P2V(i), i, pageFlags);
+	for (iter = 0; iter <= aligned_mem; iter += PAGE_SIZE) {
+		map_page_mem_bt(root_pml4, P2V(iter), iter, pageFlags);
 	}
 
     return root_pml4;

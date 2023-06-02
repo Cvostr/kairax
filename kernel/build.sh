@@ -6,7 +6,7 @@ mkdir bin
 x64_SRC=./arch/x86_64
 RAXLIB_PATH=./raxlib
 STDC_PATH=./stdc
-GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=large -mno-red-zone -fno-stack-protector -fno-omit-frame-pointer -nostartfiles -static"
+GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-stack-protector -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
 
 nasm $NASM_ARGS $x64_SRC/boot/start.asm -o ./bin/start.o

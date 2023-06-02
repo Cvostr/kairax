@@ -7,14 +7,16 @@
 
 extern page_table_t p4_table;
 
-page_table_t* new_page_table(){
+page_table_t* new_page_table()
+{
     page_table_t* table = (page_table_t*)pmm_alloc_page();
     table = P2V(table);
     memset(table, 0, 4096);
     return table;
 }
 
-void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags){
+void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
+{
     //Вычисление индексов страниц
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
@@ -101,7 +103,8 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr)
     return 0;
 }
 
-physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr){
+physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr)
+{
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
@@ -132,7 +135,8 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
     return GET_PAGE_FRAME(pt_table->entries[level1_index]) + GET_PAGE_OFFSET(virtual_addr);
 }
 
-int is_mapped(page_table_t* root, uintptr_t virtual_addr){
+int is_mapped(page_table_t* root, uintptr_t virtual_addr)
+{
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
@@ -160,7 +164,8 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr){
     return pt_table->entries[level1_index] & PAGE_PRESENT;
 }
 
-virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count){
+virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count)
+{
     return get_first_free_pages_from(0, root, pages_count);
 }
 
@@ -183,7 +188,8 @@ virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* roo
     return NULL;
 }
 
-int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size){
+int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
+{
     int copied = 0;
 
     for(size_t i = 0; i < size; i ++){
@@ -195,6 +201,7 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size){
     return copied;
 }
 
-void switch_pml4(page_table_t* pml4){
+void switch_pml4(page_table_t* pml4)
+{
     write_cr3((uintptr_t)(pml4));
 }
