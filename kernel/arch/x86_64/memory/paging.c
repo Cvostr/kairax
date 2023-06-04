@@ -6,6 +6,7 @@
 #include "stddef.h"
 
 extern page_table_t p4_table;
+extern void write_cr3(void*);
 
 page_table_t* new_page_table()
 {

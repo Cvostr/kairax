@@ -71,9 +71,9 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	map_page_mem(get_kernel_pml4(), P2V(cmd_tables_mem), cmd_tables_mem, pageFlags);
 
     for(int i = 0; i < 32; i ++){
-		HBA_COMMAND* hba_command_virtual = P2V(result->command_list);
+		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(result->command_list);
         hba_command_virtual[i].prdtl = 8; //8 PRDT на каждую команду
-        HBA_COMMAND_TABLE* cmd_table = &cmd_tables_mem[i];
+        HBA_COMMAND_TABLE* cmd_table = (HBA_COMMAND_TABLE*)&cmd_tables_mem[i];
         //Записать адрес таблицы
         hba_command_virtual[i].ctdba_low = LO32(cmd_table);
 		hba_command_virtual[i].ctdba_up = HI32(cmd_table);
@@ -155,8 +155,6 @@ void ahci_port_clear_error_register(ahci_port_t* port)
 }
 
 int ahci_port_identity(ahci_port_t *port, char* buffer){
-	memset(P2V(buffer), 0, 512);
-
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; 
@@ -175,8 +173,8 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)P2V(((uintptr_t)cmdheader->ctdba_up << 32) | cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE));
 
-	cmdtbl->prdt_entry[0].dba = (uint32_t)V2P(buffer);
-	cmdtbl->prdt_entry[0].dbau = 0;
+	cmdtbl->prdt_entry[0].dba = (uint32_t)((uintptr_t)buffer & 0xFFFFFFFF);
+	cmdtbl->prdt_entry[0].dbau = (uint32_t)((uintptr_t)buffer >> 32);
 	cmdtbl->prdt_entry[0].dbc = 512 - 1;
 	cmdtbl->prdt_entry[0].i = 1;
 
@@ -282,7 +280,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	// 8K bytes (16 sectors) per PRDT
 	for (int i = 0; i < cmdheader->prdtl - 1; i++)
 	{
-		cmdtbl->prdt_entry[i].dba = (uint32_t) buf;
+		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
 		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = 1;
 		buf += 4 * 1024;	// 4K слов
@@ -290,8 +288,9 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	}
 	
 	// Last entry
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) buf;
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9)-1;	// 512 байт в секторе
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) ((uintptr_t)buf & 0xFFFFFFFF);
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbau = (uint32_t) ((uintptr_t)buf >> 32);
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9) - 1;	// 512 байт в секторе
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = 1;
 	
 	// Подготовить команду
@@ -374,16 +373,17 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	// 8K bytes (16 sectors) per PRDT
 	for (int i = 0; i < cmdheader->prdtl - 1; i++)
 	{
-		cmdtbl->prdt_entry[i].dba = (uint32_t) buf;
-		cmdtbl->prdt_entry[i].dbc = 8 * 1024-1;	// 8K bytes (this value should always be set to 1 less than the actual value)
+		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
+		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = 1;
 		buf += 4 * 1024;	// 4K words
 		count -= 16;	// 16 sectors
 	}
 	
 	// Last entry
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) buf;
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count<<9)-1;	// 512 bytes per sector
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbau = (uint32_t) ((uintptr_t)buf >> 32);
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9) - 1;	// 512 bytes per sector
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = 1;
 	
 	// Setup command

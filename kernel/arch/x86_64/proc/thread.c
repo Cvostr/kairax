@@ -16,7 +16,7 @@ thread_t* create_new_thread(process_t* process, void (*function)(void)){
 
     thread_frame_t* ctx = &thread->context;
     //Установить адрес функции
-    ctx->rip = P2V((uint64_t)function);
+    ctx->rip = (uint64_t)P2V((uint64_t)function);
     ctx->rflags = 0x286;
     //Установить стек для потока
     ctx->rbp = (uint64_t)thread->stack_ptr + STACK_SIZE;

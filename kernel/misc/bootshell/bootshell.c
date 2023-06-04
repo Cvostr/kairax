@@ -2,6 +2,7 @@
 #include "dev/keyboard/int_keyboard.h"
 #include "bootshell_cmdproc.h"
 #include "stdio.h"
+#include "dev/b8-console/b8-console.h"
 
 char command[256];
 int cmd_len = 0;

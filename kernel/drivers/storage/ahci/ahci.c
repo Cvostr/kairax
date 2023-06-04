@@ -22,7 +22,7 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 	{
 		if (pi & 1)
 		{
-			HBA_PORT* hba_port = P2V(&hba_mem->ports[i]); 
+			HBA_PORT* hba_port = (HBA_PORT*)P2V(&hba_mem->ports[i]); 
 			ahci_port_t* port = initialize_port(&controller->ports[i], i, hba_port);
 		}
  
@@ -81,7 +81,7 @@ void ahci_init(){
 			memset(controller, 0, sizeof(ahci_controller_t));
 
 			controller->pci_device = device_desc;
-			controller->hba_mem = device_desc->BAR[5].address;
+			controller->hba_mem = (HBA_MEMORY*)device_desc->BAR[5].address;
 			//Включить прерывания, DMA и MSA
 			pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			pci_device_set_enable_interrupts(device_desc, 1);
@@ -93,7 +93,7 @@ void ahci_init(){
 			map_page_mem(get_kernel_pml4(), P2V(device_desc->BAR[5].address), device_desc->BAR[5].address, pageFlags);
 
 			//!!!!
-			controller->hba_mem = P2V(controller->hba_mem);
+			controller->hba_mem = (HBA_MEMORY*)P2V(controller->hba_mem);
 
 			int reset = ahci_controller_reset(controller);
 			if(!reset){
@@ -118,11 +118,10 @@ void ahci_init(){
 				{
 					printf("SATA drive found at port %i, \n", i);
 
-					char* identity_buffer = kmalloc(512);
+					//Считать информацию об устройстве
+					char* identity_buffer = kmalloc(IDENTITY_BUFFER_SIZE);
+					memset(identity_buffer, 0, IDENTITY_BUFFER_SIZE);
 					ahci_port_identity(&controller->ports[i], vmm_get_physical_addr(identity_buffer));
-
-					for(int j = 0; j > 512; j ++)
-						printf("%i", identity_buffer[j]);
 
 					drive_device_t* drive_header = new_drive_device_header();
 

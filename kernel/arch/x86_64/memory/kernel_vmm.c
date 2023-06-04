@@ -40,7 +40,7 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
     page_table_t *pt_table;
 
     //Проверим, существует ли страница 4-го уровня
-    if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
+    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
         //Страница не существует
         //Выделить память под страницу
         pdp_table = new_page_table_bt();
@@ -51,7 +51,7 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
     pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2K(pdp_table);
 
-    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))){
         //Выделить память под страницу
         pd_table = new_page_table_bt();
         //Записать страницу в родительское дерево
@@ -61,7 +61,7 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
     pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2K(pd_table);
 
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))){
         //Выделить память под страницу
         pt_table = new_page_table_bt();
         //Записать страницу в родительское дерево
@@ -71,7 +71,7 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     pt_table = P2K(pt_table);
 
-    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT))){
         pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
     }
 }
@@ -92,7 +92,7 @@ page_table_t* create_kernel_vm_map()
     uintptr_t iter = 0;
     // маппинг текста ядра 
 	for (iter = 0; iter <= kernel_size; iter += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, 0x100000 + P2K(iter), 0x100000 + iter, pageFlags);
+		map_page_mem_bt(root_pml4, 0x100000ULL + P2K(iter), 0x100000ULL + iter, pageFlags);
 	}
 
     // маппинг физической памяти

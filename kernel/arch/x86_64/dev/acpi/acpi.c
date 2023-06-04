@@ -78,11 +78,11 @@ void acpi_parse_dt(acpi_header_t* dt)
 
     if (signature == 0x50434146)
     {
-        acpi_fadt = dt;
+        acpi_fadt = (acpi_fadt_t*)dt;
         if (acpi_get_revision() == 1)
-            acpi_parse_dsdt(acpi_fadt->dsdt);
+            acpi_parse_dsdt((acpi_header_t*)((uintptr_t)acpi_fadt->dsdt));
         else if (acpi_get_revision() == 2)
-            acpi_parse_dsdt(acpi_fadt->x_dsdt);
+            acpi_parse_dsdt((acpi_header_t*)((uintptr_t)acpi_fadt->x_dsdt));
     }
     else if (signature == 0x43495041)
     {
@@ -90,7 +90,8 @@ void acpi_parse_dt(acpi_header_t* dt)
     }
 }
 
-void acpi_read_xsdt(acpi_header_t* xsdt){
+void acpi_read_xsdt(acpi_header_t* xsdt)
+{
     xsdt = (acpi_header_t*)P2V(xsdt);
     uint64_t *p = (uint64_t *)(xsdt + 1);
     uint64_t *end = (uint64_t *)((uint8_t*)xsdt + xsdt->length);
@@ -102,7 +103,8 @@ void acpi_read_xsdt(acpi_header_t* xsdt){
     }
 }
 
-void acpi_parse_rsdt(acpi_header_t* rsdt){
+void acpi_parse_rsdt(acpi_header_t* rsdt)
+{
     rsdt = (acpi_header_t*)P2V(rsdt);
 
     uint32_t *p = (uint32_t *)(rsdt + 1);

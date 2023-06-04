@@ -9,6 +9,8 @@
 #define AHCI_DEV_PM 3
 #define AHCI_DEV_SATAPI 4
 
+#define IDENTITY_BUFFER_SIZE 512
+
 typedef uint32_t ahci_device_type;
 
 #define HBA_PORT_IPM_ACTIVE 1

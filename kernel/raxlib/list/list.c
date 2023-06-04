@@ -10,14 +10,15 @@ list_t* create_list(){
     return result;
 }
 
-void list_add(list_t* list, void* element){
+void list_add(list_t* list, void* element)
+{
     list_node_t* new_node = kmalloc(sizeof(list_node_t));
     new_node->element = element;
     new_node->next = NULL;
 
-    if(!list->head){
+    if (!list->head) {
         list->head = new_node;
-    }else{
+    } else {
         list->tail->next = new_node;
         new_node->prev = list->tail;
     }

@@ -6,6 +6,8 @@
 
 extern uintptr_t __KERNEL_START;
 extern uintptr_t __KERNEL_END;
+extern uintptr_t __KERNEL_VIRT_END;
+extern uintptr_t __KERNEL_VIRT_LINK;
 
 uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
@@ -155,7 +157,11 @@ void pmm_set_mem_region(uint64_t offset, uint64_t size) {
 void init_pmm() {
 	memset(bitmap, 0, sizeof(uint64_t) * MAX_BITMASK_DATA);
 	pages_used = 0;
-	uint64_t kernel_size = (uint64_t)&__KERNEL_END - (uint64_t)&__KERNEL_START;
+}
+
+void pmm_take_base_regions()
+{
+	uint64_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
 	//Запретить выделение памяти в 1-м мегабайте
 	pmm_set_mem_region(0x0, 0x100000);
 

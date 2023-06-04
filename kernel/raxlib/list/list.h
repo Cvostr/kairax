@@ -7,7 +7,7 @@ typedef struct {
     struct list_node_t* prev;
 } list_node_t;
 
-typedef struct{
+typedef struct {
     int size;
     list_node_t* head;
     list_node_t* tail;
