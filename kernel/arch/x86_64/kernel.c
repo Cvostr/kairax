@@ -94,7 +94,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	int rc = 0;
 	printf("KHEAP: Initialization...\n");
 	if ((rc = kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE)) != 1) {
-		printf("KHEAP: Initialization failed!");
+		printf("KHEAP: Initialization failed!\n");
 		goto fatal_error;
 	}
 

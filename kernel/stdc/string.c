@@ -97,12 +97,13 @@ void strncpy(char* dst, char* src, size_t size){
 	*(dst++) = '\0';
 }
 
-char* strchr(const char * string, int symbol){
+char* strchr(const char * string, int symbol)
+{
 	size_t len = strlen(string);
 
 	for(size_t i = 0; i < len; i ++){
 		if(string[i] == symbol)
-			return string + i;
+			return (char*)string + i;
 	}
 
 	return NULL;

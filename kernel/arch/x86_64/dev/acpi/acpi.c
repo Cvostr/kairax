@@ -43,7 +43,8 @@ apic_local_cpu_t** acpi_get_cpus_apic(){
     return cpus_apic;
 }
 
-void acpi_parse_apic_madt(acpi_madt_t* madt){
+void acpi_parse_apic_madt(acpi_madt_t* madt)
+{
     acpi_apic = madt;
 
     madt = (acpi_madt_t*)P2V(madt);
@@ -194,7 +195,8 @@ int acpi_enable()
     return 0;
 }
 
-int acpi_init(){
+int acpi_init()
+{
     memset(&acpi_rsdp, 0, sizeof(acpi_rsdp_t));
 
     uint8_t *p = (uint8_t *)P2V(0x000e0000);
@@ -217,11 +219,13 @@ int acpi_init(){
     return 1;
 }
 
-char* acpi_get_oem_str(){
+char* acpi_get_oem_str()
+{
     return acpi_rsdp.oem_id;
 }
 
-int acpi_get_revision(){
+int acpi_get_revision()
+{
     if(acpi_rsdp.revision == 0)
         return 1;
     else if(acpi_rsdp.revision == 2)

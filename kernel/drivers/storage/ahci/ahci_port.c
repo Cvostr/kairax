@@ -2,7 +2,7 @@
 #include "mem/pmm.h"
 #include "mem/kheap.h"
 #include "string.h"
-#include "memory/paging.h"
+#include "memory/kernel_vmm.h"
 #include "io.h"
 #include "ctype.h"
 
@@ -34,7 +34,8 @@ static int get_device_type(HBA_PORT *port)
 	}
 }
 
-ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc){
+ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc)
+{
 	ahci_port_t* result = port;
     memset(result, 0, sizeof(ahci_port_t));
 	port->implemented = 1;
@@ -53,7 +54,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	unmap_page(get_kernel_pml4(), P2V(port_mem));
 	map_page_mem(get_kernel_pml4(), P2V(port_mem), port_mem, pageFlags);
 
-    result->command_list = port_mem;
+    result->command_list = (HBA_COMMAND*)port_mem;
     result->fis = port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT;
     //Записать адрес списка команд
     port_desc->clb  = LO32(result->command_list);
@@ -281,6 +282,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	for (int i = 0; i < cmdheader->prdtl - 1; i++)
 	{
 		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
+		cmdtbl->prdt_entry[i].dbau = (uint32_t) ((uintptr_t) buf >> 32);
 		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = 1;
 		buf += 4 * 1024;	// 4K слов
@@ -322,6 +324,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 		printf("Port is hung\n");
 		return 0;
 	}
+
 	hba_port->ci = (1 << slot);	// Выполнить команду
  
 	// Ожидание завершения операции
@@ -331,6 +334,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 		// in the PxIS port field as well (1 << 5)
 		if ((hba_port->ci & (1 << slot)) == 0) 
 			break;
+
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
 		{
 			printf("Read disk error (%i, %i)\n", start, count);
@@ -374,6 +378,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	for (int i = 0; i < cmdheader->prdtl - 1; i++)
 	{
 		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
+		cmdtbl->prdt_entry[i].dbau = (uint32_t) ((uintptr_t) buf >> 32);
 		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = 1;
 		buf += 4 * 1024;	// 4K words

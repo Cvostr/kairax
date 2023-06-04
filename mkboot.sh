@@ -4,4 +4,4 @@ cd ..
 
 cp kernel/kernel.bin isofiles/boot/
 
-grub-mkrescue -o os.iso isofiles
+grub-mkrescue -o kairax.iso isofiles

@@ -204,5 +204,5 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
 
 void switch_pml4(page_table_t* pml4)
 {
-    write_cr3((uintptr_t)(pml4));
+    write_cr3(pml4);
 }

@@ -8,7 +8,7 @@
 #include "stdint.h"
 
 #define K2P(a) (void*)((uintptr_t)(a) & ~KERNEL_TEXT_OFFSET)
-#define P2K(a) ((uintptr_t)(a) | KERNEL_TEXT_OFFSET)
+#define P2K(a) (void*)((uintptr_t)(a) | KERNEL_TEXT_OFFSET)
 
 #define V2P(a) (void*)((uintptr_t)(a) & ~PHYSICAL_MEM_MAP_OFFSET)
 #define P2V(a) (void*)((uintptr_t)(a) | PHYSICAL_MEM_MAP_OFFSET)

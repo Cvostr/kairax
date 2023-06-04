@@ -1,6 +1,7 @@
 #include "kernel_vmm.h"
 #include "mem/pmm.h"
 #include "stdio.h"
+#include "string.h"
 
 extern uintptr_t __KERNEL_START;
 extern uintptr_t __KERNEL_END;

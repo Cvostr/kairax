@@ -89,7 +89,7 @@ void ahci_init(){
 			// Данная страница уже замаплена, но без PAGE_UNCACHED
 			// Перезамаппим её
 			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
-			unmap_page(get_kernel_pml4(), P2V(device_desc->BAR[5].address));
+			unmap_page(get_kernel_pml4(), (uintptr_t)P2V(device_desc->BAR[5].address));
 			map_page_mem(get_kernel_pml4(), P2V(device_desc->BAR[5].address), device_desc->BAR[5].address, pageFlags);
 
 			//!!!!
@@ -108,7 +108,7 @@ void ahci_init(){
 			ahci_controller_probe_ports(controller);
 
 			for (int i = 0; i < 32; i ++) {
-				
+				//Проверка, есть ли устройство
 				if(controller->ports[i].implemented == 0) {
 					continue;
 				}

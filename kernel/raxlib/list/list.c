@@ -2,7 +2,8 @@
 #include "mem/kheap.h"
 #include "stddef.h"
 
-list_t* create_list(){
+list_t* create_list()
+{
     list_t* result = kmalloc(sizeof(list_t));
     result->size = 0;
     result->head = NULL;
@@ -26,11 +27,13 @@ void list_add(list_t* list, void* element)
     list->size++;
 }
 
-void list_remove(list_t* list, void* element){
+void list_remove(list_t* list, void* element)
+{
     
 }
 
-void* list_get(list_t* list, unsigned int i){
+void* list_get(list_t* list, unsigned int i)
+{
     if(list == NULL)
         return NULL;
     list_node_t* current = list->head;
@@ -40,10 +43,12 @@ void* list_get(list_t* list, unsigned int i){
     return current->element;
 }
 
-void* list_head(list_t* list){
+void* list_head(list_t* list)
+{
     return list->head->element;
 }
 
-void* list_tail(list_t* list){
+void* list_tail(list_t* list)
+{
     return list->tail->element;    
 }

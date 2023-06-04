@@ -11,7 +11,8 @@
 
 list_t* partitions = NULL;
 
-drive_partition_t* new_drive_partition_header(){
+drive_partition_t* new_drive_partition_header()
+{
     drive_partition_t* result = (drive_partition_t*)kmalloc(sizeof(drive_partition_t));
     memset(result, 0, sizeof(drive_partition_t));
     return result;
@@ -23,7 +24,7 @@ void add_partitions_from_device(drive_device_t* device){
 
     drive_device_read(device, 0, 1, vmm_get_physical_addr(first_sector));
     drive_device_read(device, 1, 1, vmm_get_physical_addr(second_sector));
-    
+
     mbr_header_t* mbr_header = (mbr_header_t*)first_sector;
     gpt_header_t* gpt_header = (gpt_header_t*)second_sector; 
 
@@ -32,11 +33,14 @@ void add_partitions_from_device(drive_device_t* device){
 
     if(has_mbr_sign){
         //Это MBR разметка
-        for(uint32_t i = 0; i < 4; i ++){
+        for (uint32_t i = 0; i < 4; i ++) {
             mbr_partition_t* mbr_partition = &mbr_header->partition[i];
 
-            if(mbr_partition->lba_sectors == 0 || mbr_partition->type == MBR_PARTITION_TYPE_GPT)
+            // Заголовок MBR также содержится если раздел формата GPT
+            if(mbr_partition->lba_sectors == 0 || mbr_partition->type == MBR_PARTITION_TYPE_GPT) {
                 continue;
+            }
+
             drive_partition_t* partition = new_drive_partition_header();
             partition->device = device;
             partition->index = i;
@@ -50,28 +54,34 @@ void add_partitions_from_device(drive_device_t* device){
             add_partition_header(partition);
         }
     }
-    if(has_mbr_sign && has_gpt_sign){
-        int entries_num = gpt_header->gpea_entries_num;
+
+    if (has_mbr_sign && has_gpt_sign) {
+        //Это GPT разметка
+        uint32_t entries_num = gpt_header->gpea_entries_num;
         uint32_t current_lba = gpt_header->gpea_lba;
 
         uint32_t found_partitions = 0;
         for(int i = 0; i < entries_num; i ++){
-            char entry_buffer[GPT_BLOCK_SIZE];
-            drive_device_read(device, current_lba, 1, V2P(entry_buffer));
+            char* gpt_entry_buffer = kmalloc(GPT_BLOCK_SIZE);
+            memset(gpt_entry_buffer, 0, GPT_BLOCK_SIZE);
+            drive_device_read(device, current_lba, 1, vmm_get_physical_addr(gpt_entry_buffer));
+
             for(int offset = 0; offset < GPT_BLOCK_SIZE; offset += gpt_header->gpea_entry_size){
-                gpt_entry_t* entry = (gpt_entry_t*)(entry_buffer + offset);
+                gpt_entry_t* entry = (gpt_entry_t*)(gpt_entry_buffer + offset);
 
                 if(guid_is_zero(&entry->partition_guid)){
                     entries_num = 0;
                     break;
                 }
 
+                //Формирование структуры, описывающей раздел
                 drive_partition_t* partition = new_drive_partition_header();
                 partition->device = device;
                 partition->index = found_partitions;
                 partition->start_lba = entry->start_lba;
                 partition->sectors = (entry->end_lba - entry->start_lba) + 1;
 
+                //Формирование имени раздела
                 strcpy(partition->name, device->name);
                 strcat(partition->name, "p");
                 strcat(partition->name, itoa(found_partitions, 10));
@@ -79,6 +89,9 @@ void add_partitions_from_device(drive_device_t* device){
                 add_partition_header(partition);
                 found_partitions++;
             }
+
+            kfree(gpt_entry_buffer);
+
             current_lba++;
         }
     }
