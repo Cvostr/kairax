@@ -10,7 +10,7 @@
 #include "drivers/storage/ahci/ahci.h"
 #include "drivers/storage/nvme/nvme.h"
 
-#include "memory/hh_offset.h"
+#include "memory/mem_layout.h"
 #include "mem/pmm.h"
 #include "memory/kernel_vmm.h"
 #include "mem/kheap.h"
@@ -125,7 +125,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	ahci_init();	
 	init_nvme();
 
-	for(int i = 0; i < get_drive_devices_count(); i ++){
+	for(int i = 0; i < get_drive_devices_count(); i ++) {
 		drive_device_t* device = get_drive(i);
 		add_partitions_from_device(device);
 	}

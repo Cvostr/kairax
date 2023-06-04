@@ -1,5 +1,5 @@
 #include "idt.h"
-#include "memory/hh_offset.h"
+#include "memory/mem_layout.h"
 #include "mem/pmm.h"
 #include "mem/kheap.h"
 #include "stdio.h"

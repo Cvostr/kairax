@@ -19,8 +19,8 @@ drive_partition_t* new_drive_partition_header()
 }
 
 void add_partitions_from_device(drive_device_t* device){
-    char first_sector[512];
-    char second_sector[512];
+    char* first_sector = kmalloc(512);
+    char* second_sector = kmalloc(512);
 
     drive_device_read(device, 0, 1, vmm_get_physical_addr(first_sector));
     drive_device_read(device, 1, 1, vmm_get_physical_addr(second_sector));
@@ -95,6 +95,9 @@ void add_partitions_from_device(drive_device_t* device){
             current_lba++;
         }
     }
+
+    kfree(first_sector);
+    kfree(second_sector);
 
 }
 

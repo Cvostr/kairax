@@ -2,7 +2,7 @@
 #include "mem/pmm.h"
 #include "string.h"
 #include "stdio.h"
-#include "hh_offset.h"
+#include "mem_layout.h"
 #include "stddef.h"
 
 extern page_table_t p4_table;

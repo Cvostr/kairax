@@ -2,7 +2,7 @@
 #define _PAGING_H
 
 #include "stdint.h"
-#include "hh_offset.h"
+#include "mem_layout.h"
 
 #define PAGE_PRESENT 		    0x1
 #define PAGE_WRITABLE 		    0x2

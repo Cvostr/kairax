@@ -3,7 +3,7 @@
 #include "stdio.h"
 #include "interrupts/pic.h"
 #include "list/list.h"
-#include "memory/hh_offset.h"
+#include "memory/mem_layout.h"
 #include "string.h"
 
 list_t* threads_list;

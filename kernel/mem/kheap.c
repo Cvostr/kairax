@@ -130,12 +130,12 @@ void combine_forward(kheap_item_t* item)
             if(next_next != NULL)
                 next_next->prev = item;
 
-            // Седующий блок - последний, надо обновить указатель на tail
+            // Следующий блок - последний, надо обновить указатель на tail
             if(next_item == kheap.tail)
                 kheap.tail = item;
 
             item->next = next_next;
-            item->size += next_item->size + sizeof(kheap_item_t);
+            item->size += next_item->size + sizeof(kheap_item_t) * 2;
         }
     }
 }
@@ -143,12 +143,15 @@ void combine_forward(kheap_item_t* item)
 void kfree(void* mem)
 {
     kheap_item_t* item = (kheap_item_t*)mem - 1;
-    item->free = 1;
+    if(item->free == 0) {
+        //Пометить как свободную
+        item->free = 1;
 
-    kheap_item_t* prev = item->prev;
-
-    combine_forward(item);
-    //combine_forward(item->prev);
+        // Попытаться объеденить со следующей свободной ячейкой
+        combine_forward(item);
+        // Попытаться объеденить с предыдущей свободной ячейкой
+        combine_forward(item->prev);
+    }
 }
 
 void* kheap_get_phys_address(void* mem)

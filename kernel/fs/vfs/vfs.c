@@ -7,29 +7,34 @@
 
 vfs_mount_info_t* vfs_mounts[MAX_MOUNTS];
 
-vfs_inode_t* new_vfs_inode(){
+vfs_inode_t* new_vfs_inode()
+{
     vfs_inode_t* result = kmalloc(sizeof(vfs_inode_t));
     memset(result, 0, sizeof(vfs_inode_t));
     return result;
 }
 
-dirent_t* new_vfs_dirent(){
+dirent_t* new_vfs_dirent()
+{
     dirent_t* result = kmalloc(sizeof(dirent_t));
-    memset(result, 0, sizeof(vfs_inode_t));
+    memset(result, 0, sizeof(dirent_t));
     return result;
 }
 
-void vfs_init(){
+void vfs_init()
+{
     memset(vfs_mounts, 0, sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
 }
 
-vfs_mount_info_t* new_vfs_mount_info(){
+vfs_mount_info_t* new_vfs_mount_info()
+{
     vfs_mount_info_t* result = (vfs_mount_info_t*)kmalloc(sizeof(vfs_mount_info_t));
     memset(result, 0, sizeof(vfs_mount_info_t));
     return result;
 }
 
-int vfs_get_free_mount_info_pos(){
+int vfs_get_free_mount_info_pos()
+{
     for(int i = 0; i < MAX_MOUNTS; i ++){
         if(vfs_mounts[i] == NULL)
             return i;
@@ -38,7 +43,8 @@ int vfs_get_free_mount_info_pos(){
     return -1;
 }
 
-int vfs_mount(char* mount_path, drive_partition_t* partition){
+int vfs_mount(char* mount_path, drive_partition_t* partition)
+{
     if(vfs_get_mounted_partition(mount_path) != NULL){
         return -1;  //Данный путь уже используется
     }
@@ -67,7 +73,8 @@ int vfs_mount(char* mount_path, drive_partition_t* partition){
     vfs_mounts[mount_pos] = mount_info;
 }
 
-int vfs_unmount(char* mount_path){
+int vfs_unmount(char* mount_path)
+{
     for(int i = 0; i < MAX_MOUNTS; i ++){
         if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0){
             kfree(vfs_mounts[i]);
@@ -79,7 +86,8 @@ int vfs_unmount(char* mount_path){
     return -1;//Данный путь не использовался
 }
 
-vfs_mount_info_t* vfs_get_mounted_partition(char* mount_path){
+vfs_mount_info_t* vfs_get_mounted_partition(char* mount_path)
+{
     for(int i = 0; i < MAX_MOUNTS; i ++){
         if(vfs_mounts[i] == NULL)
             continue;
@@ -90,7 +98,8 @@ vfs_mount_info_t* vfs_get_mounted_partition(char* mount_path){
     return NULL;
 }
 
-void path_to_slash(char* path){
+void path_to_slash(char* path)
+{
     int i = strlen(path);
     i--;
     while(i >= 0){
@@ -105,7 +114,8 @@ void path_to_slash(char* path){
     }
 }
 
-vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset){
+vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset)
+{
     int path_len = strlen(path);
     char* temp = kmalloc(path_len + 1);
     strcpy(temp, path);
@@ -128,62 +138,81 @@ vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset){
     return result;
 }
 
-vfs_mount_info_t** vfs_get_mounts(){
+vfs_mount_info_t** vfs_get_mounts()
+{
     return vfs_mounts;
 }
 
-uint32_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer){
+uint32_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
+{
     if(file)
         if(file->operations.read)
             return file->operations.read(file, offset, size, buffer);
 }
 
-vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name){
+vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name)
+{
     if(node)
         if(node->operations.finddir)
             return node->operations.finddir(node, name);
 }
 
-vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index){
+vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index)
+{
     if(node)
         if(node->operations.readdir)
             return node->operations.readdir(node, index);
 }
 
-void vfs_chmod(vfs_inode_t* node, uint32_t mode){
+void vfs_chmod(vfs_inode_t* node, uint32_t mode)
+{
     if(node)
         if(node->operations.chmod)
             return node->operations.chmod(node, mode);
 }
 
-void vfs_open(vfs_inode_t* node, uint32_t flags){
+void vfs_open(vfs_inode_t* node, uint32_t flags)
+{
     if(node)
         if(node->operations.open)
             node->operations.open(node, flags);
 }
 
-void vfs_close(vfs_inode_t* node){
+void vfs_close(vfs_inode_t* node)
+{
     if(node)
         if(node->operations.close)
             node->operations.close(node);
 }
 
-vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
+vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
+{
     int offset = 0;
+    // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
     vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);
+    //Корневой узел найденной ФС
     vfs_inode_t* curr_node = mount_info->root_node;
 
     offset += 1;
+    // Путь к файлу в ФС, отделенный от пути монтирования
     char* fs_path = path + offset;
-    char* temp = (char*)kmalloc(strlen(fs_path) + 1);
 
-    if(strlen(fs_path) == 0){
-        return curr_node;
+    // Если обращаемся к корневой папке ФС - просто возращаем корень
+    if(strlen(fs_path) == 0)
+    {
+        vfs_inode_t* root_node_copy = new_vfs_inode();
+        memcpy(root_node_copy, mount_info->root_node, sizeof(vfs_inode_t));
+        return root_node_copy;
     }
 
-    while(strlen(fs_path) > 0){
+    //Временный буфер
+    char* temp = (char*)kmalloc(strlen(fs_path) + 1);
+
+    while(strlen(fs_path) > 0)
+    {
         int len = 0;
         int is_dir = 0;
+        // Позиция / относительно начала
         char* slash_pos = strchr(fs_path, '/');
         if(slash_pos != NULL){ //Это директория
             len = slash_pos - fs_path;
@@ -202,7 +231,7 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags){
                 kfree(temp);
                 return NULL;
             }
-        }else{
+        } else {
             if(next != NULL){
                 //Открыть найденый файл
                 vfs_open(next, flags);

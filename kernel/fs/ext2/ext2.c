@@ -1,7 +1,7 @@
 #include "ext2.h"
 #include "../vfs/filesystems.h"
 #include "string.h"
-#include "memory/hh_offset.h"
+#include "memory/mem_layout.h"
 #include "mem/kheap.h"
 #include "mem/pmm.h"
 
@@ -251,6 +251,7 @@ uint32_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buf
     ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
+    //Не реализовано
     kfree(inode);
     return 0;
 }

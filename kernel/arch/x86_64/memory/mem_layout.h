@@ -1,3 +1,6 @@
+#ifndef MEM_LAYOUT_H
+#define MEM_LAYOUT_H
+
 #define MAX_ADDRESS             0xffffffffffffffff
 #define KERNEL_TEXT_OFFSET      0xFFFFFFFF80000000           //После этого адреса начинается область памяти ядра
 #define PHYSICAL_MEM_MAP_OFFSET 0xFFFF888000000000           //После этого адреса начинается физическая память 
@@ -12,3 +15,5 @@
 
 #define V2P(a) (void*)((uintptr_t)(a) & ~PHYSICAL_MEM_MAP_OFFSET)
 #define P2V(a) (void*)((uintptr_t)(a) | PHYSICAL_MEM_MAP_OFFSET)
+
+#endif

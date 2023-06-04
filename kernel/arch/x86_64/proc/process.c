@@ -3,7 +3,7 @@
 #include "mem/pmm.h"
 #include "mem/kheap.h"
 #include "string.h"
-#include "memory/hh_offset.h"
+#include "memory/mem_layout.h"
 
 int last_pid = 0;
 
