@@ -93,7 +93,7 @@ page_table_t* create_kernel_vm_map()
     uintptr_t iter = 0;
     // маппинг текста ядра 
 	for (iter = 0; iter <= kernel_size; iter += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, 0x100000ULL + P2K(iter), 0x100000ULL + iter, pageFlags);
+		map_page_mem_bt(root_pml4, P2K(iter) + 0x100000ULL, 0x100000ULL + iter, pageFlags);
 	}
 
     // маппинг физической памяти
@@ -102,4 +102,11 @@ page_table_t* create_kernel_vm_map()
 	}
 
     return root_pml4;
+}
+
+page_table_t* vmm_clone_kernel_memory_map()
+{
+    page_table_t* result = new_page_table();
+    memcpy(result, root_pml4, sizeof(page_table_t));
+    return result;
 }

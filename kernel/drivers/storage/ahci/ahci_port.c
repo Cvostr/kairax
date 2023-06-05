@@ -36,17 +36,16 @@ static int get_device_type(HBA_PORT *port)
 
 ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc)
 {
-	ahci_port_t* result = port;
-    memset(result, 0, sizeof(ahci_port_t));
+    memset(port, 0, sizeof(ahci_port_t));
 	port->implemented = 1;
 
     ahci_device_type device_type = get_device_type(port_desc);
 	if(device_type == 0)
 		return NULL;
 		
-    result->port_reg = port_desc;
-    result->index = index;
-    result->device_type = device_type;
+    port->port_reg = port_desc;
+    port->index = index;
+    port->device_type = device_type;
 
 	// Выделение памяти под буфер порта
 	char* port_mem = (char*)pmm_alloc_page();
@@ -54,14 +53,14 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	unmap_page(get_kernel_pml4(), P2V(port_mem));
 	map_page_mem(get_kernel_pml4(), P2V(port_mem), port_mem, pageFlags);
 
-    result->command_list = (HBA_COMMAND*)port_mem;
-    result->fis = port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT;
+    port->command_list = (HBA_COMMAND*)port_mem;
+    port->fis = port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT;
     //Записать адрес списка команд
-    port_desc->clb  = LO32(result->command_list);
-	port_desc->clbu = HI32(result->command_list);
+    port_desc->clb  = LO32(port->command_list);
+	port_desc->clbu = HI32(port->command_list);
     //Записать адрес структуры FIS
-    port_desc->fb   = LO32(result->fis);
-	port_desc->fbu  = HI32(result->fis);
+    port_desc->fb   = LO32(port->fis);
+	port_desc->fbu  = HI32(port->fis);
 
     size_t cmd_tables_mem_sz = COMMAND_LIST_ENTRY_COUNT * sizeof(HBA_COMMAND_TABLE);
     uint32_t pages = cmd_tables_mem_sz / PAGE_SIZE + 1;
@@ -72,7 +71,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	map_page_mem(get_kernel_pml4(), P2V(cmd_tables_mem), cmd_tables_mem, pageFlags);
 
     for(int i = 0; i < 32; i ++){
-		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(result->command_list);
+		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(port->command_list);
         hba_command_virtual[i].prdtl = 8; //8 PRDT на каждую команду
         HBA_COMMAND_TABLE* cmd_table = (HBA_COMMAND_TABLE*)&cmd_tables_mem[i];
         //Записать адрес таблицы
@@ -120,7 +119,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 			break;
 	}
 	
-    return result;
+    return port;
 }
 
 uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port){

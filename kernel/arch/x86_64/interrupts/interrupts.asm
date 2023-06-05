@@ -1,4 +1,4 @@
-%include "memory/hh_offset.asm"
+%include "memory/mem_layout.asm"
 
 [BITS 64]
 [SECTION .text]

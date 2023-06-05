@@ -1,6 +1,6 @@
 bits 64
 
-%include "memory/hh_offset.asm"
+%include "memory/mem_layout.asm"
 
 global init_x64
 global lgdt_hh

@@ -3,8 +3,6 @@
 
 #include "memory/paging.h"
 
-
-
 typedef struct PACKED {
     char    name[30];
 
@@ -17,8 +15,10 @@ typedef struct PACKED {
     page_table_t*    pml4;    
 } process_t;
 
+//Создать новый пустой процесс
 process_t*  create_new_process();
 
+// Установить адрес конца памяти процесса
 uintptr_t        process_brk(process_t* process, void* addr);
 
 #endif

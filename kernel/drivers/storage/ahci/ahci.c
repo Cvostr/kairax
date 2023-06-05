@@ -14,6 +14,7 @@
 #include "drivers/storage/devices/storage_devices.h"
 
 void ahci_controller_probe_ports(ahci_controller_t* controller){
+	// Виртуальный адрес HBA_MEMORY
 	HBA_MEMORY* hba_mem = controller->hba_mem;
 	// Поиск дисков в доступных портах
 	uint32_t pi = hba_mem->pi;

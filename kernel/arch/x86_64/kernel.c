@@ -33,12 +33,15 @@ extern void lgdt_hh();
 extern page_table_t* p4_table;
 
 void threaded2(){
-	while(1){
-		for(int i = 0; i < 10000000; i ++){
+	int* test = (int*)0x100;
+	*test = 0;
+	while(1) {
+		for(int i = 0; i < 100000000; i ++){
 			asm volatile("nop");
+			(*test) ++;
 		}
 
-		//printf("thread 2 \n");
+		//printf("thread 2 %i\n", *test);
 	}
 }
 
@@ -131,12 +134,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	process_t* proc = create_new_process();
-	//process_t* proc1 = create_new_process();
-	//process_brk(proc, (void *)0x1100000);
-	//copy_to_vm(proc->pml4, 0x10000, (void *)(uintptr_t)threaded, 200);
+	process_t* proc1 = create_new_process();
+	process_brk(proc1, (void*)0x1100000);
 	
 	thread_t* thr = create_new_thread(proc, bootshell);
-	thread_t* thr2 = create_new_thread(NULL, threaded2);
+	thread_t* thr2 = create_new_thread(proc1, threaded2);
 	
 	init_scheduler();
 	

@@ -20,8 +20,6 @@ void remove_thread(thread_t* thread){
 }
 
 void scheduler_handler(thread_frame_t* frame){
-    //switch_pml4(get_kernel_pml4());
-    //uint64_t* ripn = (uint64_t*)((uintptr_t)frame - 8);
     
     if(prev_thread != NULL){
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
@@ -38,6 +36,9 @@ void scheduler_handler(thread_frame_t* frame){
             curr_thread = 0;
 
         process_t* process = new_thread->process;
+        if (process != NULL) {
+            switch_pml4(V2P(process->pml4));
+        }
     }
 
 	pic_eoi(0);

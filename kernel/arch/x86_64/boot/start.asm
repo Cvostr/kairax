@@ -1,6 +1,6 @@
 bits 32
 
-%include "memory/hh_offset.asm"
+%include "memory/mem_layout.asm"
 
 %define KERNEL_STACK_SIZE         (8192)
 %define MAGIC_HEADER_MB2          0xE85250D6
@@ -152,7 +152,7 @@ enable_long_mode_paging: ;включение 64 битного режима пр
 	mov cr3, eax
 	;Взведение флага PAE в регистре cr4
 	mov eax, cr4
-	or eax, (1 << 5); | (1 << 7)
+	or eax, (1 << 5) | (1 << 7)
 	mov cr4, eax
 	;
 	mov ecx, 0xC0000080
