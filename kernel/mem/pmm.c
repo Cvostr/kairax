@@ -12,25 +12,20 @@ extern uintptr_t __KERNEL_VIRT_LINK;
 uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
 
-size_t physical_mem_size = 0;
-size_t physical_mem_max_address = 0;
+pmm_params_t pmm_params;
+
+void pmm_set_params(pmm_params_t* params)
+{
+	memcpy(&pmm_params, params, sizeof(pmm_params_t));
+}
 
 size_t pmm_get_physical_mem_size() {
-	return physical_mem_size;
-}
-
-void pmm_set_physical_mem_size(size_t size) {
-	physical_mem_size = size;
-}
-
-void pmm_set_physical_mem_max_addr(size_t size)
-{
-	physical_mem_max_address = size;
+	return pmm_params.physical_mem_total;
 }
 
 size_t pmm_get_physical_mem_max_addr()
 {
-	return physical_mem_max_address;
+	return pmm_params.physical_mem_max_addr;
 }
 
 void set_bit(uint64_t bit) {

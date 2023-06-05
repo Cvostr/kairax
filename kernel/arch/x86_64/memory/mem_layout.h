@@ -2,6 +2,10 @@
 #define MEM_LAYOUT_H
 
 #define MAX_ADDRESS             0xffffffffffffffff
+
+#define USERSPACE_MAX_ADDR      0x00007FFFFFFFFFFF
+#define USERSPACE_STACK_BASE    USERSPACE_MAX_ADDR - 4096
+
 #define KERNEL_TEXT_OFFSET      0xFFFFFFFF80000000           //После этого адреса начинается область памяти ядра
 #define PHYSICAL_MEM_MAP_OFFSET 0xFFFF888000000000           //После этого адреса начинается физическая память 
 

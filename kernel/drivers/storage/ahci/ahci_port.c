@@ -122,7 +122,8 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     return port;
 }
 
-uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port){
+uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port)
+{
 	uint32_t slots = (port->port_reg->sact | port->port_reg->ci);
 	for(uint32_t i = 0; i < 32; i ++){
 		if((slots & 1) == 0)

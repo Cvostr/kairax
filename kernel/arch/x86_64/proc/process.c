@@ -11,9 +11,10 @@ process_t*  create_new_process()
 {
     process_t* process = (process_t*)kmalloc(sizeof(process_t));
 
+    // Склонировать таблицу виртуальной памяти ядра
     page_table_t* pml4 = vmm_clone_kernel_memory_map();
 
-    process->pml4 = pml4;   //should be physical
+    process->pml4 = pml4;
     process->brk = 0x0;
     process->pid = last_pid++;
 
@@ -30,6 +31,6 @@ uintptr_t process_brk(process_t* process, void* addr)
         map_page_mem(process->pml4, process->brk, pmm_alloc_page(), PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
         process->brk += PAGE_SIZE;
     }
-    
+
     return process->brk;
 }

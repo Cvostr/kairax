@@ -32,10 +32,8 @@ uint64_t pmm_get_used_pages();
 
 size_t pmm_get_physical_mem_size();
 
-void pmm_set_physical_mem_size(size_t size);
-
-void pmm_set_physical_mem_max_addr(size_t size);
-
 size_t pmm_get_physical_mem_max_addr();
+
+void pmm_set_params(pmm_params_t* params);
 
 #endif

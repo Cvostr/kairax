@@ -79,8 +79,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	pmm_take_base_regions();
-	pmm_set_physical_mem_size(pmm_params.physical_mem_total);
-	pmm_set_physical_mem_max_addr(pmm_params.physical_mem_max_addr);
+	pmm_set_params(&pmm_params);
 	
 	printf("VMM: Creating kernel memory map\n");
 	page_table_t* new_pt = create_kernel_vm_map();
