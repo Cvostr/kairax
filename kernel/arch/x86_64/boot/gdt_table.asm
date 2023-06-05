@@ -25,7 +25,7 @@ gdt_kernel_code: equ $ - gdt_start
     dw 0                         ; Base (low).
     db 0                         ; Base (middle)
     db 10011010b                 ; Access (exec/read).
-    db 10101111b                 ; Granularity, 64 bits flag, limit19:16.
+    db 00101111b                 ; Granularity, 64 bits flag, limit19:16.
     db 0                         ; Base (high).
 ;Kernel data дескриптор (Смещение 0x10)
 gdt_kernel_data: equ $ - gdt_start
@@ -33,7 +33,7 @@ gdt_kernel_data: equ $ - gdt_start
     dw 0                         ; Base (low).
     db 0                         ; Base (middle)
     db 10010010b                 ; Access (read/write).
-    db 00000000b                 ; Granularity.
+    db 00100000b                 ; Granularity.
     db 0                         ; Base (high).
 
 gdt_user_code: equ $ - gdt_start   ; The User code descriptor.
@@ -49,7 +49,7 @@ gdt_user_data: equ $ - gdt_start   ; The user data descriptor.
     dw 0                         ; Base (low).
     db 0                         ; Base (middle)
     db 11110010b                 ; Access (read/write).
-    db 10100000b                 ; Granularity.
+    db 00100000b                 ; Granularity.
     db 0     
 
 gdt_tss: equ $ - gdt_start

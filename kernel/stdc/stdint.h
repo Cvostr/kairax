@@ -23,5 +23,6 @@ typedef unsigned long long uintptr_t; //64-bit system pointer
 
 #define INT_MIN -2147483647 - 1
 #define INT_MAX 2147483647
+#define UINT32_MAX 0xFFFFFFFF
 
 #endif

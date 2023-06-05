@@ -17,6 +17,7 @@ idt_descriptors:
 
 extern int_handler ;Обработчик прерываний
 extern scheduler_handler ;Обработчик прерываний
+extern kernel_stack_top
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
@@ -109,7 +110,7 @@ isr_stub_sc:
     push ax
     mov ax, gs
     push ax
-    ; Load the kernel data segments
+    ; переключение на сегмент ядра
     mov ax, KERNEL_DATA_SEG
     mov ds, ax
     mov es, ax

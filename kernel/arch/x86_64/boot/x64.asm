@@ -5,6 +5,7 @@ bits 64
 global init_x64
 global lgdt_hh
 global write_cr3
+global gdt_update
 extern kernel_stack_top
 extern gdtptr_hh
 extern kmain
@@ -27,9 +28,14 @@ init_x64:
     mov ss, ax              ; stack segment
 
     mov rsp, kernel_stack_top
+    call lgdt_hh
     lea rax, [kmain]
     call rax
 
 write_cr3:
     mov cr3, rdi
+    ret
+
+gdt_update:
+	lgdt  [rdi]
     ret

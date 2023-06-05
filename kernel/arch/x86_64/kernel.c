@@ -28,8 +28,8 @@
 #include "fs/ext2/ext2.h"
 
 #include "misc/bootshell/bootshell.h"
+#include "cpu/gdt.h"
 
-extern void lgdt_hh();
 extern page_table_t* p4_table;
 
 void threaded2(){
@@ -41,6 +41,7 @@ void threaded2(){
 			(*test) ++;
 		}
 
+		//asm("syscall");
 		//printf("thread 2 %i\n", *test);
 	}
 }
@@ -88,8 +89,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	//ASUS
 	switch_pml4(K2P(new_pt));
 
-	lgdt_hh();
-
 	b8_set_addr(P2V(0xB8000));
 	//VBOX
 
@@ -99,6 +98,9 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		printf("KHEAP: Initialization failed!\n");
 		goto fatal_error;
 	}
+
+	//GDT
+	gdt_init();
 
 	printf("ACPI: Initialization ...\n");
 	acpi_init();
@@ -126,6 +128,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	ext2_init();
 	ahci_init();	
 	init_nvme();
+	//cpu_enable_syscall_feature();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {
 		drive_device_t* device = get_drive(i);

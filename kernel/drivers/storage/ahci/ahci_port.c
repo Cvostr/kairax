@@ -187,7 +187,6 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	cmdfis->command = FIS_CMD_IDENTIFY_DEVICE;		// Команда идентификации
 	cmdfis->device = 0;
 	
-
 	while ((hba_port->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000)
 	{
 		spin++;
