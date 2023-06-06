@@ -12,7 +12,7 @@ extern kmain
 
 [section .text] 
 
-lgdt_hh:
+lgdt_boot_v:
     push rbx
     mov rbx, gdtptr_hh
     lgdt [rbx]
@@ -28,7 +28,7 @@ init_x64:
     mov ss, ax              ; stack segment
 
     mov rsp, kernel_stack_top
-    call lgdt_hh
+    call lgdt_boot_v
     lea rax, [kmain]
     call rax
 

@@ -2,7 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 
-extern gdt_update(void*);
+extern void gdt_update(void*);
 
 void new_gdt(   uint32_t entries_num, 
                 uint32_t sys_seg_descs_num,
@@ -68,7 +68,7 @@ void gdt_init()
     gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t), tss, 0b10001001, 0);
 
     gdtr_t gdtr;
-    gdtr.base = entry_ptr;
+    gdtr.base = (uintptr_t)entry_ptr;
     gdtr.limit = size - 1;
 
     gdt_update(&gdtr);

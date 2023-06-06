@@ -100,6 +100,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	//GDT
+	printf("GDT: Initialization ...\n");
 	gdt_init();
 
 	printf("ACPI: Initialization ...\n");
