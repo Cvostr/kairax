@@ -72,6 +72,9 @@ gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
 gcc $GCC_ARGS mem/pmm.c -o ./bin/pmm.o
 
+#ELF
+gcc $GCC_ARGS proc/elf64/elf64.c -o ./bin/elf64.o
+
 gcc $GCC_ARGS misc/bootshell/bootshell.c -o ./bin/bootshell.o
 gcc $GCC_ARGS misc/bootshell/bootshell_cmdproc.c -o ./bin/bootshell_cmdproc.o
 

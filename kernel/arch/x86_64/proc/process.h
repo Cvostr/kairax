@@ -18,6 +18,8 @@ typedef struct PACKED {
 //Создать новый пустой процесс
 process_t*  create_new_process();
 
+int create_new_process_from_image(char* image);
+
 // Установить адрес конца памяти процесса
 uintptr_t        process_brk(process_t* process, void* addr);
 

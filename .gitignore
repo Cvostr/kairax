@@ -2,6 +2,7 @@
 *.iso
 *.img
 *.o
+*.a
 kernel/bin
 /.vs
 /.vscode

@@ -12,6 +12,8 @@
 #include "dev/acpi/acpi.h"
 #include "fs/vfs/vfs.h"
 
+#include "proc/process.h"
+
 #include "stdio.h"
 
 void bootshell_process_cmd(char* cmdline){
@@ -102,6 +104,29 @@ void bootshell_process_cmd(char* cmdline){
             printf("%c", buffer[i]);
         }
         printf("\n");
+        kfree(buffer);
+        vfs_close(inode);
+        kfree(inode);
+    }
+    if(strcmp(cmd, "exec") == 0) {
+        vfs_inode_t* inode = vfs_fopen(args, 0);
+        if(inode == NULL){
+            printf("Can't open directory with path : ", args);
+            return;
+        }
+        int size = inode->size;
+        printf("%s: ", args);
+        char* buffer = kmalloc(size);
+        if(buffer == NULL) {
+            printf("Error allocating memory");
+            return;
+        }
+
+        vfs_read(inode, 0, size, buffer);
+
+        //Запуск
+        process_t* proc = create_new_process_from_image(buffer); 
+
         kfree(buffer);
         vfs_close(inode);
         kfree(inode);
