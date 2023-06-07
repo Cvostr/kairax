@@ -29,7 +29,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
     page_table_t *pt_table;
 
     //Проверим, существует ли страница 4-го уровня
-    if (!(root->entries[level4_index] & (PAGE_PRESENT | PAGE_WRITABLE))) {
+    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
         //Страница не существует
         //Выделить память под страницу
         pdp_table = new_page_table();
@@ -40,7 +40,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
     pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2V(pdp_table);
 
-    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))){
         //Выделить память под страницу
         pd_table = new_page_table();
         //Записать страницу в родительское дерево
@@ -50,7 +50,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
     pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
 
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))){
         //Выделить память под страницу
         pt_table = new_page_table();
         //Записать страницу в родительское дерево
@@ -60,7 +60,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     pt_table = P2V(pt_table);
 
-    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT | PAGE_WRITABLE))){
+    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT))){
         pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
     }
 }
@@ -197,9 +197,17 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
         char* phys_addr = get_physical_address(root, dst + i);
         if(phys_addr == NULL)
             return copied;
-        *phys_addr = *(char*)src + i;
+        phys_addr = P2V(phys_addr);
+        *phys_addr = *((char*)src + i);
     }
     return copied;
+}
+
+void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size)
+{
+    for (virtual_addr_t i = dst; i < dst + size; i += sizeof(int)) {
+        copy_to_vm(root, i, &val, sizeof(int));
+    }
 }
 
 void switch_pml4(page_table_t* pml4)

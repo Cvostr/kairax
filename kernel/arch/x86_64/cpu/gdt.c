@@ -65,7 +65,7 @@ void gdt_init()
     tss_t* tss = new_tss();
     tss->ist1 = 0x1000;
 
-    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t), tss, 0b10001001, 0);
+    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t), (uintptr_t)tss, 0b10001001, 0);
 
     gdtr_t gdtr;
     gdtr.base = (uintptr_t)entry_ptr;

@@ -60,6 +60,10 @@ typedef struct PACKED {
     thread_frame_t  context;
 } thread_t;
 
-thread_t* create_new_thread(process_t* process, void (*function)(void));
+thread_t* new_thread(process_t* process);
+
+thread_t* create_kthread(process_t* process, void (*function)(void));
+
+thread_t* create_thread(process_t* process, uintptr_t entry);
 
 #endif

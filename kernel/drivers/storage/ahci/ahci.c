@@ -169,7 +169,7 @@ void ahci_init(){
 					//printf("No drive found at port %i\n", i);
 					continue;
 				}
-				switch (controller->ports[i].speed) {
+				/*switch (controller->ports[i].speed) {
 					case 1:
 						printf(" link speed 1.5Gb/s\n", __func__, i);
 						break;
@@ -182,7 +182,7 @@ void ahci_init(){
 					default:
 						printf(" link speed unrestricted\n", __func__, i);
 						break;
-				}
+				}*/
 			}
 		}
 	}

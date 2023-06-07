@@ -140,8 +140,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	process_t* proc1 = create_new_process();
 	process_brk(proc1, (void*)0x1100000);
 	
-	thread_t* thr = create_new_thread(proc, bootshell);
-	thread_t* thr2 = create_new_thread(proc1, threaded2);
+	thread_t* thr = create_kthread(proc, bootshell);
+	thread_t* thr2 = create_kthread(proc1, threaded2);
 	
 	init_scheduler();
 	

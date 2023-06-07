@@ -99,6 +99,8 @@ int elf_check_signature(elf_header_t* elf_header);
 
 elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_index);
 
+elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_index);
+
 char* elf_get_string_at(char* image, uint32_t string_index);
 
 #endif

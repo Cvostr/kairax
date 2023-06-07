@@ -1,5 +1,5 @@
 #ifndef _PROCESS_H
-#define _PROCESS_C
+#define _PROCESS_H
 
 #include "memory/paging.h"
 
@@ -22,5 +22,7 @@ int create_new_process_from_image(char* image);
 
 // Установить адрес конца памяти процесса
 uintptr_t        process_brk(process_t* process, void* addr);
+
+int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
 #endif

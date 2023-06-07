@@ -9,7 +9,16 @@ int elf_check_signature(elf_header_t* elf_header)
 elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_index)
 {
     elf_header_t* elf_header = (elf_header_t*)image;
-    return (elf_section_header_entry_t*)(image + elf_header->section_header_table_pos + section_index * elf_header->section_header_entry_size);
+    return (elf_section_header_entry_t*)
+        (image + elf_header->section_header_table_pos + section_index * elf_header->section_header_entry_size);
+}
+
+elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_index)
+{
+    elf_header_t* elf_header = (elf_header_t*)image;
+    return (elf_program_header_entry_t*)
+        (image + elf_header->prog_header_table_pos + program_index * elf_header->prog_header_entry_size);
+
 }
 
 char* elf_get_string_at(char* image, uint32_t string_index)
