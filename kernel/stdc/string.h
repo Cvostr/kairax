@@ -11,7 +11,7 @@ char*  strcat(char *str, char *add_str);
 
 int strcmp(const char* str1, const char* str2);
 int strncmp(char* str1, char* str2, size_t len);
-void strcpy(char* dst, char* src);
+void strcpy(char* dst, const char* src);
 void strncpy(char* dst, char* src, size_t size);
 
 char* strchr(const char * string, int symbol);

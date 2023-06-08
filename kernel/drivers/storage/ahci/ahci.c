@@ -141,7 +141,7 @@ void ahci_init(){
 
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
 					drive_header->bytes = (uint64_t)drive_header->sectors * 512;
-					drive_header->ident = &controller->ports[i];
+					drive_header->ident = (drive_ident_t)&controller->ports[i];
 					
 					strcpy(drive_header->name, "ahci");
 					strcat(drive_header->name, itoa(0, 10));

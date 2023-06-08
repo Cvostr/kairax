@@ -1,6 +1,7 @@
 #include "acpi.h"
 #include "memory/paging.h"
 #include "io.h"
+#include "string.h"
 
 acpi_header_t* acpi_dsdt;
 

@@ -3,6 +3,7 @@
 #include "pmm.h"
 #include "string.h"
 #include "stdio.h"
+#include "memory/kernel_vmm.h"
 
 #define KHEAP_INIT_SIZE 409600
 
@@ -11,7 +12,7 @@ kheap_t kheap;
 uint64_t kheap_expand(uint64_t size)
 {
     // Выравнивание до размера страницы (4096)
-    if(size % PAGE_SIZE > 0){
+    if (size % PAGE_SIZE > 0) {
         size += (PAGE_SIZE - (size % PAGE_SIZE));
     }
 
@@ -55,9 +56,9 @@ int kheap_init(uint64_t start_vaddr, uint64_t size)
 kheap_item_t* get_suitable_item(uint64_t size)
 {
     kheap_item_t* current_item = kheap.head;
-    while(current_item != NULL) {
+    while (current_item != NULL) {
 
-        if(current_item->free && current_item->size >= size) {
+        if (current_item->free && current_item->size >= size) {
             return current_item;
         }
         else
@@ -75,7 +76,7 @@ kheap_item_t* get_suitable_item(uint64_t size)
 
 void* kmalloc(uint64_t size) 
 {
-    if(size % 8 > 0) {
+    if (size % 8 > 0) {
         size += (8 - (size % 8));
     }
     //Размер данных и заголовка
@@ -83,7 +84,7 @@ void* kmalloc(uint64_t size)
     uint64_t reqd_size = total_size + sizeof(kheap_item_t);
     kheap_item_t* current_item = get_suitable_item(reqd_size);
 
-    if(current_item != NULL) {
+    if (current_item != NULL) {
         uint64_t size_left = current_item->size - total_size;
         
         kheap_item_t* new_item = (kheap_item_t*)((virtual_addr_t)(current_item + 1) + size);
@@ -94,11 +95,11 @@ void* kmalloc(uint64_t size)
         new_item->prev = current_item;
         new_item->next = current_item->next;
 
-        if(new_item->next != NULL) {
+        if (new_item->next != NULL) {
             new_item->next->prev = new_item;
         }
 
-        if(current_item == kheap.tail)
+        if (current_item == kheap.tail)
             kheap.tail = new_item;
         
         current_item->next = new_item;
@@ -154,7 +155,7 @@ void kfree(void* mem)
     }
 }
 
-void* kheap_get_phys_address(void* mem)
+physical_addr_t kheap_get_phys_address(void* mem)
 {
     return get_physical_address(get_kernel_pml4(), (virtual_addr_t)mem);
 }

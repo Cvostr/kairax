@@ -5,7 +5,7 @@
 
 #define MAX_MOUNTS 100
 
-vfs_mount_info_t* vfs_mounts[MAX_MOUNTS];
+vfs_mount_info_t** vfs_mounts = NULL;
 
 vfs_inode_t* new_vfs_inode()
 {
@@ -23,6 +23,7 @@ dirent_t* new_vfs_dirent()
 
 void vfs_init()
 {
+    vfs_mounts = (vfs_mount_info_t**)kmalloc(sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
     memset(vfs_mounts, 0, sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
 }
 
@@ -75,8 +76,17 @@ int vfs_mount(char* mount_path, drive_partition_t* partition)
 
 int vfs_unmount(char* mount_path)
 {
-    for(int i = 0; i < MAX_MOUNTS; i ++){
-        if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0){
+    for(int i = 0; i < MAX_MOUNTS; i ++) {
+
+        if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0) {
+
+            vfs_mount_info_t* mount_info = vfs_mounts[i];
+            //выполнить отмонтирование ФС
+            if (mount_info->filesystem->unmount != NULL) {
+                mount_info->filesystem->unmount(mount_info->partition);
+            }
+
+            //Освободить память
             kfree(vfs_mounts[i]);
             vfs_mounts[i] = NULL;
             return 1;
@@ -86,11 +96,13 @@ int vfs_unmount(char* mount_path)
     return -1;//Данный путь не использовался
 }
 
-vfs_mount_info_t* vfs_get_mounted_partition(char* mount_path)
+vfs_mount_info_t* vfs_get_mounted_partition(const char* mount_path)
 {
-    for(int i = 0; i < MAX_MOUNTS; i ++){
+    for (int i = 0; i < MAX_MOUNTS; i ++) {
+        
         if(vfs_mounts[i] == NULL)
             continue;
+        
         if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0){
             return vfs_mounts[i];
         }
@@ -114,18 +126,18 @@ void path_to_slash(char* path)
     }
 }
 
-vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset)
+vfs_mount_info_t* vfs_get_mounted_partition_split(const char* path, int* offset)
 {
     int path_len = strlen(path);
     char* temp = kmalloc(path_len + 1);
     strcpy(temp, path);
 
     vfs_mount_info_t* result = NULL;
-    while(result == NULL){
+    while (result == NULL) {
         result = vfs_get_mounted_partition(temp);
 
-        if(result == NULL){
-            if(strlen(temp) == 0)
+        if (result == NULL){
+            if (strlen(temp) == 0)
                 return NULL;
             path_to_slash(temp);
         }
@@ -195,7 +207,7 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
 
     offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
-    char* fs_path = path + offset;
+    char* fs_path = (char*)path + offset;
 
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)

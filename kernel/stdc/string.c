@@ -80,7 +80,7 @@ int strncmp(char* str1, char* str2, size_t len){
   	return 0;
 }
 
-void strcpy(char* dst, char* src){
+void strcpy(char* dst, const char* src){
 	size_t len = strlen(src);
 
   	for(uint32_t it = 0; it < len; it ++){

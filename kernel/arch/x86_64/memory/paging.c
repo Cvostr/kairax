@@ -5,7 +5,6 @@
 #include "mem_layout.h"
 #include "stddef.h"
 
-extern page_table_t p4_table;
 extern void write_cr3(void*);
 
 page_table_t* new_page_table()
@@ -133,7 +132,7 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
         return NULL;
     }
 
-    return GET_PAGE_FRAME(pt_table->entries[level1_index]) + GET_PAGE_OFFSET(virtual_addr);
+    return (physical_addr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]) + GET_PAGE_OFFSET(virtual_addr);
 }
 
 int is_mapped(page_table_t* root, uintptr_t virtual_addr)

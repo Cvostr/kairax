@@ -58,11 +58,6 @@ void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size);
 //Переключить текущую 4х уровневую таблицу страниц
 void switch_pml4(page_table_t* pml4);
 
-/*static inline void write_cr3(uintptr_t cr3)
-{
-    asm volatile("mov %0, %%cr3" :: "r"(cr3));
-}*/
-
 static inline void enable_paging(void)
 {
     uintptr_t value;

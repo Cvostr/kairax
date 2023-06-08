@@ -22,9 +22,9 @@ int vfs_mount(char* mount_path, drive_partition_t* partition);
 
 int vfs_unmount(char* mount_path);
 
-vfs_mount_info_t* vfs_get_mounted_partition(char* mount_path);
+vfs_mount_info_t* vfs_get_mounted_partition(const char* mount_path);
 
-vfs_mount_info_t* vfs_get_mounted_partition_split(char* path, int* offset);
+vfs_mount_info_t* vfs_get_mounted_partition_split(const char* path, int* offset);
 
 vfs_mount_info_t** vfs_get_mounts();
 

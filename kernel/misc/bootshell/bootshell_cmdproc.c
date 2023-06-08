@@ -125,7 +125,7 @@ void bootshell_process_cmd(char* cmdline){
         vfs_read(inode, 0, size, buffer);
 
         //Запуск
-        process_t* proc = create_new_process_from_image(buffer); 
+        int rc = create_new_process_from_image(buffer); 
 
         kfree(buffer);
         vfs_close(inode);
