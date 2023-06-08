@@ -1,8 +1,10 @@
 #include "gdt.h"
 #include "mem/kheap.h"
+#include "mem/pmm.h"
 #include "string.h"
 
 extern void gdt_update(void*);
+extern void x64_ltr(int);
 
 void new_gdt(   uint32_t entries_num, 
                 uint32_t sys_seg_descs_num,
@@ -40,7 +42,8 @@ void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t
 {
     sys_seg_begin->base_0_15 = base & 0xFFFF;
     sys_seg_begin->base_16_23 = (base >> 16) & 0xFF;
-    sys_seg_begin->base32_63 = (base >> 32) & 0xFFFFFFFF;
+    sys_seg_begin->base_24_31 = (base >> 24) & 0xFF;
+    sys_seg_begin->base_32_63 = (base >> 32) & 0xFFFFFFFF;
     sys_seg_begin->limit_0_15 = limit & 0xFFFF;
     sys_seg_begin->limit16_19 = (limit >> 16) & 0xF;
     sys_seg_begin->access = access;
@@ -54,22 +57,27 @@ void gdt_init()
     system_seg_desc_t* sys_seg_ptr;
     new_gdt(5, 1, &entry_ptr, &sys_seg_ptr, &size);
     // код ядра
-    gdt_set(entry_ptr + 1, 0, 0, GDT_ACCESS_EXEC_READ, GDT_FLAGS);
+    gdt_set(entry_ptr + 1, 0, 0, GDT_BASE_KERNEL_CODE_ACCESS, GDT_FLAGS);
     // данные ядра
-    gdt_set(entry_ptr + 2, 0, 0, GDT_ACCESS_READ_WRITE, GDT_FLAGS);
+    gdt_set(entry_ptr + 2, 0, 0, GDT_BASE_KERNEL_DATA_ACCESS, GDT_FLAGS);
     // код пользователя
-    gdt_set(entry_ptr + 3, 0, 0, 0b11111010, GDT_FLAGS);
-    // данные пользователя
-    gdt_set(entry_ptr + 3, 0, 0, 0b11110010, GDT_FLAGS);
+    gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
+    // данные пользователя + стэк
+    gdt_set(entry_ptr + 3, 0, 0, GDT_BASE_USER_DATA_ACCESS, GDT_FLAGS);
 
     tss_t* tss = new_tss();
-    tss->ist1 = 0x1000;
 
-    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t), (uintptr_t)tss, 0b10001001, 0);
+    void* kstack = P2V(pmm_alloc_page());
+    tss->rsp0 = kstack;
+    tss->ist1 = kstack;
+    tss->iopb = sizeof(tss_t) - 1;
+
+    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)tss, 0b10001001, 0b1001);
 
     gdtr_t gdtr;
     gdtr.base = (uintptr_t)entry_ptr;
     gdtr.limit = size - 1;
 
     gdt_update(&gdtr);
+    x64_ltr(0x28);
 }

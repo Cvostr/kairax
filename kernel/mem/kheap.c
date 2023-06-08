@@ -86,10 +86,11 @@ void* kmalloc(uint64_t size)
 
     if (current_item != NULL) {
         uint64_t size_left = current_item->size - total_size;
-        
+        // Адрес нового блока, который будет создан
         kheap_item_t* new_item = (kheap_item_t*)((virtual_addr_t)(current_item + 1) + size);
-
+        // Новый блок свободен
         new_item->free = 1;
+        // Его размер с вычитанием длины заголовка
         new_item->size = size_left - sizeof(kheap_item_t);
 
         new_item->prev = current_item;

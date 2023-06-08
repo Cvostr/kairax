@@ -11,4 +11,6 @@ void add_thread(thread_t* thread);
 
 void remove_thread(thread_t* thread);
 
+thread_t* get_current_thread();
+
 #endif

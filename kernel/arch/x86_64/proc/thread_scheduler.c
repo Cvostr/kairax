@@ -5,6 +5,7 @@
 #include "list/list.h"
 #include "memory/mem_layout.h"
 #include "string.h"
+#include "cpu/gdt.h"
 
 list_t* threads_list;
 int curr_thread = 0;
@@ -19,6 +20,11 @@ void remove_thread(thread_t* thread){
     //list (threads_list, thread);
 }
 
+thread_t* get_current_thread()
+{
+    return prev_thread;
+}
+
 void scheduler_handler(thread_frame_t* frame){
     
     if(prev_thread != NULL){
@@ -29,6 +35,11 @@ void scheduler_handler(thread_frame_t* frame){
     
     if(new_thread != NULL){
         memcpy(frame, &new_thread->context, sizeof(thread_frame_t));
+        //if (new_thread->is_userspace)
+        //    frame->ss = GDT_BASE_USER_DATA_SEG;
+        //else 
+        //    frame->ss = GDT_BASE_KERNEL_DATA_SEG;
+
         prev_thread = new_thread;
 
         curr_thread++;

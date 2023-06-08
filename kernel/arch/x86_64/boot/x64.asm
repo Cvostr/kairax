@@ -9,6 +9,7 @@ global gdt_update
 extern kernel_stack_top
 extern gdtptr_hh
 extern kmain
+extern x64_ltr
 
 [section .text] 
 
@@ -38,4 +39,20 @@ write_cr3:
 
 gdt_update:
 	lgdt  [rdi]
+    push 0x08                 
+    lea rax, [rel .reload_code_seg]
+    push RAX                  
+    retfq                    
+
+.reload_code_seg:
+   MOV   AX, 0x10 ; 0x10 is a stand-in for your data segment
+   MOV   DS, AX
+   MOV   ES, AX
+   MOV   FS, AX
+   MOV   GS, AX
+   MOV   SS, AX
+   RET
+
+x64_ltr:
+    ltr di
     ret

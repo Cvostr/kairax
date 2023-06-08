@@ -21,3 +21,18 @@ void cpu_enable_syscall_feature()
     value |= 0x1;
     cpu_msr_set(MSR_EFER, value);
 }
+
+void cpu_set_syscall_params(uintptr_t entry_ip, uint16_t star_32_47, uint16_t star_48_63, uint64_t sfmask)
+{
+    cpu_msr_set(MSR_LSTAR, entry_ip);
+    cpu_msr_set(MSR_SFMASK, sfmask);
+    uint64_t star = ((uint64_t)star_32_47) << 32;
+    
+    star |= (((uint64_t)star_48_63) << 48); 
+    cpu_msr_set(MSR_STAR, star);
+}
+
+void cpu_set_gs_base(uintptr_t address)
+{
+    cpu_msr_set(IA32_KERNEL_GS_BASE, address);
+}

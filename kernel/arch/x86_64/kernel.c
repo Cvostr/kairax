@@ -29,8 +29,11 @@
 
 #include "misc/bootshell/bootshell.h"
 #include "cpu/gdt.h"
+#include "cpu/msr.h"
+#include "proc/kernel_stack.h"
 
 extern page_table_t* p4_table;
+extern void syscall_handler();
 
 void threaded2(){
 	int* test = (int*)0x100;
@@ -44,6 +47,10 @@ void threaded2(){
 		//asm("syscall");
 		//printf("thread 2 %i\n", *test);
 	}
+}
+
+void sysc() {
+	printf("SYSCALL");
 }
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
@@ -129,7 +136,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	ext2_init();
 	ahci_init();	
 	init_nvme();
-	//cpu_enable_syscall_feature();
+	cpu_set_syscall_params(syscall_handler, 0x8, 0x10, 0xFFFFFFFF);
+	init_kernel_stack();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {
 		drive_device_t* device = get_drive(i);
@@ -146,7 +154,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_scheduler();
 	
 	add_thread(thr);
-	add_thread(thr2);
+	//add_thread(thr2);
 	start_scheduler();
 
 	while(1){

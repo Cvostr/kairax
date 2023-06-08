@@ -15,6 +15,7 @@ nasm $NASM_ARGS $x64_SRC/boot/gdt_table.asm -o ./bin/gdt_table.o
 nasm $NASM_ARGS $x64_SRC/boot/tss_table.asm -o ./bin/tss_table.o
 nasm $NASM_ARGS $x64_SRC/boot/x64.asm -o ./bin/x64.o
 nasm $NASM_ARGS $x64_SRC/interrupts/interrupts.asm -o ./bin/interrupts.o
+nasm $NASM_ARGS $x64_SRC/proc/syscalls.asm -o ./bin/syscalls.o
 
 gcc $GCC_ARGS $x64_SRC/boot/multiboot.c -o ./bin/multiboot.o
 
@@ -37,6 +38,7 @@ gcc $GCC_ARGS $x64_SRC/dev/b8-console/b8-console.c -o ./bin/b8-console.o
 gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
+gcc $GCC_ARGS $x64_SRC/proc/kernel_stack.c -o ./bin/kernel_stack.o
 #stdc
 gcc $GCC_ARGS $x64_SRC/base/stdc/stdio.c -o ./bin/stdc_stdio.o
 
