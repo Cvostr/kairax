@@ -40,20 +40,21 @@ global syscall_handler
 %endmacro
 
 syscall_handler:
-    cli
+    ;cli
     swapgs
     mov [gs: 0], rsp    ; запоминание стека процесса
     mov rsp, [gs: 8]    ; Установка стека ядра
 
     pushaq
 
+    mov rdi, rax
     call sysc
 
     popaq
 
-    ;mov [gs: 8], rsp
+    mov [gs: 8], rsp
     mov rsp, [gs: 0]    ; Возвращаем стек процесса
 
     swapgs
-    sti
+    ;sti
     o64 sysret

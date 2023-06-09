@@ -26,8 +26,6 @@ thread_t* get_current_thread()
 }
 
 void scheduler_handler(thread_frame_t* frame){
-    
-    //printf("SS = %i, CS = %i, FLAGS %i\n", frame->ss, frame->cs, frame->rflags);
 
     // Сохранить состояние 
     if(prev_thread != NULL){
@@ -37,10 +35,10 @@ void scheduler_handler(thread_frame_t* frame){
     thread_t* new_thread = list_get(threads_list, curr_thread);
     
     if(new_thread != NULL){
-        
+        // Заменить состояние
         memcpy(frame, &new_thread->context, sizeof(thread_frame_t));
-        //printf("SS = %i, CS = %i, FLAGS %i\n", frame->ss, frame->cs, frame->rflags);
 
+        // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3
         frame->cs |= (0b11 * new_thread->is_userspace);
         frame->ss |= (0b11 * new_thread->is_userspace);
         frame->rflags |= 0x200;
@@ -52,6 +50,7 @@ void scheduler_handler(thread_frame_t* frame){
             curr_thread = 0;
 
         process_t* process = new_thread->process;
+        // Заменить таблицу виртуальной памяти процесса
         if (process != NULL) {
             switch_pml4(V2P(process->pml4));
         }

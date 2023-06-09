@@ -54,7 +54,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	map_page_mem(get_kernel_pml4(), P2V(port_mem), port_mem, pageFlags);
 
     port->command_list = (HBA_COMMAND*)port_mem;
-    port->fis = port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT;
+    port->fis = (fis_t*)(port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT);
     //Записать адрес списка команд
     port_desc->clb  = LO32(port->command_list);
 	port_desc->clbu = HI32(port->command_list);

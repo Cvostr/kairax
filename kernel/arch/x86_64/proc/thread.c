@@ -59,14 +59,14 @@ thread_t* create_thread(process_t* process, uintptr_t entry)
     ctx->rbp = (uint64_t)thread->stack_ptr;
     ctx->rsp = (uint64_t)thread->stack_ptr;
     //Назначить сегмент из GDT
-    uint32_t selector = GDT_BASE_USER_DATA_SEG; //kernel data
+    uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных ядра
     thread->context.ds = (selector);
     thread->context.es = (selector);
     thread->context.fs = (selector);
     thread->context.gs = (selector);
     thread->context.ss = (selector);
     //поток в пространстве ядра
-    thread->context.cs = GDT_BASE_USER_CODE_SEG;
+    thread->context.cs = GDT_BASE_USER_CODE_SEG;    // сегмент кода ядра
     //Состояние
     thread->state = THREAD_CREATED;
 

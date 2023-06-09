@@ -68,8 +68,8 @@ void gdt_init()
     tss_t* tss = new_tss();
 
     void* kstack = P2V(pmm_alloc_page());
-    tss->rsp0 = kstack;
-    tss->ist1 = kstack;
+    tss->rsp0 = (uintptr_t)kstack;
+    tss->ist1 = (uintptr_t)kstack;
     tss->iopb = sizeof(tss_t) - 1;
 
     gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)tss, 0b10001001, 0b1001);
