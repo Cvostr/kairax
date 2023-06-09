@@ -21,12 +21,12 @@ lgdt_boot_v:
     ret
 
 init_x64:
-    mov ax, 0x10            ; GDT_start.KernelData
-    mov ds, ax              ; data segment
-    mov es, ax              ; extra segment
-    mov fs, ax              ; F-segment
-    mov gs, ax              ; G-segment
-    mov ss, ax              ; stack segment
+    mov ax, 0x10            ; Сегмент данных ядра
+    mov ds, ax              
+    mov es, ax              
+    mov fs, ax              
+    mov gs, ax              
+    mov ss, ax              
 
     mov rsp, kernel_stack_top
     call lgdt_boot_v
@@ -45,7 +45,7 @@ gdt_update:
     retfq                    
 
 .reload_code_seg:
-   MOV   AX, 0x10 ; 0x10 is a stand-in for your data segment
+   MOV   AX, 0x10 ; Сегмент данных ядра
    MOV   DS, AX
    MOV   ES, AX
    MOV   FS, AX

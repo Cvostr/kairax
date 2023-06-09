@@ -27,6 +27,9 @@ thread_t* get_current_thread()
 
 void scheduler_handler(thread_frame_t* frame){
     
+    //printf("SS = %i, CS = %i, FLAGS %i\n", frame->ss, frame->cs, frame->rflags);
+
+    // Сохранить состояние 
     if(prev_thread != NULL){
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
     }
@@ -34,11 +37,13 @@ void scheduler_handler(thread_frame_t* frame){
     thread_t* new_thread = list_get(threads_list, curr_thread);
     
     if(new_thread != NULL){
+        
         memcpy(frame, &new_thread->context, sizeof(thread_frame_t));
-        //if (new_thread->is_userspace)
-        //    frame->ss = GDT_BASE_USER_DATA_SEG;
-        //else 
-        //    frame->ss = GDT_BASE_KERNEL_DATA_SEG;
+        //printf("SS = %i, CS = %i, FLAGS %i\n", frame->ss, frame->cs, frame->rflags);
+
+        frame->cs |= (0b11 * new_thread->is_userspace);
+        frame->ss |= (0b11 * new_thread->is_userspace);
+        frame->rflags |= 0x200;
 
         prev_thread = new_thread;
 

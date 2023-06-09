@@ -13,6 +13,8 @@ extern void* isr_stub_table[256]; //таблица ISR
 
 extern void idt_update(idtr_t *idt);
 
+extern void enable_interrupts();
+
 void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags){
 	idt_descriptor_t* descriptor = &idt_descriptors[vector];
  
@@ -37,7 +39,9 @@ void setup_idt(){
 
     set_int_descriptor(0x20, isr_stub_table[0x20], 1, 0x8E);
 
+    // Загрузка дескриптора
 	idt_update(&idtr);
 
-	asm volatile ("sti"); // включение прерываний
+    // включение прерываний
+	enable_interrupts();
 }

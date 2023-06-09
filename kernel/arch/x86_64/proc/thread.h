@@ -55,7 +55,6 @@ typedef struct PACKED {
     char            name[32];
     uint64_t        thread_id;
     void*           stack_ptr;
-    void*           kernel_stack_ptr;
     int             state;
     process_t*      process;
     thread_frame_t  context;

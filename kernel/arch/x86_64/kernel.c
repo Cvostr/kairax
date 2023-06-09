@@ -35,20 +35,6 @@
 extern page_table_t* p4_table;
 extern void syscall_handler();
 
-void threaded2(){
-	int* test = (int*)0x100;
-	*test = 0;
-	while(1) {
-		for(int i = 0; i < 100000000; i ++){
-			asm volatile("nop");
-			(*test) ++;
-		}
-
-		//asm("syscall");
-		//printf("thread 2 %i\n", *test);
-	}
-}
-
 void sysc() {
 	printf("SYSCALL");
 }
@@ -145,16 +131,13 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	process_t* proc = create_new_process();
-	process_t* proc1 = create_new_process();
-	process_brk(proc1, (void*)0x1100000);
+	process_brk(proc, (void*)0x1100000);
 	
 	thread_t* thr = create_kthread(proc, bootshell);
-	thread_t* thr2 = create_kthread(proc1, threaded2);
 	
 	init_scheduler();
 	
 	add_thread(thr);
-	//add_thread(thr2);
 	start_scheduler();
 
 	while(1){

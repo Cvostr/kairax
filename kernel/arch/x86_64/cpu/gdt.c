@@ -60,10 +60,10 @@ void gdt_init()
     gdt_set(entry_ptr + 1, 0, 0, GDT_BASE_KERNEL_CODE_ACCESS, GDT_FLAGS);
     // данные ядра
     gdt_set(entry_ptr + 2, 0, 0, GDT_BASE_KERNEL_DATA_ACCESS, GDT_FLAGS);
-    // код пользователя
-    gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
     // данные пользователя + стэк
     gdt_set(entry_ptr + 3, 0, 0, GDT_BASE_USER_DATA_ACCESS, GDT_FLAGS);
+    // код пользователя
+    gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
 
     tss_t* tss = new_tss();
 

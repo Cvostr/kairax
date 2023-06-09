@@ -9,6 +9,11 @@ idt_update:
 	lidt  [rdi]
     ret
 
+global enable_interrupts 
+enable_interrupts:
+    sti
+    ret
+
 section .bss
 global idt_descriptors ;таблица дескрипторов прерываний
 idt_descriptors:
