@@ -13,6 +13,7 @@ int last_pid = 0;
 process_t*  create_new_process()
 {
     process_t* process = (process_t*)kmalloc(sizeof(process_t));
+    memset(process, 0, sizeof(process_t));
 
     // Склонировать таблицу виртуальной памяти ядра
     page_table_t* pml4 = vmm_clone_kernel_memory_map();

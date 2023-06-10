@@ -17,6 +17,7 @@ typedef struct PACKED
     uint64_t rdx;
     uint64_t rax;
 
+    // Задаются вызовом SYSCALL
     uint64_t rcx;
     uint64_t r11;
 } syscall_frame_t;

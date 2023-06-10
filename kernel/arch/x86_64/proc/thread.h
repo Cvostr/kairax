@@ -21,34 +21,34 @@ enum thread_state {
 };
 
 typedef struct PACKED {
-    // Our segment selectors
-    uint16_t gs; /*!< GS segment selector */
-    uint16_t fs; /*!< FS segment selector */
-    uint16_t es; /*!< ES segment selector */
-    uint16_t ds; /*!< DS segment selector */
-    // The registers
-    uint64_t r15; /*!< r15 register */
-    uint64_t r14; /*!< r14 register */
-    uint64_t r13; /*!< r13 register */
-    uint64_t r12; /*!< r12 register */
-    uint64_t r11; /*!< r11 register */
-    uint64_t r10; /*!< r10 register */
-    uint64_t r9;  /*!< r9 register */
-    uint64_t r8;  /*!< r8 register */
-    
-    uint64_t rdi; /*!< RDI register */
-    uint64_t rsi; /*!< RSI register */
-    uint64_t rbp; /*!< RBP register */
-    uint64_t rbx; /*!< RBX register */
-    uint64_t rdx; /*!< RDX register */
-    uint64_t rcx; /*!< RCX register */
-    uint64_t rax; /*!< RAX register */
 
-    uint64_t rip; /*!< The program register prior to the interrupt call */
-    uint64_t cs; /*!< The code segment prior to the interrupt call */
-    uint64_t rflags; /*!< The rflags register prior to the interrupt call */
-    uint64_t rsp; /*!< The stack pointer prior to the interrupt call */
-    uint64_t ss; /*!< The stack segment selctor prior to the interrupt call */
+    uint16_t gs; 
+    uint16_t fs; 
+    uint16_t es; 
+    uint16_t ds;
+
+    uint64_t r15;
+    uint64_t r14;
+    uint64_t r13;
+    uint64_t r12;
+    uint64_t r11;
+    uint64_t r10;
+    uint64_t r9; 
+    uint64_t r8; 
+    
+    uint64_t rdi;
+    uint64_t rsi;
+    uint64_t rbp;
+    uint64_t rbx;
+    uint64_t rdx;
+    uint64_t rcx;
+    uint64_t rax;
+
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp; 
+    uint64_t ss;
 } thread_frame_t;
 
 typedef struct PACKED {

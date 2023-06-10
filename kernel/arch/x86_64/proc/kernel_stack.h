@@ -10,4 +10,6 @@ typedef struct PACKED {
 
 void init_kernel_stack();
 
+void set_kernel_stack(void* kstack_top);
+
 #endif

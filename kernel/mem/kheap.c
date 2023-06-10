@@ -16,17 +16,19 @@ uint64_t kheap_expand(uint64_t size)
         size += (PAGE_SIZE - (size % PAGE_SIZE));
     }
 
+    // Вычисление количества страниц по 4 кб
     int pages_count = size / PAGE_SIZE;
 
     physical_addr_t pages_physaddr = (physical_addr_t)pmm_alloc_pages(pages_count);
     if (pages_physaddr == 0)
         return 0; //Не получилось выделить физическую память
     
+    // Выделяем память и маппим страницы
     for (int i = 0; i < pages_count; i ++) {
         virtual_addr_t page_virtual = kheap.end_vaddr;
         physical_addr_t page_physical = pages_physaddr + i * PAGE_SIZE;
         map_page_mem(get_kernel_pml4(), page_virtual, page_physical, PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL);
-
+        memset((void*)page_virtual, 0, PAGE_SIZE);
         kheap.end_vaddr += PAGE_SIZE;
     }
 
@@ -82,18 +84,20 @@ void* kmalloc(uint64_t size)
     //Размер данных и заголовка
     uint64_t total_size = size + sizeof(kheap_item_t);
     uint64_t reqd_size = total_size + sizeof(kheap_item_t);
+    // Ищем подоходящий по размеру свободный блок
     kheap_item_t* current_item = get_suitable_item(reqd_size);
 
     if (current_item != NULL) {
         uint64_t size_left = current_item->size - total_size;
-        // Адрес нового блока, который будет создан
+        // Адрес нового свободного блока, который будет создан
         kheap_item_t* new_item = (kheap_item_t*)((virtual_addr_t)(current_item + 1) + size);
         // Новый блок свободен
         new_item->free = 1;
         // Его размер с вычитанием длины заголовка
         new_item->size = size_left - sizeof(kheap_item_t);
-
+        // Предыдущим блоком нового блока будет текущий 
         new_item->prev = current_item;
+        // Следующим блоком нового блока будет следующий для текущего
         new_item->next = current_item->next;
 
         if (new_item->next != NULL) {
@@ -104,6 +108,8 @@ void* kmalloc(uint64_t size)
             kheap.tail = new_item;
         
         current_item->next = new_item;
+
+        // Текущий блок теперь используется
         current_item->free = 0;
         current_item->size = size;
     } else {
@@ -132,7 +138,7 @@ void combine_forward(kheap_item_t* item)
             if(next_next != NULL)
                 next_next->prev = item;
 
-            // Следующий блок - последний, надо обновить указатель на tail
+            // Следующий блок - последний, надо обновить указатель на tail в главной структуре
             if(next_item == kheap.tail)
                 kheap.tail = item;
 

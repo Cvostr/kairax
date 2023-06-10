@@ -54,8 +54,8 @@ global syscall_entry_x64
 syscall_entry_x64:
     cli
     swapgs
-    mov [gs: 0], rsp    ; запоминание стека процесса
-    mov rsp, [gs: 8]    ; Установка стека ядра
+    mov [gs : 0], rsp    ; запоминание стека процесса
+    mov rsp, [gs : 8]    ; Установка стека ядра
 
     push_regs
 
@@ -64,8 +64,8 @@ syscall_entry_x64:
 
     pop_regs
 
-    mov [gs: 8], rsp
-    mov rsp, [gs: 0]    ; Возвращаем стек процесса
+    mov [gs : 8], rsp
+    mov rsp, [gs : 0]    ; Возвращаем стек процесса
 
     swapgs
     sti

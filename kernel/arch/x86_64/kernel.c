@@ -126,9 +126,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		add_partitions_from_device(device);
 	}
 
+	// Первоначальный процесс bootshell
 	process_t* proc = create_new_process();
-	process_brk(proc, (void*)0x1100000);
-	
 	thread_t* thr = create_kthread(proc, bootshell);
 	
 	init_scheduler();
