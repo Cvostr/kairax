@@ -19,6 +19,8 @@
 
 #define MAX_PAGES_4     (1ULL << 36)
 
+#define ERR_NO_PAGE_PRESENT -1
+
 //получить из 48-битного виртуального адреса индекс записи в таблице 4-го уровня (0x27 = 39)
 #define GET_4_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x27) & INDEX_MASK) 
 #define GET_3_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x1E) & INDEX_MASK)
@@ -47,6 +49,8 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
 //Проверить, создана ли запись для указанного виртуального адреса
 int is_mapped(page_table_t* root, uintptr_t virtual_addr);
 
+int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
+
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count);
 
 virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count);
@@ -58,20 +62,5 @@ void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size);
 //Переключить текущую 4х уровневую таблицу страниц
 void switch_pml4(page_table_t* pml4);
 
-static inline void enable_paging(void)
-{
-    uintptr_t value;
-    asm volatile("mov %%cr0, %0" : "=a"(value));
-    value |= 0b10000000000000000000000000000000;
-    asm volatile("mov %0, %%cr0" :: "r"(value));
-}
-
-static inline void disable_paging(void)
-{
-    uintptr_t value;
-    asm volatile("mov %%cr0, %0" : "=a"(value));
-    value &= 0b01111111111111111111111111111111;
-    asm volatile("mov %0, %%cr0" :: "r"(value));
-}
 
 #endif

@@ -87,13 +87,11 @@ void ahci_init(){
 			pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			pci_device_set_enable_interrupts(device_desc, 1);
 
-			// Данная страница уже замаплена, но без PAGE_UNCACHED
-			// Перезамаппим её
+			// Данная страница уже замаплена, но без PAGE_UNCACHED, добавим флагов
 			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
-			unmap_page(get_kernel_pml4(), (uintptr_t)P2V(device_desc->BAR[5].address));
-			map_page_mem(get_kernel_pml4(), P2V(device_desc->BAR[5].address), device_desc->BAR[5].address, pageFlags);
+			set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(controller->hba_mem), pageFlags);
 
-			//!!!!
+			// Сохранение виртуального адреса на гллавную структуру контроллера
 			controller->hba_mem = (HBA_MEMORY*)P2V(controller->hba_mem);
 
 			int reset = ahci_controller_reset(controller);
@@ -129,6 +127,7 @@ void ahci_init(){
 					uint16_t type, capabilities;
 					uint32_t cmd_sets;
 
+					// Разобрать строку информации
 					parse_identity_buffer(identity_buffer, 
 										  &type,
 										  &capabilities,

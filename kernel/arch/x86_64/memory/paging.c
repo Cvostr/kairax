@@ -76,25 +76,25 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr)
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
 
     if (!(root->entries[level4_index] & PAGE_PRESENT)) {
-        return 1;
+        return ERR_NO_PAGE_PRESENT;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2V(pdp_table);
     if (!(pdp_table->entries[level3_index] & PAGE_PRESENT)) {
-        return 1;  
+        return ERR_NO_PAGE_PRESENT;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
     if (!(pd_table->entries[level2_index] & PAGE_PRESENT)) {
-        return 1;
+        return ERR_NO_PAGE_PRESENT;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     pt_table = P2V(pt_table);
     if (!(pt_table->entries[level1_index] & PAGE_PRESENT)) {
-        return 1;
+        return ERR_NO_PAGE_PRESENT;
     } else {
         uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
         pt_table->entries[level1_index] = 0;
@@ -143,25 +143,35 @@ int is_mapped(page_table_t* root, uintptr_t virtual_addr)
     uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
 
     if (!(root->entries[level4_index] & PAGE_PRESENT)) {
-        return FALSE;
+        return 0;
     }
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2V(pdp_table);
     if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
-        return FALSE;  
+        return 0;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
     if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
-        return FALSE;
+        return 0;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     pt_table = P2V(pt_table);
 
     return pt_table->entries[level1_index] & PAGE_PRESENT;
+}
+
+int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
+{
+    int rc = 0;
+    physical_addr_t phys_addr = get_physical_address(root, virtual_addr);
+    unmap_page(get_kernel_pml4(), virtual_addr);
+	map_page_mem(get_kernel_pml4(), virtual_addr, phys_addr, flags);
+
+    return 0;
 }
 
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count)

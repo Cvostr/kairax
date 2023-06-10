@@ -64,11 +64,10 @@ int create_new_process_from_image(char* image)
         // Создание главного потока и передача выполнения
         thread_t* thr = create_thread(proc, elf_header->prog_entry_pos);
 	    add_thread(thr);  
+        
     } else {
         return -1;
     }
-
-    
 }
 
 uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
