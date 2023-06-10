@@ -33,11 +33,7 @@
 #include "proc/kernel_stack.h"
 
 extern page_table_t* p4_table;
-extern void syscall_handler();
-
-void sysc() {
-	printf("SYSCALL");
-}
+extern void syscall_entry_x64();
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	b8_set_addr(P2K(0xB8000));
@@ -122,7 +118,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	ext2_init();
 	ahci_init();	
 	init_nvme();
-	cpu_set_syscall_params(syscall_handler, 0x8, 0x10, 0xFFFFFFFF);
+	cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
 	init_kernel_stack();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {

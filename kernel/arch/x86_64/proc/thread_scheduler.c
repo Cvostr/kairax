@@ -26,7 +26,6 @@ thread_t* get_current_thread()
 }
 
 void scheduler_handler(thread_frame_t* frame){
-
     // Сохранить состояние 
     if(prev_thread != NULL){
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
@@ -38,7 +37,10 @@ void scheduler_handler(thread_frame_t* frame){
         // Заменить состояние
         memcpy(frame, &new_thread->context, sizeof(thread_frame_t));
 
-        // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3
+        // Получить данные процесса, с которым связан поток
+        process_t* process = new_thread->process;
+
+        // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3 в RPL
         frame->cs |= (0b11 * new_thread->is_userspace);
         frame->ss |= (0b11 * new_thread->is_userspace);
         frame->rflags |= 0x200;
@@ -49,7 +51,6 @@ void scheduler_handler(thread_frame_t* frame){
         if(curr_thread >= threads_list->size)
             curr_thread = 0;
 
-        process_t* process = new_thread->process;
         // Заменить таблицу виртуальной памяти процесса
         if (process != NULL) {
             switch_pml4(V2P(process->pml4));

@@ -56,13 +56,13 @@ void gdt_init()
     gdt_entry_t* entry_ptr;
     system_seg_desc_t* sys_seg_ptr;
     new_gdt(5, 1, &entry_ptr, &sys_seg_ptr, &size);
-    // код ядра
+    // код ядра (0x8)
     gdt_set(entry_ptr + 1, 0, 0, GDT_BASE_KERNEL_CODE_ACCESS, GDT_FLAGS);
-    // данные ядра
+    // данные ядра (0x10)
     gdt_set(entry_ptr + 2, 0, 0, GDT_BASE_KERNEL_DATA_ACCESS, GDT_FLAGS);
-    // данные пользователя + стэк
+    // данные пользователя + стэк (0x18)
     gdt_set(entry_ptr + 3, 0, 0, GDT_BASE_USER_DATA_ACCESS, GDT_FLAGS);
-    // код пользователя
+    // код пользователя (0x20)
     gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
 
     tss_t* tss = new_tss();

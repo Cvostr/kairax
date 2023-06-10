@@ -39,6 +39,7 @@ gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS $x64_SRC/proc/kernel_stack.c -o ./bin/kernel_stack.o
+gcc $GCC_ARGS $x64_SRC/proc/syscall_handle.c -o ./bin/syscall_handle.o
 #stdc
 gcc $GCC_ARGS $x64_SRC/base/stdc/stdio.c -o ./bin/stdc_stdio.o
 

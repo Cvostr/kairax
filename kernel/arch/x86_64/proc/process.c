@@ -31,8 +31,6 @@ int create_new_process_from_image(char* image)
 
     if(elf_check_signature(elf_header)) {
         //Это ELF файл
-        //printf("bits%i, ARCH-%i, prog_entry_pos-%i \n", elf_header->bits, elf_header->arch, elf_header->prog_entry_pos);
-
         //Создаем объект процесса
         process_t* proc = create_new_process();
 
@@ -59,12 +57,12 @@ int create_new_process_from_image(char* image)
             // Заполнить выделенную память нулями
             memset_vm(proc->pml4, pehentry->v_addr, 0, pehentry->p_memsz);
             // Копировать фрагмент программы в память
-            copy_to_vm(proc->pml4, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);      
-
-            // Создание главного потока и передача выполнения
-            thread_t* thr = create_thread(proc, elf_header->prog_entry_pos);
-	        add_thread(thr);  
+            copy_to_vm(proc->pml4, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
         }
+
+        // Создание главного потока и передача выполнения
+        thread_t* thr = create_thread(proc, elf_header->prog_entry_pos);
+	    add_thread(thr);  
     } else {
         return -1;
     }
@@ -72,14 +70,14 @@ int create_new_process_from_image(char* image)
     
 }
 
-uintptr_t process_brk(process_t* process, void* addr)
+uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
 {
     uintptr_t uaddr = addr;
     //Выравнивание до размера страницы в большую сторону
     uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
     while((uint64_t)uaddr > process->brk) {
-        map_page_mem(process->pml4, process->brk, pmm_alloc_page(), PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
+        map_page_mem(process->pml4, process->brk, pmm_alloc_page(), flags);
         process->brk += PAGE_SIZE;
     }
 
@@ -93,6 +91,11 @@ uintptr_t process_brk(process_t* process, void* addr)
     }
 
     return process->brk;
+}
+
+uintptr_t process_brk(process_t* process, void* addr)
+{
+    return process_brk_flags(process, addr, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
 }
 
 int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, uint64_t flags)
