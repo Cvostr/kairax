@@ -2,6 +2,7 @@
 [SECTION .text]
 
 global printf
+global syscall_process_get_pid
 global syscall_process_exit
 
 printf:
@@ -9,7 +10,7 @@ printf:
     syscall
     ret
 
-syscall_process_pid:
+syscall_process_get_pid:
     mov rax, 0x27
     syscall
     ret
@@ -20,7 +21,7 @@ syscall_process_set_break:
     ret
 
 syscall_process_exit:
-    mov rax, 0x100
+    mov rax, 0x3C
     syscall
 stub:
     jmp stub

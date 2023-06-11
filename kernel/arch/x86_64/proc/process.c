@@ -22,6 +22,7 @@ process_t*  create_new_process()
     process->pml4 = pml4;
     process->brk = 0x0;
     process->pid = last_pid++;
+    process->threads = create_list();
 
     return process;
 }
@@ -63,7 +64,7 @@ int create_new_process_from_image(char* image)
 
         // Создание главного потока и передача выполнения
         thread_t* thr = create_thread(proc, elf_header->prog_entry_pos);
-	    add_thread(thr);  
+	    scheduler_add_thread(thr);  
         
     } else {
         return -1;

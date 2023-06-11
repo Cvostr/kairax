@@ -15,7 +15,7 @@ nasm $NASM_ARGS $x64_SRC/boot/gdt_table.asm -o ./bin/gdt_table.o
 nasm $NASM_ARGS $x64_SRC/boot/tss_table.asm -o ./bin/tss_table.o
 nasm $NASM_ARGS $x64_SRC/boot/x64.asm -o ./bin/x64.o
 nasm $NASM_ARGS $x64_SRC/interrupts/interrupts.asm -o ./bin/interrupts.o
-nasm $NASM_ARGS $x64_SRC/proc/syscalls.asm -o ./bin/syscalls.o
+nasm $NASM_ARGS $x64_SRC/proc/syscalls_entry.asm -o ./bin/syscalls_entry.o
 
 gcc $GCC_ARGS $x64_SRC/boot/multiboot.c -o ./bin/multiboot.o
 

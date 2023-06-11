@@ -2,6 +2,7 @@
 #define _PROCESS_H
 
 #include "memory/paging.h"
+#include "list/list.h"
 
 typedef struct PACKED {
     char    name[30];
@@ -12,7 +13,8 @@ typedef struct PACKED {
     uint32_t state;
     char cur_dir[30];
 
-    page_table_t*    pml4;    
+    page_table_t*   pml4;  
+    list_t*         threads;  
 } process_t;
 
 //Создать новый пустой процесс

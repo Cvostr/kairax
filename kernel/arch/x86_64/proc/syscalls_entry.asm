@@ -57,7 +57,7 @@ syscall_entry_x64:
     mov [gs : 0], rsp    ; запоминание стека процесса
     mov rsp, [gs : 8]    ; Установка стека ядра
 
-    push_regs
+    push_regs            ; Запомнить основные регистры
 
     mov rdi, rsp
     call syscall_handle

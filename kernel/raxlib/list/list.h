@@ -16,11 +16,15 @@ typedef struct {
 
 list_t* create_list();
 
+void free_list();
+
 void list_add(list_t* list, void* element);
 
 void list_remove(list_t* list, void* element);
 
-void* list_get(list_t* list, unsigned int i);
+void list_unlink(list_t* list, list_node_t* node);
+
+void* list_get(list_t* list, unsigned int index);
 
 void* list_head(list_t* list);
 

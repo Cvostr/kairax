@@ -132,8 +132,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	
 	init_scheduler();
 	
-	add_thread(thr);
-	start_scheduler();
+	scheduler_add_thread(thr);
+	scheduler_start();
 
 	while(1){
 

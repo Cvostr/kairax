@@ -16,9 +16,14 @@ thread_t* new_thread(process_t* process)
     return thread;
 }
 
-thread_t* create_kthread(process_t* process, void (*function)(void)){
+thread_t* create_kthread(process_t* process, void (*function)(void))
+{
+    // Создать объект потока в памяти
     thread_t* thread    = new_thread(process);
+    // Выделить место под стек в памяти процесса
     thread->stack_ptr   = process_brk(process, process->brk + STACK_SIZE);
+    // Добавить поток в список потоков процесса
+    list_add(process->threads, thread);
     //Подготовка контекста
     thread_frame_t* ctx = &thread->context;
     //Установить адрес функции
@@ -44,9 +49,14 @@ thread_t* create_kthread(process_t* process, void (*function)(void)){
 
 thread_t* create_thread(process_t* process, uintptr_t entry)
 {
+    // Создать объект потока в памяти
     thread_t* thread    = new_thread(process);
+    // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
+    // Выделить место под стек в памяти процесса
     thread->stack_ptr = process_brk(process, process->brk + STACK_SIZE);
+    // Добавить поток в список потоков процесса
+    list_add(process->threads, thread);
     //Подготовка контекста
     thread_frame_t* ctx = &thread->context;
     //Установить адрес функции
@@ -56,14 +66,14 @@ thread_t* create_thread(process_t* process, uintptr_t entry)
     ctx->rbp = (uint64_t)thread->stack_ptr;
     ctx->rsp = (uint64_t)thread->stack_ptr;
     //Назначить сегмент из GDT
-    uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных ядра
+    uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных пользователя
     thread->context.ds = (selector);
     thread->context.es = (selector);
     thread->context.fs = (selector);
     thread->context.gs = (selector);
     thread->context.ss = (selector);
     //поток в пространстве ядра
-    thread->context.cs = GDT_BASE_USER_CODE_SEG;    // сегмент кода ядра
+    thread->context.cs = GDT_BASE_USER_CODE_SEG;    // сегмент кода пользователя
     //Состояние
     thread->state = THREAD_CREATED;
 

@@ -12,24 +12,37 @@ int curr_thread = 0;
 
 thread_t* prev_thread = NULL;
 
-void add_thread(thread_t* thread){
+void scheduler_add_thread(thread_t* thread)
+{
     list_add(threads_list, thread);
 }
 
-void remove_thread(thread_t* thread){
-    //list (threads_list, thread);
+void scheduler_remove_thread(thread_t* thread)
+{
+    list_remove(threads_list, thread);
 }
 
-thread_t* get_current_thread()
+void scheduler_remove_process_threads(process_t* process)
+{
+    for (unsigned int i = 0; i < process->threads->size; i ++) {
+        scheduler_remove_thread(list_get(process->threads, 0));
+    }
+}
+
+thread_t* scheduler_get_current_thread()
 {
     return prev_thread;
 }
 
-void scheduler_handler(thread_frame_t* frame){
+void scheduler_handler(thread_frame_t* frame)
+{
     // Сохранить состояние 
     if(prev_thread != NULL){
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
     }
+
+    if(curr_thread >= threads_list->size)
+        curr_thread = threads_list->size - 1;
 
     thread_t* new_thread = list_get(threads_list, curr_thread);
     
@@ -60,10 +73,12 @@ void scheduler_handler(thread_frame_t* frame){
 	pic_eoi(0);
 }
 
-void init_scheduler(){
+void init_scheduler()
+{
     threads_list = create_list();
 }
 
-void start_scheduler(){
+void scheduler_start()
+{
     pic_unmask(0x20);
 }

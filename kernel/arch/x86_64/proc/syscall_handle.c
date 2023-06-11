@@ -1,5 +1,6 @@
 #include "stdint.h"
 #include "stdio.h"
+#include "thread_scheduler.h"
 
 typedef struct PACKED 
 {
@@ -24,6 +25,21 @@ typedef struct PACKED
 
 void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
-    if (frame->rax == 1)
-        printf("%s", mem);
+    thread_t* current_thread = scheduler_get_current_thread();
+    process_t* current_process = current_thread->process;
+    
+    switch (frame->rax) {
+        case 1:
+            printf("%s", mem);
+            break;
+
+        case 0x27:  //Получение PID процесса
+            frame->rax = current_process->pid;
+            break;
+
+        case 0x3C:  //Завершение процесса
+            scheduler_remove_process_threads(current_process);
+            break;
+    }
+
 }
