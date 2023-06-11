@@ -14,10 +14,10 @@ extern x64_ltr
 [section .text] 
 
 lgdt_boot_v:
-    push rbx
-    mov rbx, gdtptr_hh
-    lgdt [rbx]
-    pop rbx
+    push rdi
+    mov rdi, gdtptr_hh
+    call gdt_update
+    pop rdi
     ret
 
 init_x64:

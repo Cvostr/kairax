@@ -157,7 +157,7 @@ enable_long_mode_paging: ;включение 64 битного режима пр
 	;
 	mov ecx, 0xC0000080
 	rdmsr
-	or eax, (1 << 8) | (0x1 << 0xB) | 1 ; Включение Long Mode, вызова syscall, SVME
+	or eax, (1 << 8) | (0x1 << 0xB) | (1 << 11) | 1 ; Включение Long Mode, вызова syscall, SVME
 	wrmsr
 	; Включение страничной адресации
 	mov eax, cr0

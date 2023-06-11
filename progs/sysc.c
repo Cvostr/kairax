@@ -1,6 +1,14 @@
 extern void printf(char*);
 
+#define BSS_LEN 10000
+
+int big_array[BSS_LEN];
+
 int main() {
+
+    for(int i = 0; i < BSS_LEN; i ++)
+        big_array[i] = i;
+
 
     char str[3];
     str[1] = '\n';

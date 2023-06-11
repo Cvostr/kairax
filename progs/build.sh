@@ -1,6 +1,10 @@
 ARGS="-nostdlib -m64 -c -nostdinc -ffreestanding"
 
-nasm -felf64 syscalls.asm -o syscalls.o
+cd ./crt/
+sh build.sh
+cd ..
 
-gcc $ARGS sysc.c -o sysc.o
-ld -melf_x86_64 -o sysc.a sysc.o syscalls.o
+nasm -felf64 syscalls.asm -o syscalls.ob
+
+gcc $ARGS sysc.c -o sysc.ob
+ld -melf_x86_64 -o sysc.a sysc.ob syscalls.ob ./crt/entry.ob

@@ -2,7 +2,10 @@
 *.iso
 *.img
 *.o
+*.ob
+*.sl
 *.a
+*.nex
 kernel/bin
 /.vs
 /.vscode
