@@ -52,7 +52,7 @@ global syscall_entry_x64
 ; 10 - 6
 
 syscall_entry_x64:
-    cli
+    ;cli
     swapgs
     mov [gs : 0], rsp    ; запоминание стека процесса
     mov rsp, [gs : 8]    ; Установка стека ядра
@@ -68,5 +68,5 @@ syscall_entry_x64:
     mov rsp, [gs : 0]    ; Возвращаем стек процесса
 
     swapgs
-    sti
+    ;sti
     o64 sysret

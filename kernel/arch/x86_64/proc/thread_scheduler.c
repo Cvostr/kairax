@@ -54,9 +54,16 @@ void scheduler_handler(thread_frame_t* frame)
         process_t* process = new_thread->process;
 
         // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3 в RPL
-        frame->cs |= (0b11 * new_thread->is_userspace);
-        frame->ss |= (0b11 * new_thread->is_userspace);
-        frame->rflags |= 0x200;
+        if (new_thread->is_userspace) {
+            frame->cs = GDT_BASE_USER_CODE_SEG | 0b11;
+            frame->ss = GDT_BASE_USER_DATA_SEG | 0b11;
+            frame->rflags |= 0x200;
+        }
+        if (new_thread->state == THREAD_UNINTERRUPTIBLE) {
+            frame->cs = GDT_BASE_KERNEL_CODE_SEG;
+            frame->ss = GDT_BASE_KERNEL_DATA_SEG;
+            
+        }
 
         prev_thread = new_thread;
 

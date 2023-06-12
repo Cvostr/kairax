@@ -1,9 +1,6 @@
 extern void printf(char*);
 #include "sdk/kairax.h"
 
-#define BSS_LEN 10000
-
-int big_array[BSS_LEN];
 
 static char destination[32] = {0};
 
@@ -27,30 +24,19 @@ char* itoa(long long number, int base){
 
 int main() {
 
-    for(int i = 0; i < BSS_LEN; i ++)
-        big_array[i] = i;
-
-
-    char str[3];
-    str[0] = 'A';
-    str[1] = '\n';
-    str[2] = 0;
-
     printf("PID: ");
+    int counter = 0;
     printf(itoa(syscall_process_get_id(), 10));
 
     int iterations = 0;
 
-    for(iterations = 0; iterations < 10; iterations ++) {
-        /*for(int i = 0; i < 100000000; i ++){
+    while(1) {
+        for(int i = 0; i < 100000000; i ++){
 			asm volatile("nop");
-		}*/
-        syscall_sleep();
+		}
 
-        str[0]++;
-
-        printf("Hello from program: ");
-        printf(str);
+        printf(" ");
+        printf(itoa(counter++, 10));
     }
 
     return 0;

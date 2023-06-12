@@ -23,6 +23,10 @@ typedef struct PACKED
     uint64_t r11;
 } syscall_frame_t;
 
+void yield() {
+
+}
+
 void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
     thread_t* current_thread = scheduler_get_current_thread();
@@ -33,13 +37,30 @@ void syscall_handle(syscall_frame_t* frame) {
             printf("%s", mem);
             break;
 
+        case 0x23:
+            current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
+            for (int i = 0; i < 100; i ++) {
+                yield();
+            }
+            current_thread->state = THREAD_RUNNING;
+            printf("EXITED RCX: %i", frame->rcx);
+            break;
+
         case 0x27:  //Получение PID процесса
             frame->rax = current_process->pid;
+            break;
+
+        case 0xBA:  // Получение ID потока
+            frame->rax = current_thread->thread_id;
+            break;
+
+        case 0x4F:  // Получение директории
+            size_t buffer_length = frame->rsi;
+            memcpy(mem, current_process->cur_dir, buffer_length);
             break;
 
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
             break;
     }
-
 }
