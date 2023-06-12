@@ -8,5 +8,6 @@ extern id_t syscall_process_get_id();
 extern id_t syscall_thread_get_id();
 extern void syscall_sleep();
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
+int syscall_set_working_dir(const char* path);
 
 #endif

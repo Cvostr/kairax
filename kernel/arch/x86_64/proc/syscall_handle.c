@@ -59,6 +59,12 @@ void syscall_handle(syscall_frame_t* frame) {
             memcpy(mem, current_process->cur_dir, buffer_length);
             break;
 
+        case 0x50:  // Установка директории
+            size_t buffer_length = strlen(mem);
+            memcpy(current_process->cur_dir, mem, buffer_length);
+            frame->rax = 0;
+            break;
+
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
             break;

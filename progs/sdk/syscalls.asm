@@ -38,6 +38,11 @@ syscall_get_working_dir:
     syscall
     ret
 
+syscall_set_working_dir:
+    mov rax, 0x50
+    syscall
+    ret
+
 syscall_process_exit:
     mov rax, 0x3C
     syscall

@@ -4,6 +4,8 @@
 #include "memory/paging.h"
 #include "list/list.h"
 
+#define MAX_CUR_DIR_LEN 256
+
 typedef struct PACKED {
     char    name[30];
 
@@ -11,7 +13,7 @@ typedef struct PACKED {
     uint64_t brk;
 
     uint32_t state;
-    char cur_dir[30];
+    char cur_dir[MAX_CUR_DIR_LEN];
 
     page_table_t*   pml4;  
     list_t*         threads;  
