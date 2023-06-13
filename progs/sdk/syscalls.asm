@@ -7,6 +7,7 @@ global syscall_thread_get_id
 global syscall_get_working_dir
 global syscall_process_exit
 global syscall_sleep
+global syscall_scheduler_yield
 
 printf:
     mov rax, 1
@@ -25,6 +26,11 @@ syscall_thread_get_id:
 
 syscall_process_set_break:
     mov rax, 0xC
+    syscall
+    ret
+
+syscall_scheduler_yield:
+    mov rax, 0x18
     syscall
     ret
 

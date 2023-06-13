@@ -56,3 +56,13 @@ gdt_update:
 x64_ltr:
     ltr di
     ret
+
+global x64_lidt ;функция загрузки таблицыы дескрипторов прерываний
+x64_lidt:
+	lidt  [rdi]
+    ret
+
+global enable_interrupts 
+enable_interrupts:
+    sti
+    ret

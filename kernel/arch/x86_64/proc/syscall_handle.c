@@ -35,9 +35,15 @@ void syscall_handle(syscall_frame_t* frame) {
             printf("%s", mem);
             break;
 
+        case 0x18:
+            current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
+            cpu_yield();
+            current_thread->state = THREAD_RUNNING;
+            break;
+
         case 0x23:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
-            for (int i = 0; i < 20; i ++) {
+            for (uint64_t i = 0; i < frame->rdi; i ++) {
                 cpu_yield();
             }
             current_thread->state = THREAD_RUNNING;
@@ -66,5 +72,4 @@ void syscall_handle(syscall_frame_t* frame) {
             scheduler_remove_process_threads(current_process);
             break;
     }
-    //printf("Es: ");
 }

@@ -77,7 +77,7 @@ syscall_entry_x64:
     
     o64 sysret
 
-extern isr_stub_sc
+extern scheduler_entry
 
 global cpu_yield
 cpu_yield:
@@ -99,4 +99,4 @@ cpu_yield:
     ; RIP
     push rdi
 
-    jmp isr_stub_sc
+    jmp scheduler_entry

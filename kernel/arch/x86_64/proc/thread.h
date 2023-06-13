@@ -22,7 +22,6 @@ enum thread_state {
 
 typedef struct PACKED {
 
-    uint16_t gs; 
     uint16_t fs; 
     uint16_t es; 
     uint16_t ds;

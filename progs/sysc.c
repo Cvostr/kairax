@@ -36,16 +36,14 @@ int main() {
     str[1] = '\n';
     str[2] = 0;
 
-    //printf("PID: ");
-    //printf(itoa(syscall_process_get_id(), 10));
+    printf("PID: ");
+    printf(itoa(syscall_process_get_id(), 10));
 
     int iterations = 0;
 
     for(iterations = 0; iterations < 10; iterations ++) {
-        /*for(int i = 0; i < 100000000; i ++){
-			asm volatile("nop");
-		}*/
-        syscall_sleep();
+
+        syscall_sleep(20);
 
         str[0]++;
 

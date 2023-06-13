@@ -31,9 +31,7 @@ int main() {
     int iterations = 0;
 
     while(1) {
-        for(int i = 0; i < 100000000; i ++){
-			asm volatile("nop");
-		}
+		syscall_sleep(20);
 
         printf(" ");
         printf(itoa(counter++, 10));

@@ -11,7 +11,7 @@ extern idt_descriptor_t idt_descriptors[255];
 
 extern void* isr_stub_table[256]; //таблица ISR
 
-extern void idt_update(idtr_t *idt);
+extern void x64_lidt(idtr_t *idt);
 
 extern void enable_interrupts();
 
@@ -40,7 +40,7 @@ void setup_idt(){
     set_int_descriptor(0x20, isr_stub_table[0x20], 1, 0x8E);
 
     // Загрузка дескриптора
-	idt_update(&idtr);
+	x64_lidt(&idtr);
 
     // включение прерываний
 	enable_interrupts();

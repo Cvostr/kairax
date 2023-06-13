@@ -1,18 +1,8 @@
 %include "memory/mem_layout.asm"
+%include "base/regs_stack.asm"
 
 [BITS 64]
 [SECTION .text]
-
-section .text
-global idt_update ;функция загрузки таблицыы дескрипторов прерываний
-idt_update:
-	lidt  [rdi]
-    ret
-
-global enable_interrupts 
-enable_interrupts:
-    sti
-    ret
 
 section .bss
 global idt_descriptors ;таблица дескрипторов прерываний
@@ -21,130 +11,48 @@ idt_descriptors:
 
 
 extern int_handler ;Обработчик прерываний
-extern scheduler_handler ;Обработчик прерываний
 extern kernel_stack_top
+extern scheduler_entry
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
 
-; Макросы для помещения всех регистров в стек и извлечения их оттуда
-%macro pushaq 0
-    push rax
-    push rcx
-    push rdx
-    push rbx
-    push rbp
-    push rsi
-    push rdi
-    push r8
-    push r9
-    push r10
-    push r11
-    push r12
-    push r13
-    push r14
-    push r15
-%endmacro
-%macro popaq 0
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rdi
-    pop rsi
-    pop rbp
-    pop rbx
-    pop rdx
-    pop rcx
-    pop rax
-%endmacro
-
-
 section .text
-isr_stub:
+isr_entry:
     ; Поместить все 64-битные регистры в стек
     pushaq
-    ; Push all the data segments (Stack alignment is kept because all segments add up to 64-bits here)
+    ; Поместить сегментные регистры в стек
     mov ax, ds
     push ax
     mov ax, es
     push ax
     mov ax, fs
     push ax
-    mov ax, gs
-    push ax
-    ; Load the kernel data segments
+    ; Переключение на сегмент ядра
     mov ax, KERNEL_DATA_SEG
     mov ds, ax
     mov es, ax
     mov fs, ax
-    ; And we get into it
+    ; Перейти к обработчику
     mov rdi, rsp
     cld
     call int_handler
-	;nop
-    ; Pop all the data segments
-    pop ax
+
+    ; Извлечь значения сегментных регистров fs, es, ds
     pop ax
     mov fs, ax
     pop ax
     mov es, ax
     pop ax
     mov ds, ax
-    ; And pop all the registers
+    ; Извлечь 64 битные регистры из стека
     popaq
-    add rsp, 16 ; Pops the error number off the stack
+    add rsp, 16 ; Вытащить код ошибки из стека
     iretq
 
-section .text
-global isr_stub_sc
-isr_stub_sc:
-    ; Поместить все 64-битные регистры в стек
-    pushaq
-    ; Push all the data segments (Stack alignment is kept because all segments add up to 64-bits here)
-    mov ax, ds
-    push ax
-    mov ax, es
-    push ax
-    mov ax, fs
-    push ax
-    mov ax, gs
-    push ax
-    ; переключение на сегмент ядра
-    mov ax, KERNEL_DATA_SEG
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-
-    ; Переход в код планировщика
-    mov rdi, rsp
-    cld
-    call scheduler_handler
-    mov rsp, rax
-
-    ; Извлечь значения сегментных регистров gs, fs, es, ds
-    pop ax
-    pop ax
-    mov fs, ax
-    pop ax
-    mov es, ax
-    pop ax
-    mov ds, ax
-    ; Извлечь значения основных регистров
-    popaq
-    iretq
-
-; We'll start by making all of our ISRs. From 0 to 255
-
-; Make an ISR wrapper for each table
-; Arg 1: ISR number
 %macro isr_wrapper 1
 isr_%1:
-    ; Turn off interrupts
+    ; Выключить прерывания
     cli
     ; Check if we have an error number with this ISR
     ; The ones with error numbers are:
@@ -162,12 +70,12 @@ isr_%1:
     %endif
     ; Push the interrupt number
     push %1
-    jmp isr_stub ; And go to the isr_stub
+    jmp isr_entry
 %endmacro
 
 isr_32:
-    cli
-    jmp isr_stub_sc ; And go to the isr_stub
+    cli ; Выключить прерывания
+    jmp scheduler_entry
 
 ; Create all 256 interrupt vectors.
 %assign i 0

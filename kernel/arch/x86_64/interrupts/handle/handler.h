@@ -5,7 +5,6 @@
 
 typedef struct PACKED {
     // Our segment selectors
-    uint16_t gs; /*!< GS segment selector */
     uint16_t fs; /*!< FS segment selector */
     uint16_t es; /*!< ES segment selector */
     uint16_t ds; /*!< DS segment selector */
