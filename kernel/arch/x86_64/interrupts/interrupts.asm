@@ -82,7 +82,6 @@ isr_stub:
     mov ds, ax
     mov es, ax
     mov fs, ax
-    mov gs, ax
     ; And we get into it
     mov rdi, rsp
     cld
@@ -90,19 +89,19 @@ isr_stub:
 	;nop
     ; Pop all the data segments
     pop ax
-    mov ax, gs
     pop ax
-    mov ax, fs
+    mov fs, ax
     pop ax
-    mov ax, es
+    mov es, ax
     pop ax
-    mov ax, ds
+    mov ds, ax
     ; And pop all the registers
     popaq
     add rsp, 16 ; Pops the error number off the stack
     iretq
 
 section .text
+global isr_stub_sc
 isr_stub_sc:
     ; Поместить все 64-битные регистры в стек
     pushaq
@@ -120,23 +119,22 @@ isr_stub_sc:
     mov ds, ax
     mov es, ax
     mov fs, ax
-    mov gs, ax
 
-    ; And we get into it
+    ; Переход в код планировщика
     mov rdi, rsp
     cld
     call scheduler_handler
+    mov rsp, rax
 
-    ; Pop all the data segments
+    ; Извлечь значения сегментных регистров gs, fs, es, ds
     pop ax
-    mov ax, gs
     pop ax
-    mov ax, fs
+    mov fs, ax
     pop ax
-    mov ax, es
+    mov es, ax
     pop ax
-    mov ax, ds
-    ; And pop all the registers
+    mov ds, ax
+    ; Извлечь значения основных регистров
     popaq
     iretq
 

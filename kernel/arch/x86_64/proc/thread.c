@@ -37,7 +37,6 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     thread->context.ds = (selector);
     thread->context.es = (selector);
     thread->context.fs = (selector);
-    thread->context.gs = (selector);
     thread->context.ss = (selector);
     //поток в пространстве ядра
     thread->context.cs = GDT_BASE_KERNEL_CODE_SEG;
@@ -55,6 +54,7 @@ thread_t* create_thread(process_t* process, uintptr_t entry)
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = process_brk(process, process->brk + STACK_SIZE);
+    thread->kernel_stack_ptr = process_brk(process, process->brk + STACK_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
@@ -70,7 +70,6 @@ thread_t* create_thread(process_t* process, uintptr_t entry)
     thread->context.ds = (selector);
     thread->context.es = (selector);
     thread->context.fs = (selector);
-    thread->context.gs = (selector);
     thread->context.ss = (selector);
     //поток в пространстве ядра
     thread->context.cs = GDT_BASE_USER_CODE_SEG;    // сегмент кода пользователя

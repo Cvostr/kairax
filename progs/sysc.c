@@ -36,8 +36,8 @@ int main() {
     str[1] = '\n';
     str[2] = 0;
 
-    printf("PID: ");
-    printf(itoa(syscall_process_get_id(), 10));
+    //printf("PID: ");
+    //printf(itoa(syscall_process_get_id(), 10));
 
     int iterations = 0;
 

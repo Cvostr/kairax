@@ -23,9 +23,7 @@ typedef struct PACKED
     uint64_t r11;
 } syscall_frame_t;
 
-void yield() {
-
-}
+extern void cpu_yield();
 
 void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
@@ -39,11 +37,10 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x23:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
-            for (int i = 0; i < 100; i ++) {
-                yield();
+            for (int i = 0; i < 20; i ++) {
+                cpu_yield();
             }
             current_thread->state = THREAD_RUNNING;
-            printf("EXITED RCX: %i", frame->rcx);
             break;
 
         case 0x27:  //Получение PID процесса
@@ -60,7 +57,7 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x50:  // Установка директории
-            size_t buffer_length = strlen(mem);
+            buffer_length = strlen(mem);
             memcpy(current_process->cur_dir, mem, buffer_length);
             frame->rax = 0;
             break;
@@ -69,4 +66,5 @@ void syscall_handle(syscall_frame_t* frame) {
             scheduler_remove_process_threads(current_process);
             break;
     }
+    //printf("Es: ");
 }

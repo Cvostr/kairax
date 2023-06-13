@@ -1,3 +1,5 @@
+%include "memory/mem_layout.asm"
+
 [BITS 64]
 [SECTION .text]
 
@@ -52,7 +54,6 @@ global syscall_entry_x64
 ; 10 - 6
 
 syscall_entry_x64:
-    ;cli
     swapgs
     mov [gs : 0], rsp    ; запоминание стека процесса
     mov rsp, [gs : 8]    ; Установка стека ядра
@@ -60,13 +61,42 @@ syscall_entry_x64:
     push_regs            ; Запомнить основные регистры
 
     mov rdi, rsp
+
+    ;sti                 ; Включение прерываний
+
     call syscall_handle
+
+    ;cli
 
     pop_regs
 
-    mov [gs : 8], rsp
+    mov [gs : 8], rsp    ; Запись стека ядра
     mov rsp, [gs : 0]    ; Возвращаем стек процесса
 
     swapgs
-    ;sti
+    
     o64 sysret
+
+extern isr_stub_sc
+
+global cpu_yield
+cpu_yield:
+    cli
+    pop rdi ; rip
+    mov rsi, rsp
+    
+    xor ax, ax
+    ; SS
+    mov ax, ss
+    push rax
+    ; RSP
+    push rsi
+    ; RFLAGS
+    pushfq
+    ; CS
+    mov ax, cs
+    push rax
+    ; RIP
+    push rdi
+
+    jmp isr_stub_sc
