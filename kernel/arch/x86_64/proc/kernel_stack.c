@@ -9,6 +9,8 @@ void init_kernel_stack()
 {
     kstack.kernel_stack = NULL;//(char*)kmalloc(4096) + 4096;
     cpu_set_kernel_gs_base(&kstack);
+    cpu_set_gs_base(&kstack);
+    //asm volatile("swapgs");
 }
 
 void set_kernel_stack(void* kstack_top)

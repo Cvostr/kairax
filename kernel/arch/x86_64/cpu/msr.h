@@ -29,6 +29,6 @@ void cpu_set_syscall_params(uintptr_t entry_ip, uint16_t star_32_47, uint16_t st
 
 void cpu_set_kernel_gs_base(uintptr_t address);
 
-void cpu_set_gs_base(uint16_t gs);
+void cpu_set_gs_base(uintptr_t gs);
 
 #endif

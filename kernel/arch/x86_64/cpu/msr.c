@@ -37,7 +37,7 @@ void cpu_set_kernel_gs_base(uintptr_t address)
     cpu_msr_set(IA32_KERNEL_GS_BASE, address);
 }
 
-void cpu_set_gs_base(uint16_t gs)
+void cpu_set_gs_base(uintptr_t gs)
 {
     cpu_msr_set(IA32_GS_BASE, gs);
 }

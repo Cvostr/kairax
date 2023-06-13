@@ -7,6 +7,7 @@
 #include "string.h"
 #include "cpu/gdt.h"
 #include "kernel_stack.h"
+#include "mem/pmm.h"
 
 list_t* threads_list;
 int curr_thread = 0;
@@ -58,8 +59,8 @@ void* scheduler_handler(thread_frame_t* frame)
             new_thread->context.rflags |= 0x200;
 
             if (process != NULL) {
-                physical_addr_t kernel_stack_phys = get_physical_address(process->pml4, new_thread->kernel_stack_ptr);
-                set_kernel_stack(P2V(new_thread->kernel_stack_ptr));
+                physical_addr_t kernel_stack_phys = get_physical_address(process->pml4, (uintptr_t)new_thread->kernel_stack_ptr - PAGE_SIZE);
+                set_kernel_stack(P2V(kernel_stack_phys + PAGE_SIZE));
             }
         }
         if (new_thread->state == THREAD_UNINTERRUPTIBLE) {
