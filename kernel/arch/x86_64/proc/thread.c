@@ -84,9 +84,9 @@ thread_t* create_thread(process_t* process, uintptr_t entry)
     thread->context.ds = (selector);
     thread->context.es = (selector);
     thread->context.fs = (selector);
-    thread->context.ss = (selector);
+    thread->context.ss = (selector) | 0b11;
     //поток в пространстве ядра
-    thread->context.cs = GDT_BASE_USER_CODE_SEG;    // сегмент кода пользователя
+    thread->context.cs = GDT_BASE_USER_CODE_SEG | 0b11;    // сегмент кода пользователя
     //Состояние
     thread->state = THREAD_CREATED;
 

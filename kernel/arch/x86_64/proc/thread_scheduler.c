@@ -61,22 +61,12 @@ void* scheduler_handler(thread_frame_t* frame)
         process_t* process = new_thread->process;
 
         if (new_thread->is_userspace) {
-            // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3 в RPL
-            new_thread->context.cs = GDT_BASE_USER_CODE_SEG | 0b11;
-            new_thread->context.ss = GDT_BASE_USER_DATA_SEG | 0b11;
             new_thread->context.rflags |= 0x200;
 
             // Обновить данные об указателях на стек
             set_kernel_stack(new_thread->kernel_stack_ptr);
             tss_set_rsp0(new_thread->kernel_stack_ptr);
             set_user_stack_ptr(new_thread->stack_ptr);
-        }
-
-        if (new_thread->state == THREAD_UNINTERRUPTIBLE) {
-            // Поток передал уплавление планировщику из системного вызова
-            // Значит он сейчас в режиме ядра
-            new_thread->context.cs = GDT_BASE_KERNEL_CODE_SEG;
-            new_thread->context.ss = GDT_BASE_KERNEL_DATA_SEG;    
         }
 
         prev_thread = new_thread;
