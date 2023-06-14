@@ -33,7 +33,7 @@ _start:
 	mov edi, MAGIC_BOOTLOADER_MB2
 	pop esi							;Вернуть структуру multiboot2 в регистр первого аргумента (EDI)
 
-	jmp 0x08:V2P(init_x64)			;Выполнить прыжок
+	jmp 0x08:V2P(init_x64)			;Выполнить дальний прыжок
 
 	hlt
 

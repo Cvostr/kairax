@@ -54,21 +54,12 @@ isr_entry:
 isr_%1:
     ; Выключить прерывания
     cli
-    ; Check if we have an error number with this ISR
-    ; The ones with error numbers are:
-    ; 8 - DF
-    ; 10 -TS
-    ; 11 - NP
-    ; 12 - SS
-    ; 13 - GP
-    ; 14 - PF
-    ; 17 - AC
-    ; 21 - CP
+    
     %ifn (%1 == 8) || ((%1 >= 10 ) && (%1 <= 14)) || (%1 == 17) || (%1 == 21)
-        ; Push an error number of 0
+        ; Это не exception -> пишем 0
         push 0
     %endif
-    ; Push the interrupt number
+    ; Помещаем номер прерываний
     push %1
     jmp isr_entry
 %endmacro
@@ -77,7 +68,7 @@ isr_32:
     cli ; Выключить прерывания
     jmp scheduler_entry
 
-; Create all 256 interrupt vectors.
+
 %assign i 0
 %rep 256
     %if i != 32

@@ -55,6 +55,7 @@ global syscall_entry_x64
 
 syscall_entry_x64:
     swapgs
+    
     mov [gs : 0], rsp    ; запоминание стека процесса
     mov rsp, [gs : 8]    ; Установка стека ядра
 
@@ -66,7 +67,7 @@ syscall_entry_x64:
 
     call syscall_handle
 
-    cli
+    cli                 ; Выключение прерываний
 
     pop_regs
 

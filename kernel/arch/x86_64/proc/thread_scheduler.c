@@ -38,12 +38,17 @@ thread_t* scheduler_get_current_thread()
 
 void* scheduler_handler(thread_frame_t* frame)
 {
+    int is_from_interrupt = 1;
     // Сохранить состояние 
     if(prev_thread != NULL) {
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
         if (prev_thread->is_userspace) {
             prev_thread->stack_ptr = get_user_stack_ptr();
         }
+
+        // Если у старого потока состояние THREAD_UNINTERRUPTIBLE, значит
+        // мы пришли сюда не из прерывания, а из yield
+        is_from_interrupt = prev_thread->state != THREAD_UNINTERRUPTIBLE;
     }
 
     if(curr_thread >= threads_list->size)
@@ -55,19 +60,21 @@ void* scheduler_handler(thread_frame_t* frame)
         // Получить данные процесса, с которым связан поток
         process_t* process = new_thread->process;
 
-        // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3 в RPL
         if (new_thread->is_userspace) {
+            // Для пользовательских процессов для перехода на 3 кольцо необходимо добавить 3 в RPL
             new_thread->context.cs = GDT_BASE_USER_CODE_SEG | 0b11;
             new_thread->context.ss = GDT_BASE_USER_DATA_SEG | 0b11;
             new_thread->context.rflags |= 0x200;
 
-            if (process != NULL) {
-                set_kernel_stack(new_thread->kernel_stack_ptr);
-                tss_set_rsp0(new_thread->kernel_stack_ptr);
-                set_user_stack_ptr(new_thread->stack_ptr);
-            }
+            // Обновить данные об указателях на стек
+            set_kernel_stack(new_thread->kernel_stack_ptr);
+            tss_set_rsp0(new_thread->kernel_stack_ptr);
+            set_user_stack_ptr(new_thread->stack_ptr);
         }
+
         if (new_thread->state == THREAD_UNINTERRUPTIBLE) {
+            // Поток передал уплавление планировщику из системного вызова
+            // Значит он сейчас в режиме ядра
             new_thread->context.cs = GDT_BASE_KERNEL_CODE_SEG;
             new_thread->context.ss = GDT_BASE_KERNEL_DATA_SEG;    
         }
@@ -79,12 +86,11 @@ void* scheduler_handler(thread_frame_t* frame)
             curr_thread = 0;
 
         // Заменить таблицу виртуальной памяти процесса
-        if (process != NULL) {
-            switch_pml4(V2P(process->pml4));
-        }
+        switch_pml4(V2P(process->pml4));
     }
 
-	pic_eoi(0);
+    if (is_from_interrupt)
+	    pic_eoi(0);
 
     return &new_thread->context;
 }

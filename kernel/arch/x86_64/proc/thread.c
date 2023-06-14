@@ -18,6 +18,9 @@ thread_t* new_thread(process_t* process)
 
 thread_t* create_kthread(process_t* process, void (*function)(void))
 {
+    if (!process || !function) {
+        return NULL;
+    }
     // Создать объект потока в памяти
     thread_t* thread = new_thread(process);
     // Выделить место под стек в памяти процесса
@@ -51,6 +54,10 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
 
 thread_t* create_thread(process_t* process, uintptr_t entry)
 {
+    if (!process) {
+        return NULL;
+    }
+
     // Создать объект потока в памяти
     thread_t* thread = new_thread(process);
     // Данный поток работает в непривилегированном режиме
