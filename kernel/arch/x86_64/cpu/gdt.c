@@ -6,6 +6,8 @@
 extern void gdt_update(void*);
 extern void x64_ltr(int);
 
+tss_t* tss;
+
 void new_gdt(   uint32_t entries_num, 
                 uint32_t sys_seg_descs_num,
                 gdt_entry_t** entry_begin,
@@ -65,11 +67,8 @@ void gdt_init()
     // код пользователя (0x20)
     gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
 
-    tss_t* tss = new_tss();
-
-    void* kstack = P2V(pmm_alloc_page());
-    tss->rsp0 = (uintptr_t)kstack;
-    tss->ist1 = (uintptr_t)kstack;
+    tss = new_tss();
+    tss->ist2 = P2V(pmm_alloc_page());
     tss->iopb = sizeof(tss_t) - 1;
 
     gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)tss, 0b10001001, 0b1001);
@@ -80,4 +79,9 @@ void gdt_init()
 
     gdt_update(&gdtr);
     x64_ltr(0x28);
+}
+
+void tss_set_rsp0(uintptr_t address)
+{
+    tss->rsp0 = address;
 }

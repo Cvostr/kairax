@@ -40,3 +40,11 @@ void pic_mask(uint8_t irq)
     /* if bit == 0 irq is enable*/
     outb(PORT_PIC_MASTER_DATA, curmask_master | (1 << irq));
 }
+
+void pic_eoi(uint8_t irq)
+{
+    if(irq >= 0x8) //Если прерывание относится ко второму контроллеру (Slave), то необходимо сбросить оба
+        outb(PORT_PIC_SLAVE_CMD, PIC_EOI);
+
+    outb(PORT_PIC_MASTER_CMD, PIC_EOI);
+}

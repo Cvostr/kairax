@@ -19,9 +19,12 @@ thread_t* new_thread(process_t* process)
 thread_t* create_kthread(process_t* process, void (*function)(void))
 {
     // Создать объект потока в памяти
-    thread_t* thread    = new_thread(process);
+    thread_t* thread = new_thread(process);
     // Выделить место под стек в памяти процесса
-    thread->stack_ptr   = process_brk(process, process->brk + STACK_SIZE);
+    thread->stack_ptr = process_brk(process, process->brk + STACK_SIZE);
+    //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
+    physical_addr_t stack_phys_addr = get_physical_address(process->pml4, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
+    thread->stack_ptr = P2V(stack_phys_addr + PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
@@ -49,12 +52,16 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
 thread_t* create_thread(process_t* process, uintptr_t entry)
 {
     // Создать объект потока в памяти
-    thread_t* thread    = new_thread(process);
+    thread_t* thread = new_thread(process);
     // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = process_brk(process, process->brk + STACK_SIZE);
     thread->kernel_stack_ptr = process_brk(process, process->brk + STACK_SIZE);
+    //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
+    physical_addr_t kernel_stack_phys = 
+        get_physical_address(process->pml4, (uintptr_t)thread->kernel_stack_ptr - PAGE_SIZE);
+    thread->kernel_stack_ptr = P2V(kernel_stack_phys + PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста

@@ -62,11 +62,11 @@ syscall_entry_x64:
 
     mov rdi, rsp
 
-    ;sti                 ; Включение прерываний
+    sti                 ; Включение прерываний
 
     call syscall_handle
 
-    ;cli
+    cli
 
     pop_regs
 

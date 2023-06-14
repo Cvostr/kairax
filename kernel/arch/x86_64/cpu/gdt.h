@@ -95,4 +95,6 @@ void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t
 
 void gdt_init();
 
+void tss_set_rsp0(uintptr_t address);
+
 #endif

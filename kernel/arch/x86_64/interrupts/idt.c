@@ -34,10 +34,10 @@ void setup_idt(){
 
 	for (uint8_t vector = 0; vector < 255; vector++) {
         if (vector != 0x20)
-      	    set_int_descriptor(vector, isr_stub_table[vector], 0, 0x8E);
+      	    set_int_descriptor(vector, isr_stub_table[vector], 2, 0x8E);
     }
 
-    set_int_descriptor(0x20, isr_stub_table[0x20], 1, 0x8E);
+    set_int_descriptor(0x20, isr_stub_table[0x20], 0, 0x8E);
 
     // Загрузка дескриптора
 	x64_lidt(&idtr);

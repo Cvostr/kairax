@@ -1,12 +1,12 @@
 bits 64
 
-global tss
+global boot_tss
 global tss_size
 global interrupt_stack_table
 
 [section .data]
 align 16
-tss:
+boot_tss:
     dd 0x0 ; Reseved 1
 tss_rspn:
     dq rspn_stack ; RSP0
@@ -24,7 +24,7 @@ interrupt_stack_table:
     dq 0x0 ; Reserved
     dw 0x0 ; Reserved
     dw tss_size ; I/O Map Base Address
-tss_size: equ $ - tss - 1
+tss_size: equ $ - boot_tss - 1
 
 ; btw, alloc two stack for that, we have a lot of memory :)
 [section .bss]

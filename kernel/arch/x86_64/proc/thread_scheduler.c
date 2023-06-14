@@ -41,6 +41,9 @@ void* scheduler_handler(thread_frame_t* frame)
     // Сохранить состояние 
     if(prev_thread != NULL) {
         memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
+        if (prev_thread->is_userspace) {
+            prev_thread->stack_ptr = get_user_stack_ptr();
+        }
     }
 
     if(curr_thread >= threads_list->size)
@@ -59,8 +62,9 @@ void* scheduler_handler(thread_frame_t* frame)
             new_thread->context.rflags |= 0x200;
 
             if (process != NULL) {
-                physical_addr_t kernel_stack_phys = get_physical_address(process->pml4, (uintptr_t)new_thread->kernel_stack_ptr - PAGE_SIZE);
-                set_kernel_stack(P2V(kernel_stack_phys + PAGE_SIZE));
+                set_kernel_stack(new_thread->kernel_stack_ptr);
+                tss_set_rsp0(new_thread->kernel_stack_ptr);
+                set_user_stack_ptr(new_thread->stack_ptr);
             }
         }
         if (new_thread->state == THREAD_UNINTERRUPTIBLE) {

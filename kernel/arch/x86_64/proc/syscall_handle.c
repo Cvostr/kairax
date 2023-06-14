@@ -70,6 +70,7 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
+            cpu_yield();
             break;
     }
 }
