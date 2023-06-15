@@ -65,11 +65,14 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		if (type != 1)
 			pmm_set_mem_region(start, end - start);
 
-		printf("REGION : %i %i %i\n", start, end, type);
+		//printf("REGION : %i %i %i\n", start, end, type);
 	}
 
 	pmm_take_base_regions();
 	pmm_set_params(&pmm_params);
+
+	init_pic();
+	setup_idt();
 	
 	printf("VMM: Creating kernel memory map\n");
 	page_table_t* new_pt = create_kernel_vm_map();
@@ -101,9 +104,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	} else {
 		printf("Success!\n");
 	}
-
-	init_pic();
-	setup_idt();
 
 	init_interrupts_handler(); 
 	init_ints_keyboard();

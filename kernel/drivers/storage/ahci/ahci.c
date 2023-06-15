@@ -70,7 +70,8 @@ uint32_t ahci_controller_get_version(ahci_controller_t* controller){
 	return controller->hba_mem->version;
 }
 
-void ahci_init(){
+void ahci_init()
+{
 	//найти необходимое PCI устройство
 	int pci_devices_count = get_pci_devices_count();
 	for(int device_i = 0; device_i < pci_devices_count; device_i ++){
@@ -115,12 +116,12 @@ void ahci_init(){
 				int dt = controller->ports[i].device_type;
 				if (dt == AHCI_DEV_SATA)
 				{
-					printf("SATA drive found at port %i, \n", i);
+					printf("SATA drive found at port %i,", i);
 
 					//Считать информацию об устройстве
-					char* identity_buffer = kmalloc(IDENTITY_BUFFER_SIZE);
-					memset(identity_buffer, 0, IDENTITY_BUFFER_SIZE);
-					ahci_port_identity(&controller->ports[i], vmm_get_physical_addr(identity_buffer));
+					char* identity_buffer = pmm_alloc_page();
+					memset(P2V(identity_buffer), 0, IDENTITY_BUFFER_SIZE);
+					ahci_port_identity(&controller->ports[i], identity_buffer);
 
 					drive_device_t* drive_header = new_drive_device_header();
 
@@ -128,7 +129,7 @@ void ahci_init(){
 					uint32_t cmd_sets;
 
 					// Разобрать строку информации
-					parse_identity_buffer(identity_buffer, 
+					parse_identity_buffer(P2V(identity_buffer), 
 										  &type,
 										  &capabilities,
 										  &cmd_sets,
@@ -136,7 +137,7 @@ void ahci_init(){
 										  drive_header->model,
 										  drive_header->serial);
 
-					kfree(identity_buffer);
+					pmm_free_page(identity_buffer);
 
 					drive_header->uses_lba48 = cmd_sets & (1 << 26);
 					drive_header->bytes = (uint64_t)drive_header->sectors * 512;
@@ -153,22 +154,21 @@ void ahci_init(){
 				}
 				else if (dt == AHCI_DEV_SATAPI)
 				{
-					printf("SATAPI drive found at port %i\n", i);
+					printf("SATAPI drive found at port %i,", i);
 				}
 				else if (dt == AHCI_DEV_SEMB)
 				{
-					printf("SEMB drive found at port %i\n", i);
+					printf("SEMB drive found at port %i,", i);
 				}
 				else if (dt == AHCI_DEV_PM)
 				{
-					printf("PM drive found at port %i\n", i);
+					printf("PM drive found at port %i,", i);
 				}
 				else
 				{
-					//printf("No drive found at port %i\n", i);
 					continue;
 				}
-				/*switch (controller->ports[i].speed) {
+				switch (controller->ports[i].speed) {
 					case 1:
 						printf(" link speed 1.5Gb/s\n", __func__, i);
 						break;
@@ -181,7 +181,7 @@ void ahci_init(){
 					default:
 						printf(" link speed unrestricted\n", __func__, i);
 						break;
-				}*/
+				}
 			}
 		}
 	}

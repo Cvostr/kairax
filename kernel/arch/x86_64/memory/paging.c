@@ -168,8 +168,8 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 {
     int rc = 0;
     physical_addr_t phys_addr = get_physical_address(root, virtual_addr);
-    unmap_page(get_kernel_pml4(), virtual_addr);
-	map_page_mem(get_kernel_pml4(), virtual_addr, phys_addr, flags);
+    unmap_page(root, virtual_addr);
+	map_page_mem(root, virtual_addr, phys_addr, flags);
 
     return 0;
 }

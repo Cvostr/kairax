@@ -12,7 +12,7 @@ acpi_rsdp_t acpi_rsdp;
 acpi_fadt_t* acpi_fadt = NULL;
 acpi_madt_t* acpi_apic;
 
-#define MAX_CPU_COUNT 8
+#define MAX_CPU_COUNT 32
 uint32_t            cpus_apic_count = 0;
 apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 

@@ -34,6 +34,28 @@ static int get_device_type(HBA_PORT *port)
 	}
 }
 
+void ahci_port_stop_commands(ahci_port_t* port)
+{
+	port->port_reg->cmd &= ~HBA_PxCMD_START;
+	port->port_reg->cmd &= ~HBA_PxCMD_FRE;
+	while(1)
+	{
+		if (port->port_reg->cmd & HBA_PxCMD_FR)
+			continue;
+		if (port->port_reg->cmd & HBA_PxCMD_CR)
+			continue;
+		break;
+	}
+}
+
+void ahci_port_start_commands(ahci_port_t* port)
+{
+	while(port->port_reg->cmd & HBA_PxCMD_CR);
+
+	// FIS receive enable
+	ahci_port_fis_receive_enable(port);
+}
+
 ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc)
 {
     memset(port, 0, sizeof(ahci_port_t));
@@ -46,6 +68,9 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     port->port_reg = port_desc;
     port->index = index;
     port->device_type = device_type;
+	
+	// Чтобы избежать ошибок при конфигурации
+	ahci_port_stop_commands(port);	
 
 	// Выделение памяти под буфер порта
 	char* port_mem = (char*)pmm_alloc_page();
@@ -63,14 +88,14 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	port_desc->fbu  = HI32(port->fis);
 
     size_t cmd_tables_mem_sz = COMMAND_LIST_ENTRY_COUNT * sizeof(HBA_COMMAND_TABLE);
-    uint32_t pages = cmd_tables_mem_sz / PAGE_SIZE + 1;
+    uint32_t pages_num = cmd_tables_mem_sz / PAGE_SIZE + 1;
 
 	//Выделить память под буфер команд
-	char* cmd_tables_mem = (char*)pmm_alloc_page();
+	char* cmd_tables_mem = (char*)pmm_alloc_pages(pages_num);
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
 	set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(cmd_tables_mem), pageFlags);
 
-    for(int i = 0; i < 32; i ++){
+    for(int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++){
 		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(port->command_list);
         hba_command_virtual[i].prdtl = 8; //8 PRDT на каждую команду
         HBA_COMMAND_TABLE* cmd_table = (HBA_COMMAND_TABLE*)&cmd_tables_mem[i];
@@ -79,7 +104,10 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 		hba_command_virtual[i].ctdba_up = HI32(cmd_table);
     }
 
-	while(port->port_reg->cmd & HBA_PxCMD_CR);
+	// Разрешить выполнение команд
+	ahci_port_start_commands(port);
+
+	ahci_port_spin_up(port);
 
     //Очистить бит IRQ статуса
     port->port_reg->is = port->port_reg->is;
@@ -89,10 +117,6 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     ahci_port_power_on(port);
 
     ahci_port_activate_link(port);
-
-    ahci_port_fis_receive_enable(port);
-
-	ahci_port_spin_up(port);
 
     ahci_port_flush_posted_writes(port);
 

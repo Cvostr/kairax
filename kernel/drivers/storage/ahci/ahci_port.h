@@ -12,6 +12,7 @@
 #define HBA_PxCMD_START         0x0001
 #define HBA_PxCMD_FRE           0x0010
 #define HBA_PxCMD_CR            0x8000
+#define HBA_PxCMD_FR            0x4000
 
 #define ATA_IDENT_DEVICETYPE   0
 #define ATA_IDENT_CYLINDERS    2
@@ -62,6 +63,10 @@ void ahci_port_activate_link(ahci_port_t* port);
 void ahci_port_fis_receive_enable(ahci_port_t* port);
 
 void ahci_port_clear_error_register(ahci_port_t* port);
+
+void ahci_port_stop_commands(ahci_port_t* port);
+
+void ahci_port_start_commands(ahci_port_t* port);
 
 static inline void ahci_port_flush_posted_writes(ahci_port_t* port)
 {

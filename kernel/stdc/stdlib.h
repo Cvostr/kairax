@@ -7,4 +7,6 @@ void reverse(char *str);
 
 char* itoa(int64 number, int base);
 
+char* ulltoa(uint64_t number, int base);
+
 #endif

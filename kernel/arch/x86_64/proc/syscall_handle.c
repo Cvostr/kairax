@@ -29,6 +29,7 @@ void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
     thread_t* current_thread = scheduler_get_current_thread();
     process_t* current_process = current_thread->process;
+    size_t buffer_length = 0;
     
     switch (frame->rax) {
         case 1:
@@ -58,7 +59,7 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x4F:  // Получение директории
-            size_t buffer_length = frame->rsi;
+            buffer_length = frame->rsi;
             memcpy(mem, current_process->cur_dir, buffer_length);
             break;
 
