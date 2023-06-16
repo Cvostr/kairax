@@ -1,5 +1,6 @@
 extern void printf(char*);
 #include "sdk/kairax.h"
+#include "libc/string.h"
 
 #define BSS_LEN 10000
 
@@ -30,6 +31,7 @@ int main() {
     for(int i = 0; i < BSS_LEN; i ++)
         big_array[i] = i;
 
+    //memset(big_array, 12, sizeof(int) * BSS_LEN);
 
     char str[3];
     str[0] = 'A';

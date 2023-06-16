@@ -27,3 +27,32 @@ char* elf_get_string_at(char* image, uint32_t string_index)
     elf_section_header_entry_t* string_section = elf_get_section_entry(image, elf_header->section_names_index);
     return image + string_section->offset + string_index;
 }
+
+void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct)
+{
+    elf_header_t* elf_header = (elf_header_t*)image;
+
+    for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
+        elf_section_header_entry_t* sehentry = elf_get_section_entry(image, i);
+
+        char* section_name = elf_get_string_at(image, sehentry->name_offset);
+        if (strcmp(section_name, ".dynamic") == 0) {
+            sections_struct->dynamic_ptr = sehentry;
+        } else if (strcmp(section_name, ".dynsym") == 0) {
+            sections_struct->dynsym_ptr = sehentry;
+        } else if (strcmp(section_name, ".dynstr") == 0) {
+            sections_struct->dynstr_ptr = sehentry;
+        } else if (strcmp(section_name, ".rela.plt") == 0) {
+            sections_struct->rela_plt_ptr = sehentry;
+        } else if (strcmp(section_name, ".comment") == 0) {
+            sections_struct->comment_ptr = sehentry;
+        } 
+
+        printf("SEC: name %s foffset %i size %i type %i flags %i\n", 
+                elf_get_string_at(image, sehentry->name_offset),
+                sehentry->offset,
+                sehentry->size,
+                sehentry->type,
+                sehentry->flags);
+    }
+}

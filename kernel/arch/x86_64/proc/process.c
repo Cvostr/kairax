@@ -36,15 +36,9 @@ int create_new_process_from_image(char* image)
         //Создаем объект процесса
         process_t* proc = create_new_process();
 
-        for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
-            elf_section_header_entry_t* sehentry = elf_get_section_entry(image, i);
-            /*printf("SEC: name %s foffset %i size %i type %i flags %i\n", 
-                elf_get_string_at(image, sehentry->name_offset),
-                sehentry->offset,
-                sehentry->size,
-                sehentry->type,
-                sehentry->flags);*/
-        }
+        elf_sections_ptr_t sections_ptrs;
+        elf_read_sections(image, &sections_ptrs);
+
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
             elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
             /*printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, type %i\n",

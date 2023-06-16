@@ -95,6 +95,31 @@ typedef struct PACKED {
     uint64_t    ent_size;
 } elf_section_header_entry_t;
 
+typedef struct {
+	uint32_t	    name;
+	unsigned char	info;
+	unsigned char	other;
+	uint16_t	    shndx;
+	uint64_t	    value;
+	uint64_t	    size;
+} elf_symbol_t;
+
+#define ELF_DT_NEEDED       1
+#define ELF_DT_PLTGOT       3
+#define ELF_DT_STRTAB       5
+#define ELF_DT_SYMTAB       6
+#define ELF_DT_RELA         7
+
+typedef struct PACKED {
+    int64_t tag;
+
+    union {
+        uint64_t val;
+        uint64_t addr;
+    } d_un;
+
+} elf_dynamic_t;
+
 int elf_check_signature(elf_header_t* elf_header);
 
 elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_index);
@@ -102,5 +127,15 @@ elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_
 elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_index);
 
 char* elf_get_string_at(char* image, uint32_t string_index);
+
+typedef struct PACKED {
+    elf_section_header_entry_t* dynamic_ptr;
+    elf_section_header_entry_t* dynsym_ptr;
+    elf_section_header_entry_t* dynstr_ptr;
+    elf_section_header_entry_t* rela_plt_ptr;
+    elf_section_header_entry_t* comment_ptr;
+} elf_sections_ptr_t;
+
+void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct);
 
 #endif
