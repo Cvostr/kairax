@@ -1,12 +1,13 @@
-#include "process.h"
 #include "memory/kernel_vmm.h"
 #include "mem/pmm.h"
 #include "mem/kheap.h"
 #include "string.h"
 #include "memory/mem_layout.h"
 #include "proc/elf64/elf64.h"
+#include "proc/process.h"
 #include "thread.h"
 #include "thread_scheduler.h"
+#include "fs/vfs/vfs.h"
 
 int last_pid = 0;
 
@@ -15,13 +16,12 @@ process_t*  create_new_process()
     process_t* process = (process_t*)kmalloc(sizeof(process_t));
     memset(process, 0, sizeof(process_t));
 
-    // Склонировать таблицу виртуальной памяти ядра
-    page_table_t* pml4 = vmm_clone_kernel_memory_map();
-
     process->name[0] = '\0';
-    process->pml4 = pml4;
+    // Склонировать таблицу виртуальной памяти ядра
+    process->vmemory_table = vmm_clone_kernel_memory_map();
     process->brk = 0x0;
     process->pid = last_pid++;
+    // Создать список потоков
     process->threads = create_list();
 
     return process;
@@ -51,9 +51,9 @@ int create_new_process_from_image(char* image)
             // Выделить память в виртуальной таблице процесса 
             process_alloc_memory(proc, pehentry->v_addr, pehentry->p_memsz, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
             // Заполнить выделенную память нулями
-            memset_vm(proc->pml4, pehentry->v_addr, 0, pehentry->p_memsz);
+            memset_vm(proc->vmemory_table, pehentry->v_addr, 0, pehentry->p_memsz);
             // Копировать фрагмент программы в память
-            copy_to_vm(proc->pml4, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+            copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
         }
 
         // Создание главного потока и передача выполнения
@@ -72,15 +72,15 @@ uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
     uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
     while((uint64_t)uaddr > process->brk) {
-        map_page_mem(process->pml4, process->brk, pmm_alloc_page(), flags);
+        map_page_mem(process->vmemory_table, process->brk, pmm_alloc_page(), flags);
         process->brk += PAGE_SIZE;
     }
 
     //До тех пор, пока адрес конца памяти процесса больше, освобождаем страницы
     while((uint64_t)uaddr < process->brk) {
         uintptr_t virtual_page_start = process->brk - PAGE_SIZE;
-        physical_addr_t phys_addr = get_physical_address(process->pml4, virtual_page_start);
-        unmap_page(process->pml4, virtual_page_start);
+        physical_addr_t phys_addr = get_physical_address(process->vmemory_table, virtual_page_start);
+        unmap_page(process->vmemory_table, virtual_page_start);
         pmm_free_page(phys_addr);
         process->brk -= PAGE_SIZE;
     }
@@ -99,9 +99,34 @@ int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, ui
     uintptr_t size_aligned = size + (PAGE_SIZE - (size % PAGE_SIZE)); //выравнивание в большую сторону
 
     for (uintptr_t page_i = start_aligned; page_i < start_aligned + size_aligned; page_i += PAGE_SIZE) {
-        map_page_mem(process->pml4, page_i, pmm_alloc_page(), flags);
+        map_page_mem(process->vmemory_table, page_i, pmm_alloc_page(), flags);
 
         if (page_i > process->brk)
             process->brk = page_i + PAGE_SIZE;
     }
+}
+
+int process_open_file(process_t* process, const char* path, int mode, int flags)
+{
+    vfs_inode_t* inode = vfs_fopen(path, 0);
+    //atomic_inc(&inode->reference_count);
+    
+    // Создать новый дескриптор файла
+    file_t* file = kmalloc(sizeof(file_t));
+    file->inode = file;
+    file->mode = mode;
+    file->flags = flags;
+    file->pos = 0;
+
+    for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
+        if (process->fds[i] == NULL) {
+            process->fds[i] = file;
+            return i;
+        }
+    }
+
+    // Не получилось привязать дескриптор к процессу
+    kfree(file);
+
+    return -1;
 }

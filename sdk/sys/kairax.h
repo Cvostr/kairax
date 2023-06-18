@@ -12,4 +12,8 @@ extern void syscall_sleep(unsigned long long times);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
 int syscall_set_working_dir(const char* path);
 
+#define FILE_OPEN_MODE_READ_ONLY    1
+#define FILE_OPEN_MODE_WRITE_ONLY   2
+#define FILE_OPEN_MODE_READ_WRITE   3
+
 #endif

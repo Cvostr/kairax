@@ -36,6 +36,17 @@ void syscall_handle(syscall_frame_t* frame) {
             printf("%s", mem);
             break;
 
+        case 0x0: // Чтение файла
+            
+            break;
+
+        case 0x2: // Открытие файла
+            frame->rax = process_open_file(current_process, 
+               (char*)frame->rdi,
+               frame->rsi,
+               frame->rdx);
+            break;
+
         case 0x18:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
             cpu_yield();

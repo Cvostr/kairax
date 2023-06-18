@@ -1,7 +1,7 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 
-#include "memory/paging.h"
+//#include "memory/paging.h"
 #include "list/list.h"
 #include "fs/vfs/file.h"
 
@@ -18,7 +18,7 @@ typedef struct PACKED {
     // Путь к текущей рабочей папке
     char            cur_dir[MAX_PATH_LEN];
     // Таблица виртуальной памяти процесса
-    page_table_t*   pml4;  
+    void*           vmemory_table;  
     // Связный список потоков
     list_t*         threads;  
     // Указатели на открытые файловые дескрипторы
@@ -36,5 +36,7 @@ uintptr_t        process_brk_flags(process_t* process, void* addr, uint64_t flag
 uintptr_t        process_brk(process_t* process, void* addr);
 
 int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, uint64_t flags);
+
+int process_open_file(process_t* process, const char* path, int mode, int flags);
 
 #endif

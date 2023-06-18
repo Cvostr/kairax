@@ -22,11 +22,18 @@ char* itoa(long long number, int base){
 
 }
 
+char buff[120];
+
 int main() {
 
     printf("PID: ");
     int counter = 0;
     printf(itoa(syscall_process_get_id(), 10));
+
+	int fd = syscall_open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
+	int rc = syscall_read(fd, buff, 119);
+	buff[119] = '\0';
+	printf(buff);
 
     int iterations = 0;
 

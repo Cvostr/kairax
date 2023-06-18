@@ -5,6 +5,7 @@
 *.ob
 *.sl
 *.a
+*.so
 *.nex
 kernel/bin
 /.vs

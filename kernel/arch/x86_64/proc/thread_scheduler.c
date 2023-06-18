@@ -76,7 +76,7 @@ void* scheduler_handler(thread_frame_t* frame)
             curr_thread = 0;
 
         // Заменить таблицу виртуальной памяти процесса
-        switch_pml4(V2P(process->pml4));
+        switch_pml4(V2P(process->vmemory_table));
     }
 
     if (is_from_interrupt)

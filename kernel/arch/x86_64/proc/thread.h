@@ -2,7 +2,7 @@
 #define _THREAD_H
 
 #include "types.h"
-#include "process.h"
+#include "proc/process.h"
 
 #include "interrupts/handle/handler.h"
 

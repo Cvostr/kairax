@@ -26,7 +26,7 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = process_brk(process, process->brk + STACK_SIZE);
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
-    physical_addr_t stack_phys_addr = get_physical_address(process->pml4, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
+    physical_addr_t stack_phys_addr = get_physical_address(process->vmemory_table, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
     thread->stack_ptr = P2V(stack_phys_addr + PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
@@ -67,7 +67,7 @@ thread_t* create_thread(process_t* process, uintptr_t entry)
     thread->kernel_stack_ptr = process_brk(process, process->brk + STACK_SIZE);
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
     physical_addr_t kernel_stack_phys = 
-        get_physical_address(process->pml4, (uintptr_t)thread->kernel_stack_ptr - PAGE_SIZE);
+        get_physical_address(process->vmemory_table, (uintptr_t)thread->kernel_stack_ptr - PAGE_SIZE);
     thread->kernel_stack_ptr = P2V(kernel_stack_phys + PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);

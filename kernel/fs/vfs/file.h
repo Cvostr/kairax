@@ -72,7 +72,7 @@ typedef struct PACKED {
     uint32_t    hard_links;
 
     void*       fs_d;       // Указатель на данные драйвера
-    atomic_t    reference_counter;
+    atomic_t    reference_count;
 
     uint64_t    create_time;
     uint64_t    access_time;
