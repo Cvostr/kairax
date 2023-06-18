@@ -16,6 +16,7 @@ typedef int int32;
 typedef char int8;
 typedef short int16;
 typedef long long int64;
+typedef long long int64_t;
 
 typedef unsigned long long uintptr_t; //64-bit system pointer
 

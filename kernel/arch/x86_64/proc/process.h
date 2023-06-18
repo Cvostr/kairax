@@ -3,20 +3,27 @@
 
 #include "memory/paging.h"
 #include "list/list.h"
+#include "fs/vfs/file.h"
 
-#define MAX_CUR_DIR_LEN 256
+#define MAX_CUR_DIR_LEN     256
+#define MAX_DESCRIPTORS     48
 
 typedef struct PACKED {
-    char    name[30];
+    char            name[30];
+    // ID процесса
+    uint64_t        pid;
+    // Адрес конца адресного пространства процесса
+    uint64_t        brk;
 
-    uint64_t pid;
-    uint64_t brk;
-
-    uint32_t state;
-    char cur_dir[MAX_CUR_DIR_LEN];
-
+    uint32_t        state;
+    // Путь к текущей рабочей папке
+    char            cur_dir[MAX_CUR_DIR_LEN];
+    // Таблица виртуальной памяти процесса
     page_table_t*   pml4;  
+    // Связный список потоков
     list_t*         threads;  
+    // Указатели на открытые файловые дескрипторы
+    file_t*         fds[MAX_DESCRIPTORS];
 } process_t;
 
 //Создать новый пустой процесс

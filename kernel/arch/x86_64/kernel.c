@@ -26,6 +26,7 @@
 
 #include "fs/vfs/vfs.h"
 #include "fs/ext2/ext2.h"
+#include "fs/devfs/devfs.h"
 
 #include "misc/bootshell/bootshell.h"
 #include "cpu/gdt.h"
@@ -116,6 +117,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	vfs_init();
 	ext2_init();
+	devfs_init();
 	ahci_init();	
 	init_nvme();
 	cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);

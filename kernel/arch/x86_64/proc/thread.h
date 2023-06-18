@@ -52,13 +52,17 @@ typedef struct PACKED {
 
 typedef struct PACKED {
     char            name[32];
+    // ID потока
     uint64_t        thread_id;
+    // Адрес вершины стека пользователя
     void*           stack_ptr;
+    // Адрес вершины стека ядра
     void*           kernel_stack_ptr;
     int             state;
+    // Указатель на объект процесса
     process_t*      process;
     thread_frame_t  context;
-    int is_userspace;
+    int             is_userspace;
 } thread_t;
 
 thread_t* new_thread(process_t* process);

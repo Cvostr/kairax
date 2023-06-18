@@ -14,6 +14,16 @@ printf:
     syscall
     ret
 
+syscall_read:
+    mov rax, 0x0
+    syscall
+    ret
+
+syscall_open_file:
+    mov rax, 0x02
+    syscall
+    ret
+
 syscall_process_get_id:
     mov rax, 0x27
     syscall

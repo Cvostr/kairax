@@ -2,6 +2,7 @@
 #define _FILE_H
 
 #include "stdint.h"
+#include "sync/spinlock.h"
 #define MAX_NODE_NAME_LEN 256
 
 struct vfs_inode;
@@ -57,6 +58,7 @@ typedef struct inode_operations {
 #define VFS_FLAG_SYMLINK     0x20
 #define VFS_FLAG_MOUNTPOINT  0x40
 
+// Представление объекта со стороны файловой системы
 typedef struct vfs_inode {
     char        name[256];
     uint32_t    flags;
@@ -76,5 +78,21 @@ typedef struct vfs_inode {
 
     inode_operations_t operations;
 } vfs_inode_t;
+
+typedef size_t loff_t;
+
+#define FILE_OPEN_MODE_READ_ONLY    1
+#define FILE_OPEN_MODE_WRITE_ONLY   2
+#define FILE_OPEN_MODE_READ_WRITE   3
+
+// Открытый файл
+typedef struct PACKED {
+    vfs_inode_t*    inode;
+    int             mode;
+    int             flags;
+    loff_t          pos;
+    void*           private_data;
+    spinlock_t      lock;
+} file_t;
 
 #endif

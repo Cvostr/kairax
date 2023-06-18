@@ -1,6 +1,6 @@
 extern void printf(char*);
-#include "sdk/kairax.h"
-#include "libc/string.h"
+#include "../sdk/sys/kairax.h"
+#include "../sdk/libc/string.h"
 
 #define BSS_LEN 10000
 

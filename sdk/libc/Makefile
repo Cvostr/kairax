@@ -6,6 +6,9 @@ all: libc
 libc: math.o stdlib.o string.o
 	ld -melf_x86_64 -shared -o libc.so math.o stdlib.o string.o
 
+clean:
+	rm -rf *.o libc.so
+
 stdlib.o: stdlib.c
 	$(COMPILER) $(ARGS) stdlib.c -o stdlib.o
 

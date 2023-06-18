@@ -46,6 +46,11 @@ int vfs_get_free_mount_info_pos()
 
 int vfs_mount(char* mount_path, drive_partition_t* partition)
 {
+    return vfs_mount_fs(mount_path, partition, "ext2"); //Захардкожено!!!
+}
+
+int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
+{
     if(vfs_get_mounted_partition(mount_path) != NULL){
         return -1;  //Данный путь уже используется
     }
@@ -55,7 +60,7 @@ int vfs_mount(char* mount_path, drive_partition_t* partition)
 
     vfs_mount_info_t* mount_info = new_vfs_mount_info();
     mount_info->partition = partition;
-    mount_info->filesystem = filesystem_get_by_name("ext2"); //Захардкожено!!!
+    mount_info->filesystem = filesystem_get_by_name(fsname); 
     strcpy(mount_info->mount_path, mount_path);
     //вызов функции монтирования, если она определена
     if(mount_info->filesystem->mount)

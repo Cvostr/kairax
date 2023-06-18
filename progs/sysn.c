@@ -1,5 +1,5 @@
 extern void printf(char*);
-#include "sdk/kairax.h"
+#include "../sdk/sys/kairax.h"
 
 
 static char destination[32] = {0};

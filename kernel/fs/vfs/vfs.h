@@ -5,9 +5,11 @@
 #include "drivers/storage/partitions/storage_partitions.h"
 #include "filesystems.h"
 
+#define MOUNT_PATH_MAX_LEN 256
+
 typedef struct PACKED {
     drive_partition_t*          partition;
-    char                        mount_path[128];
+    char                        mount_path[MOUNT_PATH_MAX_LEN];
     filesystem_t*               filesystem;
     vfs_inode_t*                root_node;
 } vfs_mount_info_t;
@@ -19,6 +21,8 @@ dirent_t* new_vfs_dirent();
 void vfs_init();
 
 int vfs_mount(char* mount_path, drive_partition_t* partition);
+
+int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname);
 
 int vfs_unmount(char* mount_path);
 
