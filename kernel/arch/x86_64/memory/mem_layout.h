@@ -11,7 +11,7 @@
 #define KHEAP_MAP_OFFSET        (0xffffc90000000000)
 #define KHEAP_SIZE              512ULL * 1024 * 1024		     //128MB памяти кучи ядра
 
-#include "stdint.h"
+#include "types.h"
 
 #define K2P(a) (void*)((uintptr_t)(a) & ~KERNEL_TEXT_OFFSET)
 #define P2K(a) (void*)((uintptr_t)(a) | KERNEL_TEXT_OFFSET)

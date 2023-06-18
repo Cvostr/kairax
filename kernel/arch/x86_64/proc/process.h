@@ -5,7 +5,6 @@
 #include "list/list.h"
 #include "fs/vfs/file.h"
 
-#define MAX_CUR_DIR_LEN     256
 #define MAX_DESCRIPTORS     48
 
 typedef struct PACKED {
@@ -17,7 +16,7 @@ typedef struct PACKED {
 
     uint32_t        state;
     // Путь к текущей рабочей папке
-    char            cur_dir[MAX_CUR_DIR_LEN];
+    char            cur_dir[MAX_PATH_LEN];
     // Таблица виртуальной памяти процесса
     page_table_t*   pml4;  
     // Связный список потоков

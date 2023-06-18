@@ -1,7 +1,7 @@
 #ifndef GDT_H
 #define GDT_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define GDT_BASE_KERNEL_CODE_SEG    0x8
 #define GDT_BASE_KERNEL_DATA_SEG    0x10

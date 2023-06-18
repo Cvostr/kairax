@@ -1,7 +1,7 @@
 #ifndef _MBR_H
 #define _MBR_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define MBR_PARTITION_TYPE_NULL 0x00
 #define MBR_PARTITION_TYPE_GPT 0xEE

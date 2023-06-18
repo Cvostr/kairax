@@ -1,7 +1,7 @@
 #ifndef _ELF64_H
 #define _ELF64_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define ELF_BITS_32         1
 #define ELF_BITS_64         2

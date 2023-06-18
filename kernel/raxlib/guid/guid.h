@@ -1,7 +1,7 @@
 #ifndef _GUID_H
 #define _GUID_H
 
-#include "stdint.h"
+#include "types.h"
 
 typedef struct PACKED {
     uint32_t    d1;

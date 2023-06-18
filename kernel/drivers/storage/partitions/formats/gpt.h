@@ -1,7 +1,7 @@
 #ifndef _GPT_H
 #define _GPT_H
 
-#include "stdint.h"
+#include "types.h"
 #include "raxlib/guid/guid.h"
 
 #define GPT_BLOCK_SIZE      512

@@ -1,5 +1,5 @@
 #include "stdlib.h"
-#include "stdint.h"
+#include "types.h"
 #include "string.h"
 
 void reverse(char *str){

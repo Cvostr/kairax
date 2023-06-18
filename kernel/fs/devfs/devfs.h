@@ -1,7 +1,7 @@
 #ifndef _DEVFS_H
 #define _DEVFS_H
 
-#include "stdint.h"
+#include "types.h"
 #include "../vfs/vfs.h"
 #include "../vfs/file.h"
 

@@ -1,7 +1,7 @@
 #ifndef _CMOS_H
 #define _CMOS_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define CMOS_ADDRESS 0x70
 #define CMOS_DATA 0x71

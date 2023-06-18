@@ -1,7 +1,7 @@
 #ifndef _ACPI_TABLES_H
 #define _ACPI_TABLES_H
 
-#include "stdint.h"
+#include "types.h"
 
 typedef struct PACKED
 {

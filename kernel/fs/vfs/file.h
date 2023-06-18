@@ -1,9 +1,11 @@
 #ifndef _FILE_H
 #define _FILE_H
 
-#include "stdint.h"
+#include "types.h"
 #include "sync/spinlock.h"
-#define MAX_NODE_NAME_LEN 256
+#include "atomic.h"
+
+#define MAX_PATH_LEN 512
 
 struct vfs_inode;
 
@@ -22,7 +24,7 @@ typedef struct PACKED {
     uint64_t    offset;
     uint16_t    reclen;
     uint8_t     type;
-    char        name[256];
+    char        name[MAX_PATH_LEN];
 } dirent_t;
 
 typedef void      (*open_type_t)(struct vfs_inode*, uint32_t);
@@ -59,8 +61,8 @@ typedef struct inode_operations {
 #define VFS_FLAG_MOUNTPOINT  0x40
 
 // Представление объекта со стороны файловой системы
-typedef struct vfs_inode {
-    char        name[256];
+typedef struct PACKED {
+    char        name[MAX_PATH_LEN];
     uint32_t    flags;
     uint32_t    mask;       //Разрешения
     uint32_t    uid;        // Идентификатор пользователя, владеющего файлом
@@ -70,13 +72,15 @@ typedef struct vfs_inode {
     uint32_t    hard_links;
 
     void*       fs_d;       // Указатель на данные драйвера
-    uint32_t    refs;
+    atomic_t    reference_counter;
 
     uint64_t    create_time;
     uint64_t    access_time;
     uint64_t    modify_time;
 
     inode_operations_t operations;
+
+    spinlock_t      spinlock;
 } vfs_inode_t;
 
 typedef size_t loff_t;
@@ -92,7 +96,7 @@ typedef struct PACKED {
     int             flags;
     loff_t          pos;
     void*           private_data;
-    spinlock_t      lock;
+    spinlock_t      spinlock;
 } file_t;
 
 #endif

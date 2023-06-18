@@ -1,6 +1,10 @@
 #ifndef STDINT_H
 #define STDINT_H
 
+#define PACKED __attribute__((packed))
+
+#include "stddef.h"
+
 typedef unsigned int uint;
 typedef unsigned int uint32;
 typedef unsigned long long uint64;
@@ -18,9 +22,16 @@ typedef short int16;
 typedef long long int64;
 typedef long long int64_t;
 
-typedef unsigned long long uintptr_t; //64-bit system pointer
+typedef unsigned long long uintptr_t;
+typedef unsigned long long size_t;
 
-#include "stddef.h"
+typedef struct {
+	int counter;
+} atomic_t;
+
+typedef struct {
+	long counter;
+} atomic_long_t;
 
 #define INT_MIN -2147483647 - 1
 #define INT_MAX 2147483647

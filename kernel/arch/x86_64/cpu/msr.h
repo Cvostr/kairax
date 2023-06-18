@@ -1,7 +1,7 @@
 #ifndef MSR_H
 #define MSR_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define MSR_EFER        0xC0000080
 #define MSR_APIC_BASE   0x1B

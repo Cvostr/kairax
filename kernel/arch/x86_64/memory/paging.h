@@ -1,7 +1,7 @@
 #ifndef _PAGING_H
 #define _PAGING_H
 
-#include "stdint.h"
+#include "types.h"
 #include "mem_layout.h"
 
 #define PAGE_PRESENT 		    0x1

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stdint.h"
+#include "types.h"
 
 typedef struct PACKED {
   uint32_t type;

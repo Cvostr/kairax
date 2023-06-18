@@ -1,7 +1,7 @@
 #ifndef _CHARACTER_DEVICES_H
 #define _CHARACTER_DEVICES_H
 
-#include "stdint.h"
+#include "types.h"
 #include "fs/vfs/file.h"
 
 #define CHAR_DEVICE_NAME_MAX_LEN     32

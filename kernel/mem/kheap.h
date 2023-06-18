@@ -1,7 +1,7 @@
 #ifndef _KHEAP_H
 #define _KHEAP_H
 
-#include "stdint.h"
+#include "types.h"
 #include "memory/paging.h"
 
 struct kheap_item

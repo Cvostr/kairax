@@ -1,7 +1,7 @@
 #ifndef _DEVICES_H
 #define _DEVICES_H
 
-#include "stdint.h"
+#include "types.h"
 
 typedef uint64_t    drive_ident_t;
 

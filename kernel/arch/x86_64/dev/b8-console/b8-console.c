@@ -1,6 +1,6 @@
 #include "memory/mem_layout.h"
 #include "b8-console.h"
-#include "stdint.h"
+#include "types.h"
 #include "string.h"
 #include "io.h"
 

@@ -1,7 +1,7 @@
 #ifndef _PCI_H
 #define _PCI_H
 
-#include "stdint.h"
+#include "types.h"
 
 typedef struct PACKED {
 	uintptr_t 		address;

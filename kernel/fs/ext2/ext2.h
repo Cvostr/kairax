@@ -1,7 +1,7 @@
 #ifndef _EXT2_H
 #define _EXT2_H
 
-#include "stdint.h"
+#include "types.h"
 #include "../vfs/vfs.h"
 #include "../vfs/file.h"
 

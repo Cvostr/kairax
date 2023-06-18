@@ -1,7 +1,7 @@
 #ifndef _IDT_H
 #define _IDT_H
 
-#include "stdint.h"
+#include "types.h"
 
 typedef struct PACKED {
 	uint16_t	isr_0_16;      // первые 16 бит адреса ISR

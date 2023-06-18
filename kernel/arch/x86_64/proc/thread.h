@@ -1,7 +1,7 @@
 #ifndef _THREAD_H
 #define _THREAD_H
 
-#include "stdint.h"
+#include "types.h"
 #include "process.h"
 
 #include "interrupts/handle/handler.h"

@@ -1,7 +1,7 @@
 #ifndef _AHCI_DEFINES_H
 #define _AHCI_DEFINES_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define AHCI_DEV_NULL 0
 #define AHCI_DEV_SATA 1

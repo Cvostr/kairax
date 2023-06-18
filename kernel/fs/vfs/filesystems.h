@@ -1,13 +1,9 @@
 #ifndef _FILESYSTEMS_H
 #define _FILESYSTEMS_H
 
-#include "stdint.h"
+#include "types.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 #include "file.h"
-
-typedef struct PACKED {
-    
-} superblock_operations_t;
 
 typedef struct PACKED {
     const char*         name;
