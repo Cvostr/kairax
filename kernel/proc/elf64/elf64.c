@@ -48,11 +48,11 @@ void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct)
             sections_struct->comment_ptr = sehentry;
         } 
 
-        printf("SEC: name %s foffset %i size %i type %i flags %i\n", 
+        /*printf("SEC: name %s foffset %i size %i type %i flags %i\n", 
                 elf_get_string_at(image, sehentry->name_offset),
                 sehentry->offset,
                 sehentry->size,
                 sehentry->type,
-                sehentry->flags);
+                sehentry->flags);*/
     }
 }

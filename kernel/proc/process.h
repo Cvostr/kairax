@@ -1,7 +1,6 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 
-//#include "memory/paging.h"
 #include "list/list.h"
 #include "fs/vfs/file.h"
 
@@ -23,6 +22,8 @@ typedef struct PACKED {
     list_t*         threads;  
     // Указатели на открытые файловые дескрипторы
     file_t*         fds[MAX_DESCRIPTORS];
+
+    spinlock_t      fd_spinlock;
 } process_t;
 
 //Создать новый пустой процесс
@@ -38,5 +39,7 @@ uintptr_t        process_brk(process_t* process, void* addr);
 int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
 int process_open_file(process_t* process, const char* path, int mode, int flags);
+
+size_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
 
 #endif

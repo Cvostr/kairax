@@ -25,6 +25,8 @@ void vfs_init()
 {
     vfs_mounts = (vfs_mount_info_t**)kmalloc(sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
     memset(vfs_mounts, 0, sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
+
+    init_vfs_holder();
 }
 
 vfs_mount_info_t* new_vfs_mount_info()
@@ -204,6 +206,12 @@ void vfs_close(vfs_inode_t* node)
 
 vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
 {
+    vfs_inode_t* inode = vfs_get_inode_by_path(path);
+    if (inode != NULL) {
+        atomic_inc(&inode->reference_count);
+        return inode;
+    }
+
     int offset = 0;
     // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
     vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);
@@ -217,9 +225,10 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)
     {
-        vfs_inode_t* root_node_copy = new_vfs_inode();
-        memcpy(root_node_copy, mount_info->root_node, sizeof(vfs_inode_t));
-        return root_node_copy;
+        inode = new_vfs_inode();
+        memcpy(inode, mount_info->root_node, sizeof(vfs_inode_t));
+        atomic_inc(&inode->reference_count);
+        return inode;
     }
 
     //Временный буфер
@@ -231,33 +240,41 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
         int is_dir = 0;
         // Позиция / относительно начала
         char* slash_pos = strchr(fs_path, '/');
-        if(slash_pos != NULL){ //Это директория
+
+        if (slash_pos != NULL) { //Это директория
             len = slash_pos - fs_path;
             is_dir = 1;
-        }else 
+        } else 
             len = strlen(fs_path);
+
         strncpy(temp, fs_path, len);
 
         vfs_inode_t* next = vfs_finddir(curr_node, temp);
-        if(is_dir == 1){
-            if(next != NULL){
+        if(is_dir == 1) {
+            if(next != NULL) {
+                // Освободить память текущей ноды
                 if(curr_node != mount_info->root_node)
                     kfree(curr_node);
+
+                // Заменить указатель
                 curr_node = next;
             }else {
                 kfree(temp);
                 return NULL;
             }
         } else {
-            if(next != NULL){
+            if(next != NULL) {
                 //Открыть найденый файл
                 vfs_open(next, flags);
             }
+            
             if(curr_node != mount_info->root_node)
                 kfree(curr_node);
+
             kfree(temp);
             return next;
         }
+        
         fs_path += len + 1;
     }
 }

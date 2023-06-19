@@ -37,7 +37,7 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x0: // Чтение файла
-            
+            frame->rax = process_read_file(current_process, frame->rdi, (char*)frame->rsi, frame->rdx);
             break;
 
         case 0x2: // Открытие файла

@@ -108,25 +108,47 @@ int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, ui
 
 int process_open_file(process_t* process, const char* path, int mode, int flags)
 {
+    int fd = -1;
     vfs_inode_t* inode = vfs_fopen(path, 0);
-    //atomic_inc(&inode->reference_count);
-    
+
     // Создать новый дескриптор файла
     file_t* file = kmalloc(sizeof(file_t));
-    file->inode = file;
+    file->inode = inode;
     file->mode = mode;
     file->flags = flags;
     file->pos = 0;
 
+    // Найти свободный номер дескриптора для процесса
+    acquire_spinlock(&process->fd_spinlock);
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
             process->fds[i] = file;
-            return i;
+            fd = i;
+            goto exit;
         }
     }
 
-    // Не получилось привязать дескриптор к процессу
+    // Не получилось привязать дескриптор к процессу, освободить память под file
     kfree(file);
 
-    return -1;
+exit:
+    release_spinlock(&process->fd_spinlock);
+    return fd;
+}
+
+size_t process_read_file(process_t* process, int fd, char* buffer, size_t size)
+{
+    size_t bytes_read = 0;
+    acquire_spinlock(&process->fd_spinlock);
+
+    file_t* file = process->fds[fd];
+    if (file->mode & FILE_OPEN_MODE_READ_ONLY) {
+        vfs_inode_t* inode = file->inode;
+        bytes_read = vfs_read(inode, file->pos, size, buffer);
+        file->pos += bytes_read; 
+    }
+
+    release_spinlock(&process->fd_spinlock);
+
+    return bytes_read;
 }

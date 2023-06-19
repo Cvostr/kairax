@@ -7,6 +7,8 @@
 
 #define EXT2_DIRECT_BLOCKS 12
 
+#define EXT2_FEATURE_64BIT_FILE_SIZE 0x0002
+
 typedef struct PACKED {
     uint32_t total_inodes;
     uint32_t total_blocks;
@@ -37,7 +39,7 @@ typedef struct PACKED {
 
     uint16_t r_userid;
     uint16_t r_groupid;
-    //НЕ ДЛЯ EXT2
+    //Расширенная часть для версии >= 1
     uint32_t first_inode;
     uint16_t inode_size;
     uint16_t superblock_group;
@@ -113,6 +115,8 @@ typedef struct PACKED {
     uint64_t            total_groups;
 
     uint64_t            bgds_blocks;
+
+    int                 file_size_64bit_flag;
 } ext2_instance_t;
 
 #define EXT2_INODE_SOCK   0xC000
@@ -122,7 +126,6 @@ typedef struct PACKED {
 #define EXT2_INODE_DIR    0x4000
 #define EXT2_INODE_CHR    0x2000
 #define EXT2_INODE_FIFO    0x1000
-
 
 void ext2_init();
 

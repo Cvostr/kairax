@@ -8,6 +8,8 @@ global syscall_get_working_dir
 global syscall_process_exit
 global syscall_sleep
 global syscall_scheduler_yield
+global syscall_read
+global syscall_open_file
 
 printf:
     mov rax, 1

@@ -85,9 +85,9 @@ typedef struct PACKED {
 
 typedef size_t loff_t;
 
-#define FILE_OPEN_MODE_READ_ONLY    1
-#define FILE_OPEN_MODE_WRITE_ONLY   2
-#define FILE_OPEN_MODE_READ_WRITE   3
+#define FILE_OPEN_MODE_READ_ONLY    0b01
+#define FILE_OPEN_MODE_WRITE_ONLY   0b10
+#define FILE_OPEN_MODE_READ_WRITE   0b11
 
 // Открытый файл
 typedef struct PACKED {

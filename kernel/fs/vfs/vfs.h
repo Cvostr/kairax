@@ -48,4 +48,14 @@ void vfs_close(vfs_inode_t* node);
 
 vfs_inode_t* vfs_fopen(const char* path, uint32_t flags);
 
+// Функции holder
+
+void init_vfs_holder();
+
+vfs_inode_t* vfs_get_inode_by_path(const char* path);
+
+void vfs_hold_inode(vfs_inode_t* inode);
+
+void vfs_unhold_inode(vfs_inode_t* inode);
+
 #endif
