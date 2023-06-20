@@ -136,6 +136,20 @@ exit:
     return fd;
 }
 
+int process_close_file(process_t* process, int fd)
+{
+    acquire_spinlock(&process->fd_spinlock);
+    file_t* file = process->fds[fd];
+    if (file != NULL) {
+        vfs_close(file->inode);
+        kfree(file);
+        process->fds[fd];
+    }
+
+    release_spinlock(&process->fd_spinlock);
+    return 0;
+}
+
 size_t process_read_file(process_t* process, int fd, char* buffer, size_t size)
 {
     size_t bytes_read = 0;

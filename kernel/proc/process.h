@@ -40,6 +40,8 @@ int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, ui
 
 int process_open_file(process_t* process, const char* path, int mode, int flags);
 
+int process_close_file(process_t* process, int fd);
+
 size_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
 
 #endif

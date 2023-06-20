@@ -34,6 +34,7 @@ int main() {
 	int rc = syscall_read(fd, buff, 119);
 	buff[119] = '\0';
 	printf(buff);
+	syscall_close(fd);
 
     int iterations = 0;
 

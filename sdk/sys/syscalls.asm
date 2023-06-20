@@ -10,6 +10,7 @@ global syscall_sleep
 global syscall_scheduler_yield
 global syscall_read
 global syscall_open_file
+global syscall_close
 
 printf:
     mov rax, 1
@@ -23,6 +24,11 @@ syscall_read:
 
 syscall_open_file:
     mov rax, 0x02
+    syscall
+    ret
+
+syscall_close:
+    mov rax, 0x03
     syscall
     ret
 

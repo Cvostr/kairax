@@ -202,6 +202,11 @@ void vfs_close(vfs_inode_t* node)
     if(node)
         if(node->operations.close)
             node->operations.close(node);
+
+    if (atomic_dec_and_test(&node->reference_count)) {
+        vfs_unhold_inode(node);
+        kfree(node);
+    }
 }
 
 vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
@@ -265,6 +270,7 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
         } else {
             if(next != NULL) {
                 //Открыть найденый файл
+                atomic_inc(&next->reference_count);
                 vfs_open(next, flags);
             }
             

@@ -47,6 +47,11 @@ void syscall_handle(syscall_frame_t* frame) {
                frame->rdx);
             break;
 
+        case 0x3: // Закрытие файла
+            frame->rax = process_close_file(current_process, 
+               frame->rdi);
+            break;
+
         case 0x18:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
             cpu_yield();
