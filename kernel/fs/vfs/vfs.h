@@ -16,7 +16,7 @@ typedef struct PACKED {
 
 vfs_inode_t* new_vfs_inode();
 
-dirent_t* new_vfs_dirent();
+dirent_t* new_vfs_dirent(size_t name_len);
 
 void vfs_init();
 

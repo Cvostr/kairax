@@ -136,7 +136,7 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive)
     result->inode = 2;              //2 - стандартный индекс корневой иноды
     result->mask = ext2_inode_root->permission;
     result->fs_d = instance;        //Сохранение указателя на информацию о файловой системе
-    result->flags = VFS_FLAG_DIRECTORY;
+    result->flags = INODE_FLAG_DIRECTORY;
 
     result->create_time = ext2_inode_root->ctime;
     result->access_time = ext2_inode_root->atime;
@@ -204,6 +204,17 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
     kfree(buffer);
 }
 
+dirent_t* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
+{
+    dirent_t* result = new_vfs_dirent(ext2_dirent->name_len);
+    result->inode = ext2_dirent->inode;
+    result->reclen = ext2_dirent->name_len;
+    result->type = ext2_dirent->type;
+    strncpy(result->name, ext2_dirent->name, ext2_dirent->name_len);
+
+    return result;
+}
+
 vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent)
 {
     vfs_inode_t* result = new_vfs_inode();
@@ -230,22 +241,22 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
             result->size = (uint64_t)inode->size_high << 32 | result->size;
         }
 
-        result->flags |= VFS_FLAG_FILE;
+        result->flags |= INODE_FLAG_FILE;
         result->operations.read = ext2_read;
         result->operations.write = ext2_write;
     }
     if((inode->permission & EXT2_INODE_DIR) == EXT2_INODE_DIR){
-        result->flags |= VFS_FLAG_DIRECTORY;
+        result->flags |= INODE_FLAG_DIRECTORY;
         result->operations.mkdir = ext2_mkdir;
         result->operations.mkfile = ext2_mkfile;
         result->operations.finddir = ext2_finddir;
         result->operations.readdir = ext2_readdir;
     }
     if((inode->permission & EXT2_INODE_LINK) == EXT2_INODE_LINK){
-        result->flags |= VFS_FLAG_SYMLINK;
+        result->flags |= INODE_FLAG_SYMLINK;
     }
      if((inode->permission & EXT2_INODE_BLOCK) == EXT2_INODE_BLOCK){
-        result->flags |= VFS_FLAG_BLOCKDEVICE;
+        result->flags |= INODE_FLAG_BLOCKDEVICE;
     }
 
     return result;
@@ -336,6 +347,54 @@ vfs_inode_t* ext2_readdir(vfs_inode_t* dir, uint32_t index)
     kfree(parent_inode);
     kfree(buffer);
     return NULL;
+}
+
+dirent_t* ext2_readdir1(vfs_inode_t* dir, uint32_t index)
+{
+    dirent_t* result = NULL;
+    ext2_instance_t* inst = (ext2_instance_t*)dir->fs_d;
+    //Получить родительскую иноду
+    ext2_inode_t* parent_inode = new_ext2_inode();
+    ext2_inode(inst, parent_inode, dir->inode);
+    //Переменные
+    uint32_t curr_offset = 0;
+    uint32_t block_offset = 0;
+    uint32_t in_block_offset = 0;
+    uint32_t passed_entries = 0;
+    //Выделить временную память под буфер блоков
+    char* buffer = kmalloc(inst->block_size);
+    char* buffer_phys = kheap_get_phys_address(buffer);
+    //Прочитать начальный блок иноды
+    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+    //Проверка, не прочитан ли весь блок?
+    while (curr_offset < parent_inode->size) {
+        if (in_block_offset >= inst->block_size) {
+            block_offset++;
+            in_block_offset = 0;
+            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+        }
+
+        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
+
+        if(curr_entry->inode != 0) {
+            if(passed_entries == index) {
+                result = ext2_dirent_to_vfs_dirent(curr_entry);
+                goto exit;
+            }
+
+            passed_entries++;
+        }
+
+        in_block_offset += curr_entry->size;
+        curr_offset += curr_entry->size;
+    }
+
+exit:
+
+    kfree(parent_inode);
+    kfree(buffer);
+
+    return result;
 }
 
 vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name)

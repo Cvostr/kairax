@@ -14,10 +14,11 @@ vfs_inode_t* new_vfs_inode()
     return result;
 }
 
-dirent_t* new_vfs_dirent()
+dirent_t* new_vfs_dirent(size_t name_len)
 {
-    dirent_t* result = kmalloc(sizeof(dirent_t));
-    memset(result, 0, sizeof(dirent_t));
+    size_t reqd_size = sizeof(dirent_t) + name_len + 1;
+    dirent_t* result = kmalloc(reqd_size);
+    memset(result, 0, reqd_size);
     return result;
 }
 

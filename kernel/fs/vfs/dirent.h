@@ -16,7 +16,7 @@
 
 typedef struct PACKED {
     uint64_t    inode;      // номер inode
-    uint64_t    offset;
+    uint64_t    offset;     // Смещение блока на диске
     uint16_t    reclen;     // Длина имени
     uint8_t     type;       // Тип
     char        name[MAX_PATH_LEN];

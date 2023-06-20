@@ -145,9 +145,12 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive);
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf);
 
+// Получение inode по номеру
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
 vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent);
+
+dirent_t* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
 void ext2_open(vfs_inode_t* inode, uint32_t flags);
 
@@ -162,6 +165,8 @@ void ext2_chmod(vfs_inode_t * file, uint32_t mode);
 vfs_inode_t* ext2_finddir(vfs_inode_t* parent, char *name);
 
 vfs_inode_t* ext2_readdir(vfs_inode_t* dir, uint32_t index);
+
+dirent_t* ext2_readdir1(vfs_inode_t* dir, uint32_t index);
 
 uint32_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
 
