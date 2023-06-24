@@ -1,4 +1,5 @@
 #include "vfs.h"
+#include "file.h"
 #include "string.h"
 #include "filesystems.h"
 #include "mem/kheap.h"
@@ -163,7 +164,7 @@ vfs_mount_info_t** vfs_get_mounts()
     return vfs_mounts;
 }
 
-uint32_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
+ssize_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
 {
     if(file)
         if(file->operations.read)
@@ -177,7 +178,7 @@ vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name)
             return node->operations.finddir(node, name);
 }
 
-vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index)
+dirent_t* vfs_readdir(vfs_inode_t* node, uint32_t index)
 {
     if(node)
         if(node->operations.readdir)

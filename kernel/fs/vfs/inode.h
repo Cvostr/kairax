@@ -4,14 +4,15 @@
 #include "atomic.h"
 #include "types.h"
 #include "sync/spinlock.h"
+#include "dirent.h"
 
 struct vfs_inode;
 
 typedef void      (*open_type_t)(struct vfs_inode*, uint32_t);
 typedef void      (*close_type_t)(struct vfs_inode*);
-typedef uint32_t  (*read_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
-typedef uint32_t  (*write_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
-typedef struct vfs_inode* (*readdir_type_t)(struct vfs_inode*, uint32_t);
+typedef ssize_t  (*read_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
+typedef ssize_t  (*write_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
+typedef struct dirent_t* (*readdir_type_t)(struct vfs_inode*, uint32_t);
 typedef struct vfs_inode*  (*finddir_type_t)(struct vfs_inode*, char*); 
 
 typedef void      (*chmod_type_t)(struct vfs_inode*, uint32_t);
@@ -42,7 +43,6 @@ typedef struct inode_operations {
 
 // Представление объекта со стороны файловой системы
 typedef struct PACKED {
-    char        name[512];
     uint32_t    flags;
     uint32_t    mask;       //Разрешения
     uint32_t    uid;        // Идентификатор пользователя, владеющего файлом

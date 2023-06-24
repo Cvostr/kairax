@@ -14,7 +14,6 @@ void devfs_init()
 vfs_inode_t* devfs_mount(drive_partition_t* drive)
 {
     vfs_inode_t* result = new_vfs_inode();
-    strcpy(result->name, "/dev");
     result->inode = 2;              
     result->mask = 0;
     result->fs_d = 0;        

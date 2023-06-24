@@ -34,11 +34,11 @@ vfs_mount_info_t** vfs_get_mounts();
 
 //Функции файловой системы
 
-uint32_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
 
 vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name);
 
-vfs_inode_t* vfs_readdir(vfs_inode_t* node, uint32_t index);
+dirent_t* vfs_readdir(vfs_inode_t* node, uint32_t index);
 
 void vfs_chmod(vfs_inode_t* node, uint32_t mode);
 

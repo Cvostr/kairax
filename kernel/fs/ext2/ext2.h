@@ -164,13 +164,11 @@ void ext2_chmod(vfs_inode_t * file, uint32_t mode);
 
 vfs_inode_t* ext2_finddir(vfs_inode_t* parent, char *name);
 
-vfs_inode_t* ext2_readdir(vfs_inode_t* dir, uint32_t index);
+dirent_t* ext2_readdir(vfs_inode_t* dir, uint32_t index);
 
-dirent_t* ext2_readdir1(vfs_inode_t* dir, uint32_t index);
+ssize_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
 
-uint32_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
-
-uint32_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
 
 
 #endif

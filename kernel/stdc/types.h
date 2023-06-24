@@ -24,6 +24,7 @@ typedef long long int64_t;
 
 typedef unsigned long long uintptr_t;
 typedef unsigned long long size_t;
+typedef long long ssize_t;
 
 typedef struct {
 	int counter;

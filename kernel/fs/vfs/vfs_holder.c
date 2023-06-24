@@ -20,9 +20,9 @@ vfs_inode_t* vfs_get_inode_by_path(const char* path)
     for (int i = 0; i < MAX_HOLD_INODES; i ++) {
         vfs_inode_t* inode = hold_inodes[i];
         if(inode != NULL) {
-            if (strcmp(inode->name, path) == 0) {
-                return inode;
-            }
+           // if (strcmp(inode->name, path) == 0) {
+           //     return inode;
+           // }
         }
     }
 

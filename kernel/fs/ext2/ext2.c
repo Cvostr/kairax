@@ -132,7 +132,6 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive)
     instance->root_inode = ext2_inode_root;
     //Создать объект VFS корневой иноды файловой системы 
     vfs_inode_t* result = new_vfs_inode();
-    strcpy(result->name, "/");
     result->inode = 2;              //2 - стандартный индекс корневой иноды
     result->mask = ext2_inode_root->permission;
     result->fs_d = instance;        //Сохранение указателя на информацию о файловой системе
@@ -220,7 +219,6 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
     vfs_inode_t* result = new_vfs_inode();
     result->inode = dirent->inode;
     result->fs_d = inst;
-    strncpy(result->name, dirent->name, dirent->name_len);
     result->uid = inode->userid;
     result->gid = inode->gid;
     result->size = inode->size;
@@ -245,6 +243,7 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
         result->operations.read = ext2_read;
         result->operations.write = ext2_write;
     }
+
     if((inode->permission & EXT2_INODE_DIR) == EXT2_INODE_DIR){
         result->flags |= INODE_FLAG_DIRECTORY;
         result->operations.mkdir = ext2_mkdir;
@@ -270,7 +269,7 @@ void ext2_close(vfs_inode_t* inode){
     
 }
 
-uint32_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
+ssize_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
 {
     ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
     ext2_inode_t*    inode = new_ext2_inode();
@@ -280,7 +279,7 @@ uint32_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buff
     return size;
 }
 
-uint32_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer){
+ssize_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer){
     ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
@@ -301,55 +300,7 @@ void ext2_mkfile(vfs_inode_t* parent, char* file_name){
 
 }
 
-vfs_inode_t* ext2_readdir(vfs_inode_t* dir, uint32_t index)
-{
-    ext2_instance_t* inst = (ext2_instance_t*)dir->fs_d;
-    //Получить родительскую иноду
-    ext2_inode_t* parent_inode = new_ext2_inode();
-    ext2_inode(inst, parent_inode, dir->inode);
-    //Переменные
-    uint32_t curr_offset = 0;
-    uint32_t block_offset = 0;
-    uint32_t in_block_offset = 0;
-    uint32_t passed_entries = 0;
-    //Выделить временную память под буфер блоков
-    char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = kheap_get_phys_address(buffer);
-    //Прочитать начальный блок иноды
-    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
-    //Проверка, не прочитан ли весь блок?
-    while(curr_offset < parent_inode->size) {
-        if(in_block_offset >= inst->block_size) {
-            block_offset++;
-            in_block_offset = 0;
-            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
-        }
-
-        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
-        if(curr_entry->inode != 0) {
-            if(passed_entries == index){
-                ext2_inode_t* inode = new_ext2_inode();
-                ext2_inode(inst, inode, curr_entry->inode);
-                vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
-                kfree(buffer);
-                kfree(inode);
-                kfree(parent_inode);
-                return result;
-            }
-
-            passed_entries++;
-        }
-
-        in_block_offset += curr_entry->size;
-        curr_offset += curr_entry->size;
-    }
-
-    kfree(parent_inode);
-    kfree(buffer);
-    return NULL;
-}
-
-dirent_t* ext2_readdir1(vfs_inode_t* dir, uint32_t index)
+dirent_t* ext2_readdir(vfs_inode_t* dir, uint32_t index)
 {
     dirent_t* result = NULL;
     ext2_instance_t* inst = (ext2_instance_t*)dir->fs_d;
