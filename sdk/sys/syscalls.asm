@@ -11,6 +11,7 @@ global syscall_scheduler_yield
 global syscall_read
 global syscall_open_file
 global syscall_close
+global syscall_fdstat
 
 printf:
     mov rax, 1
@@ -29,6 +30,11 @@ syscall_open_file:
 
 syscall_close:
     mov rax, 0x03
+    syscall
+    ret
+
+syscall_fdstat:
+    mov rax, 0x05
     syscall
     ret
 

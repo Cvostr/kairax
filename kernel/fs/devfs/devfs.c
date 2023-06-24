@@ -15,9 +15,8 @@ vfs_inode_t* devfs_mount(drive_partition_t* drive)
 {
     vfs_inode_t* result = new_vfs_inode();
     result->inode = 2;              
-    result->mask = 0;
     result->fs_d = 0;        
-    result->flags = INODE_FLAG_DIRECTORY;
+    result->mode = INODE_TYPE_DIRECTORY;
 
     result->create_time = 0;
     result->access_time = 0;

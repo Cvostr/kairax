@@ -3,6 +3,7 @@
 
 #include "list/list.h"
 #include "fs/vfs/file.h"
+#include "fs/vfs/stat.h"
 
 #define MAX_DESCRIPTORS     48
 
@@ -43,5 +44,7 @@ int process_open_file(process_t* process, const char* path, int mode, int flags)
 int process_close_file(process_t* process, int fd);
 
 size_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
+
+int process_stat(process_t* process, int fd, struct stat* stat);
 
 #endif

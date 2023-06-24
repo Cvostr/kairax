@@ -33,23 +33,22 @@ typedef struct inode_operations {
     mkfile_type_t   mkfile;
 } inode_operations_t;
 
-#define INODE_FLAG_FILE        0x01
-#define INODE_FLAG_DIRECTORY   0x02
-#define INODE_FLAG_CHARDEVICE  0x04
-#define INODE_FLAG_BLOCKDEVICE 0x08
-#define INODE_FLAG_PIPE        0x10
-#define INODE_FLAG_SYMLINK     0x20
-#define INODE_FLAG_MOUNTPOINT  0x40
+#define INODE_TYPE_MASK        0xF000
+#define INODE_TYPE_FILE        0x8000
+#define INODE_TYPE_DIRECTORY   0x4000
+#define INODE_FLAG_CHARDEVICE  0x2000
+#define INODE_FLAG_BLOCKDEVICE 0x6000
+#define INODE_FLAG_PIPE        0x1000
+#define INODE_FLAG_SYMLINK     0xA000
 
 // Представление объекта со стороны файловой системы
 typedef struct PACKED {
-    uint32_t    flags;
-    uint32_t    mask;       //Разрешения
+    uint32_t    mode;       // Тип и разрешения
     uint32_t    uid;        // Идентификатор пользователя, владеющего файлом
     uint32_t    gid;        // Идентификатор группы
     uint64_t    inode;      // Номер узла в драйвере файловой системы
     uint64_t    size;       // Размер файла (байт)
-    uint32_t    hard_links;
+    uint32_t    hard_links; // количество ссылок
 
     void*       fs_d;       // Указатель на данные драйвера
     atomic_t    reference_count;

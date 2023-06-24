@@ -82,7 +82,7 @@ typedef struct PACKED {
 } ext2_direntry_t;
 
 typedef struct PACKED {
-    uint16_t permission;
+    uint16_t mode;
     uint16_t userid;
     uint32_t size;
     uint32_t atime;
@@ -118,14 +118,6 @@ typedef struct PACKED {
 
     int                 file_size_64bit_flag;
 } ext2_instance_t;
-
-#define EXT2_INODE_SOCK   0xC000
-#define EXT2_INODE_LINK    0xA000
-#define EXT2_INODE_FILE    0x8000
-#define EXT2_INODE_BLOCK    0x6000
-#define EXT2_INODE_DIR    0x4000
-#define EXT2_INODE_CHR    0x2000
-#define EXT2_INODE_FIFO    0x1000
 
 void ext2_init();
 

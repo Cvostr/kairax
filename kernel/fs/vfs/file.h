@@ -5,8 +5,6 @@
 #include "inode.h"
 #include "sync/spinlock.h"
 
-typedef size_t loff_t;
-
 #define FILE_OPEN_MODE_READ_ONLY    0b01
 #define FILE_OPEN_MODE_WRITE_ONLY   0b10
 #define FILE_OPEN_MODE_READ_WRITE   0b11

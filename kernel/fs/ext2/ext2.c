@@ -133,9 +133,8 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive)
     //Создать объект VFS корневой иноды файловой системы 
     vfs_inode_t* result = new_vfs_inode();
     result->inode = 2;              //2 - стандартный индекс корневой иноды
-    result->mask = ext2_inode_root->permission;
+    result->mode = ext2_inode_root->mode;
     result->fs_d = instance;        //Сохранение указателя на информацию о файловой системе
-    result->flags = INODE_FLAG_DIRECTORY;
 
     result->create_time = ext2_inode_root->ctime;
     result->access_time = ext2_inode_root->atime;
@@ -222,40 +221,37 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
     result->uid = inode->userid;
     result->gid = inode->gid;
     result->size = inode->size;
-    result->mask = inode->permission & 0xFFF;
+    result->mode = inode->mode;
     result->access_time = inode->atime;
     result->create_time = inode->ctime;
     result->modify_time = inode->mtime;
     result->hard_links = inode->hard_links;
-    result->flags = 0;
     result->operations.chmod = ext2_chmod;
     result->operations.open = ext2_open;
     result->operations.close = ext2_close;
 
-    if ((inode->permission & EXT2_INODE_FILE) == EXT2_INODE_FILE) {
+    if ((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_FILE) {
         
         if (inst->file_size_64bit_flag) {
             // Файловая система поддерживает 64-х битный размер файла, пересчитаем
             result->size = (uint64_t)inode->size_high << 32 | result->size;
         }
 
-        result->flags |= INODE_FLAG_FILE;
         result->operations.read = ext2_read;
         result->operations.write = ext2_write;
     }
 
-    if((inode->permission & EXT2_INODE_DIR) == EXT2_INODE_DIR){
-        result->flags |= INODE_FLAG_DIRECTORY;
+    if((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) {
         result->operations.mkdir = ext2_mkdir;
         result->operations.mkfile = ext2_mkfile;
         result->operations.finddir = ext2_finddir;
         result->operations.readdir = ext2_readdir;
     }
-    if((inode->permission & EXT2_INODE_LINK) == EXT2_INODE_LINK){
-        result->flags |= INODE_FLAG_SYMLINK;
+    if((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) {
+    
     }
-     if((inode->permission & EXT2_INODE_BLOCK) == EXT2_INODE_BLOCK){
-        result->flags |= INODE_FLAG_BLOCKDEVICE;
+    if((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_BLOCKDEVICE) {
+    
     }
 
     return result;

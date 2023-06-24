@@ -36,7 +36,7 @@ gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/b8-console/b8-console.c -o ./bin/b8-console.o
 
-gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process.o
+gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS $x64_SRC/proc/kernel_stack.c -o ./bin/kernel_stack.o
@@ -70,6 +70,10 @@ gcc $GCC_ARGS fs/ext2/ext2.c -o ./bin/ext2.o
 gcc $GCC_ARGS fs/vfs/vfs.c -o ./bin/vfs.o
 gcc $GCC_ARGS fs/vfs/vfs_holder.c -o ./bin/vfs_holder.o
 gcc $GCC_ARGS fs/vfs/filesystems.c -o ./bin/filesystems.o
+gcc $GCC_ARGS fs/vfs/superblock.c -o ./bin/superblock.o
+
+#generic proc
+gcc $GCC_ARGS proc/process.c -o ./bin/process.o
 
 #generic sync
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o

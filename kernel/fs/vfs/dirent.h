@@ -19,7 +19,7 @@ typedef struct PACKED {
     uint64_t    offset;     // Смещение блока на диске
     uint16_t    reclen;     // Длина имени
     uint8_t     type;       // Тип
-    char        name[];
+    char        name[];     // Имя
 } dirent_t;
 
 #endif
