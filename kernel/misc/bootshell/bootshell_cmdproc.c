@@ -83,8 +83,8 @@ void bootshell_process_cmd(char* cmdline){
         }
         dirent_t* child = NULL;
         while((child = vfs_readdir(inode, index++)) != NULL){
-            printf("NAME %s\n", child->name);
-            //printf("TYPE %s, NAME %s, SIZE %i\n", (child->flags == INODE_FLAG_FILE) ? "FILE" : "DIR", child->name, child->size);
+            //printf("TYPE %s, NAME %s, SIZE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->size);
+            printf("TYPE %s, NAME %s\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name);
             kfree(child);
         }
 

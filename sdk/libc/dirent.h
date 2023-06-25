@@ -2,7 +2,6 @@
 #define _DIRENT_H
 
 #include "types.h"
-#define MAX_PATH_LEN 512
 
 #define DT_UNKNOWN       0
 #define DT_FIFO          1

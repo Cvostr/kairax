@@ -47,4 +47,10 @@ size_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
 
 int process_stat(process_t* process, int fd, struct stat* stat);
 
+int process_readdir(process_t* process, int fd, struct dirent_t* dirents, unsigned int count);
+
+int process_get_working_dir(process_t* process, char* buffer, size_t size);
+
+int process_set_working_dir(process_t* process, const char* buffer);
+
 #endif

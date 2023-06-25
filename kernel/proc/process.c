@@ -91,3 +91,32 @@ int process_stat(process_t* process, int fd, struct stat* stat)
 
     return rc;
 }
+
+int process_readdir(process_t* process, int fd, struct dirent_t* dirents, unsigned int count)
+{
+    int rc = -1;
+    acquire_spinlock(&process->fd_spinlock);
+
+    file_t* file = process->fds[fd];
+    if (file != NULL) {
+        vfs_inode_t* inode = file->inode;
+        //dirents[] = vfs_readdir(inode, file->offset++);
+        
+        rc = 0;
+    }
+
+    release_spinlock(&process->fd_spinlock);
+}
+
+int process_get_working_dir(process_t* process, char* buffer, size_t size)
+{
+    memcpy(buffer, process->cur_dir, size);
+    return 0;
+}
+
+int process_set_working_dir(process_t* process, const char* buffer)
+{
+    size_t buffer_length = strlen(buffer);
+    memcpy(process->cur_dir, buffer, buffer_length);
+    return 0;
+}

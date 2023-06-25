@@ -1,30 +1,10 @@
-extern void printf(char*);
-#include "../sdk/sys/kairax.h"
-#include "../sdk/libc/string.h"
+#include "../sdk/libc/stdio.h"
+#include "../sdk/libc/sys_files.h"
+#include "../sdk/sys/syscalls.h"
 
 #define BSS_LEN 10000
 
 int big_array[BSS_LEN];
-
-static char destination[32] = {0};
-
-char* itoa(long long number, int base){
-
- 	int count = 0;
-  do {
-      	int digit = number % base;
-      	destination[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
-    	} while ((number /= base) != 0);
-    	destination[count] = '\0';
-    	int i;
-    	for (i = 0; i < count / 2; ++i) {
-      	char symbol = destination[i];
-      	destination[i] = destination[count - i - 1];
-      	destination[count - i - 1] = symbol;
-    	}
-    	return destination;
-
-}
 
 int main() {
 
@@ -38,8 +18,7 @@ int main() {
     str[1] = '\n';
     str[2] = 0;
 
-    printf("PID: ");
-    printf(itoa(syscall_process_get_id(), 10));
+    printf("PID : %i", syscall_process_get_id());
 
     int iterations = 0;
 
@@ -49,8 +28,7 @@ int main() {
 
         str[0]++;
 
-        printf("Hello from program: ");
-        printf(str);
+        printf("Hello from program: %s", str);
     }
 
     return 0;

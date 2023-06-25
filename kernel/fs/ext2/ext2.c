@@ -207,8 +207,18 @@ dirent_t* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
     dirent_t* result = new_vfs_dirent(ext2_dirent->name_len);
     result->inode = ext2_dirent->inode;
     result->reclen = ext2_dirent->name_len;
-    result->type = ext2_dirent->type;
     strncpy(result->name, ext2_dirent->name, ext2_dirent->name_len);
+    switch (ext2_dirent->type) {
+        case EXT2_DT_REG:
+            result->type = DT_REG;
+            break;
+        case EXT2_DT_LNK:
+            result->type = DT_LNK;
+            break;
+        case EXT2_DT_DIR:
+            result->type = DT_DIR;
+            break;
+    }
 
     return result;
 }

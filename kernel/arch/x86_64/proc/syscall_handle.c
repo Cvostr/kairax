@@ -81,13 +81,11 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x4F:  // Получение директории
             buffer_length = frame->rsi;
-            memcpy(mem, current_process->cur_dir, buffer_length);
+            frame->rax = process_get_working_dir(current_process, mem, buffer_length);
             break;
 
         case 0x50:  // Установка директории
-            buffer_length = strlen(mem);
-            memcpy(current_process->cur_dir, mem, buffer_length);
-            frame->rax = 0;
+            frame->rax = process_set_working_dir(current_process, mem);
             break;
 
         case 0x3C:  //Завершение процесса

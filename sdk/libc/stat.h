@@ -1,17 +1,7 @@
-typedef unsigned int uid_t;
-typedef unsigned int gid_t;
-typedef unsigned long int ino_t;
-typedef long int off_t;
-typedef unsigned int mode_t;
-typedef unsigned long int nlink_t;
+#ifndef _STAT_H
+#define _STAT_H
 
-typedef long int time_t;
-
-struct timespec
-{
-	time_t tv_sec;
-  	long int tv_nsec;
-};
+#include "types.h"
 
 struct stat {
    // dev_t      st_dev;      /* ID of device containing file */
@@ -33,3 +23,5 @@ struct stat {
     #define st_mtine  st_mtim.tv_sec
     #define st_ctime  st_ctim.tv_sec
 };
+
+#endif

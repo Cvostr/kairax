@@ -1,7 +1,7 @@
 [BITS 64]
 [SECTION .text]
 
-global printf
+global syscall_printf
 global syscall_process_get_id
 global syscall_thread_get_id
 global syscall_get_working_dir
@@ -12,8 +12,9 @@ global syscall_read
 global syscall_open_file
 global syscall_close
 global syscall_fdstat
+global syscall_readdir
 
-printf:
+syscall_printf:
     mov rax, 1
     syscall
     ret
@@ -35,6 +36,11 @@ syscall_close:
 
 syscall_fdstat:
     mov rax, 0x05
+    syscall
+    ret
+
+syscall_readdir:
+    mov rax, 0x59
     syscall
     ret
 
