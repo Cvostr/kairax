@@ -202,11 +202,10 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
     kfree(buffer);
 }
 
-dirent_t* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
+struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
 {
-    dirent_t* result = new_vfs_dirent(ext2_dirent->name_len);
+    struct dirent* result = new_vfs_dirent();
     result->inode = ext2_dirent->inode;
-    result->reclen = ext2_dirent->name_len;
     strncpy(result->name, ext2_dirent->name, ext2_dirent->name_len);
     switch (ext2_dirent->type) {
         case EXT2_DT_REG:
@@ -306,9 +305,9 @@ void ext2_mkfile(vfs_inode_t* parent, char* file_name){
 
 }
 
-dirent_t* ext2_readdir(vfs_inode_t* dir, uint32_t index)
+struct dirent* ext2_readdir(vfs_inode_t* dir, uint32_t index)
 {
-    dirent_t* result = NULL;
+    struct dirent* result = NULL;
     ext2_instance_t* inst = (ext2_instance_t*)dir->fs_d;
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();

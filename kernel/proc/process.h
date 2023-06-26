@@ -6,6 +6,7 @@
 #include "fs/vfs/stat.h"
 
 #define MAX_DESCRIPTORS     48
+#define MAX_PATH_LEN 512
 
 typedef struct PACKED {
     char            name[30];
@@ -47,7 +48,7 @@ size_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
 
 int process_stat(process_t* process, int fd, struct stat* stat);
 
-int process_readdir(process_t* process, int fd, struct dirent_t* dirents, unsigned int count);
+int process_readdir(process_t* process, int fd, struct dirent* dirent);
 
 int process_get_working_dir(process_t* process, char* buffer, size_t size);
 

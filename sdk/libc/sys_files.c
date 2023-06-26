@@ -25,3 +25,8 @@ int file_stat(const char* filepath, struct stat* st)
 {
     return 0;
 }
+
+int readdir(int fd, struct dirent* direntry)
+{
+    return syscall_readdir(fd, direntry);
+}

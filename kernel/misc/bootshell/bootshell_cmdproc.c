@@ -81,7 +81,7 @@ void bootshell_process_cmd(char* cmdline){
             printf("Can't open directory with path : ", args);
             return;
         }
-        dirent_t* child = NULL;
+        struct dirent* child = NULL;
         while((child = vfs_readdir(inode, index++)) != NULL){
             //printf("TYPE %s, NAME %s, SIZE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->size);
             printf("TYPE %s, NAME %s\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name);

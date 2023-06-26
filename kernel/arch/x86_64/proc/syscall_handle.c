@@ -88,6 +88,10 @@ void syscall_handle(syscall_frame_t* frame) {
             frame->rax = process_set_working_dir(current_process, mem);
             break;
 
+        case 0x59:
+            frame->rax = process_readdir(current_process, frame->rdi, (struct dirent*)frame->rsi);
+            break;
+
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
             cpu_yield();

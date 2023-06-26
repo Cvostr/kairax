@@ -2,7 +2,7 @@
 #define _DIRENT_H
 
 #include "types.h"
-#define MAX_PATH_LEN 512
+#define MAX_DIRENT_NAME_LEN 260
 
 #define DT_UNKNOWN       0
 #define DT_FIFO          1
@@ -14,12 +14,11 @@
 #define DT_SOCK         12
 #define DT_WHT          14
 
-typedef struct PACKED {
+struct dirent {
     uint64_t    inode;      // номер inode
     uint64_t    offset;     // Номер в директории
-    uint16_t    reclen;     // Длина имени
     uint8_t     type;       // Тип
-    char        name[];     // Имя
-} dirent_t;
+    char        name[MAX_DIRENT_NAME_LEN];     // Имя
+};
 
 #endif

@@ -15,11 +15,10 @@ vfs_inode_t* new_vfs_inode()
     return result;
 }
 
-dirent_t* new_vfs_dirent(size_t name_len)
+struct dirent* new_vfs_dirent()
 {
-    size_t reqd_size = sizeof(dirent_t) + name_len + 1;
-    dirent_t* result = kmalloc(reqd_size);
-    memset(result, 0, reqd_size);
+    struct dirent* result = kmalloc(sizeof(struct dirent));
+    memset(result, 0, sizeof(struct dirent));
     return result;
 }
 
@@ -178,7 +177,7 @@ vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name)
             return node->operations.finddir(node, name);
 }
 
-dirent_t* vfs_readdir(vfs_inode_t* node, uint32_t index)
+struct dirent* vfs_readdir(vfs_inode_t* node, uint32_t index)
 {
     if(node)
         if(node->operations.readdir)

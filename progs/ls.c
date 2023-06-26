@@ -8,7 +8,10 @@ int main() {
     struct stat dirstat;
     int rc = syscall_fdstat(dirfd, &dirstat);
 
-    
+    struct dirent dr;
+    while(readdir(dirfd, &dr) == 1) {
+        printf("TYPE %s, NAME %s\n", (dr.type == DT_REG) ? "FILE" : "DIR", dr.name);
+    }    
 
     return 0;
 }

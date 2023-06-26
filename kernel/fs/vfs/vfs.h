@@ -16,7 +16,7 @@ typedef struct PACKED {
 
 vfs_inode_t* new_vfs_inode();
 
-dirent_t* new_vfs_dirent(size_t name_len);
+struct dirent* new_vfs_dirent();
 
 void vfs_init();
 
@@ -38,7 +38,7 @@ ssize_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer
 
 vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name);
 
-dirent_t* vfs_readdir(vfs_inode_t* node, uint32_t index);
+struct dirent* vfs_readdir(vfs_inode_t* node, uint32_t index);
 
 void vfs_chmod(vfs_inode_t* node, uint32_t mode);
 

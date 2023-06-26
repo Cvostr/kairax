@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "mem/pmm.h"
 #include "fs/vfs/vfs.h"
+#include "string.h"
 
 int process_open_file(process_t* process, const char* path, int mode, int flags)
 {
@@ -92,20 +93,31 @@ int process_stat(process_t* process, int fd, struct stat* stat)
     return rc;
 }
 
-int process_readdir(process_t* process, int fd, struct dirent_t* dirents, unsigned int count)
+int process_readdir(process_t* process, int fd, struct dirent* dirent)
 {
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
 
     file_t* file = process->fds[fd];
+
     if (file != NULL) {
+
         vfs_inode_t* inode = file->inode;
-        //dirents[] = vfs_readdir(inode, file->offset++);
+        struct dirent* ndirent = vfs_readdir(inode, file->pos ++);
         
-        rc = 0;
+        if (ndirent == NULL) {
+            return 0;
+        }
+
+        memcpy(dirent, ndirent, sizeof(struct dirent));
+        kfree(ndirent);
+        
+        rc = 1;
     }
 
     release_spinlock(&process->fd_spinlock);
+
+    return rc;
 }
 
 int process_get_working_dir(process_t* process, char* buffer, size_t size)
