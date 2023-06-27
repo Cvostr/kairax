@@ -66,9 +66,10 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
     mount_info->filesystem = filesystem_get_by_name(fsname); 
     strcpy(mount_info->mount_path, mount_path);
     //вызов функции монтирования, если она определена
-    if(mount_info->filesystem->mount)
+    if(mount_info->filesystem->mount) {
         mount_info->root_node = mount_info->filesystem->mount(partition);
-    else
+        atomic_inc(&mount_info->root_node->reference_count);
+    } else
         return -4;  //Нет функции монтирования
 
     if(mount_info->root_node == NULL)
@@ -163,27 +164,6 @@ vfs_mount_info_t** vfs_get_mounts()
     return vfs_mounts;
 }
 
-ssize_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
-{
-    if(file)
-        if(file->operations.read)
-            return file->operations.read(file, offset, size, buffer);
-}
-
-vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name)
-{
-    if(node)
-        if(node->operations.finddir)
-            return node->operations.finddir(node, name);
-}
-
-struct dirent* vfs_readdir(vfs_inode_t* node, uint32_t index)
-{
-    if(node)
-        if(node->operations.readdir)
-            return node->operations.readdir(node, index);
-}
-
 void vfs_chmod(vfs_inode_t* node, uint32_t mode)
 {
     if(node)
@@ -196,18 +176,6 @@ void vfs_open(vfs_inode_t* node, uint32_t flags)
     if(node)
         if(node->operations.open)
             node->operations.open(node, flags);
-}
-
-void vfs_close(vfs_inode_t* node)
-{
-    if(node)
-        if(node->operations.close)
-            node->operations.close(node);
-
-    if (atomic_dec_and_test(&node->reference_count)) {
-        vfs_unhold_inode(node);
-        kfree(node);
-    }
 }
 
 vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
@@ -231,10 +199,8 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)
     {
-        inode = new_vfs_inode();
-        memcpy(inode, mount_info->root_node, sizeof(vfs_inode_t));
-        atomic_inc(&inode->reference_count);
-        return inode;
+        atomic_inc(&curr_node->reference_count);
+        return curr_node;
     }
 
     //Временный буфер
