@@ -12,7 +12,7 @@ typedef struct PACKED {
     struct super_operations*    operations;
 } superblock_t;
 
-typedef struct super_operations {
+struct super_operations {
 
     struct inode *(*alloc_inode)( superblock_t *sb);
 

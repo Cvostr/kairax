@@ -6,12 +6,29 @@
 #include "mem/pmm.h"
 #include "stdio.h"
 
+struct inode_operations file_inode_ops;
+struct inode_operations dir_inode_ops;
+
 void ext2_init(){
     filesystem_t* ext2fs = new_filesystem();
     ext2fs->name = "ext2";
     ext2fs->mount = ext2_mount;
 
     filesystem_register(ext2fs);
+
+    file_inode_ops.read = ext2_read;
+    file_inode_ops.write = ext2_write;
+    file_inode_ops.chmod = ext2_chmod;
+    file_inode_ops.open = ext2_open;
+    file_inode_ops.close = ext2_close;
+
+    dir_inode_ops.mkdir = ext2_mkdir;
+    dir_inode_ops.mkfile = ext2_mkfile;
+    dir_inode_ops.finddir = ext2_finddir;
+    dir_inode_ops.readdir = ext2_readdir;
+    dir_inode_ops.chmod = ext2_chmod;
+    dir_inode_ops.open = ext2_open;
+    dir_inode_ops.close = ext2_close;
 }
 
 ext2_inode_t* new_ext2_inode(){
@@ -140,12 +157,7 @@ struct inode* ext2_mount(drive_partition_t* drive)
     result->access_time = ext2_inode_root->atime;
     result->modify_time = ext2_inode_root->mtime;
 
-    result->operations.open = ext2_open;
-    result->operations.chmod = ext2_chmod;
-    result->operations.mkdir = ext2_mkdir;
-    result->operations.mkfile = ext2_mkfile;
-    result->operations.finddir = ext2_finddir;
-    result->operations.readdir = ext2_readdir;
+    result->operations = &dir_inode_ops;
 
     kfree(ext2_inode_root);
 
@@ -235,9 +247,6 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     result->create_time = inode->ctime;
     result->modify_time = inode->mtime;
     result->hard_links = inode->hard_links;
-    result->operations.chmod = ext2_chmod;
-    result->operations.open = ext2_open;
-    result->operations.close = ext2_close;
 
     if ((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_FILE) {
         
@@ -246,15 +255,11 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
             result->size = (uint64_t)inode->size_high << 32 | result->size;
         }
 
-        result->operations.read = ext2_read;
-        result->operations.write = ext2_write;
+        result->operations = &file_inode_ops;
     }
 
     if((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) {
-        result->operations.mkdir = ext2_mkdir;
-        result->operations.mkfile = ext2_mkfile;
-        result->operations.finddir = ext2_finddir;
-        result->operations.readdir = ext2_readdir;
+        result->operations = &dir_inode_ops;
     }
     if((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) {
     

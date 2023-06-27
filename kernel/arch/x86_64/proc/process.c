@@ -81,7 +81,7 @@ uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
         uintptr_t virtual_page_start = process->brk - PAGE_SIZE;
         physical_addr_t phys_addr = get_physical_address(process->vmemory_table, virtual_page_start);
         unmap_page(process->vmemory_table, virtual_page_start);
-        pmm_free_page(phys_addr);
+        pmm_free_page((void*)phys_addr);
         process->brk -= PAGE_SIZE;
     }
 

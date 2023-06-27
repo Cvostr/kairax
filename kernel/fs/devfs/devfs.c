@@ -1,5 +1,7 @@
 #include "devfs.h"
 
+struct inode_operations root_inode_ops;
+
 void devfs_init()
 {
     filesystem_t* devfs = new_filesystem();
@@ -9,6 +11,13 @@ void devfs_init()
     filesystem_register(devfs);
 
     vfs_mount_fs("/dev", NULL, "devfs");
+
+    root_inode_ops.open = devfs_open;
+    root_inode_ops.chmod = NULL;
+    root_inode_ops.mkdir = NULL;
+    root_inode_ops.mkfile = NULL;
+    root_inode_ops.finddir = devfs_finddir;
+    root_inode_ops.readdir = devfs_readdir;
 }
 
 struct inode* devfs_mount(drive_partition_t* drive)
@@ -22,12 +31,7 @@ struct inode* devfs_mount(drive_partition_t* drive)
     result->access_time = 0;
     result->modify_time = 0;
 
-    result->operations.open = devfs_open;
-    result->operations.chmod = NULL;
-    result->operations.mkdir = NULL;
-    result->operations.mkfile = NULL;
-    result->operations.finddir = devfs_finddir;
-    result->operations.readdir = devfs_readdir;
+    result->operations = &root_inode_ops;
 }
 
 void devfs_open(struct inode* inode, uint32_t flags)

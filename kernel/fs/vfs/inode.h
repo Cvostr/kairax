@@ -19,7 +19,7 @@ typedef void      (*chmod_type_t)(struct inode*, uint32_t);
 typedef void      (*mkdir_type_t)(struct inode*, char*);
 typedef void      (*mkfile_type_t)(struct inode*, char*);
 
-typedef struct inode_operations {
+struct inode_operations {
     open_type_t     open;
     close_type_t    close;
     read_type_t     read;
@@ -31,7 +31,7 @@ typedef struct inode_operations {
     chmod_type_t    chmod;
     mkdir_type_t    mkdir;
     mkfile_type_t   mkfile;
-} inode_operations_t;
+};
 
 #define INODE_TYPE_MASK        0xF000
 #define INODE_TYPE_FILE        0x8000
@@ -57,7 +57,7 @@ struct inode {
     uint64_t    access_time;
     uint64_t    modify_time;
 
-    inode_operations_t operations;
+    struct inode_operations* operations;
 
     spinlock_t      spinlock;
 };

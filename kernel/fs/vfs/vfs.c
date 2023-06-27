@@ -164,20 +164,6 @@ vfs_mount_info_t** vfs_get_mounts()
     return vfs_mounts;
 }
 
-void vfs_chmod(struct inode* node, uint32_t mode)
-{
-    if(node)
-        if(node->operations.chmod)
-            return node->operations.chmod(node, mode);
-}
-
-void vfs_open(struct inode* node, uint32_t flags)
-{
-    if(node)
-        if(node->operations.open)
-            node->operations.open(node, flags);
-}
-
 struct inode* vfs_fopen(const char* path, uint32_t flags)
 {
     struct inode* inode = vfs_get_inode_by_path(path);
