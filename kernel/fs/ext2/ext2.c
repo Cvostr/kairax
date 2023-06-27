@@ -89,7 +89,7 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
     return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
 }
 
-vfs_inode_t* ext2_mount(drive_partition_t* drive)
+struct inode* ext2_mount(drive_partition_t* drive)
 {
     ext2_instance_t* instance = kmalloc(sizeof(ext2_instance_t));
     memset(instance, 0, sizeof(ext2_instance_t));
@@ -131,7 +131,7 @@ vfs_inode_t* ext2_mount(drive_partition_t* drive)
     ext2_inode(instance, ext2_inode_root, 2);
     instance->root_inode = ext2_inode_root;
     //Создать объект VFS корневой иноды файловой системы 
-    vfs_inode_t* result = new_vfs_inode();
+    struct inode* result = new_vfs_inode();
     result->inode = 2;              //2 - стандартный индекс корневой иноды
     result->mode = ext2_inode_root->mode;
     result->fs_d = instance;        //Сохранение указателя на информацию о файловой системе
@@ -222,9 +222,9 @@ struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
     return result;
 }
 
-vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent)
+struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent)
 {
-    vfs_inode_t* result = new_vfs_inode();
+    struct inode* result = new_vfs_inode();
     result->inode = dirent->inode;
     result->fs_d = inst;
     result->uid = inode->userid;
@@ -266,15 +266,15 @@ vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode,
     return result;
 }
 
-void ext2_open(vfs_inode_t* inode, uint32_t flags){
+void ext2_open(struct inode* inode, uint32_t flags){
 
 }
 
-void ext2_close(vfs_inode_t* inode){
+void ext2_close(struct inode* inode){
     
 }
 
-ssize_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer)
+ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer)
 {
     ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
     ext2_inode_t*    inode = new_ext2_inode();
@@ -284,7 +284,7 @@ ssize_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffe
     return size;
 }
 
-ssize_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer){
+ssize_t ext2_write(struct inode* file, uint32_t offset, uint32_t size, char* buffer){
     ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
@@ -293,19 +293,19 @@ ssize_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buff
     return 0;
 }
 
-void ext2_chmod(vfs_inode_t * file, uint32_t mode){
+void ext2_chmod(struct inode * file, uint32_t mode){
 
 }
 
-void ext2_mkdir(vfs_inode_t* parent, char* dir_name){
+void ext2_mkdir(struct inode* parent, char* dir_name){
 
 }
 
-void ext2_mkfile(vfs_inode_t* parent, char* file_name){
+void ext2_mkfile(struct inode* parent, char* file_name){
 
 }
 
-struct dirent* ext2_readdir(vfs_inode_t* dir, uint32_t index)
+struct dirent* ext2_readdir(struct inode* dir, uint32_t index)
 {
     struct dirent* result = NULL;
     ext2_instance_t* inst = (ext2_instance_t*)dir->fs_d;
@@ -353,7 +353,7 @@ exit:
     return result;
 }
 
-vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name)
+struct inode* ext2_finddir(struct inode * parent, char *name)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->fs_d;
     //Получить родительскую иноду
@@ -381,7 +381,7 @@ vfs_inode_t* ext2_finddir(vfs_inode_t * parent, char *name)
         if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)){
             ext2_inode_t* inode = new_ext2_inode();
             ext2_inode(inst, inode, curr_entry->inode);
-            vfs_inode_t* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
+            struct inode* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
             kfree(buffer);
             kfree(inode);
             kfree(parent_inode);

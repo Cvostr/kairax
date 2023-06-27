@@ -20,13 +20,13 @@ void pmm_set_mem_region(uint64_t offset, uint64_t size);
 
 void pmm_take_base_regions();
 
-uintptr_t* pmm_alloc_page();
+void* pmm_alloc_page();
 
-uintptr_t* pmm_alloc_pages(uint32_t pages);
+void* pmm_alloc_pages(uint32_t pages);
 
-void pmm_free_page(uint64_t addr);
+void pmm_free_page(void* addr);
 
-void free_pages(uintptr_t* addr, uint32_t pages);
+void free_pages(void* addr, uint32_t pages);
 
 uint64_t pmm_get_used_pages();
 

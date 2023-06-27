@@ -4,10 +4,10 @@
 
 #define MAX_BITMASK_DATA 657356
 
-extern uintptr_t __KERNEL_START;
-extern uintptr_t __KERNEL_END;
-extern uintptr_t __KERNEL_VIRT_END;
-extern uintptr_t __KERNEL_VIRT_LINK;
+extern uint64_t __KERNEL_START;
+extern uint64_t __KERNEL_END;
+extern uint64_t __KERNEL_VIRT_END;
+extern uint64_t __KERNEL_VIRT_LINK;
 
 uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
@@ -95,7 +95,7 @@ uint64_t find_free_pages(int pages) {
 }
 
 
-uintptr_t* pmm_alloc_page() {
+void* pmm_alloc_page() {
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
 	if (i < 0) {
@@ -105,10 +105,10 @@ uintptr_t* pmm_alloc_page() {
 	set_bit(i);
 
 	pages_used++;
-	return (uintptr_t*)(i * PAGE_SIZE);
+	return (void*)(i * PAGE_SIZE);
 }
 
-uintptr_t* pmm_alloc_pages(uint32_t pages){
+void* pmm_alloc_pages(uint32_t pages){
 	uint64_t i = find_free_pages(pages);
 
 	if (i < 0) {
@@ -121,19 +121,22 @@ uintptr_t* pmm_alloc_pages(uint32_t pages){
 	
 	pages_used += pages;
 
-	return (uintptr_t*)(i * PAGE_SIZE);
+	return (void*)(i * PAGE_SIZE);
 }
 
-void pmm_free_page(uint64_t addr) { 
-  	unset_bit(addr / PAGE_SIZE);
+void pmm_free_page(void* addr) { 
+  	unset_bit((uint64_t)addr / PAGE_SIZE);
   	pages_used--;
 }
 
-void free_pages(uintptr_t* addr, uint32_t pages) {
+void free_pages(void* addr, uint32_t pages)
+{
 	uint64_t page_index = ((uint64_t)addr) / PAGE_SIZE;
-	for(uint32_t page_i = 0; page_i < pages; page_i ++){
+
+	for(uint32_t page_i = 0; page_i < pages; page_i ++) {
 		set_bit(page_index + page_i);
 	}
+
 	pages_used -= pages;
 }
 

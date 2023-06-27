@@ -9,7 +9,7 @@ typedef struct PACKED {
     const char*         name;
     int                 flags;
 
-    vfs_inode_t*        (*mount)(drive_partition_t*);   //Вызывается при монтировании
+    struct inode*        (*mount)(drive_partition_t*);   //Вызывается при монтировании
     int                 (*unmount)(drive_partition_t*); //Вызывается при размонтировании
 } filesystem_t;
 

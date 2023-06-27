@@ -142,34 +142,34 @@ uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 
 uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
 
-vfs_inode_t* ext2_mount(drive_partition_t* drive);
+struct inode* ext2_mount(drive_partition_t* drive);
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf);
 
 // Получение inode по номеру
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
-vfs_inode_t* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent);
+struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent);
 
 struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
-void ext2_open(vfs_inode_t* inode, uint32_t flags);
+void ext2_open(struct inode* inode, uint32_t flags);
 
-void ext2_close(vfs_inode_t* inode);
+void ext2_close(struct inode* inode);
 
-void ext2_mkdir(vfs_inode_t* parent, char* dir_name);
+void ext2_mkdir(struct inode* parent, char* dir_name);
 
-void ext2_mkfile(vfs_inode_t* parent, char* file_name);
+void ext2_mkfile(struct inode* parent, char* file_name);
 
-void ext2_chmod(vfs_inode_t * file, uint32_t mode);
+void ext2_chmod(struct inode * file, uint32_t mode);
 
-vfs_inode_t* ext2_finddir(vfs_inode_t* parent, char *name);
+struct inode* ext2_finddir(struct inode* parent, char *name);
 
-struct dirent* ext2_readdir(vfs_inode_t* dir, uint32_t index);
+struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 
-ssize_t ext2_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
 
-ssize_t ext2_write(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t ext2_write(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
 
 
 #endif

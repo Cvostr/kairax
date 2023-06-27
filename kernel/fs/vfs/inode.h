@@ -6,18 +6,18 @@
 #include "sync/spinlock.h"
 #include "dirent.h"
 
-struct vfs_inode;
+struct inode;
 
-typedef void      (*open_type_t)(struct vfs_inode*, uint32_t);
-typedef void      (*close_type_t)(struct vfs_inode*);
-typedef ssize_t  (*read_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
-typedef ssize_t  (*write_type_t)(struct vfs_inode*, uint32_t, uint32_t,char*);
-typedef struct dirent_t* (*readdir_type_t)(struct vfs_inode*, uint32_t);
-typedef struct vfs_inode*  (*finddir_type_t)(struct vfs_inode*, char*); 
+typedef void      (*open_type_t)(struct inode*, uint32_t);
+typedef void      (*close_type_t)(struct inode*);
+typedef ssize_t  (*read_type_t)(struct inode*, uint32_t, uint32_t,char*);
+typedef ssize_t  (*write_type_t)(struct inode*, uint32_t, uint32_t,char*);
+typedef struct dirent* (*readdir_type_t)(struct inode*, uint32_t);
+typedef struct inode*  (*finddir_type_t)(struct inode*, char*); 
 
-typedef void      (*chmod_type_t)(struct vfs_inode*, uint32_t);
-typedef void      (*mkdir_type_t)(struct vfs_inode*, char*);
-typedef void      (*mkfile_type_t)(struct vfs_inode*, char*);
+typedef void      (*chmod_type_t)(struct inode*, uint32_t);
+typedef void      (*mkdir_type_t)(struct inode*, char*);
+typedef void      (*mkfile_type_t)(struct inode*, char*);
 
 typedef struct inode_operations {
     open_type_t     open;
@@ -42,7 +42,7 @@ typedef struct inode_operations {
 #define INODE_FLAG_SYMLINK     0xA000
 
 // Представление объекта со стороны файловой системы
-typedef struct PACKED {
+struct inode {
     uint32_t    mode;       // Тип и разрешения
     uint32_t    uid;        // Идентификатор пользователя, владеющего файлом
     uint32_t    gid;        // Идентификатор группы
@@ -60,6 +60,6 @@ typedef struct PACKED {
     inode_operations_t operations;
 
     spinlock_t      spinlock;
-} vfs_inode_t;
+};
 
 #endif

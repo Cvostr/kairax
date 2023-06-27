@@ -13,10 +13,10 @@ list_t* create_list()
 
 void free_list(list_t* list)
 {
-    list_node_t* current = list->head;
+    struct list_node* current = list->head;
     for(unsigned int i = 0; i < list->size; i++)
     {
-        list_node_t* temp = current;
+        struct list_node* temp = current;
         if (current) {
             current = current->next;
             kfree(temp);
@@ -26,7 +26,7 @@ void free_list(list_t* list)
 
 void list_add(list_t* list, void* element)
 {
-    list_node_t* new_node = kmalloc(sizeof(list_node_t));
+    struct list_node* new_node = kmalloc(sizeof(struct list_node));
     new_node->element = element;
     new_node->next = NULL;
 
@@ -45,10 +45,10 @@ void list_add(list_t* list, void* element)
 void list_remove(list_t* list, void* element)
 {
     if(list == NULL)
-        return NULL;
+        return;
 
     // Найти запись для удаления
-    list_node_t* current = list->head;
+    struct list_node* current = list->head;
     for(unsigned int i = 0; i < list->size; i++)
     {
         if (current->element == element)
@@ -61,10 +61,10 @@ void list_remove(list_t* list, void* element)
     kfree(current);
 }
 
-void list_unlink(list_t* list, list_node_t* node)
+void list_unlink(list_t* list, struct list_node* node)
 {
-    list_node_t* prev = node->prev;
-    list_node_t* next = node->next;
+    struct list_node* prev = node->prev;
+    struct list_node* next = node->next;
 
     if (prev) {
         prev->next = next;
@@ -90,7 +90,7 @@ void* list_get(list_t* list, unsigned int index)
     if(list == NULL)
         return NULL;
 
-    list_node_t* current = list->head;
+    struct list_node* current = list->head;
 
     for(unsigned int i = 0; i < index; i++){
         current = current->next;

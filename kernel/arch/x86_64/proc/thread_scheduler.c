@@ -8,6 +8,7 @@
 #include "cpu/gdt.h"
 #include "kernel_stack.h"
 #include "mem/pmm.h"
+#include "memory/paging.h"
 
 list_t* threads_list;
 int curr_thread = 0;

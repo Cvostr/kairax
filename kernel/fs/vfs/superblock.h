@@ -14,9 +14,9 @@ typedef struct PACKED {
 
 typedef struct super_operations {
 
-    vfs_inode_t *(*alloc_inode)( superblock_t *sb);
+    struct inode *(*alloc_inode)( superblock_t *sb);
 
-    void (*destroy_inode)(vfs_inode_t * inode);
+    void (*destroy_inode)(struct inode * inode);
 };
 
 superblock_t* new_superblock();

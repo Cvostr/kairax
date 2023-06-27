@@ -11,10 +11,10 @@ typedef struct PACKED {
     drive_partition_t*          partition;
     char                        mount_path[MOUNT_PATH_MAX_LEN];
     filesystem_t*               filesystem;
-    vfs_inode_t*                root_node;
+    struct inode*               root_node;
 } vfs_mount_info_t;
 
-vfs_inode_t* new_vfs_inode();
+struct inode* new_vfs_inode();
 
 struct dirent* new_vfs_dirent();
 
@@ -34,28 +34,28 @@ vfs_mount_info_t** vfs_get_mounts();
 
 //Функции файловой системы
 
-ssize_t vfs_read(vfs_inode_t* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t vfs_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
 
-vfs_inode_t* vfs_finddir(vfs_inode_t* node, char* name);
+struct inode* vfs_finddir(struct inode* node, char* name);
 
-struct dirent* vfs_readdir(vfs_inode_t* node, uint32_t index);
+struct dirent* vfs_readdir(struct inode* node, uint32_t index);
 
-void vfs_chmod(vfs_inode_t* node, uint32_t mode);
+void vfs_chmod(struct inode* node, uint32_t mode);
 
-void vfs_open(vfs_inode_t* node, uint32_t flags);
+void vfs_open(struct inode* node, uint32_t flags);
 
-void vfs_close(vfs_inode_t* node);
+void vfs_close(struct inode* node);
 
-vfs_inode_t* vfs_fopen(const char* path, uint32_t flags);
+struct inode* vfs_fopen(const char* path, uint32_t flags);
 
 // Функции holder
 
 void init_vfs_holder();
 
-vfs_inode_t* vfs_get_inode_by_path(const char* path);
+struct inode* vfs_get_inode_by_path(const char* path);
 
-void vfs_hold_inode(vfs_inode_t* inode);
+void vfs_hold_inode(struct inode* inode);
 
-void vfs_unhold_inode(vfs_inode_t* inode);
+void vfs_unhold_inode(struct inode* inode);
 
 #endif

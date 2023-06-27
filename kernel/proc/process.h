@@ -8,7 +8,7 @@
 #define MAX_DESCRIPTORS     48
 #define MAX_PATH_LEN 512
 
-typedef struct PACKED {
+typedef struct {
     char            name[30];
     // ID процесса
     uint64_t        pid;

@@ -7,7 +7,7 @@
 int process_open_file(process_t* process, const char* path, int mode, int flags)
 {
     int fd = -1;
-    vfs_inode_t* inode = vfs_fopen(path, 0);
+    struct inode* inode = vfs_fopen(path, 0);
 
     // Создать новый дескриптор файла
     file_t* file = kmalloc(sizeof(file_t));
@@ -59,7 +59,7 @@ size_t process_read_file(process_t* process, int fd, char* buffer, size_t size)
 
     file_t* file = process->fds[fd];
     if (file->mode & FILE_OPEN_MODE_READ_ONLY) {
-        vfs_inode_t* inode = file->inode;
+        struct inode* inode = file->inode;
         bytes_read = vfs_read(inode, file->pos, size, buffer);
         file->pos += bytes_read; 
     }
@@ -76,7 +76,7 @@ int process_stat(process_t* process, int fd, struct stat* stat)
 
     file_t* file = process->fds[fd];
     if (file != NULL) {
-        vfs_inode_t* inode = file->inode;
+        struct inode* inode = file->inode;
         stat->st_ino = inode->inode;
         stat->st_size = inode->size;
         stat->st_mode = inode->mode;
@@ -102,7 +102,7 @@ int process_readdir(process_t* process, int fd, struct dirent* dirent)
 
     if (file != NULL) {
 
-        vfs_inode_t* inode = file->inode;
+        struct inode* inode = file->inode;
         struct dirent* ndirent = vfs_readdir(inode, file->pos ++);
         
         if (ndirent == NULL) {

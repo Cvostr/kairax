@@ -8,10 +8,10 @@
 
 vfs_mount_info_t** vfs_mounts = NULL;
 
-vfs_inode_t* new_vfs_inode()
+struct inode* new_vfs_inode()
 {
-    vfs_inode_t* result = kmalloc(sizeof(vfs_inode_t));
-    memset(result, 0, sizeof(vfs_inode_t));
+    struct inode* result = kmalloc(sizeof(struct inode));
+    memset(result, 0, sizeof(struct inode));
     return result;
 }
 
@@ -164,23 +164,23 @@ vfs_mount_info_t** vfs_get_mounts()
     return vfs_mounts;
 }
 
-void vfs_chmod(vfs_inode_t* node, uint32_t mode)
+void vfs_chmod(struct inode* node, uint32_t mode)
 {
     if(node)
         if(node->operations.chmod)
             return node->operations.chmod(node, mode);
 }
 
-void vfs_open(vfs_inode_t* node, uint32_t flags)
+void vfs_open(struct inode* node, uint32_t flags)
 {
     if(node)
         if(node->operations.open)
             node->operations.open(node, flags);
 }
 
-vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
+struct inode* vfs_fopen(const char* path, uint32_t flags)
 {
-    vfs_inode_t* inode = vfs_get_inode_by_path(path);
+    struct inode* inode = vfs_get_inode_by_path(path);
     if (inode != NULL) {
         atomic_inc(&inode->reference_count);
         return inode;
@@ -190,7 +190,7 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
     // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
     vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);
     //Корневой узел найденной ФС
-    vfs_inode_t* curr_node = mount_info->root_node;
+    struct inode* curr_node = mount_info->root_node;
 
     offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
@@ -221,7 +221,7 @@ vfs_inode_t* vfs_fopen(const char* path, uint32_t flags)
 
         strncpy(temp, fs_path, len);
 
-        vfs_inode_t* next = vfs_finddir(curr_node, temp);
+        struct inode* next = vfs_finddir(curr_node, temp);
         if(is_dir == 1) {
             if(next != NULL) {
                 // Освободить память текущей ноды

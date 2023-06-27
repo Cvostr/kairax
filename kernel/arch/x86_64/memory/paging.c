@@ -5,7 +5,7 @@
 #include "mem_layout.h"
 #include "stddef.h"
 
-extern void write_cr3(uintptr_t);
+extern void write_cr3(void*);
 
 page_table_t* new_page_table()
 {
@@ -221,6 +221,5 @@ void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size)
 
 void switch_pml4(page_table_t* pml4)
 {
-    uintptr_t value = (uintptr_t)pml4;
     write_cr3(pml4);
 }

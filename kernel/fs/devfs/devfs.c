@@ -11,9 +11,9 @@ void devfs_init()
     vfs_mount_fs("/dev", NULL, "devfs");
 }
 
-vfs_inode_t* devfs_mount(drive_partition_t* drive)
+struct inode* devfs_mount(drive_partition_t* drive)
 {
-    vfs_inode_t* result = new_vfs_inode();
+    struct inode* result = new_vfs_inode();
     result->inode = 2;              
     result->fs_d = 0;        
     result->mode = INODE_TYPE_DIRECTORY;
@@ -30,17 +30,17 @@ vfs_inode_t* devfs_mount(drive_partition_t* drive)
     result->operations.readdir = devfs_readdir;
 }
 
-void devfs_open(vfs_inode_t* inode, uint32_t flags)
+void devfs_open(struct inode* inode, uint32_t flags)
 {
 
 }
 
-vfs_inode_t* devfs_readdir(vfs_inode_t* dir, uint32_t index)
+struct dirent* devfs_readdir(struct inode* dir, uint32_t index)
 {
     return NULL;
 }
 
-vfs_inode_t* devfs_finddir(vfs_inode_t* parent, char *name)
+struct inode* devfs_finddir(struct inode* parent, char *name)
 {
     return parent; // без вложений, вернем корень
 }

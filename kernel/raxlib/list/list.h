@@ -1,16 +1,16 @@
 #ifndef _LIST_H
 #define _LIST_H
 
-typedef struct {
+struct list_node {
     void* element;
-    struct list_node_t* next;
-    struct list_node_t* prev;
-} list_node_t;
+    struct list_node* next;
+    struct list_node* prev;
+};
 
 typedef struct {
     int size;
-    list_node_t* head;
-    list_node_t* tail;
+    struct list_node* head;
+    struct list_node* tail;
 } list_t;
 
 
@@ -22,7 +22,7 @@ void list_add(list_t* list, void* element);
 
 void list_remove(list_t* list, void* element);
 
-void list_unlink(list_t* list, list_node_t* node);
+void list_unlink(list_t* list, struct list_node* node);
 
 void* list_get(list_t* list, unsigned int index);
 

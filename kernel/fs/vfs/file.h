@@ -11,7 +11,7 @@
 
 // Открытый файл
 typedef struct PACKED {
-    vfs_inode_t*    inode;
+    struct inode*    inode;
     int             mode;
     int             flags;
     loff_t          pos;
