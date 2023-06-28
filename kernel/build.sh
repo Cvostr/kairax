@@ -68,9 +68,9 @@ gcc $GCC_ARGS drivers/storage/partitions/formats/gpt.c -o ./bin/gpt.o
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
 gcc $GCC_ARGS fs/ext2/ext2.c -o ./bin/ext2.o
 gcc $GCC_ARGS fs/vfs/vfs.c -o ./bin/vfs.o
-gcc $GCC_ARGS fs/vfs/vfs_holder.c -o ./bin/vfs_holder.o
 gcc $GCC_ARGS fs/vfs/filesystems.c -o ./bin/filesystems.o
 gcc $GCC_ARGS fs/vfs/inode.c -o ./bin/inode.o
+gcc $GCC_ARGS fs/vfs/dentry.c -o ./bin/dentry.o
 gcc $GCC_ARGS fs/vfs/superblock.c -o ./bin/superblock.o
 
 #generic proc

@@ -45,6 +45,8 @@ int process_close_file(process_t* process, int fd)
         process->fds[fd];
         rc = 0;
         goto exit;
+    } else {
+        rc = ERROR_BAD_FD;
     }
 
 exit:
@@ -86,6 +88,8 @@ int process_stat(process_t* process, int fd, struct stat* stat)
         stat->st_ctime = inode->create_time;
         stat->st_mtime = inode->modify_time;
         rc = 0;
+    } else {
+        rc = ERROR_BAD_FD;
     }
 
     release_spinlock(&process->fd_spinlock);

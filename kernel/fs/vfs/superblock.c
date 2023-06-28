@@ -1,9 +1,16 @@
 #include "superblock.h"
 #include "mem/kheap.h"
 
-superblock_t* new_superblock()
+struct superblock* new_superblock()
 {
-    superblock_t* result = (superblock_t*)kmalloc(sizeof(superblock_t));
-    memset(result, 0, sizeof(superblock_t));
+    struct superblock* result = (struct superblock*)kmalloc(sizeof(struct superblock));
+    memset(result, 0, sizeof(struct superblock));
+    result->inodes = create_list();
     return result;
+}
+
+void free_superblock(struct superblock* sb)
+{
+    free_list(sb->inodes);
+    kfree(sb);
 }

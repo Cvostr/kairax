@@ -8,13 +8,6 @@
 
 vfs_mount_info_t** vfs_mounts = NULL;
 
-struct inode* new_vfs_inode()
-{
-    struct inode* result = kmalloc(sizeof(struct inode));
-    memset(result, 0, sizeof(struct inode));
-    return result;
-}
-
 struct dirent* new_vfs_dirent()
 {
     struct dirent* result = kmalloc(sizeof(struct dirent));
@@ -26,8 +19,6 @@ void vfs_init()
 {
     vfs_mounts = (vfs_mount_info_t**)kmalloc(sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
     memset(vfs_mounts, 0, sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
-
-    init_vfs_holder();
 }
 
 vfs_mount_info_t* new_vfs_mount_info()
@@ -166,12 +157,6 @@ vfs_mount_info_t** vfs_get_mounts()
 
 struct inode* vfs_fopen(const char* path, uint32_t flags)
 {
-    struct inode* inode = vfs_get_inode_by_path(path);
-    if (inode != NULL) {
-        atomic_inc(&inode->reference_count);
-        return inode;
-    }
-
     int offset = 0;
     // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
     vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);

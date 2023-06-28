@@ -9,6 +9,8 @@
 #define FILE_OPEN_MODE_WRITE_ONLY   0b10
 #define FILE_OPEN_MODE_READ_WRITE   0b11
 
+#define ERROR_BAD_FD                9
+
 // Открытый файл
 typedef struct PACKED {
     struct inode*    inode;

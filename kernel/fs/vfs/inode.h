@@ -7,6 +7,7 @@
 #include "dirent.h"
 
 struct inode;
+struct superblock;
 
 typedef void      (*open_type_t)(struct inode*, uint32_t);
 typedef void      (*close_type_t)(struct inode*);
@@ -50,7 +51,9 @@ struct inode {
     uint64_t    size;       // Размер файла (байт)
     uint32_t    hard_links; // количество ссылок
 
-    void*       fs_d;       // Указатель на данные драйвера
+    void*       fs_d;       // Указатель на данные драйвера, потом убрать
+    struct superblock* sb;
+
     atomic_t    reference_count;
 
     uint64_t    create_time;

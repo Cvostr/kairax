@@ -1,6 +1,14 @@
 #include "inode.h"
 #include "dirent.h"
 #include "mem/kheap.h"
+#include "string.h"
+
+struct inode* new_vfs_inode()
+{
+    struct inode* result = kmalloc(sizeof(struct inode));
+    memset(result, 0, sizeof(struct inode));
+    return result;
+}
 
 void vfs_open(struct inode* node, uint32_t flags)
 {
@@ -8,7 +16,6 @@ void vfs_open(struct inode* node, uint32_t flags)
         if(node->operations->open)
             node->operations->open(node, flags);
 }
-
 
 void vfs_chmod(struct inode* node, uint32_t mode)
 {
@@ -54,7 +61,6 @@ void vfs_close(struct inode* node)
             node->operations->close(node);
 
     if (atomic_dec_and_test(&node->reference_count)) {
-        vfs_unhold_inode(node);
         kfree(node);
     }
 }

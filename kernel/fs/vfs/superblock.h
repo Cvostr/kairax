@@ -4,21 +4,30 @@
 #include "types.h"
 #include "inode.h"
 #include "list/list.h"
+#include "filesystems.h"
+#include "drivers/storage/partitions/storage_partitions.h"
 
 struct super_operations;
 
-typedef struct PACKED {
-    list_t*             inodes;
-    struct super_operations*    operations;
-} superblock_t;
+struct superblock {
+    list_t*                     inodes; // список inodes от этого суперблока
+    struct dentry*              root_dir;   // dentry монтирования
+    struct super_operations*    operations; // операции
+    void*                       fs_info; // Указатель на объект ФС
+
+    drive_partition_t*          partition;  // потом надо бы заменить на block_device
+    filesystem_t*               filesystem; // Информация о ФС
+};
 
 struct super_operations {
 
-    struct inode *(*alloc_inode)( superblock_t *sb);
+    struct inode *(*alloc_inode)( struct superblock *sb);
 
     void (*destroy_inode)(struct inode * inode);
 };
 
-superblock_t* new_superblock();
+struct superblock* new_superblock();
+
+void free_superblock(struct superblock* sb);
 
 #endif
