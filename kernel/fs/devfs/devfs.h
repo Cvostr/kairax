@@ -4,10 +4,11 @@
 #include "types.h"
 #include "../vfs/vfs.h"
 #include "../vfs/file.h"
+#include "../vfs/superblock.h"
 
 void devfs_init();
 
-struct inode* devfs_mount(drive_partition_t* drive);
+struct inode* devfs_mount(drive_partition_t* drive, struct superblock* sb);
 
 void devfs_open(struct inode* inode, uint32_t flags);
 

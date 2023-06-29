@@ -5,12 +5,14 @@
 #include "drivers/storage/partitions/storage_partitions.h"
 #include "file.h"
 
-typedef struct PACKED {
+struct superblock;
+
+typedef struct {
     const char*         name;
     int                 flags;
 
-    struct inode*        (*mount)(drive_partition_t*);   //Вызывается при монтировании
-    int                 (*unmount)(drive_partition_t*); //Вызывается при размонтировании
+    struct inode*        (*mount)(drive_partition_t*, struct superblock*);   //Вызывается при монтировании
+    int                 (*unmount)(struct superblock*); //Вызывается при размонтировании
 } filesystem_t;
 
 filesystem_t* new_filesystem();

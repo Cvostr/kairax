@@ -5,15 +5,6 @@
 #include "drivers/storage/partitions/storage_partitions.h"
 #include "filesystems.h"
 
-#define MOUNT_PATH_MAX_LEN 256
-
-typedef struct PACKED {
-    drive_partition_t*          partition;
-    char                        mount_path[MOUNT_PATH_MAX_LEN];
-    filesystem_t*               filesystem;
-    struct inode*               root_node;
-} vfs_mount_info_t;
-
 struct inode* new_vfs_inode();
 
 struct dirent* new_vfs_dirent();
@@ -26,11 +17,11 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname);
 
 int vfs_unmount(char* mount_path);
 
-vfs_mount_info_t* vfs_get_mounted_partition(const char* mount_path);
+struct superblock* vfs_get_mounted_partition(const char* mount_path);
 
-vfs_mount_info_t* vfs_get_mounted_partition_split(const char* path, int* offset);
+struct superblock* vfs_get_mounted_partition_split(const char* path, int* offset);
 
-vfs_mount_info_t** vfs_get_mounts();
+struct superblock** vfs_get_mounts();
 
 //Функции файловой системы
 
@@ -47,15 +38,5 @@ void vfs_open(struct inode* node, uint32_t flags);
 void vfs_close(struct inode* node);
 
 struct inode* vfs_fopen(const char* path, uint32_t flags);
-
-// Функции holder
-
-void init_vfs_holder();
-
-struct inode* vfs_get_inode_by_path(const char* path);
-
-void vfs_hold_inode(struct inode* inode);
-
-void vfs_unhold_inode(struct inode* inode);
 
 #endif

@@ -4,7 +4,7 @@
 
 struct dentry* new_dentry()
 {
-    struct dentry* result = kheap(sizeof(struct dentry));
+    struct dentry* result = kmalloc(sizeof(struct dentry));
     memset(result, 0, sizeof(struct dentry));
     result->subdirs = create_list();
     return result;

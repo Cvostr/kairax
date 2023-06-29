@@ -11,6 +11,7 @@
 
 #include "dev/acpi/acpi.h"
 #include "fs/vfs/vfs.h"
+#include "fs/vfs/superblock.h"
 
 #include "proc/process.h"
 
@@ -67,7 +68,7 @@ void bootshell_process_cmd(char* cmdline){
     }
     if(strcmp(cmd, "path") == 0){
         int offset = 0;
-        vfs_mount_info_t* result = vfs_get_mounted_partition_split(args, &offset);
+        struct superblock* result = vfs_get_mounted_partition_split(args, &offset);
         if(result == NULL){
             printf("No mounted device\n");
         }else 
@@ -130,9 +131,9 @@ void bootshell_process_cmd(char* cmdline){
         vfs_close(inode);
     }
     else if(strcmp(cmdline, "mounts") == 0){
-        vfs_mount_info_t** mounts = vfs_get_mounts();
+        struct superblock** mounts = vfs_get_mounts();
         for(int i = 0; i < 100; i ++){
-            vfs_mount_info_t* mount = mounts[i];
+            struct superblock* mount = mounts[i];
             if(mount != NULL){
                 printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, mount->mount_path, mount->filesystem->name);
             }

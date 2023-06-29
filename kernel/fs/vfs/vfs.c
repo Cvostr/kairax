@@ -3,10 +3,11 @@
 #include "string.h"
 #include "filesystems.h"
 #include "mem/kheap.h"
+#include "superblock.h"
 
 #define MAX_MOUNTS 100
 
-vfs_mount_info_t** vfs_mounts = NULL;
+struct superblock** vfs_mounts = NULL;
 
 struct dirent* new_vfs_dirent()
 {
@@ -17,15 +18,8 @@ struct dirent* new_vfs_dirent()
 
 void vfs_init()
 {
-    vfs_mounts = (vfs_mount_info_t**)kmalloc(sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
-    memset(vfs_mounts, 0, sizeof(vfs_mount_info_t*) * MAX_MOUNTS);
-}
-
-vfs_mount_info_t* new_vfs_mount_info()
-{
-    vfs_mount_info_t* result = (vfs_mount_info_t*)kmalloc(sizeof(vfs_mount_info_t));
-    memset(result, 0, sizeof(vfs_mount_info_t));
-    return result;
+    vfs_mounts = (struct superblock**)kmalloc(sizeof(struct superblock*) * MAX_MOUNTS);
+    memset(vfs_mounts, 0, sizeof(struct superblock*) * MAX_MOUNTS);
 }
 
 int vfs_get_free_mount_info_pos()
@@ -52,26 +46,38 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
     if(mount_pos == -1)
         return -2;  //Не найдено место
 
-    vfs_mount_info_t* mount_info = new_vfs_mount_info();
-    mount_info->partition = partition;
-    mount_info->filesystem = filesystem_get_by_name(fsname); 
-    strcpy(mount_info->mount_path, mount_path);
-    //вызов функции монтирования, если она определена
-    if(mount_info->filesystem->mount) {
-        mount_info->root_node = mount_info->filesystem->mount(partition);
-        atomic_inc(&mount_info->root_node->reference_count);
-    } else
-        return -4;  //Нет функции монтирования
+    struct superblock* sb = new_superblock();
+    sb->filesystem = filesystem_get_by_name(fsname); 
+    sb->partition = partition;
+    strcpy(sb->mount_path, mount_path);
 
-    if(mount_info->root_node == NULL)
-        return -5; //Ошибка при процессе монтирования
+    //vfs_mount_info_t* mount_info = new_vfs_mount_info();
+    //mount_info->partition = partition;
+    //mount_info->filesystem = filesystem_get_by_name(fsname); 
+    //strcpy(mount_info->mount_path, mount_path);
+    //вызов функции монтирования, если она определена
+    if(sb->filesystem->mount) {
+        struct inode* root_inode = sb->filesystem->mount(partition, sb);
+
+        if(root_inode == NULL) {
+            free_superblock(sb);
+            return -5; //Ошибка при процессе монтирования
+        }
+
+        atomic_inc(&root_inode->reference_count);
+        list_add(sb->inodes, root_inode);
+        
+    } else {
+        free_superblock(sb);
+        return -4;  //Нет функции монтирования
+    }
 
     //Удалить / в конце, если есть
-    int path_len = strlen(mount_info->mount_path);
-    if(mount_info->mount_path[path_len - 1] == '/')
-        mount_info->mount_path[path_len - 1] = '\0';
+    int path_len = strlen(sb->mount_path);
+    if(sb->mount_path[path_len - 1] == '/')
+        sb->mount_path[path_len - 1] = '\0';
 
-    vfs_mounts[mount_pos] = mount_info;
+    vfs_mounts[mount_pos] = sb;
 }
 
 int vfs_unmount(char* mount_path)
@@ -80,14 +86,14 @@ int vfs_unmount(char* mount_path)
 
         if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0) {
 
-            vfs_mount_info_t* mount_info = vfs_mounts[i];
+            struct superblock* sb = vfs_mounts[i];
             //выполнить отмонтирование ФС
-            if (mount_info->filesystem->unmount != NULL) {
-                mount_info->filesystem->unmount(mount_info->partition);
+            if (sb->filesystem->unmount != NULL) {
+                sb->filesystem->unmount(sb);
             }
 
             //Освободить память
-            kfree(vfs_mounts[i]);
+            free_superblock(sb);
             vfs_mounts[i] = NULL;
             return 1;
         }
@@ -96,7 +102,7 @@ int vfs_unmount(char* mount_path)
     return -1;//Данный путь не использовался
 }
 
-vfs_mount_info_t* vfs_get_mounted_partition(const char* mount_path)
+struct superblock* vfs_get_mounted_partition(const char* mount_path)
 {
     for (int i = 0; i < MAX_MOUNTS; i ++) {
         
@@ -126,13 +132,13 @@ void path_to_slash(char* path)
     }
 }
 
-vfs_mount_info_t* vfs_get_mounted_partition_split(const char* path, int* offset)
+struct superblock* vfs_get_mounted_partition_split(const char* path, int* offset)
 {
     int path_len = strlen(path);
     char* temp = kmalloc(path_len + 1);
     strcpy(temp, path);
 
-    vfs_mount_info_t* result = NULL;
+    struct superblock* result = NULL;
     while (result == NULL) {
         result = vfs_get_mounted_partition(temp);
 
@@ -150,7 +156,7 @@ vfs_mount_info_t* vfs_get_mounted_partition_split(const char* path, int* offset)
     return result;
 }
 
-vfs_mount_info_t** vfs_get_mounts()
+struct superblock** vfs_get_mounts()
 {
     return vfs_mounts;
 }
@@ -159,9 +165,11 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
 {
     int offset = 0;
     // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
-    vfs_mount_info_t* mount_info = vfs_get_mounted_partition_split(path, &offset);
+    struct superblock* sb = vfs_get_mounted_partition_split(path, &offset);
     //Корневой узел найденной ФС
-    struct inode* curr_node = mount_info->root_node;
+    struct inode* root_node = (struct inode*)sb->inodes->head->element;
+
+    struct inode* curr_node = root_node;
 
     offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
@@ -196,7 +204,7 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
         if(is_dir == 1) {
             if(next != NULL) {
                 // Освободить память текущей ноды
-                if(curr_node != mount_info->root_node)
+                if(curr_node != root_node)
                     kfree(curr_node);
 
                 // Заменить указатель
@@ -212,7 +220,7 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
                 vfs_open(next, flags);
             }
             
-            if(curr_node != mount_info->root_node)
+            if(curr_node != root_node)
                 kfree(curr_node);
 
             kfree(temp);

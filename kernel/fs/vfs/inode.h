@@ -51,7 +51,6 @@ struct inode {
     uint64_t    size;       // Размер файла (байт)
     uint32_t    hard_links; // количество ссылок
 
-    void*       fs_d;       // Указатель на данные драйвера, потом убрать
     struct superblock* sb;
 
     atomic_t    reference_count;

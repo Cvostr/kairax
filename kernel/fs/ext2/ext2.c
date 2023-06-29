@@ -31,7 +31,8 @@ void ext2_init(){
     dir_inode_ops.close = ext2_close;
 }
 
-ext2_inode_t* new_ext2_inode(){
+ext2_inode_t* new_ext2_inode()
+{
     ext2_inode_t* ext2_inode = kmalloc(sizeof(ext2_inode_t));
     memset(ext2_inode, 0, sizeof(ext2_inode_t));
     return ext2_inode;
@@ -106,10 +107,12 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
     return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
 }
 
-struct inode* ext2_mount(drive_partition_t* drive)
+struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
 {
     ext2_instance_t* instance = kmalloc(sizeof(ext2_instance_t));
     memset(instance, 0, sizeof(ext2_instance_t));
+
+    instance->vfs_sb = sb;
 
     instance->partition = drive;
     instance->superblock = (ext2_superblock_t*)kmalloc(sizeof(ext2_superblock_t));
@@ -151,7 +154,7 @@ struct inode* ext2_mount(drive_partition_t* drive)
     struct inode* result = new_vfs_inode();
     result->inode = 2;              //2 - стандартный индекс корневой иноды
     result->mode = ext2_inode_root->mode;
-    result->fs_d = instance;        //Сохранение указателя на информацию о файловой системе
+    result->sb = sb;                //Сохранение указателя на суперблок
 
     result->create_time = ext2_inode_root->ctime;
     result->access_time = ext2_inode_root->atime;
@@ -160,6 +163,10 @@ struct inode* ext2_mount(drive_partition_t* drive)
     result->operations = &dir_inode_ops;
 
     kfree(ext2_inode_root);
+
+    // Данные суперблока
+    sb->fs_info = instance;
+    sb->blocksize = instance->block_size;
 
     return result;
 }
@@ -178,7 +185,7 @@ uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
     uint32_t end_size = end_offset - end_inode_block * inst->block_size;
 
     char* temp_buffer = (char*)kmalloc(inst->block_size);
-    char* temp_buffer_phys = kheap_get_phys_address(temp_buffer);
+    char* temp_buffer_phys = (char*)kheap_get_phys_address(temp_buffer);
     uint32_t current_offset = 0;
 
     for(uint32_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++){
@@ -238,7 +245,7 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
 {
     struct inode* result = new_vfs_inode();
     result->inode = dirent->inode;
-    result->fs_d = inst;
+    result->sb = inst->vfs_sb;
     result->uid = inode->userid;
     result->gid = inode->gid;
     result->size = inode->size;
@@ -281,7 +288,7 @@ void ext2_close(struct inode* inode){
 
 ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer)
 {
-    ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
+    ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
     read_inode_filedata(inst, inode, offset, size, buffer);
@@ -290,7 +297,7 @@ ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buff
 }
 
 ssize_t ext2_write(struct inode* file, uint32_t offset, uint32_t size, char* buffer){
-    ext2_instance_t* inst = (ext2_instance_t*)file->fs_d;
+    ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
     //Не реализовано
@@ -313,7 +320,7 @@ void ext2_mkfile(struct inode* parent, char* file_name){
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index)
 {
     struct dirent* result = NULL;
-    ext2_instance_t* inst = (ext2_instance_t*)dir->fs_d;
+    ext2_instance_t* inst = (ext2_instance_t*)dir->sb->fs_info;
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();
     ext2_inode(inst, parent_inode, dir->inode);
@@ -324,7 +331,7 @@ struct dirent* ext2_readdir(struct inode* dir, uint32_t index)
     uint32_t passed_entries = 0;
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = kheap_get_phys_address(buffer);
+    char* buffer_phys = (char*)kheap_get_phys_address(buffer);
     //Прочитать начальный блок иноды
     ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
     //Проверка, не прочитан ли весь блок?
@@ -360,7 +367,7 @@ exit:
 
 struct inode* ext2_finddir(struct inode * parent, char *name)
 {
-    ext2_instance_t* inst = (ext2_instance_t*)parent->fs_d;
+    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();
     ext2_inode(inst, parent_inode, parent->inode);

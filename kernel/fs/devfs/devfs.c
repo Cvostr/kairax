@@ -20,11 +20,11 @@ void devfs_init()
     root_inode_ops.readdir = devfs_readdir;
 }
 
-struct inode* devfs_mount(drive_partition_t* drive)
+struct inode* devfs_mount(drive_partition_t* drive, struct superblock* sb)
 {
     struct inode* result = new_vfs_inode();
     result->inode = 2;              
-    result->fs_d = 0;        
+    result->sb = NULL;        
     result->mode = INODE_TYPE_DIRECTORY;
 
     result->create_time = 0;

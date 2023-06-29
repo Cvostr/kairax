@@ -49,9 +49,17 @@ struct inode* vfs_finddir(struct inode* node, char* name)
 
 struct dirent* vfs_readdir(struct inode* node, uint32_t index)
 {
+    struct dirent* result = NULL;
+
+    acquire_spinlock(&node->spinlock);
+
     if(node)
         if(node->operations->readdir)
-            return node->operations->readdir(node, index);
+            result = node->operations->readdir(node, index);
+
+    release_spinlock(&node->spinlock);
+
+    return result;
 }
 
 void vfs_close(struct inode* node)

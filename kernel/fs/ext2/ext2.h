@@ -4,6 +4,7 @@
 #include "types.h"
 #include "../vfs/vfs.h"
 #include "../vfs/file.h"
+#include "../vfs/superblock.h"
 
 #define EXT2_DIRECT_BLOCKS 12
 
@@ -108,6 +109,7 @@ typedef struct PACKED {
 typedef struct PACKED {
     drive_partition_t*  partition;
     ext2_superblock_t*  superblock;
+    struct superblock*  vfs_sb;
     ext2_bgd_t*         bgds;
     ext2_inode_t*       root_inode;
 
@@ -142,7 +144,7 @@ uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 
 uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
 
-struct inode* ext2_mount(drive_partition_t* drive);
+struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf);
 
