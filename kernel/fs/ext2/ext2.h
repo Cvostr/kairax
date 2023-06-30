@@ -173,9 +173,9 @@ uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, cons
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 
-ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t ext2_read(struct inode* file, off_t offset, size_t size, char* buffer);
 
-ssize_t ext2_write(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
+ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* buffer);
 
 
 #endif

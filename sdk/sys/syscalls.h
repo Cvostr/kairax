@@ -11,5 +11,6 @@ extern void syscall_sleep(unsigned long long times);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
 extern int syscall_set_working_dir(const char* path);
 extern int syscall_fdstat(int fd, void* st);
+extern long int syscall_file_seek(int fd, long int offset, int whence);
 
 #endif

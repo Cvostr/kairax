@@ -39,6 +39,11 @@ syscall_fdstat:
     syscall
     ret
 
+syscall_file_seek:
+    mov rax, 0x08
+    syscall
+    ret
+
 syscall_readdir:
     mov rax, 0x59
     syscall

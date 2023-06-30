@@ -300,7 +300,7 @@ void ext2_close(struct inode* inode){
     
 }
 
-ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer)
+ssize_t ext2_read(struct inode* file, off_t offset, size_t size, char* buffer)
 {
     ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
     ext2_inode_t*    inode = new_ext2_inode();
@@ -310,7 +310,7 @@ ssize_t ext2_read(struct inode* file, uint32_t offset, uint32_t size, char* buff
     return size;
 }
 
-ssize_t ext2_write(struct inode* file, uint32_t offset, uint32_t size, char* buffer){
+ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* buffer){
     ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);

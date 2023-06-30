@@ -53,14 +53,32 @@ void inode_chmod(struct inode* node, uint32_t mode)
     release_spinlock(&node->spinlock);
 }
 
-ssize_t inode_read(struct inode* node, uint32_t offset, uint32_t size, char* buffer)
+ssize_t inode_read(struct inode* node, loff_t* offset, size_t size, char* buffer)
 {
     ssize_t result = 0;
     acquire_spinlock(&node->spinlock);
 
     if(node) {
         if(node->operations->read) {
-            result = node->operations->read(node, offset, size, buffer);
+            result = node->operations->read(node, *offset, size, buffer);
+            //*offset += result;
+        }
+    }
+
+    release_spinlock(&node->spinlock);
+
+    return result;
+}
+
+ssize_t inode_write(struct inode* node, loff_t* offset, size_t size, const char* buffer)
+{
+    ssize_t result = 0;
+    acquire_spinlock(&node->spinlock);
+
+    if(node) {
+        if(node->operations->write) {
+            result = node->operations->write(node, *offset, size, buffer);
+            *offset += result;
         }
     }
 

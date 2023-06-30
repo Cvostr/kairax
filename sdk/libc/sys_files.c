@@ -30,3 +30,9 @@ int readdir(int fd, struct dirent* direntry)
 {
     return syscall_readdir(fd, direntry);
 }
+
+
+off_t file_seek(int fd, off_t offset, int whence)
+{
+    return syscall_file_seek(fd, offset, whence);
+}

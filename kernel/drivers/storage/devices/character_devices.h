@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "fs/vfs/file.h"
+#include "fs/vfs/inode.h"
 
 #define CHAR_DEVICE_NAME_MAX_LEN     32
 
@@ -12,8 +13,8 @@ typedef struct PACKED {
     size_t (*write) (file_t* file, const char* buffer, size_t count, loff_t offset);
     int (*ioctl)(file_t* file, uint64_t request, uint64_t arg);
 
-    int (*open) (vfs_inode_t *inode, file_t *file);
-    int (*release) (vfs_inode_t *inode, file_t *file);
+    int (*open) (struct inode *inode, file_t *file);
+    int (*release) (struct inode *inode, file_t *file);
 } file_operations;
 
 typedef struct PACKED {

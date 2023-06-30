@@ -12,7 +12,7 @@
 #define ERROR_BAD_FD                9
 
 // Открытый файл
-typedef struct PACKED {
+typedef struct {
     struct inode*    inode;
     int             mode;
     int             flags;
