@@ -30,3 +30,21 @@ struct inode* superblock_get_inode(struct superblock* sb, uint64 inode)
 
     return NULL;
 }
+
+void superblock_add_inode(struct superblock* sb, struct inode* inode)
+{
+    acquire_spinlock(&sb->spinlock);
+
+    list_add(sb->inodes, inode);
+
+    release_spinlock(&sb->spinlock);
+}
+
+void superblock_remove_inode(struct superblock* sb, struct inode* inode)
+{
+    acquire_spinlock(&sb->spinlock);
+
+    list_remove(sb->inodes, inode);
+
+    release_spinlock(&sb->spinlock);
+}

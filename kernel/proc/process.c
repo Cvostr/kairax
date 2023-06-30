@@ -62,7 +62,7 @@ size_t process_read_file(process_t* process, int fd, char* buffer, size_t size)
     file_t* file = process->fds[fd];
     if (file->mode & FILE_OPEN_MODE_READ_ONLY) {
         struct inode* inode = file->inode;
-        bytes_read = vfs_read(inode, file->pos, size, buffer);
+        bytes_read = inode_read(inode, file->pos, size, buffer);
         file->pos += bytes_read; 
     }
 
@@ -107,7 +107,7 @@ int process_readdir(process_t* process, int fd, struct dirent* dirent)
     if (file != NULL) {
 
         struct inode* inode = file->inode;
-        struct dirent* ndirent = vfs_readdir(inode, file->pos ++);
+        struct dirent* ndirent = inode_readdir(inode, file->pos ++);
         
         if (ndirent == NULL) {
             return 0;

@@ -2,6 +2,7 @@
 #include "dirent.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "superblock.h"
 
 struct inode* new_vfs_inode()
 {
@@ -12,10 +13,25 @@ struct inode* new_vfs_inode()
 
 void vfs_open(struct inode* node, uint32_t flags)
 {
-    atomic_inc(&node->reference_count);
+    if (atomic_inc_and_test(&node->reference_count) == 1) {
+        superblock_add_inode(node->sb, node);
+    }
+    
     if(node)
         if(node->operations->open)
             node->operations->open(node, flags);
+}
+
+void vfs_close(struct inode* node)
+{
+    if(node)
+        if(node->operations->close)
+            node->operations->close(node);
+
+    if (atomic_dec_and_test(&node->reference_count)) {
+        superblock_remove_inode(node->sb, node);
+        kfree(node);
+    }
 }
 
 void vfs_chmod(struct inode* node, uint32_t mode)
@@ -25,7 +41,7 @@ void vfs_chmod(struct inode* node, uint32_t mode)
             return node->operations->chmod(node, mode);
 }
 
-ssize_t vfs_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer)
+ssize_t inode_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer)
 {
     ssize_t result = 0;
     acquire_spinlock(&file->spinlock);
@@ -48,7 +64,7 @@ struct inode* vfs_finddir(struct inode* node, char* name)
             return node->operations->finddir(node, name);
 }
 
-struct dirent* vfs_readdir(struct inode* node, uint32_t index)
+struct dirent* inode_readdir(struct inode* node, uint32_t index)
 {
     struct dirent* result = NULL;
 
@@ -61,15 +77,4 @@ struct dirent* vfs_readdir(struct inode* node, uint32_t index)
     release_spinlock(&node->spinlock);
 
     return result;
-}
-
-void vfs_close(struct inode* node)
-{
-    if(node)
-        if(node->operations->close)
-            node->operations->close(node);
-
-    if (atomic_dec_and_test(&node->reference_count)) {
-        kfree(node);
-    }
 }

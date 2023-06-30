@@ -10,6 +10,8 @@
 
 #define EXT2_FEATURE_64BIT_FILE_SIZE 0x0002
 
+#define EXT2_MAGIC 61267
+
 typedef struct PACKED {
     uint32_t total_inodes;
     uint32_t total_blocks;
@@ -169,7 +171,7 @@ struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 
 struct inode* ext2_finddir(struct inode* parent, char *name);
 
-//uint64 ext2_finddir1(uint64_t parent_inode, char *name);
+uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name);
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 

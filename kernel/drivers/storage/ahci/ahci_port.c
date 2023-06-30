@@ -5,6 +5,7 @@
 #include "memory/kernel_vmm.h"
 #include "io.h"
 #include "ctype.h"
+#include "stdio.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))

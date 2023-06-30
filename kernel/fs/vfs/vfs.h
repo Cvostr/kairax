@@ -25,11 +25,7 @@ struct superblock** vfs_get_mounts();
 
 //Функции файловой системы
 
-ssize_t vfs_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
-
 struct inode* vfs_finddir(struct inode* node, char* name);
-
-struct dirent* vfs_readdir(struct inode* node, uint32_t index);
 
 void vfs_chmod(struct inode* node, uint32_t mode);
 

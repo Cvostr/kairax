@@ -21,6 +21,8 @@ struct superblock {
     filesystem_t*               filesystem; // Информация о ФС
 
     char                        mount_path[MOUNT_PATH_MAX_LEN];
+
+    spinlock_t      spinlock;
 };
 
 struct super_operations {
@@ -30,6 +32,8 @@ struct super_operations {
     void (*destroy_inode)(struct inode * inode);
 
     struct inode* (*read_inode)(struct superblock *sb, uint64_t ino_num);
+
+    uint64_t (*find_dentry)(struct superblock *sb, uint64_t parent_num, const char* name);
 };
 
 struct superblock* new_superblock();
@@ -37,5 +41,9 @@ struct superblock* new_superblock();
 void free_superblock(struct superblock* sb);
 
 struct inode* superblock_get_inode(struct superblock* sb, uint64 inode);
+
+void superblock_add_inode(struct superblock* sb, struct inode* inode);
+
+void superblock_remove_inode(struct superblock* sb, struct inode* inode);
 
 #endif

@@ -83,7 +83,7 @@ void bootshell_process_cmd(char* cmdline){
             return;
         }
         struct dirent* child = NULL;
-        while((child = vfs_readdir(inode, index++)) != NULL){
+        while((child = inode_readdir(inode, index++)) != NULL){
             //printf("TYPE %s, NAME %s, SIZE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->size);
             printf("TYPE %s, NAME %s\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name);
             kfree(child);
@@ -100,7 +100,7 @@ void bootshell_process_cmd(char* cmdline){
         int size = inode->size;
         printf("%s: ", args);
         char* buffer = kmalloc(size);
-        vfs_read(inode, 0, size, buffer);
+        inode_read(inode, 0, size, buffer);
         for(int i = 0; i < size; i++){
             printf("%c", buffer[i]);
         }
@@ -122,7 +122,7 @@ void bootshell_process_cmd(char* cmdline){
             return;
         }
 
-        vfs_read(inode, 0, size, buffer);
+        inode_read(inode, 0, size, buffer);
 
         //Запуск
         int rc = create_new_process_from_image(buffer); 

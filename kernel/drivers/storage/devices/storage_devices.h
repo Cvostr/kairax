@@ -11,7 +11,7 @@ typedef uint64_t    drive_ident_t;
 
 typedef uint64_t    drive_ctrl_t;
 
-typedef struct PACKED {
+typedef struct {
     char            name[12];       //Имя устройства в системе
     char            model[41];      //Модель устройства
     char            serial[35];     //Серийный номер устройства

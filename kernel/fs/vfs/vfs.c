@@ -42,6 +42,7 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
     if(vfs_get_mounted_partition(mount_path) != NULL){
         return -1;  //Данный путь уже используется
     }
+
     int mount_pos = vfs_get_free_mount_info_pos();
     if(mount_pos == -1)
         return -2;  //Не найдено место
@@ -61,7 +62,7 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
         }
 
         atomic_inc(&root_inode->reference_count);
-        list_add(sb->inodes, root_inode);
+        superblock_add_inode(sb, root_inode);
         
     } else {
         free_superblock(sb);
@@ -74,6 +75,8 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
         sb->mount_path[path_len - 1] = '\0';
 
     vfs_mounts[mount_pos] = sb;
+
+    return 0;
 }
 
 int vfs_unmount(char* mount_path)

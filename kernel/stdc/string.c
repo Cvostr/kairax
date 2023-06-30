@@ -72,7 +72,7 @@ int strcmp(const char* str1, const char* str2){
   	return 0;
 }
 
-int strncmp(char* str1, char* str2, size_t len){
+int strncmp(const char* str1, const char* str2, size_t len){
   	for(int i = 0; i < len; i ++){
     		if(str1[i] != str2[i]) 
 			return 1;

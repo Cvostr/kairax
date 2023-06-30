@@ -202,13 +202,17 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
 {
     int copied = 0;
 
-    for(size_t i = 0; i < size; i ++){
-        char* phys_addr = get_physical_address(root, dst + i);
-        if(phys_addr == NULL)
+    for(size_t i = 0; i < size; i ++) {
+        char* phys_addr = (char*)get_physical_address(root, dst + i);
+        
+        if (phys_addr == NULL) {
             return copied;
+        }
+
         phys_addr = P2V(phys_addr);
         *phys_addr = *((char*)src + i);
     }
+    
     return copied;
 }
 

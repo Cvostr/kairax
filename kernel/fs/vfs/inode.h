@@ -31,6 +31,8 @@ struct inode_operations {
 #define INODE_FLAG_PIPE        0x1000
 #define INODE_FLAG_SYMLINK     0xA000
 
+#define WRONG_INODE_INDEX       UINT64_MAX
+
 // Представление объекта со стороны файловой системы
 struct inode {
     uint32_t    mode;       // Тип и разрешения
@@ -52,5 +54,9 @@ struct inode {
 
     spinlock_t      spinlock;
 };
+
+ssize_t inode_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer);
+
+struct dirent* inode_readdir(struct inode* node, uint32_t index);
 
 #endif

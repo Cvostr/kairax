@@ -32,6 +32,7 @@ void ext2_init(){
     dir_inode_ops.close = ext2_close;
 
     sb_ops.read_inode = ext2_read_node;
+    sb_ops.find_dentry = ext2_find_dentry;
 }
 
 ext2_inode_t* new_ext2_inode()
@@ -123,8 +124,8 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     // Считать суперблок
     ext2_partition_read_block(instance, 1, 1, kheap_get_phys_address(instance->superblock));
     
-    //Проверить магическую константу ext2 61267
-    if(instance->superblock->ext2_magic != 61267){
+    // Проверить магическую константу ext2
+    if(instance->superblock->ext2_magic != EXT2_MAGIC) {
         kfree(instance->superblock);
         kfree(instance);
         return NULL;
@@ -135,7 +136,7 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
         instance->file_size_64bit_flag = (instance->superblock->readonly_feature & EXT2_FEATURE_64BIT_FILE_SIZE) > 0;
     }
 
-    //Сохранить некоторые полезные значения
+    // Сохранить некоторые полезные значения
     instance->block_size = (1024 << instance->superblock->log2block_size);
     instance->total_groups = instance->superblock->total_blocks / instance->superblock->blocks_per_group;
     while(instance->superblock->blocks_per_group * instance->total_groups < instance->superblock->total_blocks)
@@ -373,6 +374,55 @@ struct dirent* ext2_readdir(struct inode* dir, uint32_t index)
 
 exit:
 
+    kfree(parent_inode);
+    kfree(buffer);
+
+    return result;
+}
+
+uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name)
+{
+    uint64_t result = WRONG_INODE_INDEX;
+    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
+    
+    //Получить родительскую иноду
+    ext2_inode_t* parent_inode = new_ext2_inode();
+    ext2_inode(inst, parent_inode, parent_inode_index);
+
+    //Переменные
+    uint32_t curr_offset = 0;
+    uint32_t block_offset = 0;
+    uint32_t in_block_offset = 0;
+    
+    //Выделить временную память под буфер блоков
+    char* buffer = kmalloc(inst->block_size);
+    char* buffer_phys = (char*)kheap_get_phys_address(buffer);
+    
+    //Прочитать начальный блок иноды
+    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+    //Пока не прочитаны все блоки
+    while(curr_offset < parent_inode->size) {
+
+        //Проверка, не прочитан ли весь блок?
+        if(in_block_offset >= inst->block_size){
+            block_offset++;
+            in_block_offset = 0;
+            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+        }
+
+        // Считанный dirent
+        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
+        // Проверка совпадения имени
+        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)) {
+            result = curr_entry->inode;
+            goto exit;
+        }
+
+        in_block_offset += curr_entry->size;
+        curr_offset += curr_entry->size;
+    }
+
+exit:
     kfree(parent_inode);
     kfree(buffer);
 
