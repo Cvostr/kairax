@@ -11,8 +11,10 @@ struct inode* new_vfs_inode()
     return result;
 }
 
-void vfs_open(struct inode* node, uint32_t flags)
+void inode_open(struct inode* node, uint32_t flags)
 {
+    acquire_spinlock(&node->spinlock);
+
     if (atomic_inc_and_test(&node->reference_count) == 1) {
         superblock_add_inode(node->sb, node);
     }
@@ -20,10 +22,14 @@ void vfs_open(struct inode* node, uint32_t flags)
     if(node)
         if(node->operations->open)
             node->operations->open(node, flags);
+
+    release_spinlock(&node->spinlock);
 }
 
-void vfs_close(struct inode* node)
+void inode_close(struct inode* node)
 {
+    acquire_spinlock(&node->spinlock);
+
     if(node)
         if(node->operations->close)
             node->operations->close(node);
@@ -32,36 +38,35 @@ void vfs_close(struct inode* node)
         superblock_remove_inode(node->sb, node);
         kfree(node);
     }
+
+    release_spinlock(&node->spinlock);
 }
 
-void vfs_chmod(struct inode* node, uint32_t mode)
+void inode_chmod(struct inode* node, uint32_t mode)
 {
+    acquire_spinlock(&node->spinlock);
+
     if(node)
         if(node->operations->chmod)
             return node->operations->chmod(node, mode);
+
+    release_spinlock(&node->spinlock);
 }
 
-ssize_t inode_read(struct inode* file, uint32_t offset, uint32_t size, char* buffer)
+ssize_t inode_read(struct inode* node, uint32_t offset, uint32_t size, char* buffer)
 {
     ssize_t result = 0;
-    acquire_spinlock(&file->spinlock);
+    acquire_spinlock(&node->spinlock);
 
-    if(file) {
-        if(file->operations->read) {
-            result = file->operations->read(file, offset, size, buffer);
+    if(node) {
+        if(node->operations->read) {
+            result = node->operations->read(node, offset, size, buffer);
         }
     }
 
-    release_spinlock(&file->spinlock);
+    release_spinlock(&node->spinlock);
 
     return result;
-}
-
-struct inode* vfs_finddir(struct inode* node, char* name)
-{
-    if(node)
-        if(node->operations->finddir)
-            return node->operations->finddir(node, name);
 }
 
 struct dirent* inode_readdir(struct inode* node, uint32_t index)

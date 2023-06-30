@@ -89,7 +89,7 @@ void bootshell_process_cmd(char* cmdline){
             kfree(child);
         }
 
-        vfs_close(inode); 
+        inode_close(inode); 
     }
     if(strcmp(cmd, "cat") == 0){
         struct inode* inode = vfs_fopen(args, 0);
@@ -106,7 +106,7 @@ void bootshell_process_cmd(char* cmdline){
         }
         printf("\n");
         kfree(buffer);
-        vfs_close(inode);
+        inode_close(inode);
     }
     if(strcmp(cmd, "exec") == 0) {
         struct inode* inode = vfs_fopen(args, 0);
@@ -128,7 +128,7 @@ void bootshell_process_cmd(char* cmdline){
         int rc = create_new_process_from_image(buffer); 
 
         kfree(buffer);
-        vfs_close(inode);
+        inode_close(inode);
     }
     else if(strcmp(cmdline, "mounts") == 0){
         struct superblock** mounts = vfs_get_mounts();

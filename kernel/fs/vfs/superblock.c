@@ -26,6 +26,7 @@ struct inode* superblock_get_inode(struct superblock* sb, uint64 inode)
             return node;
             
         current = current->next;
+        node = (struct inode*)current->element;
     }
 
     return NULL;

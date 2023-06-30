@@ -169,8 +169,6 @@ void ext2_chmod(struct inode * file, uint32_t mode);
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 
-struct inode* ext2_finddir(struct inode* parent, char *name);
-
 uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name);
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);

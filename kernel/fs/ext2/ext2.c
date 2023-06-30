@@ -25,7 +25,6 @@ void ext2_init(){
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
-    dir_inode_ops.finddir = ext2_finddir;
     dir_inode_ops.readdir = ext2_readdir;
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.open = ext2_open;
@@ -427,48 +426,4 @@ exit:
     kfree(buffer);
 
     return result;
-}
-
-struct inode* ext2_finddir(struct inode * parent, char *name)
-{
-    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
-    //Получить родительскую иноду
-    ext2_inode_t* parent_inode = new_ext2_inode();
-    ext2_inode(inst, parent_inode, parent->inode);
-    //Переменные
-    uint32_t curr_offset = 0;
-    uint32_t block_offset = 0;
-    uint32_t in_block_offset = 0;
-    //Выделить временную память под буфер блоков
-    char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = kheap_get_phys_address(buffer);
-    //Прочитать начальный блок иноды
-    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
-    //Пока не прочитаны все блоки
-    while(curr_offset < parent_inode->size) {
-        //Проверка, не прочитан ли весь блок?
-        if(in_block_offset >= inst->block_size){
-            block_offset++;
-            in_block_offset = 0;
-            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
-        }
-
-        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
-        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)){
-            ext2_inode_t* inode = new_ext2_inode();
-            ext2_inode(inst, inode, curr_entry->inode);
-            struct inode* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry->inode);
-            kfree(buffer);
-            kfree(inode);
-            kfree(parent_inode);
-            return result;
-        }
-
-        in_block_offset += curr_entry->size;
-        curr_offset += curr_entry->size;
-    }
-
-    kfree(parent_inode);
-    kfree(buffer);
-    return NULL;
 }

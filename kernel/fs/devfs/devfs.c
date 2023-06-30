@@ -16,7 +16,7 @@ void devfs_init()
     root_inode_ops.chmod = NULL;
     root_inode_ops.mkdir = NULL;
     root_inode_ops.mkfile = NULL;
-    root_inode_ops.finddir = devfs_finddir;
+   // root_inode_ops.finddir = devfs_finddir;
     root_inode_ops.readdir = devfs_readdir;
 }
 

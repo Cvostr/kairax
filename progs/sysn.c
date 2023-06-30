@@ -10,6 +10,7 @@ int main() {
     printf("PID : %i\n", syscall_process_get_id());
 
 	int fd = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
+    int fd1 = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
 	int rc = read(fd, buff, 119);
 
 	struct stat fstat;

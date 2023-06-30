@@ -162,13 +162,15 @@ struct superblock** vfs_get_mounts()
 
 struct inode* vfs_fopen(const char* path, uint32_t flags)
 {
+    struct inode* result = NULL;
     int offset = 0;
     // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
     struct superblock* sb = vfs_get_mounted_partition_split(path, &offset);
     //Корневой узел найденной ФС
     struct inode* root_node = (struct inode*)sb->inodes->head->element;
 
-    struct inode* curr_node = root_node;
+    //struct inode* curr_node = root_node;
+    uint64_t curr_inode_index = root_node->inode;
 
     offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
@@ -177,8 +179,8 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)
     {
-        vfs_open(curr_node, flags);
-        return curr_node;
+        inode_open(root_node, flags);
+        return root_node;
     }
 
     //Временный буфер
@@ -199,31 +201,41 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
 
         strncpy(temp, fs_path, len);
 
-        struct inode* next = vfs_finddir(curr_node, temp);
+        uint64_t next_inode_index = sb->operations->find_dentry(sb, curr_inode_index, temp);
+        
         if(is_dir == 1) {
-            if(next != NULL) {
-                // Освободить память текущей ноды
-                if(curr_node != root_node)
-                    kfree(curr_node);
 
+            if(next_inode_index != WRONG_INODE_INDEX) {
                 // Заменить указатель
-                curr_node = next;
+                curr_inode_index = next_inode_index;
             }else {
-                kfree(temp);
-                return NULL;
+                // следующего файла или папки нет, выходим
+                goto exit;
             }
         } else {
-            if(next != NULL) {
-                vfs_open(next, flags);
-            }
-            
-            if(curr_node != root_node)
-                kfree(curr_node);
 
-            kfree(temp);
-            return next;
+            if(next_inode_index != WRONG_INODE_INDEX) {
+                // Попробуем найти ноду в списке суперблока
+                result = superblock_get_inode(sb, next_inode_index);
+
+                if (result == NULL) {
+                    // В списке суперблока её нет - идем в ФС
+                    result = sb->operations->read_inode(sb, next_inode_index);
+                } else {
+                }
+
+                // Увеличение счетчика, операции с ФС
+                inode_open(result, flags);
+            }
+
+            goto exit;
         }
         
         fs_path += len + 1;
     }
+
+exit:
+    kfree(temp);
+
+    return result;
 }

@@ -40,7 +40,7 @@ int process_close_file(process_t* process, int fd)
     acquire_spinlock(&process->fd_spinlock);
     file_t* file = process->fds[fd];
     if (file != NULL) {
-        vfs_close(file->inode);
+        inode_close(file->inode);
         kfree(file);
         process->fds[fd];
         rc = 0;
