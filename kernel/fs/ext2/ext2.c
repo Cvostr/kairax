@@ -8,6 +8,7 @@
 
 struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
+struct super_operations sb_ops;
 
 void ext2_init(){
     filesystem_t* ext2fs = new_filesystem();
@@ -29,6 +30,8 @@ void ext2_init(){
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.open = ext2_open;
     dir_inode_ops.close = ext2_close;
+
+    sb_ops.read_inode = ext2_read_node;
 }
 
 ext2_inode_t* new_ext2_inode()
@@ -62,7 +65,7 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
     //Выделение временной памяти под считываемые блоки
     uint32_t* tmp = kmalloc(inst->block_size);
     //Получение физического адреса выделенной памяти
-    uint32_t* tmp_phys = kheap_get_phys_address(tmp);
+    char* tmp_phys = (char*)kheap_get_phys_address(tmp);
     int b = a - level;
     if(b < 0) {
         ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, tmp_phys);
@@ -167,6 +170,7 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     // Данные суперблока
     sb->fs_info = instance;
     sb->blocksize = instance->block_size;
+    sb->operations = &sb_ops;
 
     return result;
 }
@@ -221,6 +225,16 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
     kfree(buffer);
 }
 
+struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
+    ext2_inode_t* e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, ino_num);
+    struct inode* vfs_inode = ext2_inode_to_vfs_inode(inst, e2_inode, ino_num);
+    kfree(e2_inode);
+    return vfs_inode;
+}
+
 struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
 {
     struct dirent* result = new_vfs_dirent();
@@ -241,10 +255,10 @@ struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
     return result;
 }
 
-struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent)
+struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num)
 {
     struct inode* result = new_vfs_inode();
-    result->inode = dirent->inode;
+    result->inode = ino_num;
     result->sb = inst->vfs_sb;
     result->uid = inode->userid;
     result->gid = inode->gid;
@@ -393,7 +407,7 @@ struct inode* ext2_finddir(struct inode * parent, char *name)
         if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)){
             ext2_inode_t* inode = new_ext2_inode();
             ext2_inode(inst, inode, curr_entry->inode);
-            struct inode* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry);
+            struct inode* result = ext2_inode_to_vfs_inode(inst, inode, curr_entry->inode);
             kfree(buffer);
             kfree(inode);
             kfree(parent_inode);

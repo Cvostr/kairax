@@ -25,9 +25,11 @@ struct superblock {
 
 struct super_operations {
 
-    struct inode *(*alloc_inode)( struct superblock *sb);
+    struct inode *(*alloc_inode)(struct superblock *sb);
 
     void (*destroy_inode)(struct inode * inode);
+
+    struct inode* (*read_inode)(struct superblock *sb, uint64_t ino_num);
 };
 
 struct superblock* new_superblock();

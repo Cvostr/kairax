@@ -151,7 +151,7 @@ uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
 // Получение inode по номеру
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
-struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, ext2_direntry_t* dirent);
+struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num);
 
 struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
@@ -165,7 +165,11 @@ void ext2_mkfile(struct inode* parent, char* file_name);
 
 void ext2_chmod(struct inode * file, uint32_t mode);
 
+struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
+
 struct inode* ext2_finddir(struct inode* parent, char *name);
+
+//uint64 ext2_finddir1(uint64_t parent_inode, char *name);
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 

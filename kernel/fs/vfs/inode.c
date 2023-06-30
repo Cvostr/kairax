@@ -12,6 +12,7 @@ struct inode* new_vfs_inode()
 
 void vfs_open(struct inode* node, uint32_t flags)
 {
+    atomic_inc(&node->reference_count);
     if(node)
         if(node->operations->open)
             node->operations->open(node, flags);

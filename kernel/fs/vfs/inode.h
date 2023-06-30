@@ -9,29 +9,18 @@
 struct inode;
 struct superblock;
 
-typedef void      (*open_type_t)(struct inode*, uint32_t);
-typedef void      (*close_type_t)(struct inode*);
-typedef ssize_t  (*read_type_t)(struct inode*, uint32_t, uint32_t,char*);
-typedef ssize_t  (*write_type_t)(struct inode*, uint32_t, uint32_t,char*);
-typedef struct dirent* (*readdir_type_t)(struct inode*, uint32_t);
-typedef struct inode*  (*finddir_type_t)(struct inode*, char*); 
-
-typedef void      (*chmod_type_t)(struct inode*, uint32_t);
-typedef void      (*mkdir_type_t)(struct inode*, char*);
-typedef void      (*mkfile_type_t)(struct inode*, char*);
-
 struct inode_operations {
-    open_type_t     open;
-    close_type_t    close;
-    read_type_t     read;
-    write_type_t    write;
+    void      (*open)(struct inode*, uint32_t);
+    void      (*close)(struct inode*);
+    ssize_t  (*read)(struct inode*, uint32_t, uint32_t, char*);
+    ssize_t  (*write)(struct inode*, uint32_t, uint32_t, char*);
 
-    readdir_type_t  readdir;
-    finddir_type_t  finddir;
+    struct dirent* (*readdir)(struct inode*, uint32_t);
+    struct inode*  (*finddir)(struct inode*, char*); 
 
-    chmod_type_t    chmod;
-    mkdir_type_t    mkdir;
-    mkfile_type_t   mkfile;
+    void      (*chmod)(struct inode*, uint32_t);
+    void      (*mkdir)(struct inode*, char*);
+    void      (*mkfile)(struct inode*, char*);
 };
 
 #define INODE_TYPE_MASK        0xF000

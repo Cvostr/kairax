@@ -68,7 +68,7 @@ void gdt_init()
     gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
 
     tss = new_tss();
-    tss->ist2 = P2V(pmm_alloc_page());
+    tss->ist2 = (uintptr_t)P2V(pmm_alloc_page());
     tss->iopb = sizeof(tss_t) - 1;
 
     gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)tss, 0b10001001, 0b1001);

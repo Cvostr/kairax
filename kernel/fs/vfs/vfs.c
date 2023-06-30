@@ -51,10 +51,6 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
     sb->partition = partition;
     strcpy(sb->mount_path, mount_path);
 
-    //vfs_mount_info_t* mount_info = new_vfs_mount_info();
-    //mount_info->partition = partition;
-    //mount_info->filesystem = filesystem_get_by_name(fsname); 
-    //strcpy(mount_info->mount_path, mount_path);
     //вызов функции монтирования, если она определена
     if(sb->filesystem->mount) {
         struct inode* root_inode = sb->filesystem->mount(partition, sb);
@@ -178,7 +174,7 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)
     {
-        atomic_inc(&curr_node->reference_count);
+        vfs_open(curr_node, flags);
         return curr_node;
     }
 
@@ -215,8 +211,6 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
             }
         } else {
             if(next != NULL) {
-                //Открыть найденый файл
-                atomic_inc(&next->reference_count);
                 vfs_open(next, flags);
             }
             
