@@ -18,18 +18,25 @@ void free_superblock(struct superblock* sb)
 
 struct inode* superblock_get_inode(struct superblock* sb, uint64 inode)
 {
+    acquire_spinlock(&sb->spinlock);
     struct list_node* current = sb->inodes->head;
     struct inode* node = (struct inode*)current->element;
+    struct inode* result = NULL;
 
-    for(unsigned int i = 0; i < sb->inodes->size; i++) {
-        if (node->inode == inode)
-            return node;
+    for (unsigned int i = 0; i < sb->inodes->size; i++) {
+        if (node->inode == inode) {
+            result = node;
+            goto exit;
+        }
             
         current = current->next;
         node = (struct inode*)current->element;
     }
 
-    return NULL;
+exit:
+    release_spinlock(&sb->spinlock);
+    
+    return result;
 }
 
 void superblock_add_inode(struct superblock* sb, struct inode* inode)
