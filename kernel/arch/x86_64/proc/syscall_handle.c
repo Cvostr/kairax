@@ -81,7 +81,7 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0xBA:  // Получение ID потока
-            frame->rax = current_thread->thread_id;
+            frame->rax = current_thread->id;
             break;
 
         case 0x4F:  // Получение директории
@@ -99,6 +99,15 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
+            cpu_yield();
+            break;
+
+        case 0xFF10:  // Создание потока
+            frame->rax = process_create_thread(  current_process,
+                                    (void*)frame->rdi,
+                                    (void*)frame->rsi,
+                                    (pid_t*)frame->rdx,
+                                    frame->r8);
             cpu_yield();
             break;
     }

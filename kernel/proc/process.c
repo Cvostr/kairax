@@ -3,6 +3,12 @@
 #include "mem/pmm.h"
 #include "fs/vfs/vfs.h"
 #include "string.h"
+#include "proc/thread.h"
+
+void free_process(process_t* process)
+{
+
+}
 
 int process_open_file(process_t* process, const char* path, int mode, int flags)
 {
@@ -42,6 +48,12 @@ int process_close_file(process_t* process, int fd)
 {
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
+
+    if (fd >= MAX_DESCRIPTORS) {
+        // set to errno  ERROR_BAD_FD;
+        goto exit;
+    }
+
     file_t* file = process->fds[fd];
     if (file != NULL) {
         inode_close(file->inode);
@@ -50,7 +62,7 @@ int process_close_file(process_t* process, int fd)
         rc = 0;
         goto exit;
     } else {
-        rc = ERROR_BAD_FD;
+        //set to errno ERROR_BAD_FD;
     }
 
 exit:
@@ -167,5 +179,22 @@ int process_set_working_dir(process_t* process, const char* buffer)
 {
     size_t buffer_length = strlen(buffer);
     memcpy(process->cur_dir, buffer, buffer_length);
+    return 0;
+}
+
+int process_create_thread(process_t* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
+{
+    thread_t* thread = create_thread(process, entry_ptr, arg, stack_size);
+
+    if (thread == NULL) {
+        return -1;
+    }
+
+    if (tid != NULL) {
+        *tid = thread->id;
+    }
+
+    scheduler_add_thread(thread);
+
     return 0;
 }

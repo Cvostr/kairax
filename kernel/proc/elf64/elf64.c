@@ -46,6 +46,10 @@ void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct)
             sections_struct->rela_plt_ptr = sehentry;
         } else if (strcmp(section_name, ".comment") == 0) {
             sections_struct->comment_ptr = sehentry;
+        } else if (strcmp(section_name, ".tbss") == 0 && (sehentry->flags & ELF_SECTION_FLAG_TLS)) {
+            sections_struct->tbss_ptr = sehentry;
+        } else if (strcmp(section_name, ".tdata") == 0 && (sehentry->flags & ELF_SECTION_FLAG_TLS)) {
+            sections_struct->tdata_ptr = sehentry;
         } 
 
         /*printf("SEC: name %s foffset %i size %i type %i flags %i\n", 

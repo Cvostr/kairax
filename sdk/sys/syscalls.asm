@@ -14,6 +14,7 @@ global syscall_close
 global syscall_fdstat
 global syscall_readdir
 global syscall_file_seek
+global syscall_create_thread
 
 syscall_printf:
     mov rax, 1
@@ -88,5 +89,11 @@ syscall_set_working_dir:
 syscall_process_exit:
     mov rax, 0x3C
     syscall
+
 stub:
     jmp stub
+
+syscall_create_thread:
+    mov rax, 0xFF10
+    syscall
+    ret

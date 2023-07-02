@@ -11,7 +11,7 @@
 typedef struct {
     char            name[30];
     // ID процесса
-    uint64_t        pid;
+    pid_t           pid;
     // Адрес конца адресного пространства процесса
     uint64_t        brk;
 
@@ -24,12 +24,17 @@ typedef struct {
     list_t*         threads;  
     // Указатели на открытые файловые дескрипторы
     file_t*         fds[MAX_DESCRIPTORS];
+    // начальные данные для TLS
+    char*           tls;
+    size_t          tls_size;
 
     spinlock_t      fd_spinlock;
 } process_t;
 
 //Создать новый пустой процесс
 process_t*  create_new_process();
+
+void free_process(process_t* process);
 
 int create_new_process_from_image(char* image);
 
@@ -55,5 +60,7 @@ int process_readdir(process_t* process, int fd, struct dirent* dirent);
 int process_get_working_dir(process_t* process, char* buffer, size_t size);
 
 int process_set_working_dir(process_t* process, const char* buffer);
+
+int process_create_thread(process_t* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
 
 #endif

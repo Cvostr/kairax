@@ -1,6 +1,6 @@
 #include "../sdk/libc/stdio.h"
 #include "../sdk/libc/sys_files.h"
-#include "../sdk/sys/syscalls.h"
+#include "../sdk/libc/process.h"
 
 #define BSS_LEN 10000
 
@@ -18,13 +18,13 @@ int main() {
     str[1] = '\n';
     str[2] = 0;
 
-    printf("PID : %i", syscall_process_get_id());
+    printf("PID : %i", process_get_id());
 
     int iterations = 0;
 
     for(iterations = 0; iterations < 10; iterations ++) {
 
-        syscall_sleep(20);
+        sleep(20);
 
         str[0]++;
 

@@ -47,6 +47,7 @@
 #define ELF_SECTION_FLAG_WRITE      0x1
 #define ELF_SECTION_FLAG_ALLOC      0x2
 #define ELF_SECTION_FLAG_EXECINSRTR 0x4
+#define ELF_SECTION_FLAG_TLS        0x400
 #define ELF_SECTION_FLAG_MASKPROC   0xF0000000
 
 typedef struct PACKED {
@@ -86,8 +87,8 @@ typedef struct PACKED {
     uint32_t    name_offset;
     uint32_t    type;
     uint64_t    flags;
-    uintptr_t   addr;
-    uintptr_t   offset;
+    uintptr_t   addr;       // Адрес в виртуальной памяти
+    uintptr_t   offset;     // Смещение от начала файла
     uint64_t    size;
     uint32_t    link;
     uint32_t    info;
@@ -133,6 +134,8 @@ typedef struct PACKED {
     elf_section_header_entry_t* dynsym_ptr;
     elf_section_header_entry_t* dynstr_ptr;
     elf_section_header_entry_t* rela_plt_ptr;
+    elf_section_header_entry_t* tbss_ptr;
+    elf_section_header_entry_t* tdata_ptr;
     elf_section_header_entry_t* comment_ptr;
 } elf_sections_ptr_t;
 

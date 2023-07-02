@@ -37,6 +37,7 @@ int create_new_process_from_image(char* image)
         process_t* proc = create_new_process();
 
         elf_sections_ptr_t sections_ptrs;
+        // Считать таблицу секций
         elf_read_sections(image, &sections_ptrs);
 
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
@@ -56,8 +57,23 @@ int create_new_process_from_image(char* image)
             copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
         }
 
+        if (sections_ptrs.tbss_ptr) {
+            // Есть секция TLS BSS
+            elf_section_header_entry_t* tbss_ptr = sections_ptrs.tbss_ptr;
+            proc->tls = kmalloc(tbss_ptr->size);
+            memset(proc->tls, 0, tbss_ptr->size);
+            proc->tls_size = tbss_ptr->size;
+        } 
+        else if (sections_ptrs.tdata_ptr) {
+            // Есть секция TLS DATA
+            elf_section_header_entry_t* tdata_ptr = sections_ptrs.tdata_ptr;
+            proc->tls = kmalloc(tdata_ptr->size);
+            memcpy(proc->tls, image + tdata_ptr->offset, tdata_ptr->size);
+            proc->tls_size = tdata_ptr->size;
+        }
+
         // Создание главного потока и передача выполнения
-        thread_t* thr = create_thread(proc, elf_header->prog_entry_pos);
+        thread_t* thr = create_thread(proc, elf_header->prog_entry_pos, NULL, 0);
 	    scheduler_add_thread(thr);  
         
     } else {
