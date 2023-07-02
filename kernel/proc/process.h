@@ -44,7 +44,9 @@ int process_open_file(process_t* process, const char* path, int mode, int flags)
 
 int process_close_file(process_t* process, int fd);
 
-size_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
+ssize_t process_read_file(process_t* process, int fd, char* buffer, size_t size);
+
+off_t process_file_seek(process_t* process, int fd, off_t offset, int whence); 
 
 int process_stat(process_t* process, int fd, struct stat* stat);
 

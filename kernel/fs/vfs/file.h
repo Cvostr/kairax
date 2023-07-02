@@ -11,9 +11,13 @@
 
 #define ERROR_BAD_FD                9
 
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+
 // Открытый файл
 typedef struct {
-    struct inode*    inode;
+    struct inode*   inode;
     int             mode;
     int             flags;
     loff_t          pos;

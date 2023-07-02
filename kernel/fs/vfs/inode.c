@@ -61,7 +61,7 @@ ssize_t inode_read(struct inode* node, loff_t* offset, size_t size, char* buffer
     if(node) {
         if(node->operations->read) {
             result = node->operations->read(node, *offset, size, buffer);
-            //*offset += result;
+            *offset += result;
         }
     }
 
@@ -100,4 +100,20 @@ struct dirent* inode_readdir(struct inode* node, uint32_t index)
     release_spinlock(&node->spinlock);
 
     return result;
+}
+
+void inode_stat(struct inode* node, struct stat* sstat)
+{
+    acquire_spinlock(&node->spinlock);
+
+    sstat->st_ino = node->inode;
+    sstat->st_size = node->size;
+    sstat->st_mode = node->mode;
+    sstat->st_uid = node->uid;
+    sstat->st_gid = node->gid;
+    sstat->st_atime = node->access_time;
+    sstat->st_ctime = node->create_time;
+    sstat->st_mtime = node->modify_time;
+
+    release_spinlock(&node->spinlock);
 }

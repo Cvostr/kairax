@@ -20,7 +20,7 @@ int open_file(const char* filepath, int flags, int mode);
 
 int close(int fd);
 
-int read(int fd, char* buffer, size_t size);
+ssize_t read(int fd, char* buffer, size_t size);
 
 int fdstat(int fd, struct stat* st);
 

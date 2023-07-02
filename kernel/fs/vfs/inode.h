@@ -5,6 +5,7 @@
 #include "types.h"
 #include "sync/spinlock.h"
 #include "dirent.h"
+#include "stat.h"
 
 struct inode;
 struct superblock;
@@ -65,5 +66,7 @@ void inode_chmod(struct inode* node, uint32_t mode);
 void inode_open(struct inode* node, uint32_t flags);
 
 void inode_close(struct inode* node);
+
+void inode_stat(struct inode* node, struct stat* sstat);
 
 #endif

@@ -57,6 +57,11 @@ void syscall_handle(syscall_frame_t* frame) {
                frame->rdi, (struct stat*)frame->rsi);
             break;
 
+        case 0x8: // перемещение каретки файла
+            frame->rax = process_file_seek(current_process, 
+               frame->rdi, frame->rsi, frame->rdx);
+            break;
+
         case 0x18:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
             cpu_yield();

@@ -19,6 +19,7 @@ typedef unsigned long int   nlink_t;
 
 typedef long int            time_t;
 typedef unsigned long long  id_t;
+typedef unsigned long 		ssize_t;
 
 struct timespec
 {

@@ -10,8 +10,13 @@ int main() {
     printf("PID : %i\n", syscall_process_get_id());
 
 	int fd = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
-    int fd1 = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
+    //int fd1 = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
+
+    printf("BEFORE READ POS %i\n", lseek(fd, 0, SEEK_CUR));
 	int rc = read(fd, buff, 119);
+    printf("AFTER READ POS %i\n", lseek(fd, 0, SEEK_CUR));
+    lseek(fd, 100, SEEK_SET);
+    printf("AFTER SEEK POS %i\n", lseek(fd, 0, SEEK_CUR));
 
 	struct stat fstat;
     rc = syscall_fdstat(fd, &fstat);

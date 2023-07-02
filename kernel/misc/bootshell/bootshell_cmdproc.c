@@ -100,7 +100,9 @@ void bootshell_process_cmd(char* cmdline){
         int size = inode->size;
         printf("%s: ", args);
         char* buffer = kmalloc(size);
-        inode_read(inode, 0, size, buffer);
+
+        loff_t offset = 0;
+        inode_read(inode, &offset, size, buffer);
         for(int i = 0; i < size; i++){
             printf("%c", buffer[i]);
         }
@@ -122,7 +124,8 @@ void bootshell_process_cmd(char* cmdline){
             return;
         }
 
-        inode_read(inode, 0, size, buffer);
+        loff_t offset = 0;
+        inode_read(inode, &offset, size, buffer);
 
         //Запуск
         int rc = create_new_process_from_image(buffer); 

@@ -11,7 +11,7 @@ int close(int fd)
     return syscall_close(fd);
 }
 
-int read(int fd, char* buffer, size_t size)
+ssize_t read(int fd, char* buffer, size_t size)
 {
     return syscall_read(fd, buffer, size);
 }
@@ -30,7 +30,6 @@ int readdir(int fd, struct dirent* direntry)
 {
     return syscall_readdir(fd, direntry);
 }
-
 
 off_t file_seek(int fd, off_t offset, int whence)
 {
