@@ -57,7 +57,7 @@ int create_new_process_from_image(char* image)
             copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
         }
 
-        if (sections_ptrs.tbss_ptr) {
+        /*if (sections_ptrs.tbss_ptr) {
             // Есть секция TLS BSS
             elf_section_header_entry_t* tbss_ptr = sections_ptrs.tbss_ptr;
             proc->tls = kmalloc(tbss_ptr->size);
@@ -70,7 +70,7 @@ int create_new_process_from_image(char* image)
             proc->tls = kmalloc(tdata_ptr->size);
             memcpy(proc->tls, image + tdata_ptr->offset, tdata_ptr->size);
             proc->tls_size = tdata_ptr->size;
-        }
+        }*/
 
         // Создание главного потока и передача выполнения
         thread_t* thr = create_thread(proc, elf_header->prog_entry_pos, NULL, 0);

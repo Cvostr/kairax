@@ -42,8 +42,10 @@ void* scheduler_handler(thread_frame_t* frame)
     int is_from_interrupt = 1;
     // Сохранить состояние 
     if(prev_thread != NULL) {
-        memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
+        prev_thread->context = frame;
+        //memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
         if (prev_thread->is_userspace) {
+            // Сохранить указатель на вершину стека пользователя
             prev_thread->stack_ptr = get_user_stack_ptr();
         }
 
@@ -60,9 +62,10 @@ void* scheduler_handler(thread_frame_t* frame)
     if(new_thread != NULL) {
         // Получить данные процесса, с которым связан поток
         process_t* process = new_thread->process;
+        thread_frame_t* thread_frame = (thread_frame_t*)new_thread->context;
 
         if (new_thread->is_userspace) {
-            new_thread->context.rflags |= 0x200;
+            thread_frame->rflags |= 0x200;
 
             // Обновить данные об указателях на стек
             set_kernel_stack(new_thread->kernel_stack_ptr);
@@ -83,7 +86,7 @@ void* scheduler_handler(thread_frame_t* frame)
     if (is_from_interrupt)
 	    pic_eoi(0);
 
-    return &new_thread->context;
+    return new_thread->context;
 }
 
 void init_scheduler()

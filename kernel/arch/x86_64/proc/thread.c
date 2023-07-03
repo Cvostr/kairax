@@ -31,7 +31,9 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
-    thread_frame_t* ctx = &thread->context;
+    //thread_frame_t* ctx = &thread->context;
+    thread_frame_t* ctx = ((thread_frame_t*)thread->stack_ptr) - 1;//&thread->context;
+    thread->context = ctx;
     //Установить адрес функции
     ctx->rip = (uint64_t)P2V((uint64_t)function);
     ctx->rflags = 0x286;
@@ -40,12 +42,12 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     ctx->rsp = (uint64_t)thread->stack_ptr;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_KERNEL_DATA_SEG; //kernel data
-    thread->context.ds = (selector);
-    thread->context.es = (selector);
-    thread->context.fs = (selector);
-    thread->context.ss = (selector);
+    ctx->ds = (selector);
+    ctx->es = (selector);
+    ctx->fs = (selector);
+    ctx->ss = (selector);
     //поток в пространстве ядра
-    thread->context.cs = GDT_BASE_KERNEL_CODE_SEG;
+    ctx->cs = GDT_BASE_KERNEL_CODE_SEG;
     //Состояние
     thread->state = THREAD_CREATED;
 
@@ -70,10 +72,10 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
     thread->stack_ptr = (void*)process_brk(process, process->brk + stack_size);
     thread->kernel_stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
 
-    if (process->tls) {
-        thread->tls = (void*)process_brk(process, process->brk + process->tls_size) - process->tls_size;
-        copy_to_vm(process->vmemory_table, thread->tls, process->tls, process->tls_size);
-    }
+    //if (process->tls) {
+    //    thread->tls = (void*)process_brk(process, process->brk + process->tls_size) - process->tls_size;
+    //    copy_to_vm(process->vmemory_table, thread->tls, process->tls, process->tls_size);
+    //}
 
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
     physical_addr_t kernel_stack_phys = 
@@ -82,7 +84,9 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
-    thread_frame_t* ctx = &thread->context;
+    thread_frame_t* ctx = ((thread_frame_t*)thread->kernel_stack_ptr) - 1;//&thread->context;
+    thread->context = ctx;
+    //thread_frame_t* ctx = &thread->context;
     //Установить адрес функции
     ctx->rip = (uint64_t)entry;
     ctx->rflags = 0x286;
@@ -93,12 +97,12 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
     ctx->rdi = (uint64_t)arg;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных пользователя
-    thread->context.ds = (selector);
-    thread->context.es = (selector);
-    thread->context.fs = (selector);
-    thread->context.ss = (selector) | 0b11;
+    ctx->ds = (selector);
+    ctx->es = (selector);
+    ctx->fs = (selector);
+    ctx->ss = (selector) | 0b11;
     //поток в пространстве ядра
-    thread->context.cs = GDT_BASE_USER_CODE_SEG | 0b11;    // сегмент кода пользователя
+    ctx->cs = GDT_BASE_USER_CODE_SEG | 0b11;    // сегмент кода пользователя
     //Состояние
     thread->state = THREAD_CREATED;
 
