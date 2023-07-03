@@ -1,9 +1,10 @@
-#include "thread.h"
+#include "proc/thread.h"
 #include "mem/pmm.h"
 #include "mem/kheap.h"
 #include "string.h"
 #include "memory/mem_layout.h"
 #include "cpu/gdt.h"
+#include "x64_context.h"
 
 int last_id = 0;
 
@@ -31,7 +32,6 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
-    //thread_frame_t* ctx = &thread->context;
     thread_frame_t* ctx = ((thread_frame_t*)thread->stack_ptr) - 1;//&thread->context;
     thread->context = ctx;
     //Установить адрес функции
@@ -86,7 +86,6 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
     //Подготовка контекста
     thread_frame_t* ctx = ((thread_frame_t*)thread->kernel_stack_ptr) - 1;//&thread->context;
     thread->context = ctx;
-    //thread_frame_t* ctx = &thread->context;
     //Установить адрес функции
     ctx->rip = (uint64_t)entry;
     ctx->rflags = 0x286;

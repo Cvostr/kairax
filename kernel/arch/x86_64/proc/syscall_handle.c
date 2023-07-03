@@ -1,6 +1,6 @@
 #include "types.h"
 #include "stdio.h"
-#include "thread_scheduler.h"
+#include "proc/thread_scheduler.h"
 
 typedef struct PACKED 
 {

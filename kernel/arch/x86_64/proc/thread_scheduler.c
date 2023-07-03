@@ -1,5 +1,5 @@
 #include "interrupts/handle/handler.h"
-#include "thread_scheduler.h"
+#include "proc/thread_scheduler.h"
 #include "stdio.h"
 #include "interrupts/pic.h"
 #include "list/list.h"
@@ -9,6 +9,7 @@
 #include "kernel_stack.h"
 #include "mem/pmm.h"
 #include "memory/paging.h"
+#include "x64_context.h"
 
 list_t* threads_list;
 int curr_thread = 0;
@@ -42,8 +43,10 @@ void* scheduler_handler(thread_frame_t* frame)
     int is_from_interrupt = 1;
     // Сохранить состояние 
     if(prev_thread != NULL) {
+
+        // Сохранить указатель на контекст
         prev_thread->context = frame;
-        //memcpy(&prev_thread->context, frame, sizeof(thread_frame_t));
+
         if (prev_thread->is_userspace) {
             // Сохранить указатель на вершину стека пользователя
             prev_thread->stack_ptr = get_user_stack_ptr();

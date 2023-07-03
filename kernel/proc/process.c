@@ -3,7 +3,8 @@
 #include "mem/pmm.h"
 #include "fs/vfs/vfs.h"
 #include "string.h"
-#include "proc/thread.h"
+#include "thread.h"
+#include "thread_scheduler.h"
 
 void free_process(process_t* process)
 {

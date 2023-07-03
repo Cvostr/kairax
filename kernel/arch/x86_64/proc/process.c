@@ -5,8 +5,8 @@
 #include "memory/mem_layout.h"
 #include "proc/elf64/elf64.h"
 #include "proc/process.h"
-#include "thread.h"
-#include "thread_scheduler.h"
+#include "proc/thread.h"
+#include "proc/thread_scheduler.h"
 #include "fs/vfs/vfs.h"
 
 int last_pid = 0;

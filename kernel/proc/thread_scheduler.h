@@ -1,5 +1,5 @@
-#ifndef _THREAD_SCHEDULER
-#define _THREAD_SCHEDULER
+#ifndef _THREAD_SCHEDULER_H
+#define _THREAD_SCHEDULER_H
 
 #include "thread.h"
 

@@ -4,9 +4,6 @@
 #include "types.h"
 #include "proc/process.h"
 
-#include "interrupts/handle/handler.h"
-#include "x64_context.h"
-
 #define STACK_SIZE 4096
 
 enum thread_state {
@@ -21,9 +18,7 @@ enum thread_state {
     THREAD_LOADING          = 128
 };
 
-
-
-typedef struct PACKED {
+typedef struct {
     char            name[32];
     // ID потока
     uint64_t        id;
@@ -37,6 +32,7 @@ typedef struct PACKED {
     int             state;
     // Указатель на объект процесса
     process_t*      process;
+    // Указатель на сохраненные данные контекста
     void*           context;
     int             is_userspace;
 } thread_t;
