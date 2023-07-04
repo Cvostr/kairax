@@ -22,6 +22,8 @@ void list_add(list_t* list, void* element);
 
 void list_remove(list_t* list, void* element);
 
+int list_size(list_t* list);
+
 void list_unlink(list_t* list, struct list_node* node);
 
 void* list_get(list_t* list, unsigned int index);

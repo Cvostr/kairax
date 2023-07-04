@@ -23,6 +23,7 @@ process_t*  create_new_process()
     process->pid = last_pid++;
     // Создать список потоков
     process->threads = create_list();
+    process->children = create_list();
 
     return process;
 }

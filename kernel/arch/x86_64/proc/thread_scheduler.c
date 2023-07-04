@@ -28,8 +28,9 @@ void scheduler_remove_thread(thread_t* thread)
 
 void scheduler_remove_process_threads(process_t* process)
 {
-    for (unsigned int i = 0; i < process->threads->size; i ++) {
-        scheduler_remove_thread(list_get(process->threads, 0));
+    for (unsigned int i = 0; i < list_size(process->threads); i ++) {
+        thread_t* thread = list_get(process->threads, i);
+        scheduler_remove_thread(thread);
     }
 }
 

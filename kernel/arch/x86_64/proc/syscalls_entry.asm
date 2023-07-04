@@ -77,27 +77,3 @@ syscall_entry_x64:
     swapgs
     
     o64 sysret
-
-extern scheduler_entry
-
-global cpu_yield
-cpu_yield:
-    cli
-    pop rdi ; rip
-    mov rsi, rsp
-    
-    xor ax, ax
-    ; SS
-    mov ax, ss
-    push rax
-    ; RSP
-    push rsi
-    ; RFLAGS
-    pushfq
-    ; CS
-    mov ax, cs
-    push rax
-    ; RIP
-    push rdi
-
-    jmp scheduler_entry

@@ -22,6 +22,8 @@ typedef struct {
     void*           vmemory_table;  
     // Связный список потоков
     list_t*         threads;  
+    // Связный список потомков
+    list_t*         children;
     // Указатели на открытые файловые дескрипторы
     file_t*         fds[MAX_DESCRIPTORS];
     // начальные данные для TLS

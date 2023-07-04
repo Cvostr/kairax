@@ -23,8 +23,6 @@ typedef struct PACKED
     uint64_t r11;
 } syscall_frame_t;
 
-extern void cpu_yield();
-
 void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
     thread_t* current_thread = scheduler_get_current_thread();
@@ -64,14 +62,14 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x18:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
-            cpu_yield();
+            scheduler_yield();
             current_thread->state = THREAD_RUNNING;
             break;
 
         case 0x23:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
             for (uint64_t i = 0; i < frame->rdi; i ++) {
-                cpu_yield();
+                scheduler_yield();
             }
             current_thread->state = THREAD_RUNNING;
             break;
@@ -99,7 +97,8 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
-            cpu_yield();
+            free_process(current_process);
+            scheduler_yield();
             break;
 
         case 0xFF10:  // Создание потока
@@ -108,7 +107,7 @@ void syscall_handle(syscall_frame_t* frame) {
                                     (void*)frame->rsi,
                                     (pid_t*)frame->rdx,
                                     frame->r8);
-            cpu_yield();
+            scheduler_yield();
             break;
     }
 }

@@ -41,3 +41,25 @@ scheduler_entry:
     ; Извлечь значения основных регистров
     popaq
     iretq
+    
+global scheduler_yield
+scheduler_yield:
+    cli
+    pop rdi ; rip
+    mov rsi, rsp
+    
+    xor ax, ax
+    ; SS
+    mov ax, ss
+    push rax
+    ; RSP
+    push rsi
+    ; RFLAGS
+    pushfq
+    ; CS
+    mov ax, cs
+    push rax
+    ; RIP
+    push rdi
+
+    jmp scheduler_entry

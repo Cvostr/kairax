@@ -14,7 +14,8 @@ list_t* create_list()
 void free_list(list_t* list)
 {
     struct list_node* current = list->head;
-    for(unsigned int i = 0; i < list->size; i++)
+
+    for (unsigned int i = 0; i < list->size; i++)
     {
         struct list_node* temp = current;
         if (current) {
@@ -22,6 +23,13 @@ void free_list(list_t* list)
             kfree(temp);
         }   
     }
+
+    kfree(list);
+}
+
+int list_size(list_t* list)
+{
+    return list->size;
 }
 
 void list_add(list_t* list, void* element)

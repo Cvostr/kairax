@@ -15,4 +15,6 @@ void scheduler_remove_process_threads(process_t* process);
 
 thread_t* scheduler_get_current_thread();
 
+extern void scheduler_yield();
+
 #endif

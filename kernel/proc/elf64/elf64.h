@@ -129,7 +129,7 @@ elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_
 
 char* elf_get_string_at(char* image, uint32_t string_index);
 
-typedef struct PACKED {
+typedef struct {
     elf_section_header_entry_t* dynamic_ptr;
     elf_section_header_entry_t* dynsym_ptr;
     elf_section_header_entry_t* dynstr_ptr;

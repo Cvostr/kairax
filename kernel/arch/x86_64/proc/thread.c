@@ -21,7 +21,7 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
-    thread_frame_t* ctx = ((thread_frame_t*)thread->stack_ptr) - 1;//&thread->context;
+    thread_frame_t* ctx = ((thread_frame_t*)thread->stack_ptr) - 1;
     thread->context = ctx;
     //Установить адрес функции
     ctx->rip = (uint64_t)P2V((uint64_t)function);
@@ -73,7 +73,7 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
-    thread_frame_t* ctx = ((thread_frame_t*)thread->kernel_stack_ptr) - 1;//&thread->context;
+    thread_frame_t* ctx = ((thread_frame_t*)thread->kernel_stack_ptr) - 1;
     thread->context = ctx;
     //Установить адрес функции
     ctx->rip = (uint64_t)entry;

@@ -8,7 +8,22 @@
 
 void free_process(process_t* process)
 {
+    for (unsigned int i = 0; i < list_size(process->threads); i ++) {
+        thread_t* thread = list_get(process->threads, i);
+        kfree(thread);
+    }
 
+    free_list(process->threads);
+    free_list(process->children);
+
+    // Закрыть незакрытые файловые дескрипторы
+    for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
+        if (process->fds[i] != NULL) {
+            process_close_file(process, i);
+        }
+    }
+
+    kfree(process);
 }
 
 int process_open_file(process_t* process, const char* path, int mode, int flags)
@@ -62,7 +77,7 @@ int process_close_file(process_t* process, int fd)
     if (file != NULL) {
         inode_close(file->inode);
         kfree(file);
-        process->fds[fd];
+        process->fds[fd] = NULL;
         rc = 0;
         goto exit;
     } else {
@@ -157,20 +172,28 @@ int process_readdir(process_t* process, int fd, struct dirent* dirent)
     file_t* file = process->fds[fd];
 
     if (file != NULL) {
+        acquire_spinlock(&file->spinlock);
 
         struct inode* inode = file->inode;
+        
         struct dirent* ndirent = inode_readdir(inode, file->pos ++);
         
+        release_spinlock(&file->spinlock);
+        
         if (ndirent == NULL) {
-            return 0;
+            rc = 0;
+            goto exit;
         }
 
         memcpy(dirent, ndirent, sizeof(struct dirent));
         kfree(ndirent);
         
         rc = 1;
+    } else {
+        rc = -1;
     }
 
+exit:
     release_spinlock(&process->fd_spinlock);
 
     return rc;
