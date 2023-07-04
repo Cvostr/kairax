@@ -6,17 +6,6 @@
 #include "cpu/gdt.h"
 #include "x64_context.h"
 
-int last_id = 0;
-
-thread_t* new_thread(process_t* process)
-{
-    thread_t* thread    = (thread_t*)kmalloc(sizeof(thread_t));
-    memset(thread, 0, sizeof(thread_t));
-    thread->id   = last_id++;
-    thread->process     = (process);
-    return thread;
-}
-
 thread_t* create_kthread(process_t* process, void (*function)(void))
 {
     if (!process || !function) {
@@ -25,7 +14,7 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     // Создать объект потока в памяти
     thread_t* thread = new_thread(process);
     // Выделить место под стек в памяти процесса
-    thread->stack_ptr = (void*)process_brk(process, (void*)(process->brk + STACK_SIZE));
+    thread->stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
     physical_addr_t stack_phys_addr = get_physical_address(process->vmemory_table, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
     thread->stack_ptr = P2V(stack_phys_addr + PAGE_SIZE);

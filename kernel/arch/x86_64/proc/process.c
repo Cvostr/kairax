@@ -73,7 +73,7 @@ int create_new_process_from_image(char* image)
         }*/
 
         // Создание главного потока и передача выполнения
-        thread_t* thr = create_thread(proc, elf_header->prog_entry_pos, NULL, 0);
+        thread_t* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, NULL, 0);
 	    scheduler_add_thread(thr);  
         
     } else {
@@ -83,7 +83,7 @@ int create_new_process_from_image(char* image)
 
 uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
 {
-    uintptr_t uaddr = addr;
+    uintptr_t uaddr = (uintptr_t)addr;
     //Выравнивание до размера страницы в большую сторону
     uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
@@ -104,9 +104,9 @@ uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
     return process->brk;
 }
 
-uintptr_t process_brk(process_t* process, void* addr)
+uintptr_t process_brk(process_t* process, uint64_t addr)
 {
-    return process_brk_flags(process, addr, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
+    return process_brk_flags(process, (void*)addr, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
 }
 
 int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, uint64_t flags)

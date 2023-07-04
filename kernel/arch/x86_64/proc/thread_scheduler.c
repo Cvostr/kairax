@@ -72,7 +72,7 @@ void* scheduler_handler(thread_frame_t* frame)
 
             // Обновить данные об указателях на стек
             set_kernel_stack(new_thread->kernel_stack_ptr);
-            tss_set_rsp0(new_thread->kernel_stack_ptr);
+            tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
             set_user_stack_ptr(new_thread->stack_ptr);
         }
 

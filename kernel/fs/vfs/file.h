@@ -25,4 +25,6 @@ typedef struct {
     spinlock_t      spinlock;
 } file_t;
 
+file_t* new_file();
+
 #endif

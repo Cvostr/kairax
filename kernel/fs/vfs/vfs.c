@@ -221,7 +221,6 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
                 if (result == NULL) {
                     // В списке суперблока её нет - идем в ФС
                     result = sb->operations->read_inode(sb, next_inode_index);
-                } else {
                 }
 
                 // Увеличение счетчика, операции с ФС

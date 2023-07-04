@@ -121,7 +121,7 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     instance->superblock = (ext2_superblock_t*)kmalloc(sizeof(ext2_superblock_t));
     instance->block_size = 1024;
     // Считать суперблок
-    ext2_partition_read_block(instance, 1, 1, kheap_get_phys_address(instance->superblock));
+    ext2_partition_read_block(instance, 1, 1, (char*)kheap_get_phys_address(instance->superblock));
     
     // Проверить магическую константу ext2
     if(instance->superblock->ext2_magic != EXT2_MAGIC) {
@@ -148,7 +148,10 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     instance->bgds = (ext2_bgd_t*)kmalloc(instance->bgds_blocks * instance->block_size);
     uint64_t bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
-    ext2_partition_read_block(instance, bgd_start_block, instance->bgds_blocks, kheap_get_phys_address(instance->bgds));
+    ext2_partition_read_block(instance, 
+        bgd_start_block,
+        instance->bgds_blocks, 
+        (char*)kheap_get_phys_address(instance->bgds));
     //Чтение корневой иноды с индексом 2
     ext2_inode_t* ext2_inode_root = new_ext2_inode();
     ext2_inode(instance, ext2_inode_root, 2);
@@ -219,7 +222,7 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
     uint32_t offset_in_block = (idx_in_group - 1) - block_offset * (inst->block_size / inst->superblock->inode_size);
 
     char* buffer = kmalloc(inst->block_size);
-    ext2_partition_read_block(inst, inode_table_block + block_offset, 1, kheap_get_phys_address(buffer));
+    ext2_partition_read_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
     memcpy(inode, buffer + offset_in_block * inst->superblock->inode_size, sizeof(ext2_inode_t));
     //Освободить временный буфер
     kfree(buffer);
@@ -305,9 +308,9 @@ ssize_t ext2_read(struct inode* file, off_t offset, size_t size, char* buffer)
     ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
-    read_inode_filedata(inst, inode, offset, size, buffer);
+    ssize_t result = read_inode_filedata(inst, inode, offset, size, buffer);
     kfree(inode);
-    return size;
+    return result;
 }
 
 ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* buffer){

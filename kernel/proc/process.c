@@ -18,10 +18,11 @@ int process_open_file(process_t* process, const char* path, int mode, int flags)
 
     if (inode == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
+        return fd;
     }
 
     // Создать новый дескриптор файла
-    file_t* file = kmalloc(sizeof(file_t));
+    file_t* file = new_file();
     file->inode = inode;
     file->mode = mode;
     file->flags = flags;
@@ -29,6 +30,7 @@ int process_open_file(process_t* process, const char* path, int mode, int flags)
 
     // Найти свободный номер дескриптора для процесса
     acquire_spinlock(&process->fd_spinlock);
+
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
             process->fds[i] = file;
@@ -37,8 +39,9 @@ int process_open_file(process_t* process, const char* path, int mode, int flags)
         }
     }
 
-    // Не получилось привязать дескриптор к процессу, освободить память под file
+    // Не получилось привязать дескриптор к процессу, освободить память под file, закрыть inode
     kfree(file);
+    inode_close(inode);
 
 exit:
     release_spinlock(&process->fd_spinlock);
@@ -73,7 +76,7 @@ exit:
 
 ssize_t process_read_file(process_t* process, int fd, char* buffer, size_t size)
 {
-    size_t bytes_read = -1;
+    ssize_t bytes_read = -1;
     acquire_spinlock(&process->fd_spinlock);
 
     file_t* file = process->fds[fd];
@@ -100,9 +103,12 @@ off_t process_file_seek(process_t* process, int fd, off_t offset, int whence)
     acquire_spinlock(&process->fd_spinlock);
 
     file_t* file = process->fds[fd];
+
     if (file != NULL) {
+
         acquire_spinlock(&file->spinlock);
         struct inode* inode = file->inode;
+
         switch (whence) {
             case SEEK_SET: 
                 file->pos = offset;

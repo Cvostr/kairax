@@ -2,7 +2,7 @@
 #define _THREAD_H
 
 #include "types.h"
-#include "proc/process.h"
+#include "process.h"
 
 #define STACK_SIZE 4096
 
