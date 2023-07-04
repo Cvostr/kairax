@@ -110,6 +110,41 @@ void bootshell_process_cmd(char* cmdline){
         kfree(buffer);
         inode_close(inode);
     }
+    if(strcmp(cmd, "stress") == 0) {
+        struct inode* sysn_i = vfs_fopen("/sysn.a", 0);
+        struct inode* sysc_i = vfs_fopen("/sysc.a", 0);
+        struct inode* ls_i = vfs_fopen("/ls.a", 0);
+
+        loff_t offset = 0;
+        int size = sysn_i->size;
+        char* sysn_d = kmalloc(size);
+
+        inode_read(sysn_i, &offset, size, sysn_d);
+
+        size = sysc_i->size;
+        char* sysc_d = kmalloc(size);
+        offset = 0;
+        inode_read(sysc_i, &offset, size, sysc_d);
+
+        size = ls_i->size;
+        char* ls_d = kmalloc(size);
+        offset = 0;
+        inode_read(ls_i, &offset, size, ls_d);
+
+        for (int i = 0; i < 15; i ++) {
+            int rc = create_new_process_from_image(sysn_d); 
+            rc = create_new_process_from_image(sysc_d); 
+            rc = create_new_process_from_image(ls_d); 
+        }
+
+        kfree(sysn_d);
+        kfree(sysc_d);
+        kfree(ls_d);
+        
+        inode_close(sysn_i);
+        inode_close(sysc_i);
+        inode_close(ls_i);
+    }
     if(strcmp(cmd, "exec") == 0) {
         struct inode* inode = vfs_fopen(args, 0);
         if(inode == NULL){

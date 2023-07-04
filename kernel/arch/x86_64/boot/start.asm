@@ -143,7 +143,7 @@ beginning_memmap: ;Задает начальную конфигурацию дл
 	mov [V2P(p2_table) + ecx * 8], eax ; map ecx-th entry
 
 	inc ecx 		; увеличение счетчика на 1
-	cmp ecx, 128 	; уже создано 64 страниц
+	cmp ecx, 512 	; уже создано 64 страниц
 	jne .p1_loop
 	ret
 

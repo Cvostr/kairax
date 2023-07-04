@@ -22,9 +22,9 @@ void cpu_enable_syscall_feature()
     cpu_msr_set(MSR_EFER, value);
 }
 
-void cpu_set_syscall_params(uintptr_t entry_ip, uint16_t star_32_47, uint16_t star_48_63, uint64_t sfmask)
+void cpu_set_syscall_params(void* entry_ip, uint16_t star_32_47, uint16_t star_48_63, uint64_t sfmask)
 {
-    cpu_msr_set(MSR_LSTAR, entry_ip);
+    cpu_msr_set(MSR_LSTAR, (uint64_t)entry_ip);
     cpu_msr_set(MSR_SFMASK, sfmask);
     uint64_t star = ((uint64_t)star_32_47) << 32;
     
@@ -32,12 +32,17 @@ void cpu_set_syscall_params(uintptr_t entry_ip, uint16_t star_32_47, uint16_t st
     cpu_msr_set(MSR_STAR, star);
 }
 
-void cpu_set_kernel_gs_base(uintptr_t address)
+void cpu_set_kernel_gs_base(void* address)
 {
-    cpu_msr_set(IA32_KERNEL_GS_BASE, address);
+    cpu_msr_set(IA32_KERNEL_GS_BASE, (uint64_t)address);
 }
 
-void cpu_set_gs_base(uintptr_t gs)
+void cpu_set_gs_base(void* gs)
 {
-    cpu_msr_set(IA32_GS_BASE, gs);
+    cpu_msr_set(IA32_GS_BASE, (uint64_t)gs);
+}
+
+void cpu_set_fs_base(void* base)
+{
+    cpu_msr_set(MSR_FS_BASE, (uint64_t)base);
 }
