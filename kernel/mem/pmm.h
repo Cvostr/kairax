@@ -26,7 +26,7 @@ void* pmm_alloc_pages(uint32_t pages);
 
 void pmm_free_page(void* addr);
 
-void free_pages(void* addr, uint32_t pages);
+void pmm_free_pages(void* addr, uint32_t pages);
 
 uint64_t pmm_get_used_pages();
 

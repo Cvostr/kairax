@@ -17,7 +17,7 @@ page_table_t* get_kernel_pml4()
 
 void* vmm_get_physical_addr(physical_addr_t physical_addr) 
 {
-    return get_physical_address(root_pml4, physical_addr);
+    return (void*)get_physical_address(root_pml4, physical_addr);
 }
 
 page_table_t* new_page_table_bt()
@@ -90,7 +90,7 @@ page_table_t* create_kernel_vm_map()
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	root_pml4 = new_page_table_bt();
 
-    uintptr_t iter = 0;
+    uint64_t iter = 0;
     // маппинг текста ядра 
 	for (iter = 0; iter <= kernel_size; iter += PAGE_SIZE) {
 		map_page_mem_bt(root_pml4, P2K(iter) + 0x100000ULL, 0x100000ULL + iter, pageFlags);
@@ -98,7 +98,7 @@ page_table_t* create_kernel_vm_map()
 
     // маппинг физической памяти
 	for (iter = 0; iter <= aligned_mem; iter += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, P2V(iter), iter, pageFlags);
+		map_page_mem_bt(root_pml4, (virtual_addr_t)P2V(iter), iter, pageFlags);
 	}
 
     return root_pml4;

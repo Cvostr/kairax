@@ -13,13 +13,14 @@ void free_process(process_t* process)
         kfree(thread);
     }
 
-    free_list(process->threads);
-    free_list(process->children);
+    //free_list(process->threads);
+    //process->threads = NULL;
+    //free_list(process->children);
 
     // Закрыть незакрытые файловые дескрипторы
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] != NULL) {
-            process_close_file(process, i);
+            file_close(process->fds[i]);
         }
     }
 
@@ -54,9 +55,8 @@ int process_open_file(process_t* process, const char* path, int mode, int flags)
         }
     }
 
-    // Не получилось привязать дескриптор к процессу, освободить память под file, закрыть inode
-    kfree(file);
-    inode_close(inode);
+    // Не получилось привязать дескриптор к процессу, закрыть файл
+    file_close(file);
 
 exit:
     release_spinlock(&process->fd_spinlock);
@@ -75,8 +75,7 @@ int process_close_file(process_t* process, int fd)
 
     file_t* file = process->fds[fd];
     if (file != NULL) {
-        inode_close(file->inode);
-        kfree(file);
+        file_close(file);
         process->fds[fd] = NULL;
         rc = 0;
         goto exit;

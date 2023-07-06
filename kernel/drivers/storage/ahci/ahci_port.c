@@ -205,7 +205,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	cmdtbl->prdt_entry[0].i = 1;
 
 	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
-	memset(cmdfis, 0, sizeof(FIS_HOST_TO_DEV));
+	memset((void*)cmdfis, 0, sizeof(FIS_HOST_TO_DEV));
  
 	cmdfis->fis_type = FIS_TYPE_REG_HOST_TO_DEV;
 	cmdfis->cmd_ctrl = 1;							// Команда

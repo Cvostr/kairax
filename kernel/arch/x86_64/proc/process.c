@@ -89,7 +89,7 @@ uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
     uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
     while((uint64_t)uaddr > process->brk) {
-        map_page_mem(process->vmemory_table, process->brk, pmm_alloc_page(), flags);
+        map_page_mem(process->vmemory_table, process->brk, (physical_addr_t)pmm_alloc_page(), flags);
         process->brk += PAGE_SIZE;
     }
 
@@ -116,7 +116,7 @@ int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, ui
     uintptr_t size_aligned = size + (PAGE_SIZE - (size % PAGE_SIZE)); //выравнивание в большую сторону
 
     for (uintptr_t page_i = start_aligned; page_i < start_aligned + size_aligned; page_i += PAGE_SIZE) {
-        map_page_mem(process->vmemory_table, page_i, pmm_alloc_page(), flags);
+        map_page_mem(process->vmemory_table, page_i, (physical_addr_t)pmm_alloc_page(), flags);
 
         if (page_i > process->brk)
             process->brk = page_i + PAGE_SIZE;

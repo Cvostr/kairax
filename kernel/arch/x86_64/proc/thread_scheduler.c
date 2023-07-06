@@ -15,15 +15,20 @@ list_t* threads_list;
 int curr_thread = 0;
 
 thread_t* prev_thread = NULL;
+spinlock_t threads_mutex;
 
 void scheduler_add_thread(thread_t* thread)
 {
+    acquire_mutex(&threads_mutex);
     list_add(threads_list, thread);
+    release_spinlock(&threads_mutex);
 }
 
 void scheduler_remove_thread(thread_t* thread)
 {
+    acquire_mutex(&threads_mutex);
     list_remove(threads_list, thread);
+    release_spinlock(&threads_mutex);
 }
 
 void scheduler_remove_process_threads(process_t* process)
@@ -58,8 +63,9 @@ void* scheduler_handler(thread_frame_t* frame)
         is_from_interrupt = prev_thread->state != THREAD_UNINTERRUPTIBLE;
     }
 
+    curr_thread ++;
     if(curr_thread >= threads_list->size)
-        curr_thread = threads_list->size - 1;
+        curr_thread = 0;
 
     thread_t* new_thread = list_get(threads_list, curr_thread);
     
@@ -79,12 +85,10 @@ void* scheduler_handler(thread_frame_t* frame)
 
         prev_thread = new_thread;
 
-        curr_thread++;
-        if(curr_thread >= threads_list->size)
-            curr_thread = 0;
-
         // Заменить таблицу виртуальной памяти процесса
         switch_pml4(V2P(process->vmemory_table));
+    } else {
+        new_thread = curr_thread;
     }
 
     if (is_from_interrupt)

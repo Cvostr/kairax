@@ -13,7 +13,7 @@ char text_printing_color = 0x07;
 char text_buffer[BUFFER_SIZE]; //4000 chars
 int overstep = 0;
 
-void* b8_addr = 0xB8000;
+void* b8_addr = (char*)0xB8000;
 
 char* b8_get_text_addr(){
 	return b8_addr;

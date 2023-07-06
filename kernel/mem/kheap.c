@@ -4,10 +4,12 @@
 #include "string.h"
 #include "stdio.h"
 #include "memory/kernel_vmm.h"
+#include "sync/spinlock.h"
 
 #define KHEAP_INIT_SIZE 409600
 
 kheap_t kheap;
+spinlock_t kheap_lock;
 
 uint64_t kheap_expand(uint64_t size)
 {
@@ -78,6 +80,8 @@ kheap_item_t* get_suitable_item(uint64_t size)
 
 void* kmalloc(uint64_t size) 
 {
+    acquire_spinlock(&kheap_lock);
+
     if (size % 8 > 0) {
         size += (8 - (size % 8));
     }
@@ -113,9 +117,11 @@ void* kmalloc(uint64_t size)
         current_item->free = 0;
         current_item->size = size;
     } else {
+        release_spinlock(&kheap_lock);
         return NULL;
     }
 
+    release_spinlock(&kheap_lock);
     return current_item + 1;
 }
 
@@ -150,7 +156,9 @@ void combine_forward(kheap_item_t* item)
 
 void kfree(void* mem)
 {
+    acquire_spinlock(&kheap_lock);
     kheap_item_t* item = (kheap_item_t*)mem - 1;
+    
     if(item->free == 0) {
         //Пометить как свободную
         item->free = 1;
@@ -160,11 +168,17 @@ void kfree(void* mem)
         // Попытаться объеденить с предыдущей свободной ячейкой
         combine_forward(item->prev);
     }
+
+    release_spinlock(&kheap_lock);
 }
 
 physical_addr_t kheap_get_phys_address(void* mem)
 {
-    return get_physical_address(get_kernel_pml4(), (virtual_addr_t)mem);
+    acquire_spinlock(&kheap_lock);
+    physical_addr_t result = get_physical_address(get_kernel_pml4(), (virtual_addr_t)mem);
+    release_spinlock(&kheap_lock);
+
+    return result;
 }
 
 kheap_item_t* kheap_get_head_item()

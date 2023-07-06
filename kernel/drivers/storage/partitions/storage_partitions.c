@@ -23,8 +23,8 @@ void add_partitions_from_device(drive_device_t* device){
     char* first_sector = kmalloc(512);
     char* second_sector = kmalloc(512);
 
-    drive_device_read(device, 0, 1, vmm_get_physical_addr(first_sector));
-    drive_device_read(device, 1, 1, vmm_get_physical_addr(second_sector));
+    drive_device_read(device, 0, 1, (char*)vmm_get_physical_addr((physical_addr_t)first_sector));
+    drive_device_read(device, 1, 1, (char*)vmm_get_physical_addr((physical_addr_t)second_sector));
 
     mbr_header_t* mbr_header = (mbr_header_t*)first_sector;
     gpt_header_t* gpt_header = (gpt_header_t*)second_sector; 
@@ -65,7 +65,7 @@ void add_partitions_from_device(drive_device_t* device){
         for(int i = 0; i < entries_num; i ++){
             char* gpt_entry_buffer = kmalloc(GPT_BLOCK_SIZE);
             memset(gpt_entry_buffer, 0, GPT_BLOCK_SIZE);
-            drive_device_read(device, current_lba, 1, vmm_get_physical_addr(gpt_entry_buffer));
+            drive_device_read(device, current_lba, 1, (char*)vmm_get_physical_addr((physical_addr_t)gpt_entry_buffer));
 
             for(int offset = 0; offset < GPT_BLOCK_SIZE; offset += gpt_header->gpea_entry_size){
                 gpt_entry_t* entry = (gpt_entry_t*)(gpt_entry_buffer + offset);

@@ -27,4 +27,6 @@ typedef struct {
 
 file_t* new_file();
 
+void file_close(file_t* file);
+
 #endif

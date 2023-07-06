@@ -21,7 +21,7 @@ void free_list(list_t* list)
         if (current) {
             current = current->next;
             kfree(temp);
-        }   
+        }
     }
 
     kfree(list);

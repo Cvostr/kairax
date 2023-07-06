@@ -1,6 +1,7 @@
 #include "pmm.h"
 #include "string.h"
 #include "stdio.h"
+#include "sync/spinlock.h"
 
 #define MAX_BITMASK_DATA 657356
 
@@ -11,6 +12,7 @@ extern uint64_t __KERNEL_VIRT_LINK;
 
 uint64_t bitmap[MAX_BITMASK_DATA];
 uint64_t pages_used = 0;
+spinlock_t pmm_lock;
 
 pmm_params_t pmm_params;
 
@@ -76,7 +78,7 @@ uint64_t find_free_pages(int pages) {
     		i++;
     	}
 		uint64_t bits = bitmap[i];
-		for (bitpos = 0; bitpos<64; bitpos++) {
+		for (bitpos = 0; bitpos < 64; bitpos++) {
 			if ((bits & 1) != 0) {
 				nfound = 0;
 				bits >>= 1;
@@ -95,7 +97,10 @@ uint64_t find_free_pages(int pages) {
 }
 
 
-void* pmm_alloc_page() {
+void* pmm_alloc_page() 
+{
+	acquire_spinlock(&pmm_lock);
+
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
 	if (i < 0) {
@@ -103,12 +108,18 @@ void* pmm_alloc_page() {
 	}
 	//Установить бит занятости страницы
 	set_bit(i);
-
+	// Увеличить количество занятых страниц
 	pages_used++;
+
+	release_spinlock(&pmm_lock);
+
 	return (void*)(i * PAGE_SIZE);
 }
 
-void* pmm_alloc_pages(uint32_t pages){
+void* pmm_alloc_pages(uint32_t pages)
+{
+	acquire_spinlock(&pmm_lock);
+
 	uint64_t i = find_free_pages(pages);
 
 	if (i < 0) {
@@ -121,16 +132,25 @@ void* pmm_alloc_pages(uint32_t pages){
 	
 	pages_used += pages;
 
+	release_spinlock(&pmm_lock);
+
 	return (void*)(i * PAGE_SIZE);
 }
 
-void pmm_free_page(void* addr) { 
+void pmm_free_page(void* addr) 
+{
+	acquire_spinlock(&pmm_lock);
+
   	unset_bit((uint64_t)addr / PAGE_SIZE);
   	pages_used--;
+
+	release_spinlock(&pmm_lock);
 }
 
-void free_pages(void* addr, uint32_t pages)
+void pmm_free_pages(void* addr, uint32_t pages)
 {
+	acquire_spinlock(&pmm_lock);
+
 	uint64_t page_index = ((uint64_t)addr) / PAGE_SIZE;
 
 	for(uint32_t page_i = 0; page_i < pages; page_i ++) {
@@ -138,9 +158,12 @@ void free_pages(void* addr, uint32_t pages)
 	}
 
 	pages_used -= pages;
+
+	release_spinlock(&pmm_lock);
 }
 
-void pmm_set_mem_region(uint64_t offset, uint64_t size) {
+void pmm_set_mem_region(uint64_t offset, uint64_t size)
+{
   	if (size < PAGE_SIZE) {
     	set_bit(offset / PAGE_SIZE);
     	pages_used += 1;
