@@ -9,7 +9,7 @@
 #define PHYSICAL_MEM_MAP_OFFSET 0xFFFF888000000000           //После этого адреса начинается физическая память 
 
 #define KHEAP_MAP_OFFSET        (0xffffc90000000000)
-#define KHEAP_SIZE              512ULL * 1024 * 1024		     //128MB памяти кучи ядра
+#define KHEAP_SIZE              512ULL * 1024 * 1024		     //512MB памяти кучи ядра
 
 #include "types.h"
 

@@ -99,7 +99,7 @@ uint64_t find_free_pages(int pages) {
 
 void* pmm_alloc_page() 
 {
-	acquire_spinlock(&pmm_lock);
+	acquire_mutex(&pmm_lock);
 
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
@@ -118,7 +118,7 @@ void* pmm_alloc_page()
 
 void* pmm_alloc_pages(uint32_t pages)
 {
-	acquire_spinlock(&pmm_lock);
+	acquire_mutex(&pmm_lock);
 
 	uint64_t i = find_free_pages(pages);
 
@@ -139,7 +139,7 @@ void* pmm_alloc_pages(uint32_t pages)
 
 void pmm_free_page(void* addr) 
 {
-	acquire_spinlock(&pmm_lock);
+	acquire_mutex(&pmm_lock);
 
   	unset_bit((uint64_t)addr / PAGE_SIZE);
   	pages_used--;
@@ -149,7 +149,7 @@ void pmm_free_page(void* addr)
 
 void pmm_free_pages(void* addr, uint32_t pages)
 {
-	acquire_spinlock(&pmm_lock);
+	acquire_mutex(&pmm_lock);
 
 	uint64_t page_index = ((uint64_t)addr) / PAGE_SIZE;
 
@@ -189,6 +189,10 @@ void pmm_take_base_regions()
 	pmm_set_mem_region(0x100000, kernel_size);
 }
 
-uint64_t pmm_get_used_pages(){
-	return pages_used;
+uint64_t pmm_get_used_pages()
+{
+	acquire_mutex(&pmm_lock);
+	size_t r = pages_used;
+	release_spinlock(&pmm_lock);
+	return r;
 }

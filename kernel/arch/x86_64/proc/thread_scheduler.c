@@ -10,6 +10,7 @@
 #include "mem/pmm.h"
 #include "memory/paging.h"
 #include "x64_context.h"
+#include "cpu/msr.h"
 
 list_t* threads_list;
 int curr_thread = 0;
@@ -81,6 +82,11 @@ void* scheduler_handler(thread_frame_t* frame)
             set_kernel_stack(new_thread->kernel_stack_ptr);
             tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
             set_user_stack_ptr(new_thread->stack_ptr);
+
+            if (new_thread->tls != NULL) {
+                // TLS, обязательно конец памяти
+                cpu_set_fs_base(new_thread->tls + process->tls_size);
+            }
         }
 
         prev_thread = new_thread;
@@ -88,7 +94,7 @@ void* scheduler_handler(thread_frame_t* frame)
         // Заменить таблицу виртуальной памяти процесса
         switch_pml4(V2P(process->vmemory_table));
     } else {
-        new_thread = curr_thread;
+        new_thread = prev_thread;
     }
 
     if (is_from_interrupt)

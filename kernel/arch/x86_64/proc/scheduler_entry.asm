@@ -8,7 +8,6 @@ extern scheduler_handler
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
 
-global scheduler_entry
 scheduler_entry:
     ; Поместить все 64-битные регистры в стек
     pushaq
@@ -17,13 +16,10 @@ scheduler_entry:
     push ax
     mov ax, es
     push ax
-    mov ax, fs
-    push ax
     ; переключение на сегмент ядра
     mov ax, KERNEL_DATA_SEG
     mov ds, ax
     mov es, ax
-    mov fs, ax
 
     ; Переход в код планировщика
     mov rdi, rsp
@@ -31,9 +27,7 @@ scheduler_entry:
     call scheduler_handler
     mov rsp, rax
 
-    ; Извлечь значения сегментных регистров fs, es, ds
-    pop ax
-    mov fs, ax
+    ; Извлечь значения сегментных регистров es, ds
     pop ax
     mov es, ax
     pop ax

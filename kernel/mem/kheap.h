@@ -11,7 +11,8 @@ struct kheap_item
     uint64_t size;
     uint64_t free : 1;
     uint64_t reserved : 63;
-} PACKED;
+};
+
 typedef struct kheap_item kheap_item_t;
 
 typedef struct {

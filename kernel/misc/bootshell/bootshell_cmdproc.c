@@ -131,7 +131,7 @@ void bootshell_process_cmd(char* cmdline){
         offset = 0;
         inode_read(ls_i, &offset, size, ls_d);
 
-        for (int i = 0; i < 15; i ++) {
+        for (int i = 0; i < 30; i ++) {
             int rc = create_new_process_from_image(sysn_d); 
             rc = create_new_process_from_image(sysc_d); 
             rc = create_new_process_from_image(ls_d); 

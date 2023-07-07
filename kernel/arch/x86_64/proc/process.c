@@ -61,9 +61,9 @@ int create_new_process_from_image(char* image)
         if (sections_ptrs.tbss_ptr) {
             // Есть секция TLS BSS
             elf_section_header_entry_t* tbss_ptr = sections_ptrs.tbss_ptr;
-            //proc->tls = kmalloc(tbss_ptr->size);
-            //memset(proc->tls, 0, tbss_ptr->size);
-            //proc->tls_size = tbss_ptr->size;
+            proc->tls = kmalloc(tbss_ptr->size);
+            memset(proc->tls, 0, tbss_ptr->size);
+            proc->tls_size = tbss_ptr->size;
         } 
         else if (sections_ptrs.tdata_ptr) {
             // Есть секция TLS DATA

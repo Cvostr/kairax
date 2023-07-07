@@ -80,7 +80,7 @@ kheap_item_t* get_suitable_item(uint64_t size)
 
 void* kmalloc(uint64_t size) 
 {
-    acquire_spinlock(&kheap_lock);
+    acquire_mutex(&kheap_lock);
 
     if (size % 8 > 0) {
         size += (8 - (size % 8));
