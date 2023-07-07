@@ -4,7 +4,6 @@
 #include "types.h"
 
 typedef struct PACKED {
-    uint16_t fs; 
     uint16_t es; 
     uint16_t ds;
     

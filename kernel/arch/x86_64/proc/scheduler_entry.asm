@@ -8,6 +8,7 @@ extern scheduler_handler
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
 
+global scheduler_entry
 scheduler_entry:
     ; Поместить все 64-битные регистры в стек
     pushaq

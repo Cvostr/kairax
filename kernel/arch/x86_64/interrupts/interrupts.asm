@@ -26,21 +26,16 @@ isr_entry:
     push ax
     mov ax, es
     push ax
-    mov ax, fs
-    push ax
     ; Переключение на сегмент ядра
     mov ax, KERNEL_DATA_SEG
     mov ds, ax
     mov es, ax
-    mov fs, ax
     ; Перейти к обработчику
     mov rdi, rsp
     cld
     call int_handler
 
     ; Извлечь значения сегментных регистров fs, es, ds
-    pop ax
-    mov fs, ax
     pop ax
     mov es, ax
     pop ax
