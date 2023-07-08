@@ -30,7 +30,7 @@ char* elf_get_string_at(char* image, uint32_t string_index)
 
 void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct)
 {
-    memset(sections_struct, 0, sizeof(sections_struct));
+    memset(sections_struct, 0, sizeof(elf_sections_ptr_t));
     elf_header_t* elf_header = (elf_header_t*)image;
 
     for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
