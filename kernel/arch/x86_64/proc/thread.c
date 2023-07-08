@@ -6,13 +6,13 @@
 #include "cpu/gdt.h"
 #include "x64_context.h"
 
-thread_t* create_kthread(process_t* process, void (*function)(void))
+struct thread* create_kthread(struct process* process, void (*function)(void))
 {
     if (!process || !function) {
         return NULL;
     }
     // Создать объект потока в памяти
-    thread_t* thread = new_thread(process);
+    struct thread* thread = new_thread(process);
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
@@ -42,7 +42,7 @@ thread_t* create_kthread(process_t* process, void (*function)(void))
     return thread;
 }
 
-thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack_size)
+struct thread* create_thread(struct process* process, void* entry, void* arg, size_t stack_size)
 {
     if (!process) {
         return NULL;
@@ -53,7 +53,7 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
     }
 
     // Создать объект потока в памяти
-    thread_t* thread = new_thread(process);
+    struct thread* thread = new_thread(process);
     // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
@@ -62,7 +62,7 @@ thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack
 
     if (process->tls) {
         thread->tls = (void*)process_brk(process, process->brk + process->tls_size) - process->tls_size;
-        copy_to_vm(process->vmemory_table, thread->tls, process->tls, process->tls_size);
+        copy_to_vm(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
     }
 
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц

@@ -5,10 +5,10 @@
 
 int last_id = 0;
 
-thread_t* new_thread(process_t* process)
+struct thread* new_thread(struct process* process)
 {
-    thread_t* thread    = (thread_t*)kmalloc(sizeof(thread_t));
-    memset(thread, 0, sizeof(thread_t));
+    struct thread* thread    = (struct thread*)kmalloc(sizeof(struct thread));
+    memset(thread, 0, sizeof(struct thread));
     thread->id          = last_id++;
     thread->process     = (process);
     return thread;

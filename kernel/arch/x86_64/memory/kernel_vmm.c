@@ -93,7 +93,7 @@ page_table_t* create_kernel_vm_map()
     uint64_t iter = 0;
     // маппинг текста ядра 
 	for (iter = 0; iter <= kernel_size; iter += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, P2K(iter) + 0x100000ULL, 0x100000ULL + iter, pageFlags);
+		map_page_mem_bt(root_pml4, (virtual_addr_t)P2K(iter) + 0x100000ULL, 0x100000ULL + iter, pageFlags);
 	}
 
     // маппинг физической памяти

@@ -6,10 +6,10 @@
 #include "thread.h"
 #include "thread_scheduler.h"
 
-void free_process(process_t* process)
+void free_process(struct process* process)
 {
     for (unsigned int i = 0; i < list_size(process->threads); i ++) {
-        thread_t* thread = list_get(process->threads, i);
+        struct thread* thread = list_get(process->threads, i);
         kfree(thread);
     }
 
@@ -27,7 +27,7 @@ void free_process(process_t* process)
     kfree(process);
 }
 
-int process_open_file(process_t* process, const char* path, int mode, int flags)
+int process_open_file(struct process* process, const char* path, int mode, int flags)
 {
     int fd = -1;
     struct inode* inode = vfs_fopen(path, 0);
@@ -63,7 +63,7 @@ exit:
     return fd;
 }
 
-int process_close_file(process_t* process, int fd)
+int process_close_file(struct process* process, int fd)
 {
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
@@ -88,7 +88,7 @@ exit:
     return rc;
 }
 
-ssize_t process_read_file(process_t* process, int fd, char* buffer, size_t size)
+ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t size)
 {
     ssize_t bytes_read = -1;
     acquire_spinlock(&process->fd_spinlock);
@@ -111,7 +111,7 @@ exit:
     return bytes_read;
 }
 
-off_t process_file_seek(process_t* process, int fd, off_t offset, int whence)
+off_t process_file_seek(struct process* process, int fd, off_t offset, int whence)
 {
     off_t result = -1;
     acquire_spinlock(&process->fd_spinlock);
@@ -144,7 +144,7 @@ off_t process_file_seek(process_t* process, int fd, off_t offset, int whence)
     return result;
 }
 
-int process_stat(process_t* process, int fd, struct stat* stat)
+int process_stat(struct process* process, int fd, struct stat* stat)
 {
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
@@ -163,7 +163,7 @@ int process_stat(process_t* process, int fd, struct stat* stat)
     return rc;
 }
 
-int process_readdir(process_t* process, int fd, struct dirent* dirent)
+int process_readdir(struct process* process, int fd, struct dirent* dirent)
 {
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
@@ -198,22 +198,22 @@ exit:
     return rc;
 }
 
-int process_get_working_dir(process_t* process, char* buffer, size_t size)
+int process_get_working_dir(struct process* process, char* buffer, size_t size)
 {
     memcpy(buffer, process->cur_dir, size);
     return 0;
 }
 
-int process_set_working_dir(process_t* process, const char* buffer)
+int process_set_working_dir(struct process* process, const char* buffer)
 {
     size_t buffer_length = strlen(buffer);
     memcpy(process->cur_dir, buffer, buffer_length);
     return 0;
 }
 
-int process_create_thread(process_t* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
+int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 {
-    thread_t* thread = create_thread(process, entry_ptr, arg, stack_size);
+    struct thread* thread = create_thread(process, entry_ptr, arg, stack_size);
 
     if (thread == NULL) {
         return -1;

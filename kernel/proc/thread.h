@@ -18,7 +18,7 @@ enum thread_state {
     THREAD_LOADING          = 128
 };
 
-typedef struct {
+struct thread {
     char            name[32];
     // ID потока
     uint64_t        id;
@@ -31,16 +31,16 @@ typedef struct {
     // Состояние
     int             state;
     // Указатель на объект процесса
-    process_t*      process;
+    struct process*      process;
     // Указатель на сохраненные данные контекста
     void*           context;
     int             is_userspace;
-} thread_t;
+};
 
-thread_t* new_thread(process_t* process);
+struct thread* new_thread(struct process* process);
 
-thread_t* create_kthread(process_t* process, void (*function)(void));
+struct thread* create_kthread(struct process* process, void (*function)(void));
 
-thread_t* create_thread(process_t* process, void* entry, void* arg, size_t stack_size);
+struct thread* create_thread(struct process* process, void* entry, void* arg, size_t stack_size);
 
 #endif

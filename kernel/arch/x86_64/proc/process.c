@@ -11,16 +11,17 @@
 
 int last_pid = 0;
 
-process_t*  create_new_process()
+struct process*  create_new_process(struct process* parent)
 {
-    process_t* process = (process_t*)kmalloc(sizeof(process_t));
-    memset(process, 0, sizeof(process_t));
+    struct process* process = (struct process*)kmalloc(sizeof(struct process));
+    memset(process, 0, sizeof(struct process));
 
     process->name[0] = '\0';
     // Склонировать таблицу виртуальной памяти ядра
     process->vmemory_table = vmm_clone_kernel_memory_map();
     process->brk = 0x0;
     process->pid = last_pid++;
+    process->parent = parent;
     // Создать список потоков
     process->threads = create_list();
     process->children = create_list();
@@ -28,14 +29,14 @@ process_t*  create_new_process()
     return process;
 }
 
-int create_new_process_from_image(char* image)
+int create_new_process_from_image(struct process* parent, char* image)
 {
     elf_header_t* elf_header = (elf_header_t*)image;
 
     if(elf_check_signature(elf_header)) {
         //Это ELF файл
         //Создаем объект процесса
-        process_t* proc = create_new_process();
+        struct process* proc = create_new_process(parent);
 
         elf_sections_ptr_t sections_ptrs;
         // Считать таблицу секций
@@ -74,7 +75,7 @@ int create_new_process_from_image(char* image)
         }
 
         // Создание главного потока и передача выполнения
-        thread_t* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, NULL, 0);
+        struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, NULL, 0);
 	    scheduler_add_thread(thr);  
         
     } else {
@@ -82,7 +83,7 @@ int create_new_process_from_image(char* image)
     }
 }
 
-uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
+uintptr_t process_brk_flags(struct process* process, void* addr, uint64_t flags)
 {
     uintptr_t uaddr = (uintptr_t)addr;
     //Выравнивание до размера страницы в большую сторону
@@ -105,12 +106,12 @@ uintptr_t process_brk_flags(process_t* process, void* addr, uint64_t flags)
     return process->brk;
 }
 
-uintptr_t process_brk(process_t* process, uint64_t addr)
+uintptr_t process_brk(struct process* process, uint64_t addr)
 {
     return process_brk_flags(process, (void*)addr, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
 }
 
-int process_alloc_memory(process_t* process, uintptr_t start, uintptr_t size, uint64_t flags)
+int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags)
 {
     uintptr_t start_aligned = start - (start % PAGE_SIZE); // выравнивание в меньшую сторону
     uintptr_t size_aligned = size + (PAGE_SIZE - (size % PAGE_SIZE)); //выравнивание в большую сторону

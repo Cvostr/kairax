@@ -15,32 +15,32 @@
 list_t* threads_list;
 int curr_thread = 0;
 
-thread_t* prev_thread = NULL;
+struct thread* prev_thread = NULL;
 spinlock_t threads_mutex;
 
-void scheduler_add_thread(thread_t* thread)
+void scheduler_add_thread(struct thread* thread)
 {
     acquire_mutex(&threads_mutex);
     list_add(threads_list, thread);
     release_spinlock(&threads_mutex);
 }
 
-void scheduler_remove_thread(thread_t* thread)
+void scheduler_remove_thread(struct thread* thread)
 {
     acquire_mutex(&threads_mutex);
     list_remove(threads_list, thread);
     release_spinlock(&threads_mutex);
 }
 
-void scheduler_remove_process_threads(process_t* process)
+void scheduler_remove_process_threads(struct process* process)
 {
     for (unsigned int i = 0; i < list_size(process->threads); i ++) {
-        thread_t* thread = list_get(process->threads, i);
+        struct thread* thread = list_get(process->threads, i);
         scheduler_remove_thread(thread);
     }
 }
 
-thread_t* scheduler_get_current_thread()
+struct thread* scheduler_get_current_thread()
 {
     return prev_thread;
 }
@@ -68,11 +68,11 @@ void* scheduler_handler(thread_frame_t* frame)
     if(curr_thread >= threads_list->size)
         curr_thread = 0;
 
-    thread_t* new_thread = list_get(threads_list, curr_thread);
+    struct thread* new_thread = list_get(threads_list, curr_thread);
     
     if(new_thread != NULL) {
         // Получить данные процесса, с которым связан поток
-        process_t* process = new_thread->process;
+        struct process* process = new_thread->process;
         thread_frame_t* thread_frame = (thread_frame_t*)new_thread->context;
 
         if (new_thread->is_userspace) {
