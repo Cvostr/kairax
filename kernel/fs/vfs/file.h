@@ -2,6 +2,7 @@
 #define _FILE_H
 
 #include "dirent.h"
+#include "dentry.h"
 #include "inode.h"
 #include "sync/spinlock.h"
 
@@ -18,6 +19,7 @@
 // Открытый файл
 typedef struct {
     struct inode*   inode;
+    struct dentry*  p_dentry;
     int             mode;
     int             flags;
     loff_t          pos;

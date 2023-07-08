@@ -75,7 +75,7 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
         result->parent = parent;
         result->sb = sb;
         result->inode = inode;
-        atomic_inc(&result->refs_count);
+        dentry_open(result);
 
         // Добавить в список подпапок родителя
         dentry_add_subdir(parent, result); 
