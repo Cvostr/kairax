@@ -24,7 +24,7 @@ struct inode* devfs_mount(drive_partition_t* drive, struct superblock* sb)
 {
     struct inode* result = new_vfs_inode();
     result->inode = 2;              
-    result->sb = NULL;        
+    result->sb = sb;        
     result->mode = INODE_TYPE_DIRECTORY;
 
     result->create_time = 0;

@@ -61,8 +61,12 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
             return -5; //Ошибка при процессе монтирования
         }
 
-        atomic_inc(&root_inode->reference_count);
-        superblock_add_inode(sb, root_inode);
+        // Открыть корневую inode
+        inode_open(root_inode, 0);
+
+        struct dentry* root_sb_dentry = new_dentry();
+        strcpy(root_sb_dentry->name, mount_path);
+        root_sb_dentry->inode = root_inode;
         
     } else {
         free_superblock(sb);
@@ -86,6 +90,7 @@ int vfs_unmount(char* mount_path)
         if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0) {
 
             struct superblock* sb = vfs_mounts[i];
+
             //выполнить отмонтирование ФС
             if (sb->filesystem->unmount != NULL) {
                 sb->filesystem->unmount(sb);
@@ -208,7 +213,7 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
             if(next_inode_index != WRONG_INODE_INDEX) {
                 // Заменить указатель
                 curr_inode_index = next_inode_index;
-            }else {
+            } else {
                 // следующего файла или папки нет, выходим
                 goto exit;
             }
@@ -217,11 +222,6 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
             if(next_inode_index != WRONG_INODE_INDEX) {
                 // Попробуем найти ноду в списке суперблока
                 result = superblock_get_inode(sb, next_inode_index);
-
-                if (result == NULL) {
-                    // В списке суперблока её нет - идем в ФС
-                    result = sb->operations->read_inode(sb, next_inode_index);
-                }
 
                 // Увеличение счетчика, операции с ФС
                 inode_open(result, flags);
