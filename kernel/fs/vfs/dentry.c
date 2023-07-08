@@ -73,6 +73,7 @@ struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* chi
         }
             
         current = current->next;
+        child = (struct dentry*)current->element;
     }
     
 exit:

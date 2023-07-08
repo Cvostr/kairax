@@ -25,7 +25,6 @@ typedef struct {
     loff_t          pos;
     void*           private_data;
     spinlock_t      spinlock;
-    char            name[MAX_DIRENT_NAME_LEN];
 } file_t;
 
 file_t* new_file();

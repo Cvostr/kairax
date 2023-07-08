@@ -62,8 +62,9 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
     acquire_spinlock(&sb->spinlock);
 
     result = dentry_get_child_with_name(parent, name);
-    if (result != NULL)
+    if (result != NULL) {
         goto exit;
+    }
 
     // считать dentry с диска
     uint64_t inode = sb->operations->find_dentry(sb, parent->inode, name);
