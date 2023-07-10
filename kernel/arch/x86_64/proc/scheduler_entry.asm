@@ -43,7 +43,7 @@ scheduler_yield:
     pop rdi ; rip
     mov rsi, rsp
     
-    xor ax, ax
+    xor rax, rax
     ; SS
     mov ax, ss
     push rax

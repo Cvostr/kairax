@@ -156,7 +156,7 @@ void combine_forward(kheap_item_t* item)
 
 void kfree(void* mem)
 {
-    acquire_spinlock(&kheap_lock);
+    acquire_mutex(&kheap_lock);
     kheap_item_t* item = (kheap_item_t*)mem - 1;
     
     if(item->free == 0) {

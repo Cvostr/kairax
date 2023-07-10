@@ -51,10 +51,12 @@ int create_new_process_from_image(struct process* parent, char* image)
                 pehentry->p_memsz,
                 pehentry->type);*/
 
+            size_t aligned_size = pehentry->p_memsz + (pehentry->alignment - (pehentry->p_memsz % pehentry->alignment));
+
             // Выделить память в виртуальной таблице процесса 
-            process_alloc_memory(proc, pehentry->v_addr, pehentry->p_memsz, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
+            process_alloc_memory(proc, pehentry->v_addr, aligned_size, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
             // Заполнить выделенную память нулями
-            memset_vm(proc->vmemory_table, pehentry->v_addr, 0, pehentry->p_memsz);
+            memset_vm(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
             // Копировать фрагмент программы в память
             copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
         }

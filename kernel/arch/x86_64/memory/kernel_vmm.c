@@ -40,15 +40,6 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
     page_table_t *pd_table;
     page_table_t *pt_table;
 
-    //Проверим, существует ли страница 4-го уровня
-    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
-        //Страница не существует
-        //Выделить память под страницу
-        pdp_table = new_page_table_bt();
-        //Записать страницу в родительское дерево
-        root->entries[level4_index] = ((uint64_t)K2P(pdp_table) | flags);  
-    }
-
     pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2K(pdp_table);
 
@@ -89,6 +80,12 @@ page_table_t* create_kernel_vm_map()
 
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	root_pml4 = new_page_table_bt();
+
+    for (int i = 255; i < 512; i ++) {
+        void* pdp_table = new_page_table_bt();
+        //Записать страницу в родительское дерево
+        root_pml4->entries[i] = ((uint64_t)K2P(pdp_table) | pageFlags); 
+    }
 
     uint64_t iter = 0;
     // маппинг текста ядра 

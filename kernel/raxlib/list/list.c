@@ -100,8 +100,11 @@ void* list_get(list_t* list, unsigned int index)
 
     struct list_node* current = list->head;
 
-    for(unsigned int i = 0; i < index; i++){
-        current = current->next;
+    for (unsigned int i = 0; i < index; i++) {
+        if (current->next)
+            current = current->next;
+        else 
+            return NULL;
     }
     
     return current->element;

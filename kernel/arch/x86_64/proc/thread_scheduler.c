@@ -97,8 +97,9 @@ void* scheduler_handler(thread_frame_t* frame)
         new_thread = prev_thread;
     }
 
-    if (is_from_interrupt)
+    if (is_from_interrupt) {
 	    pic_eoi(0);
+    }
 
     return new_thread->context;
 }

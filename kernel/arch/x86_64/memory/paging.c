@@ -211,6 +211,7 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
 
         phys_addr = P2V(phys_addr);
         *phys_addr = *((char*)src + i);
+        copied ++;
     }
     
     return copied;
@@ -218,8 +219,8 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
 
 void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size)
 {
-    for (virtual_addr_t i = dst; i < dst + size; i += sizeof(int)) {
-        copy_to_vm(root, i, &val, sizeof(int));
+    for (virtual_addr_t i = dst; i < dst + size; i += 1) {
+        copy_to_vm(root, i, &val, 1);
     }
 }
 
