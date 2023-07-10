@@ -30,8 +30,7 @@ void free_process(struct process* process)
 int process_open_file(struct process* process, const char* path, int mode, int flags)
 {
     int fd = -1;
-    struct dentry* den = NULL;
-    struct inode* inode = vfs_fopen(path, 0, &den);
+    struct inode* inode = vfs_fopen(path, 0);
 
     if (inode == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
@@ -44,7 +43,7 @@ int process_open_file(struct process* process, const char* path, int mode, int f
     file->mode = mode;
     file->flags = flags;
     file->pos = 0;
-    file->p_dentry = den;
+    file_set_name_from_path(file, path);
 
     // Найти свободный номер дескриптора для процесса
     acquire_spinlock(&process->fd_spinlock);

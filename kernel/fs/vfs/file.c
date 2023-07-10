@@ -19,14 +19,12 @@ void file_set_name_from_path(file_t* file, const char* path)
 {
     char* current_slash_pos = strchr(path, '/');
     char* prev_slash_pos = NULL;
-
-    while (current_slash_pos != NULL) {
-        prev_slash_pos = current_slash_pos + 1;
-        current_slash_pos = strchr(current_slash_pos + 1, '/');
+    while (1) {
+        prev_slash_pos = current_slash_pos;
+        current_slash_pos = strchr(current_slash_pos, '/');
 
         if (current_slash_pos == NULL) {
             strcpy(file->name, prev_slash_pos);
-            break;
         }
     }
 }

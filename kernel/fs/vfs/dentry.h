@@ -25,8 +25,6 @@ void free_dentry(struct dentry* dentry);
 
 void close_dentry(struct dentry* dentry);
 
-void dentry_open(struct dentry* dentry);
-
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir);
 
 void dentry_remove_subdir(struct dentry* parent, struct dentry* dir);

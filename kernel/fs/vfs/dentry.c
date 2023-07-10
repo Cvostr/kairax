@@ -27,14 +27,6 @@ void close_dentry(struct dentry* dentry)
     }
 }
 
-void dentry_open(struct dentry* dentry)
-{
-    if (dentry->parent)
-        dentry_open(dentry->parent);
-
-    atomic_inc(&dentry->refs_count);
-}
-
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir)
 {
     acquire_spinlock(&parent->lock);
