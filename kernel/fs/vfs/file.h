@@ -23,13 +23,10 @@ typedef struct {
     loff_t          pos;
     void*           private_data;
     spinlock_t      spinlock;
-    char            name[MAX_DIRENT_NAME_LEN];
 } file_t;
 
 file_t* new_file();
 
 void file_close(file_t* file);
-
-void file_set_name_from_path(file_t* file, const char* path);
 
 #endif

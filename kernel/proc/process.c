@@ -43,7 +43,6 @@ int process_open_file(struct process* process, const char* path, int mode, int f
     file->mode = mode;
     file->flags = flags;
     file->pos = 0;
-    file_set_name_from_path(file, path);
 
     // Найти свободный номер дескриптора для процесса
     acquire_spinlock(&process->fd_spinlock);

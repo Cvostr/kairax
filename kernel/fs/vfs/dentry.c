@@ -16,59 +16,20 @@ void free_dentry(struct dentry* dentry)
     kfree(dentry);
 }
 
-void close_dentry(struct dentry* dentry)
-{
-    if (atomic_dec_and_test(&dentry->refs_count)) {
-        if (dentry->parent) {
-            dentry_remove_subdir(dentry->parent, dentry);
-        }
-
-        free_dentry(dentry);
-    }
-}
-
-void dentry_add_subdir(struct dentry* parent, struct dentry* dir)
-{
-    acquire_spinlock(&parent->lock);
-
-    list_add(parent->subdirs, dir); 
-
-    release_spinlock(&parent->lock);
-}
-
-void dentry_remove_subdir(struct dentry* parent, struct dentry* dir)
-{
-    acquire_spinlock(&parent->lock);
-
-    list_remove(parent->subdirs, dir); 
-
-    release_spinlock(&parent->lock);
-}
-
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name)
 {
-    struct dentry* result = NULL;
-
-    acquire_spinlock(&parent->lock);
-
-    if(parent == NULL) {
-        goto exit;
-    }
+    if(parent == NULL)
+        return NULL;
 
     struct list_node* current = parent->subdirs->head;
     struct dentry* child = (struct dentry*)current->element;
 
     for(unsigned int i = 0; i < parent->subdirs->size; i++){
-        if (strcmp(child->name, child_name) == 0) {
-            result = child;
-            goto exit;
-        }
+        if (strcmp(child->name, child_name) == 0)
+            return child;
             
         current = current->next;
     }
     
-exit:
-    release_spinlock(&parent->lock);
-
-    return result;
+    return NULL;
 }
