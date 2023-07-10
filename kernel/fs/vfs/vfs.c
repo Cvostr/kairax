@@ -210,7 +210,7 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** den)
         
         if(is_dir == 1) {
 
-            if (next_dentry != NULL) {
+            if(next_dentry != NULL) {
                 // Заменить указатель
                 curr_dentry = next_dentry;
             } else {
@@ -219,7 +219,7 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** den)
             }
         } else {
 
-            if (next_dentry != NULL) {
+            if(next_dentry != NULL) {
                 // Попробуем найти ноду в списке суперблока
                 result = superblock_get_inode(sb, next_dentry->inode);
 
