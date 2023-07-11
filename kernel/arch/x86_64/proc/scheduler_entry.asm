@@ -37,9 +37,8 @@ scheduler_entry:
     popaq
     iretq
     
-global scheduler_yield
-scheduler_yield:
-    cli
+global scheduler_yield_entry
+scheduler_yield_entry:
     pop rdi ; rip
     mov rsi, rsp
     

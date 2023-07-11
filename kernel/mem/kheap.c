@@ -46,6 +46,7 @@ int kheap_init(uint64_t start_vaddr, uint64_t size)
     if (rc == 0) {
         return 0;
     }
+
     kheap.head = (kheap_item_t*)kheap.start_vaddr;
     kheap.head->free = 1;
     kheap.head->next = NULL;
@@ -92,13 +93,12 @@ void* kmalloc(uint64_t size)
     kheap_item_t* current_item = get_suitable_item(reqd_size);
 
     if (current_item != NULL) {
-        uint64_t size_left = current_item->size - total_size;
         // Адрес нового свободного блока, который будет создан
         kheap_item_t* new_item = (kheap_item_t*)((virtual_addr_t)(current_item + 1) + size);
         // Новый блок свободен
         new_item->free = 1;
         // Его размер с вычитанием длины заголовка
-        new_item->size = size_left - sizeof(kheap_item_t);
+        new_item->size = current_item->size - reqd_size;
         // Предыдущим блоком нового блока будет текущий 
         new_item->prev = current_item;
         // Следующим блоком нового блока будет следующий для текущего

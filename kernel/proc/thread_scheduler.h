@@ -15,6 +15,6 @@ void scheduler_remove_process_threads(struct process* process);
 
 struct thread* scheduler_get_current_thread();
 
-extern void scheduler_yield();
+void scheduler_yield();
 
 #endif

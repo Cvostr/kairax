@@ -19,9 +19,8 @@ void inode_open(struct inode* node, uint32_t flags)
         superblock_add_inode(node->sb, node);
     }
     
-    if(node)
-        if(node->operations->open)
-            node->operations->open(node, flags);
+    if(node->operations->open)
+        node->operations->open(node, flags);
 
     release_spinlock(&node->spinlock);
 }
@@ -30,9 +29,8 @@ void inode_close(struct inode* node)
 {
     acquire_spinlock(&node->spinlock);
 
-    if(node)
-        if(node->operations->close)
-            node->operations->close(node);
+    if(node->operations->close)
+        node->operations->close(node);
 
     if (atomic_dec_and_test(&node->reference_count)) {
         superblock_remove_inode(node->sb, node);

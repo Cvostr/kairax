@@ -16,7 +16,17 @@ list_t* threads_list;
 int curr_thread = 0;
 
 struct thread* prev_thread = NULL;
-spinlock_t threads_mutex;
+spinlock_t threads_mutex = 0;
+
+int is_from_interrupt = 1;
+extern void scheduler_yield_entry();
+
+void scheduler_yield()
+{
+    asm("cli");
+    is_from_interrupt = 0;
+    scheduler_yield_entry();
+}
 
 void scheduler_add_thread(struct thread* thread)
 {
@@ -45,9 +55,24 @@ struct thread* scheduler_get_current_thread()
     return prev_thread;
 }
 
+void scheduler_eoi()
+{
+    if (is_from_interrupt) {
+	    pic_eoi(0);
+    } else {
+        is_from_interrupt = 1;
+    }
+}
+
 void* scheduler_handler(thread_frame_t* frame)
 {
-    int is_from_interrupt = 1;
+    if (!__sync_bool_compare_and_swap(&threads_mutex, 0, 1))
+	{
+        frame->rflags |= 0x200;
+        scheduler_eoi();
+		return frame;
+	}
+
     // Сохранить состояние 
     if(prev_thread != NULL) {
 
@@ -58,10 +83,6 @@ void* scheduler_handler(thread_frame_t* frame)
             // Сохранить указатель на вершину стека пользователя
             prev_thread->stack_ptr = get_user_stack_ptr();
         }
-
-        // Если у старого потока состояние THREAD_UNINTERRUPTIBLE, значит
-        // мы пришли сюда не из прерывания, а из yield
-        is_from_interrupt = prev_thread->state != THREAD_UNINTERRUPTIBLE;
     }
 
     curr_thread ++;
@@ -75,9 +96,9 @@ void* scheduler_handler(thread_frame_t* frame)
         struct process* process = new_thread->process;
         thread_frame_t* thread_frame = (thread_frame_t*)new_thread->context;
 
+        // Разрешить прерывания
+        thread_frame->rflags |= 0x200;
         if (new_thread->is_userspace) {
-            thread_frame->rflags |= 0x200;
-
             // Обновить данные об указателях на стек
             set_kernel_stack(new_thread->kernel_stack_ptr);
             tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
@@ -97,9 +118,9 @@ void* scheduler_handler(thread_frame_t* frame)
         new_thread = prev_thread;
     }
 
-    if (is_from_interrupt) {
-	    pic_eoi(0);
-    }
+    scheduler_eoi();
+
+    release_spinlock(&threads_mutex);
 
     return new_thread->context;
 }

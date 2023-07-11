@@ -27,7 +27,7 @@ void free_list(list_t* list)
     kfree(list);
 }
 
-int list_size(list_t* list)
+size_t list_size(list_t* list)
 {
     return list->size;
 }
@@ -37,6 +37,7 @@ void list_add(list_t* list, void* element)
     struct list_node* new_node = kmalloc(sizeof(struct list_node));
     new_node->element = element;
     new_node->next = NULL;
+    new_node->prev = NULL;
 
     if (!list->head) {
         // Первого элемента не существует
@@ -57,7 +58,7 @@ void list_remove(list_t* list, void* element)
 
     // Найти запись для удаления
     struct list_node* current = list->head;
-    for(unsigned int i = 0; i < list->size; i++)
+    for(size_t i = 0; i < list->size; i++)
     {
         if (current->element == element)
             break;
@@ -100,7 +101,7 @@ void* list_get(list_t* list, unsigned int index)
 
     struct list_node* current = list->head;
 
-    for (unsigned int i = 0; i < index; i++) {
+    for (size_t i = 0; i < index; i++) {
         if (current->next)
             current = current->next;
         else 

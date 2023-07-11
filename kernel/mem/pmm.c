@@ -90,10 +90,11 @@ uint64_t find_free_pages(int pages) {
 				}
 			}
 		}
+
     	i++;   
   	}
 
-  return -1;
+  	return -1;
 }
 
 
@@ -103,7 +104,7 @@ void* pmm_alloc_page()
 
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
-	if (i < 0) {
+	if (i == -1) {
 		return NULL;
 	}
 	//Установить бит занятости страницы
@@ -122,11 +123,12 @@ void* pmm_alloc_pages(uint32_t pages)
 
 	uint64_t i = find_free_pages(pages);
 
-	if (i < 0) {
+	if (i == -1) {
 		return NULL;
 	}
+
 	//Установить бит занятости нескольких страниц
-	for(uint32_t page_i = 0; page_i < pages; page_i ++){
+	for(uint32_t page_i = 0; page_i < pages; page_i ++) {
 		set_bit(i + page_i);
 	}
 	
@@ -154,7 +156,7 @@ void pmm_free_pages(void* addr, uint32_t pages)
 	uint64_t page_index = ((uint64_t)addr) / PAGE_SIZE;
 
 	for(uint32_t page_i = 0; page_i < pages; page_i ++) {
-		set_bit(page_index + page_i);
+		unset_bit(page_index + page_i);
 	}
 
 	pages_used -= pages;

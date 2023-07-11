@@ -1,6 +1,8 @@
 #ifndef _LIST_H
 #define _LIST_H
 
+#include "types.h"
+
 struct list_node {
     void* element;
     struct list_node* next;
@@ -8,7 +10,7 @@ struct list_node {
 };
 
 typedef struct {
-    int size;
+    size_t size;
     struct list_node* head;
     struct list_node* tail;
 } list_t;
@@ -22,7 +24,7 @@ void list_add(list_t* list, void* element);
 
 void list_remove(list_t* list, void* element);
 
-int list_size(list_t* list);
+size_t list_size(list_t* list);
 
 void list_unlink(list_t* list, struct list_node* node);
 
