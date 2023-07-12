@@ -166,15 +166,14 @@ void pmm_free_pages(void* addr, uint32_t pages)
 
 void pmm_set_mem_region(uint64_t offset, uint64_t size)
 {
-  	if (size < PAGE_SIZE) {
-    	set_bit(offset / PAGE_SIZE);
-    	pages_used += 1;
-  	} else {
-    	for (int i = 0; i < size / PAGE_SIZE; i++) {      
-      		set_bit(offset / PAGE_SIZE + i);
-    	}
-    	pages_used += size / PAGE_SIZE;
-  	}
+	offset -= (offset % PAGE_SIZE); // выравнивание в меньшую сторону
+    size += (PAGE_SIZE - (size % PAGE_SIZE)); //выравнивание в большую сторону
+
+    for (int i = 0; i < size / PAGE_SIZE; i++) {      
+      	set_bit(offset / PAGE_SIZE + i);
+    }
+    
+	pages_used += size / PAGE_SIZE;
 }
 
 void init_pmm() {

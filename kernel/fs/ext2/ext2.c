@@ -155,18 +155,8 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     //Чтение корневой иноды с индексом 2
     ext2_inode_t* ext2_inode_root = new_ext2_inode();
     ext2_inode(instance, ext2_inode_root, 2);
-    instance->root_inode = ext2_inode_root;
     //Создать объект VFS корневой иноды файловой системы 
-    struct inode* result = new_vfs_inode();
-    result->inode = 2;              //2 - стандартный индекс корневой иноды
-    result->mode = ext2_inode_root->mode;
-    result->sb = sb;                //Сохранение указателя на суперблок
-
-    result->create_time = ext2_inode_root->ctime;
-    result->access_time = ext2_inode_root->atime;
-    result->modify_time = ext2_inode_root->mtime;
-
-    result->operations = &dir_inode_ops;
+    struct inode* result = ext2_inode_to_vfs_inode(instance, ext2_inode_root, 2);
 
     kfree(ext2_inode_root);
 

@@ -50,6 +50,8 @@ void register_exceptions_handlers(){
 }
 
 void exception_handler(interrupt_frame_t* frame){
+    uint64_t cr2;
+    asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
     printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);
     printf("RAX = %s ", ulltoa(frame->rax, 16));
@@ -59,7 +61,8 @@ void exception_handler(interrupt_frame_t* frame){
     printf("RSP = %s ", ulltoa(frame->rsp, 16));
     printf("RBP = %s \n", ulltoa(frame->rbp, 16));
     printf("CS = %s ", ulltoa(frame->cs, 16));
-    printf("SS = %s \n", ulltoa(frame->cs, 16));
+    printf("SS = %s ", ulltoa(frame->cs, 16));
+    printf("CR2 = %s \n", ulltoa(cr2, 16));
     printf("STACK TRACE: ");
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
     for (int i = 0; i < 20; i ++) {

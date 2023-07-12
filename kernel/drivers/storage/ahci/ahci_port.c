@@ -99,7 +99,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     for(int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++){
 		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(port->command_list);
         hba_command_virtual[i].prdtl = 8; //8 PRDT на каждую команду
-        HBA_COMMAND_TABLE* cmd_table = (HBA_COMMAND_TABLE*)&cmd_tables_mem[i];
+        HBA_COMMAND_TABLE* cmd_table = (HBA_COMMAND_TABLE*)cmd_tables_mem + i;
         //Записать адрес таблицы
         hba_command_virtual[i].ctdba_low = LO32(cmd_table);
 		hba_command_virtual[i].ctdba_up = HI32(cmd_table);

@@ -61,9 +61,9 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
             return -5; //Ошибка при процессе монтирования
         }
 
-        inode_open(root_inode, 0);
-        //atomic_inc(&root_inode->reference_count);
-        //superblock_add_inode(sb, root_inode);
+        //inode_open(root_inode, 0);
+        atomic_inc(&root_inode->reference_count);
+        superblock_add_inode(sb, root_inode);
         
     } else {
         free_superblock(sb);

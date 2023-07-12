@@ -113,7 +113,6 @@ typedef struct PACKED {
     ext2_superblock_t*  superblock;
     struct superblock*  vfs_sb;
     ext2_bgd_t*         bgds;
-    ext2_inode_t*       root_inode;
 
     size_t              block_size;
     uint64_t            total_groups;

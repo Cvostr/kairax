@@ -33,7 +33,6 @@
 #include "cpu/msr.h"
 #include "proc/kernel_stack.h"
 
-extern page_table_t* p4_table;
 extern void syscall_entry_x64();
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){

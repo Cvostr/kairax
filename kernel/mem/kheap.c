@@ -6,7 +6,7 @@
 #include "memory/kernel_vmm.h"
 #include "sync/spinlock.h"
 
-#define KHEAP_INIT_SIZE 409600
+#define KHEAP_INIT_SIZE 4096000
 
 kheap_t kheap;
 spinlock_t kheap_lock;

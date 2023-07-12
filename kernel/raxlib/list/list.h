@@ -18,7 +18,7 @@ typedef struct {
 
 list_t* create_list();
 
-void free_list();
+void free_list(list_t* list);
 
 void list_add(list_t* list, void* element);
 
