@@ -13,9 +13,12 @@ void free_process(struct process* process)
         kfree(thread);
     }
 
-    //free_list(process->threads);
-    //process->threads = NULL;
-    //free_list(process->children);
+    if (process->tls) {
+        kfree(process->tls);
+    }
+
+    free_list(process->threads);
+    free_list(process->children);
 
     // Закрыть незакрытые файловые дескрипторы
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {

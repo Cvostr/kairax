@@ -8,6 +8,7 @@
 #include "proc/thread.h"
 #include "proc/thread_scheduler.h"
 #include "fs/vfs/vfs.h"
+#include "kstdlib.h"
 
 int last_pid = 0;
 
@@ -44,21 +45,24 @@ int create_new_process_from_image(struct process* parent, char* image)
 
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
             elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
-            /*printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, type %i\n",
+            /*printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i\n",
                 pehentry->p_offset,
                 pehentry->p_filesz,
                 pehentry->v_addr,
                 pehentry->p_memsz,
+                pehentry->alignment,
                 pehentry->type);*/
 
-            size_t aligned_size = pehentry->p_memsz + (pehentry->alignment - (pehentry->p_memsz % pehentry->alignment));
+            size_t aligned_size = align(pehentry->p_memsz, pehentry->alignment);
 
-            // Выделить память в виртуальной таблице процесса 
-            process_alloc_memory(proc, pehentry->v_addr, aligned_size, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
-            // Заполнить выделенную память нулями
-            memset_vm(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
-            // Копировать фрагмент программы в память
-            copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+            if (pehentry->type != 7) {
+                // Выделить память в виртуальной таблице процесса 
+                process_alloc_memory(proc, pehentry->v_addr, aligned_size, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
+                // Заполнить выделенную память нулями
+                memset_vm(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
+                // Копировать фрагмент программы в память
+                copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+            }
         }
 
         if (sections_ptrs.tbss_ptr) {
@@ -115,8 +119,8 @@ uintptr_t process_brk(struct process* process, uint64_t addr)
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags)
 {
-    uintptr_t start_aligned = start - (start % PAGE_SIZE); // выравнивание в меньшую сторону
-    uintptr_t size_aligned = size + (PAGE_SIZE - (size % PAGE_SIZE)); //выравнивание в большую сторону
+    uintptr_t start_aligned = align_down(start, PAGE_SIZE); // выравнивание в меньшую сторону
+    uintptr_t size_aligned = align(size, PAGE_SIZE); //выравнивание в большую сторону
 
     for (uintptr_t page_i = start_aligned; page_i < start_aligned + size_aligned; page_i += PAGE_SIZE) {
         if (!is_mapped(process->vmemory_table, page_i)) {

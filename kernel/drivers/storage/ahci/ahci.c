@@ -8,7 +8,7 @@
 #include "atomic.h"
 #include "mem/pmm.h"
 #include "string.h"
-#include "stdlib.h"
+#include "kstdlib.h"
 #include "memory/kernel_vmm.h"
 #include "mem/kheap.h"
 #include "drivers/storage/devices/storage_devices.h"

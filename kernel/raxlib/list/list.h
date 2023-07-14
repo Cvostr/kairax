@@ -28,7 +28,7 @@ size_t list_size(list_t* list);
 
 void list_unlink(list_t* list, struct list_node* node);
 
-void* list_get(list_t* list, unsigned int index);
+void* list_get(list_t* list, size_t index);
 
 void* list_head(list_t* list);
 

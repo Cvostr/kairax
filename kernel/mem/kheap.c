@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "memory/kernel_vmm.h"
 #include "sync/spinlock.h"
+#include "kstdlib.h"
 
 #define KHEAP_INIT_SIZE 4096000
 
@@ -14,9 +15,7 @@ spinlock_t kheap_lock;
 uint64_t kheap_expand(uint64_t size)
 {
     // Выравнивание до размера страницы (4096)
-    if (size % PAGE_SIZE > 0) {
-        size += (PAGE_SIZE - (size % PAGE_SIZE));
-    }
+    size = align(size, PAGE_SIZE);
 
     // Вычисление количества страниц по 4 кб
     int pages_count = size / PAGE_SIZE;
@@ -81,16 +80,16 @@ kheap_item_t* get_suitable_item(uint64_t size)
 
 void* kmalloc(uint64_t size) 
 {
-    acquire_mutex(&kheap_lock);
+    acquire_spinlock(&kheap_lock);
 
-    if (size % 8 > 0) {
-        size += (8 - (size % 8));
-    }
+    size = align(size, 8);
+
     //Размер данных и заголовка
     uint64_t total_size = size + sizeof(kheap_item_t);
     uint64_t reqd_size = total_size + sizeof(kheap_item_t);
     // Ищем подоходящий по размеру свободный блок
     kheap_item_t* current_item = get_suitable_item(reqd_size);
+    void* result = NULL;
 
     if (current_item != NULL) {
         // Адрес нового свободного блока, который будет создан
@@ -116,13 +115,12 @@ void* kmalloc(uint64_t size)
         // Текущий блок теперь используется
         current_item->free = 0;
         current_item->size = size;
-    } else {
-        release_spinlock(&kheap_lock);
-        return NULL;
+
+        result = current_item + 1;
     }
 
     release_spinlock(&kheap_lock);
-    return current_item + 1;
+    return result;
 }
 
 void combine_forward(kheap_item_t* item) 
@@ -135,30 +133,30 @@ void combine_forward(kheap_item_t* item)
 
     // Указатель на следующий блок
     kheap_item_t* next_item = item->next;
-    if(next_item != NULL) {
-        if(next_item->free) {
+    if (next_item != NULL) {
+        if (next_item->free) {
             //Соединим
             kheap_item_t* next_next = next_item->next;
 
             // У следующего блока есть следующий, надо обновить связку
-            if(next_next != NULL)
+            if (next_next != NULL)
                 next_next->prev = item;
 
             // Следующий блок - последний, надо обновить указатель на tail в главной структуре
-            if(next_item == kheap.tail)
+            if (next_item == kheap.tail)
                 kheap.tail = item;
 
             item->next = next_next;
-            item->size += next_item->size + sizeof(kheap_item_t) * 2;
+            item->size += next_item->size + sizeof(kheap_item_t);
         }
     }
 }
 
 void kfree(void* mem)
 {
-    acquire_mutex(&kheap_lock);
+    acquire_spinlock(&kheap_lock);
     kheap_item_t* item = (kheap_item_t*)mem - 1;
-    
+
     if(item->free == 0) {
         //Пометить как свободную
         item->free = 1;

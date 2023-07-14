@@ -1,6 +1,6 @@
 #include "dev/b8-console/b8-console.h"
 #include "stdio.h"
-#include "stdlib.h"
+#include "kstdlib.h"
 #include "interrupts/idt.h"
 #include "interrupts/pic.h"
 #include "interrupts/handle/handler.h"

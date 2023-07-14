@@ -131,7 +131,7 @@ void bootshell_process_cmd(char* cmdline){
         offset = 0;
         inode_read(ls_i, &offset, size, ls_d);
 
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 15; i ++) {
             int rc = create_new_process_from_image(NULL, sysn_d); 
             rc = create_new_process_from_image(NULL, sysc_d); 
             rc = create_new_process_from_image(NULL, ls_d); 
@@ -201,8 +201,8 @@ void bootshell_process_cmd(char* cmdline){
                 total_free_bytes += current_item->size;
             else
                 total_used_bytes += current_item->size;
-            printf("kheap item Addr : %i, Size : %i, Free : %i, Prev %i\n", 
-                V2P(current_item), current_item->size, current_item->free, V2P(current_item->prev));
+            printf("kheap item Addr : %i, Size : %i, Free : %i\n", 
+                V2P(current_item), current_item->size, current_item->free);
             current_item = current_item->next;
         }
         printf("Kheap free space: %i\n", total_free_bytes);

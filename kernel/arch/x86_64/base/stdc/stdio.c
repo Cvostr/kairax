@@ -2,7 +2,7 @@
 #include "dev/b8-console/b8-console.h"
 #include "stdarg.h"
 #include "string.h"
-#include "stdlib.h"
+#include "kstdlib.h"
 
 int putchar(int ic) {
 	b8_console_print_char((char)ic);

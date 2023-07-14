@@ -15,7 +15,7 @@ void free_list(list_t* list)
 {
     struct list_node* current = list->head;
 
-    for (unsigned int i = 0; i < list->size; i++)
+    for (size_t i = 0; i < list->size; i++)
     {
         struct list_node* temp = current;
         if (current) {
@@ -60,14 +60,14 @@ void list_remove(list_t* list, void* element)
     struct list_node* current = list->head;
     for(size_t i = 0; i < list->size; i++)
     {
-        if (current->element == element)
-            break;
+        if (current->element == element) {
+            list_unlink(list, current);
+            kfree(current);
+            return;
+        }
 
         current = current->next;
     }
-
-    list_unlink(list, current);
-    kfree(current);
 }
 
 void list_unlink(list_t* list, struct list_node* node)
@@ -94,9 +94,12 @@ void list_unlink(list_t* list, struct list_node* node)
     list->size--;
 }
 
-void* list_get(list_t* list, unsigned int index)
+void* list_get(list_t* list, size_t index)
 {
-    if(list == NULL)
+    if (list == NULL)
+        return NULL;
+
+    if (index > list->size)
         return NULL;
 
     struct list_node* current = list->head;

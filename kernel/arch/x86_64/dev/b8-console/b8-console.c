@@ -63,9 +63,9 @@ void b8_console_clear(){
 void b8_check_for_refill()
 {
 	if(passed_chars >= BUFFER_SIZE){
-		strncpy(&(text_buffer[0]), (char*)b8_get_text_addr() + BUFFER_LINE_SIZE, BUFFER_SIZE - BUFFER_LINE_SIZE);
+		strncpy(text_buffer, (char*)b8_get_text_addr() + BUFFER_LINE_SIZE, BUFFER_SIZE - BUFFER_LINE_SIZE);
 		b8_console_clear();
-		strncpy((char*)b8_get_text_addr(), &(text_buffer[overstep]), BUFFER_SIZE - BUFFER_LINE_SIZE);
+		strncpy((char*)b8_get_text_addr(), text_buffer, BUFFER_SIZE - BUFFER_LINE_SIZE);
 		passed_chars = BUFFER_SIZE - BUFFER_LINE_SIZE;
 	}
 }

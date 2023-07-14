@@ -6,6 +6,7 @@
 #include "io.h"
 #include "ctype.h"
 #include "stdio.h"
+#include "kstdlib.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
@@ -88,8 +89,8 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     port_desc->fb   = LO32(port->fis);
 	port_desc->fbu  = HI32(port->fis);
 
-    size_t cmd_tables_mem_sz = COMMAND_LIST_ENTRY_COUNT * sizeof(HBA_COMMAND_TABLE);
-    uint32_t pages_num = cmd_tables_mem_sz / PAGE_SIZE + 1;
+    size_t cmd_tables_mem_size = align(COMMAND_LIST_ENTRY_COUNT * sizeof(HBA_COMMAND_TABLE), PAGE_SIZE);
+    uint32_t pages_num = cmd_tables_mem_size / PAGE_SIZE;
 
 	//Выделить память под буфер команд
 	char* cmd_tables_mem = (char*)pmm_alloc_pages(pages_num);

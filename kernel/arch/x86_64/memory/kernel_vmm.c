@@ -2,6 +2,7 @@
 #include "mem/pmm.h"
 #include "stdio.h"
 #include "string.h"
+#include "kstdlib.h"
 
 extern uintptr_t __KERNEL_START;
 extern uintptr_t __KERNEL_END;
@@ -71,12 +72,11 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
 page_table_t* create_kernel_vm_map() 
 {
     //Максимальный адрес физической памяти
-    size_t aligned_mem = pmm_get_physical_mem_max_addr();
-    aligned_mem += (PAGE_SIZE - aligned_mem % PAGE_SIZE);
+    size_t aligned_mem = align(pmm_get_physical_mem_max_addr(), PAGE_SIZE);
 
     //Размер ядра
     size_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
-    kernel_size += (PAGE_SIZE - kernel_size % PAGE_SIZE);
+    kernel_size = align(kernel_size, PAGE_SIZE);
 
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	root_pml4 = new_page_table_bt();
@@ -104,6 +104,6 @@ page_table_t* create_kernel_vm_map()
 page_table_t* vmm_clone_kernel_memory_map()
 {
     page_table_t* result = new_page_table();
-    memcpy(result, root_pml4, sizeof(page_table_t));
+    memcpy(result, P2V(K2P(root_pml4)), sizeof(page_table_t));
     return result;
 }

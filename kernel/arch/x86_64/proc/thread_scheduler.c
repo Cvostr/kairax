@@ -44,10 +44,14 @@ void scheduler_remove_thread(struct thread* thread)
 
 void scheduler_remove_process_threads(struct process* process)
 {
+    acquire_mutex(&threads_mutex);
+
     for (unsigned int i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
-        scheduler_remove_thread(thread);
+        list_remove(threads_list, thread);
     }
+
+    release_spinlock(&threads_mutex);
 }
 
 struct thread* scheduler_get_current_thread()

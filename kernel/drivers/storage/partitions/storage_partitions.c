@@ -8,7 +8,7 @@
 #include "formats/gpt.h"
 
 #include "stdio.h"
-#include "stdlib.h"
+#include "kstdlib.h"
 
 list_t* partitions = NULL;
 

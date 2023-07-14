@@ -1,6 +1,6 @@
 #include "exceptions_handler.h"
 #include "handler.h"
-#include "stdlib.h"
+#include "kstdlib.h"
 #include "stdio.h"
 #include "memory/mem_layout.h"
 

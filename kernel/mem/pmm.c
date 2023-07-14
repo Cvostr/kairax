@@ -2,6 +2,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "sync/spinlock.h"
+#include "kstdlib.h"
 
 #define MAX_BITMASK_DATA 657356
 
@@ -100,43 +101,51 @@ uint64_t find_free_pages(int pages) {
 
 void* pmm_alloc_page() 
 {
+	void* result = NULL;
 	acquire_mutex(&pmm_lock);
 
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
 	if (i == -1) {
-		return NULL;
+		goto exit;
 	}
+	
 	//Установить бит занятости страницы
 	set_bit(i);
 	// Увеличить количество занятых страниц
 	pages_used++;
 
+	result = (void*)(i * PAGE_SIZE);
+
+exit:
 	release_spinlock(&pmm_lock);
 
-	return (void*)(i * PAGE_SIZE);
+	return result;
 }
 
 void* pmm_alloc_pages(uint32_t pages)
 {
+	void* result = NULL;
 	acquire_mutex(&pmm_lock);
 
 	uint64_t i = find_free_pages(pages);
 
 	if (i == -1) {
-		return NULL;
+		goto exit;
 	}
 
-	//Установить бит занятости нескольких страниц
-	for(uint32_t page_i = 0; page_i < pages; page_i ++) {
+	// Установить бит занятости нескольких страниц
+	for (uint32_t page_i = 0; page_i < pages; page_i ++) {
 		set_bit(i + page_i);
 	}
 	
+	result = (void*)(i * PAGE_SIZE);
 	pages_used += pages;
 
+exit:
 	release_spinlock(&pmm_lock);
 
-	return (void*)(i * PAGE_SIZE);
+	return result;
 }
 
 void pmm_free_page(void* addr) 
@@ -167,9 +176,9 @@ void pmm_free_pages(void* addr, uint32_t pages)
 void pmm_set_mem_region(uint64_t offset, uint64_t size)
 {
 	offset -= (offset % PAGE_SIZE); // выравнивание в меньшую сторону
-    size += (PAGE_SIZE - (size % PAGE_SIZE)); //выравнивание в большую сторону
+	size = align(size, PAGE_SIZE); //выравнивание в большую сторону
 
-    for (int i = 0; i < size / PAGE_SIZE; i++) {      
+    for (uint64_t i = 0; i < size / PAGE_SIZE; i++) {      
       	set_bit(offset / PAGE_SIZE + i);
     }
     
