@@ -4,6 +4,7 @@
 #include "dirent.h"
 #include "inode.h"
 #include "sync/spinlock.h"
+#include "dentry.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    0b01
 #define FILE_OPEN_MODE_WRITE_ONLY   0b10
@@ -18,6 +19,7 @@
 // Открытый файл
 typedef struct {
     struct inode*   inode;
+    struct dentry*  dentry;
     int             mode;
     int             flags;
     loff_t          pos;

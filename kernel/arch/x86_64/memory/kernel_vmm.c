@@ -107,3 +107,26 @@ page_table_t* vmm_clone_kernel_memory_map()
     memcpy(result, P2V(K2P(root_pml4)), sizeof(page_table_t));
     return result;
 }
+
+void vmm_destroy_page_table(table_entry_t* entries, int level)
+{
+    printf("FREEING LEVEL %i\n", level);
+    if (level > 0) {
+        for (int i = 0; i < 512; i ++) {
+            table_entry_t entry = entries[i];
+            if (entry & (PAGE_PRESENT | PAGE_USER_ACCESSIBLE)) {
+
+                uintptr_t addr = GET_PAGE_FRAME(entry);
+                printf("RCX = %s  ", ulltoa(addr, 16));
+                //printf("FREE LEVEL %i\n", level);
+                vmm_destroy_page_table(P2V(addr), level - 1);
+            }
+        }
+    }    
+    pmm_free_page(V2P(entries));
+}
+
+void vmm_destroy_root_page_table(page_table_t* root)
+{
+    vmm_destroy_page_table(root->entries, 1);
+}

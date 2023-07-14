@@ -27,13 +27,16 @@ void free_process(struct process* process)
         }
     }
 
+    //vmm_destroy_root_page_table(process->vmemory_table);
+
     kfree(process);
 }
 
 int process_open_file(struct process* process, const char* path, int mode, int flags)
 {
     int fd = -1;
-    struct inode* inode = vfs_fopen(path, 0);
+    struct dentry* dentry;
+    struct inode* inode = vfs_fopen(path, 0, &dentry);
 
     if (inode == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
@@ -46,6 +49,7 @@ int process_open_file(struct process* process, const char* path, int mode, int f
     file->mode = mode;
     file->flags = flags;
     file->pos = 0;
+    file->dentry = dentry;
 
     // Найти свободный номер дескриптора для процесса
     acquire_spinlock(&process->fd_spinlock);

@@ -61,9 +61,14 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
             return -5; //Ошибка при процессе монтирования
         }
 
-        //inode_open(root_inode, 0);
-        atomic_inc(&root_inode->reference_count);
-        superblock_add_inode(sb, root_inode);
+        // Открыть корневую inode
+        inode_open(root_inode, 0);
+
+        // dentry монтирования
+        struct dentry* root_sb_dentry = new_dentry();
+        strcpy(root_sb_dentry->name, mount_path);
+        root_sb_dentry->inode = root_inode->inode;
+        sb->root_dir = root_sb_dentry;
         
     } else {
         free_superblock(sb);
@@ -161,7 +166,7 @@ struct superblock** vfs_get_mounts()
     return vfs_mounts;
 }
 
-struct inode* vfs_fopen(const char* path, uint32_t flags)
+struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry)
 {
     struct inode* result = NULL;
     int offset = 0;
@@ -218,11 +223,6 @@ struct inode* vfs_fopen(const char* path, uint32_t flags)
             if(next_inode_index != WRONG_INODE_INDEX) {
                 // Попробуем найти ноду в списке суперблока
                 result = superblock_get_inode(sb, next_inode_index);
-
-                if (result == NULL) {
-                    // В списке суперблока её нет - идем в ФС
-                    result = sb->operations->read_inode(sb, next_inode_index);
-                }
 
                 // Увеличение счетчика, операции с ФС
                 inode_open(result, flags);

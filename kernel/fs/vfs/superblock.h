@@ -5,6 +5,7 @@
 #include "inode.h"
 #include "list/list.h"
 #include "filesystems.h"
+#include "dentry.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
 #define MOUNT_PATH_MAX_LEN 256
@@ -12,7 +13,7 @@ struct super_operations;
 
 struct superblock {
     list_t*                     inodes; // список inodes от этого суперблока
-    //struct dentry*              root_dir;   // dentry монтирования
+    struct dentry*              root_dir;   // dentry монтирования
     struct super_operations*    operations; // операции
     void*                       fs_info; // Указатель на объект ФС
     size_t                      blocksize;
@@ -40,7 +41,11 @@ struct superblock* new_superblock();
 
 void free_superblock(struct superblock* sb);
 
+struct inode* superblock_get_cached_inode(struct superblock* sb, uint64 inode);
+
 struct inode* superblock_get_inode(struct superblock* sb, uint64 inode);
+
+struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* parent, const char* name);
 
 void superblock_add_inode(struct superblock* sb, struct inode* inode);
 

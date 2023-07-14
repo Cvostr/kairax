@@ -23,6 +23,7 @@ void dentry_open(struct dentry* dentry)
     }
 
     atomic_inc(&dentry->refs_count);
+    //printf("OPENED DENTRY %s REFS %i\n", dentry->name, dentry->refs_count.counter);
 }
 
 void dentry_close(struct dentry* dentry)
@@ -30,7 +31,18 @@ void dentry_close(struct dentry* dentry)
     if (atomic_dec_and_test(&dentry->refs_count)) {
         
         if (dentry->parent) {
+            // Если есть родитель, удалиться его списка и уменьшить счетчик
             dentry_remove_subdir(dentry->parent, dentry);
+            dentry_close(dentry->parent);
+        }
+
+        // Закрыть свои дочерние dentries
+        struct list_node* current = dentry->subdirs->head;
+        for (unsigned int i = 0; i < dentry->subdirs->size; i++) {
+            struct dentry* child = (struct dentry*)current->element;
+            dentry_close(child);
+            
+            current = current->next;    
         }
 
         free_dentry(dentry);

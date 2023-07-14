@@ -77,7 +77,7 @@ void bootshell_process_cmd(char* cmdline){
     }
     if(strcmp(cmd, "ls") == 0){
         uint32_t index = 0;
-        struct inode* inode = vfs_fopen(args, 0);
+        struct inode* inode = vfs_fopen(args, 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
             return;
@@ -92,7 +92,7 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(inode); 
     }
     if(strcmp(cmd, "cat") == 0){
-        struct inode* inode = vfs_fopen(args, 0);
+        struct inode* inode = vfs_fopen(args, 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
             return;
@@ -111,9 +111,9 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(inode);
     }
     if(strcmp(cmd, "stress") == 0) {
-        struct inode* sysn_i = vfs_fopen("/sysn.a", 0);
-        struct inode* sysc_i = vfs_fopen("/sysc.a", 0);
-        struct inode* ls_i = vfs_fopen("/ls.a", 0);
+        struct inode* sysn_i = vfs_fopen("/sysn.a", 0, NULL);
+        struct inode* sysc_i = vfs_fopen("/sysc.a", 0, NULL);
+        struct inode* ls_i = vfs_fopen("/ls.a", 0, NULL);
 
         loff_t offset = 0;
         int size = sysn_i->size;
@@ -146,7 +146,7 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(ls_i);
     }
     if(strcmp(cmd, "exec") == 0) {
-        struct inode* inode = vfs_fopen(args, 0);
+        struct inode* inode = vfs_fopen(args, 0, NULL);
         if(inode == NULL){
             printf("Can't open file with path : ", args);
             return;
@@ -201,8 +201,8 @@ void bootshell_process_cmd(char* cmdline){
                 total_free_bytes += current_item->size;
             else
                 total_used_bytes += current_item->size;
-            printf("kheap item Addr : %i, Size : %i, Free : %i\n", 
-                V2P(current_item), current_item->size, current_item->free);
+            //printf("kheap item Addr : %i, Size : %i, Free : %i\n", 
+            //    V2P(current_item), current_item->size, current_item->free);
             current_item = current_item->next;
         }
         printf("Kheap free space: %i\n", total_free_bytes);

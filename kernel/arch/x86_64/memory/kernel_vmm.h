@@ -11,4 +11,6 @@ page_table_t* vmm_clone_kernel_memory_map();
 
 void* vmm_get_physical_addr(physical_addr_t physical_addr);
 
+void vmm_destroy_root_page_table(page_table_t* root);
+
 #endif
