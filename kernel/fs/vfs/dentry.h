@@ -31,4 +31,6 @@ void dentry_remove_subdir(struct dentry* parent, struct dentry* dir);
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name);
 
+struct dentry* dentry_traverse_path(struct dentry* parent, const char* path);
+
 #endif

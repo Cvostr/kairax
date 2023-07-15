@@ -66,7 +66,7 @@ void bootshell_process_cmd(char* cmdline){
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args);
     }
-    if(strcmp(cmd, "path") == 0){
+    /*if(strcmp(cmd, "path") == 0){
         int offset = 0;
         struct superblock* result = vfs_get_mounted_partition_split(args, &offset);
         if(result == NULL){
@@ -74,7 +74,7 @@ void bootshell_process_cmd(char* cmdline){
         }else 
             printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
         
-    }
+    }*/
     if(strcmp(cmd, "ls") == 0){
         uint32_t index = 0;
         struct inode* inode = vfs_fopen(args, 0, NULL);
@@ -85,7 +85,7 @@ void bootshell_process_cmd(char* cmdline){
         struct dirent* child = NULL;
         while((child = inode_readdir(inode, index++)) != NULL){
             //printf("TYPE %s, NAME %s, SIZE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->size);
-            printf("TYPE %s, NAME %s\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name);
+            printf("TYPE %s, NAME %s INODE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->inode);
             kfree(child);
         }
 
@@ -173,7 +173,8 @@ void bootshell_process_cmd(char* cmdline){
         for(int i = 0; i < 100; i ++){
             struct superblock* mount = mounts[i];
             if(mount != NULL){
-                printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, mount->mount_path, mount->filesystem->name);
+                //printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, mount->mount_path, mount->filesystem->name);
+                printf("Partition %s mounted to Filesystem %s\n", mount->partition->name, mount->filesystem->name);
             }
         }
     }

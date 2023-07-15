@@ -1,6 +1,7 @@
 #include "dentry.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "superblock.h"
 
 struct dentry* new_dentry()
 {
@@ -88,6 +89,41 @@ struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* chi
 
 exit:
     release_spinlock(&parent->lock);
+
+    return result;
+}
+
+struct dentry* dentry_traverse_path(struct dentry* parent, const char* path)
+{
+    struct dentry* result = NULL;
+    struct dentry* current = parent;
+
+    if (strlen(path) == 0)
+        return parent;
+
+    char* path_temp = path;
+    char* name_temp = kmalloc(strlen(path));
+
+    while (1) {
+        if (current == NULL) {
+            break;
+        }
+
+        char* slash_pos = strchr(path_temp, '/');
+
+        if (slash_pos != NULL) {
+            strncpy(name_temp, path_temp, slash_pos - path_temp);
+            path_temp = slash_pos + 1;
+            current = superblock_get_dentry(current->sb, current, name_temp);
+            continue;
+        } else {
+            strncpy(name_temp, path_temp, strlen(path_temp));
+            result = superblock_get_dentry(current->sb, current, name_temp);
+            break;
+        }
+    }
+
+    kfree(name_temp);
 
     return result;
 }

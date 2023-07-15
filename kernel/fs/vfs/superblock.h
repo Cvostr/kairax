@@ -21,8 +21,6 @@ struct superblock {
     drive_partition_t*          partition;  // потом надо бы заменить на block_device
     filesystem_t*               filesystem; // Информация о ФС
 
-    char                        mount_path[MOUNT_PATH_MAX_LEN];
-
     spinlock_t      spinlock;
 };
 

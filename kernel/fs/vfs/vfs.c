@@ -8,6 +8,7 @@
 #define MAX_MOUNTS 100
 
 struct superblock** vfs_mounts = NULL;
+struct dentry*      root_dentry;
 
 struct dirent* new_vfs_dirent()
 {
@@ -20,6 +21,11 @@ void vfs_init()
 {
     vfs_mounts = (struct superblock**)kmalloc(sizeof(struct superblock*) * MAX_MOUNTS);
     memset(vfs_mounts, 0, sizeof(struct superblock*) * MAX_MOUNTS);
+
+    // Создать корневой dentry / с пустым именем
+    root_dentry = new_dentry();
+    root_dentry->inode = 0; // пока inode нет
+    dentry_open(root_dentry);
 }
 
 int vfs_get_free_mount_info_pos()
@@ -39,9 +45,7 @@ int vfs_mount(char* mount_path, drive_partition_t* partition)
 
 int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
 {
-    if(vfs_get_mounted_partition(mount_path) != NULL){
-        return -1;  //Данный путь уже используется
-    }
+    struct dentry* mp = dentry_traverse_path(root_dentry, mount_path + 1);
 
     int mount_pos = vfs_get_free_mount_info_pos();
     if(mount_pos == -1)
@@ -50,7 +54,6 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
     struct superblock* sb = new_superblock();
     sb->filesystem = filesystem_get_by_name(fsname); 
     sb->partition = partition;
-    strcpy(sb->mount_path, mount_path);
 
     //вызов функции монтирования, если она определена
     if(sb->filesystem->mount) {
@@ -65,21 +68,15 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
         inode_open(root_inode, 0);
 
         // dentry монтирования
-        struct dentry* root_sb_dentry = new_dentry();
-        strcpy(root_sb_dentry->name, mount_path);
-        root_sb_dentry->inode = root_inode->inode;
-        sb->root_dir = root_sb_dentry;
-        dentry_open(root_sb_dentry);
+        mp->sb = sb;
+        mp->inode = root_inode->inode;
+        sb->root_dir = mp;
+        dentry_open(mp);
         
     } else {
         free_superblock(sb);
         return -4;  //Нет функции монтирования
     }
-
-    //Удалить / в конце, если есть
-    int path_len = strlen(sb->mount_path);
-    if(sb->mount_path[path_len - 1] == '/')
-        sb->mount_path[path_len - 1] = '\0';
 
     vfs_mounts[mount_pos] = sb;
 
@@ -88,11 +85,19 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
 
 int vfs_unmount(char* mount_path)
 {
-    for(int i = 0; i < MAX_MOUNTS; i ++) {
+    struct dentry* root_dentry = dentry_traverse_path(root_dentry, mount_path + 1);
+    
+    if (!root_dentry) {
+        return -1;
+    }
 
-        if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0) {
+    // получение корневой dentry монтирования
+    root_dentry = root_dentry->sb->root_dir;
 
-            struct superblock* sb = vfs_mounts[i];
+    struct superblock* sb = root_dentry->sb;
+
+    for (int i = 0; i < MAX_MOUNTS; i ++) {
+        if (vfs_mounts[i] == sb) {
             //выполнить отмонтирование ФС
             if (sb->filesystem->unmount != NULL) {
                 sb->filesystem->unmount(sb);
@@ -105,62 +110,16 @@ int vfs_unmount(char* mount_path)
         }
     }
 
-    return -1;//Данный путь не использовался
+    return -1;
 }
 
 struct superblock* vfs_get_mounted_partition(const char* mount_path)
 {
-    for (int i = 0; i < MAX_MOUNTS; i ++) {
-        
-        if(vfs_mounts[i] == NULL)
-            continue;
-        
-        if(strcmp(vfs_mounts[i]->mount_path, mount_path) == 0){
-            return vfs_mounts[i];
-        }
-    }
-    return NULL;
+    struct dentry* path_dentry = dentry_traverse_path(root_dentry, mount_path + 1);
+
+    return path_dentry->sb;
 }
 
-void path_to_slash(char* path)
-{
-    int i = strlen(path);
-    i--;
-    while(i >= 0){
-        char ch = path[i];
-        if(ch != '/'){
-            path[i] = '\0';
-            i--;
-        }else{
-            path[i] = '\0';
-            break;
-        }
-    }
-}
-
-struct superblock* vfs_get_mounted_partition_split(const char* path, int* offset)
-{
-    int path_len = strlen(path);
-    char* temp = kmalloc(path_len + 1);
-    strcpy(temp, path);
-
-    struct superblock* result = NULL;
-    while (result == NULL) {
-        result = vfs_get_mounted_partition(temp);
-
-        if (result == NULL){
-            if (strlen(temp) == 0)
-                return NULL;
-            path_to_slash(temp);
-        }
-    }
-
-    *offset = strlen(temp);
-
-    kfree(temp);
-
-    return result;
-}
 
 struct superblock** vfs_get_mounts()
 {
@@ -171,23 +130,25 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry
 {
     struct inode* result = NULL;
     int offset = 0;
-    // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
-    struct superblock* sb = vfs_get_mounted_partition_split(path, &offset);
-    // Корневой узел найденной ФС
-    struct inode* root_node = (struct inode*)sb->inodes->head->element;
+    
     // Корневая dentry
-    struct dentry* curr_dentry = sb->root_dir;
+    struct dentry* curr_dentry = root_dentry;
+    // Корневой superblock
+    struct superblock* sb = root_dentry->sb;
+
     offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
     char* fs_path = (char*)path + offset;
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)
     {
-        inode_open(root_node, flags);
+        result = superblock_get_inode(sb, curr_dentry->inode);
+        inode_open(result, flags);
         dentry_open(curr_dentry);
         *dentry = curr_dentry;
-        return root_node;
+        return result;
     }
+
     //Временный буфер
     char* temp = (char*)kmalloc(strlen(fs_path) + 1);
     while(strlen(fs_path) > 0)
@@ -196,13 +157,19 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry
         int is_dir = 0;
         // Позиция / относительно начала
         char* slash_pos = strchr(fs_path, '/');
+        
         if (slash_pos != NULL) { //Это директория
             len = slash_pos - fs_path;
             is_dir = 1;
         } else
             len = strlen(fs_path);
+        
         strncpy(temp, fs_path, len);
+
+        // Получить следующую dentry
         struct dentry* next_dentry = superblock_get_dentry(sb, curr_dentry, temp);
+        // Обновляем указатель на superblock
+        sb = next_dentry->sb;
         
         if(is_dir == 1) {
             if(next_dentry != NULL) {
