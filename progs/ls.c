@@ -4,9 +4,9 @@
 
 int main() {
 
-    int dirfd = syscall_open_file("/", 0, FILE_OPEN_MODE_READ_ONLY);
+    int dirfd = open_file("/", 0, FILE_OPEN_MODE_READ_ONLY);
     struct stat dirstat;
-    int rc = syscall_fdstat(dirfd, &dirstat);
+    int rc = fdstat(dirfd, &dirstat);
 
     struct dirent dr;
     while(readdir(dirfd, &dr) == 1) {

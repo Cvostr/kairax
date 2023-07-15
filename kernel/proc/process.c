@@ -27,10 +27,14 @@ void free_process(struct process* process)
             file_close(process->fds[i]);
         }
     }
-
+    
+    // Уничтожение таблицы виртуальной памяти процесса
+    // и освобождение занятых таблиц физической
     //vmm_destroy_root_page_table(process->vmemory_table);
 
     kfree(process);
+
+    scheduler_from_killed();
 }
 
 int process_open_file(struct process* process, const char* path, int mode, int flags)

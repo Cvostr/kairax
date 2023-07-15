@@ -35,9 +35,9 @@ void inode_close(struct inode* node)
     if (atomic_dec_and_test(&node->reference_count)) {
         superblock_remove_inode(node->sb, node);
         kfree(node);
+    } else {
+        release_spinlock(&node->spinlock);
     }
-
-    release_spinlock(&node->spinlock);
 }
 
 void inode_chmod(struct inode* node, uint32_t mode)

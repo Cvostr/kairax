@@ -69,6 +69,7 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
         strcpy(root_sb_dentry->name, mount_path);
         root_sb_dentry->inode = root_inode->inode;
         sb->root_dir = root_sb_dentry;
+        dentry_open(root_sb_dentry);
         
     } else {
         free_superblock(sb);
@@ -183,6 +184,8 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry
     if(strlen(fs_path) == 0)
     {
         inode_open(root_node, flags);
+        dentry_open(curr_dentry);
+        *dentry = curr_dentry;
         return root_node;
     }
     //Временный буфер

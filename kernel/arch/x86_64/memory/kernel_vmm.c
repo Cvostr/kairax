@@ -110,7 +110,6 @@ page_table_t* vmm_clone_kernel_memory_map()
 
 void vmm_destroy_page_table(table_entry_t* entries, int level)
 {
-    //printf("FREEING LEVEL %i\n", level);
     if (level > 0) {
         for (int i = 0; i < 512; i ++) {
             table_entry_t entry = entries[i];
