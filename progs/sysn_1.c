@@ -20,20 +20,26 @@ int main() {
 
     int counter = 0;
     printf("PID : %i\n", process_get_id());
+    
+    int fd1 = open_file("/mydir/blabla", FILE_OPEN_MODE_READ_ONLY, 0);
+    int fd2 = open_file("/mydir", FILE_OPEN_MODE_READ_ONLY, 0);
+    int rc1 = read(fd1, buff, 119);
+    close(fd2);
 
-    //int fd1 = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
+    buff[lseek(fd1, 0, SEEK_CUR)] = '\0';
+    printf(buff);
+    close(fd1);
 
-	int fd = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
-
+    int fd = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
     printf("BEFORE READ POS %i\n", lseek(fd, 0, SEEK_CUR));
-	int rc = read(fd, buff, 119);
+    int rc = read(fd, buff, 119);
     printf("AFTER READ POS %i\n", lseek(fd, 0, SEEK_CUR));
     lseek(fd, 100, SEEK_SET);
     printf("AFTER SEEK POS %i\n", lseek(fd, 0, SEEK_CUR));
 
-	struct stat fstat;
+    struct stat fstat;
     rc = fdstat(fd, &fstat);
-	printf("TYPE : %i, SIZE : %i, CTIME : %i\n", fstat.st_mode, fstat.st_size, fstat.st_ctime);
+    printf("TYPE : %i, SIZE : %i, CTIME : %i\n", fstat.st_mode, fstat.st_size, fstat.st_ctime);
 
 	buff[119] = '\0';
 	printf(buff);

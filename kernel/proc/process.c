@@ -5,6 +5,7 @@
 #include "string.h"
 #include "thread.h"
 #include "thread_scheduler.h"
+#include "memory/kernel_vmm.h"
 
 void free_process(struct process* process)
 {

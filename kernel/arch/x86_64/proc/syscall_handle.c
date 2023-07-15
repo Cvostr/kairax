@@ -98,7 +98,7 @@ void syscall_handle(syscall_frame_t* frame) {
         case 0x3C:  //Завершение процесса
             scheduler_remove_process_threads(current_process);
             free_process(current_process);
-            scheduler_yield();
+            scheduler_from_killed();
             break;
 
         case 0xFF10:  // Создание потока

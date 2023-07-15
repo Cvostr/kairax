@@ -12,5 +12,6 @@ file_t* new_file()
 void file_close(file_t* file) 
 {
     inode_close(file->inode);
+    dentry_close(file->dentry);
     kfree(file);
 }

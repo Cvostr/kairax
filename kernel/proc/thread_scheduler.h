@@ -17,4 +17,6 @@ struct thread* scheduler_get_current_thread();
 
 void scheduler_yield();
 
+void scheduler_from_killed();
+
 #endif

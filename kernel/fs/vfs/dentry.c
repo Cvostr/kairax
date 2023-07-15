@@ -23,7 +23,6 @@ void dentry_open(struct dentry* dentry)
     }
 
     atomic_inc(&dentry->refs_count);
-    //printf("OPENED DENTRY %s REFS %i\n", dentry->name, dentry->refs_count.counter);
 }
 
 void dentry_close(struct dentry* dentry)
@@ -84,6 +83,7 @@ struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* chi
         }
 
         current = current->next;
+        child = (struct dentry*)current->element;
     }
 
 exit:

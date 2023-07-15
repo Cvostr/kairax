@@ -4,6 +4,7 @@
 [SECTION .text]
 
 extern scheduler_handler
+extern scheduler_entry_from_killed
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
@@ -25,6 +26,7 @@ scheduler_entry:
     ; Переход в код планировщика
     mov rdi, rsp
     cld
+scheduler_entry_from_killed:
     call scheduler_handler
     mov rsp, rax
 

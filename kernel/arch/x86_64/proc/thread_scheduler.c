@@ -19,13 +19,22 @@ struct thread* prev_thread = NULL;
 spinlock_t threads_mutex = 0;
 
 int is_from_interrupt = 1;
+
 extern void scheduler_yield_entry();
+extern void scheduler_entry_from_killed(char* stub);
 
 void scheduler_yield()
 {
     asm("cli");
     is_from_interrupt = 0;
     scheduler_yield_entry();
+}
+
+void scheduler_from_killed()
+{
+    asm("cli");
+    is_from_interrupt = 0;
+    scheduler_entry_from_killed(NULL);
 }
 
 void scheduler_add_thread(struct thread* thread)
@@ -68,17 +77,19 @@ void scheduler_eoi()
     }
 }
 
+// frame может быть NULL
+// Если это так, то мы сюда попали из убитого потока
 void* scheduler_handler(thread_frame_t* frame)
 {
     if (!__sync_bool_compare_and_swap(&threads_mutex, 0, 1))
 	{
         frame->rflags |= 0x200;
         scheduler_eoi();
-		return frame;
+        return frame;
 	}
 
     // Сохранить состояние 
-    if(prev_thread != NULL) {
+    if(prev_thread != NULL && frame) {
 
         // Сохранить указатель на контекст
         prev_thread->context = frame;

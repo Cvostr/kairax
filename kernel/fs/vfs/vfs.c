@@ -172,70 +172,60 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry
     int offset = 0;
     // Найти смонтированную файловую систему по пути, в offset - смещение пути монтирования
     struct superblock* sb = vfs_get_mounted_partition_split(path, &offset);
-    //Корневой узел найденной ФС
+    // Корневой узел найденной ФС
     struct inode* root_node = (struct inode*)sb->inodes->head->element;
-
-    //struct inode* curr_node = root_node;
-    uint64_t curr_inode_index = root_node->inode;
-
+    // Корневая dentry
+    struct dentry* curr_dentry = sb->root_dir;
     offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
     char* fs_path = (char*)path + offset;
-
     // Если обращаемся к корневой папке ФС - просто возращаем корень
     if(strlen(fs_path) == 0)
     {
         inode_open(root_node, flags);
         return root_node;
     }
-
     //Временный буфер
     char* temp = (char*)kmalloc(strlen(fs_path) + 1);
-
     while(strlen(fs_path) > 0)
     {
         int len = 0;
         int is_dir = 0;
         // Позиция / относительно начала
         char* slash_pos = strchr(fs_path, '/');
-
         if (slash_pos != NULL) { //Это директория
             len = slash_pos - fs_path;
             is_dir = 1;
-        } else 
+        } else
             len = strlen(fs_path);
-
         strncpy(temp, fs_path, len);
-
-        uint64_t next_inode_index = sb->operations->find_dentry(sb, curr_inode_index, temp);
+        struct dentry* next_dentry = superblock_get_dentry(sb, curr_dentry, temp);
         
         if(is_dir == 1) {
-
-            if(next_inode_index != WRONG_INODE_INDEX) {
+            if(next_dentry != NULL) {
                 // Заменить указатель
-                curr_inode_index = next_inode_index;
-            }else {
+                curr_dentry = next_dentry;
+            } else {
                 // следующего файла или папки нет, выходим
                 goto exit;
             }
         } else {
-
-            if(next_inode_index != WRONG_INODE_INDEX) {
+            if(next_dentry != NULL) {
                 // Попробуем найти ноду в списке суперблока
-                result = superblock_get_inode(sb, next_inode_index);
-
+                result = superblock_get_inode(sb, next_dentry->inode);
                 // Увеличение счетчика, операции с ФС
                 inode_open(result, flags);
+                if (dentry) {
+                    dentry_open(next_dentry);
+                    *dentry = next_dentry;
+                }
             }
-
             goto exit;
         }
         
         fs_path += len + 1;
     }
-
 exit:
     kfree(temp);
-
     return result;
 }
