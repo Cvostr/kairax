@@ -14,6 +14,8 @@ void devfs_open(struct inode* inode, uint32_t flags);
 
 struct dirent* devfs_readdir(struct inode* dir, uint32_t index);
 
-struct inode* devfs_finddir(struct inode* parent, char *name);
+struct inode* devfs_read_node(struct superblock* sb, uint64_t ino_num);
+
+uint64 devfs_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name);
 
 #endif

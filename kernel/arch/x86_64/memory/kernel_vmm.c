@@ -121,6 +121,7 @@ void vmm_destroy_page_table(table_entry_t* entries, int level)
             }
         }
     }    
+    
     pmm_free_page(V2P(entries));
 }
 

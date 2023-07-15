@@ -5,6 +5,7 @@
 #include "../vfs/vfs.h"
 #include "../vfs/file.h"
 #include "../vfs/superblock.h"
+#include "../vfs/dentry.h"
 
 #define EXT2_DIRECT_BLOCKS 12
 
