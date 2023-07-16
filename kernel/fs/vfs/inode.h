@@ -18,8 +18,8 @@ struct inode_operations {
 
     struct dirent* (*readdir)(struct inode*, uint32_t);
 
-    void      (*chmod)(struct inode*, uint32_t);
-    void      (*mkdir)(struct inode*, char*);
+    int      (*chmod)(struct inode*, uint32_t);
+    int      (*mkdir)(struct inode*, const char*, uint32_t);
     void      (*mkfile)(struct inode*, char*);
 };
 
@@ -68,5 +68,7 @@ void inode_open(struct inode* node, uint32_t flags);
 void inode_close(struct inode* node);
 
 void inode_stat(struct inode* node, struct stat* sstat);
+
+int inode_mkdir(struct inode* node, const char* name, uint32_t mode);
 
 #endif

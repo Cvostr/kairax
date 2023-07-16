@@ -75,7 +75,7 @@ void bootshell_process_cmd(char* cmdline){
             printf("Partition: %s\n", result->partition->name);
         
     }
-    if(strcmp(cmd, "ls") == 0){
+    if(strcmp(cmd, "ls") == 0) {
         uint32_t index = 0;
         struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
         if(inode == NULL){
@@ -91,10 +91,20 @@ void bootshell_process_cmd(char* cmdline){
 
         inode_close(inode); 
     }
+    if(strcmp(cmd, "chmod") == 0) {
+        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
+        if(inode == NULL){
+            printf("Can't open file with path : `%s", args);
+            return;
+        }
+
+        inode_chmod(inode, 0xFFF);
+        inode_close(inode);
+    }
     if(strcmp(cmd, "cat") == 0){
         struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
         if(inode == NULL){
-            printf("Can't open directory with path : ", args);
+            printf("Can't open directory with path : %s", args);
             return;
         }
         int size = inode->size;

@@ -44,9 +44,21 @@ void inode_chmod(struct inode* node, uint32_t mode)
 {
     acquire_spinlock(&node->spinlock);
 
-    if(node)
-        if(node->operations->chmod)
-            return node->operations->chmod(node, mode);
+    if(node->operations->chmod) {
+        node->operations->chmod(node, mode);
+        node->mode = (node->mode & 0xFFFFF000) | mode;
+    }
+
+    release_spinlock(&node->spinlock);
+}
+
+int inode_mkdir(struct inode* node, const char* name, uint32_t mode)
+{
+    acquire_spinlock(&node->spinlock);
+
+    if(node->operations->mkdir) {
+        node->operations->mkdir(node, name, mode);
+    }
 
     release_spinlock(&node->spinlock);
 }
@@ -56,11 +68,9 @@ ssize_t inode_read(struct inode* node, loff_t* offset, size_t size, char* buffer
     ssize_t result = 0;
     acquire_spinlock(&node->spinlock);
 
-    if(node) {
-        if(node->operations->read) {
-            result = node->operations->read(node, *offset, size, buffer);
-            *offset += result;
-        }
+    if(node->operations->read) {
+        result = node->operations->read(node, *offset, size, buffer);
+        *offset += result;
     }
 
     release_spinlock(&node->spinlock);

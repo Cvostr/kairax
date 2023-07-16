@@ -14,7 +14,9 @@ global syscall_close
 global syscall_fdstat
 global syscall_readdir
 global syscall_file_seek
+global syscall_set_file_mode
 global syscall_create_thread
+global syscall_mount
 
 syscall_printf:
     mov rax, 1
@@ -83,6 +85,16 @@ syscall_get_working_dir:
 
 syscall_set_working_dir:
     mov rax, 0x50
+    syscall
+    ret
+
+syscall_set_file_mode:
+    mov rax, 0x5A
+    syscall
+    ret
+
+syscall_mount:
+    mov rax, 0xA5
     syscall
     ret
 

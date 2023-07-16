@@ -39,7 +39,7 @@ int main() {
 
     struct stat fstat;
     rc = fdstat(fd, &fstat);
-    printf("TYPE : %i, SIZE : %i, CTIME : %i\n", fstat.st_mode, fstat.st_size, fstat.st_ctime);
+    printf("TYPE : %i, SIZE : %i, CTIME : %i, MODE : %i\n", fstat.st_mode, fstat.st_size, fstat.st_ctime, fstat.st_mode);
 
 	buff[119] = '\0';
 	printf(buff);

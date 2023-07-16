@@ -202,18 +202,41 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 {
     //Группа, к которой принадлежит инода с указанным индексом
     uint32_t inode_group = node_index / inst->superblock->inodes_per_group;
-    //Блок
+    //Блок, указывающий на таблицу нод данной группы
     uint32_t inode_table_block = inst->bgds[inode_group].inode_table;
-
+    // Индекс в данной группе
     uint32_t idx_in_group = node_index - inode_group * inst->superblock->inodes_per_group;
 
     uint32_t block_offset = (idx_in_group - 1) * inst->superblock->inode_size / inst->block_size;
-
     uint32_t offset_in_block = (idx_in_group - 1) - block_offset * (inst->block_size / inst->superblock->inode_size);
 
+    // Считать данные inode
     char* buffer = kmalloc(inst->block_size);
     ext2_partition_read_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
     memcpy(inode, buffer + offset_in_block * inst->superblock->inode_size, sizeof(ext2_inode_t));
+    //Освободить временный буфер
+    kfree(buffer);
+}
+
+void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
+{
+    //Группа, к которой принадлежит инода с указанным индексом
+    uint32_t inode_group = node_index / inst->superblock->inodes_per_group;
+    //Блок, указывающий на таблицу нод данной группы
+    uint32_t inode_table_block = inst->bgds[inode_group].inode_table;
+    // Индекс в данной группе
+    uint32_t idx_in_group = node_index - inode_group * inst->superblock->inodes_per_group;
+
+    uint32_t block_offset = (idx_in_group - 1) * inst->superblock->inode_size / inst->block_size;
+    uint32_t offset_in_block = (idx_in_group - 1) - block_offset * (inst->block_size / inst->superblock->inode_size);
+
+    // Считать целый блок
+    char* buffer = kmalloc(inst->block_size);
+    ext2_partition_read_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
+    // Заменить в нем область байт данной inode
+    memcpy(buffer + offset_in_block * inst->superblock->inode_size, inode, sizeof(ext2_inode_t));
+    // Записать измененный блок обратно на диск
+    ext2_partition_write_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
     //Освободить временный буфер
     kfree(buffer);
 }
@@ -285,11 +308,13 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     return result;
 }
 
-void ext2_open(struct inode* inode, uint32_t flags){
+void ext2_open(struct inode* inode, uint32_t flags)
+{
 
 }
 
-void ext2_close(struct inode* inode){
+void ext2_close(struct inode* inode)
+{
     
 }
 
@@ -312,12 +337,24 @@ ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* bu
     return 0;
 }
 
-void ext2_chmod(struct inode * file, uint32_t mode){
+int ext2_chmod(struct inode * inode, uint32_t mode)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
+    ext2_inode_t* e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, inode->inode);
+    e2_inode->mode = (e2_inode->mode & 0xFFFFF000) | mode;
+    ext2_write_inode_metadata(inst, e2_inode, inode->inode);
+    kfree(e2_inode);
 
+    return 0;
 }
 
-void ext2_mkdir(struct inode* parent, char* dir_name){
+int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
+    ext2_inode_t* e2_inode = new_ext2_inode();
 
+    return 0;
 }
 
 void ext2_mkfile(struct inode* parent, char* file_name){

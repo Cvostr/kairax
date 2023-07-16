@@ -153,6 +153,9 @@ uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
 // Получение inode по номеру
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
+// Запись метаданных inode
+void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
+
 struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num);
 
 struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
@@ -161,11 +164,11 @@ void ext2_open(struct inode* inode, uint32_t flags);
 
 void ext2_close(struct inode* inode);
 
-void ext2_mkdir(struct inode* parent, char* dir_name);
+int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 
 void ext2_mkfile(struct inode* parent, char* file_name);
 
-void ext2_chmod(struct inode * file, uint32_t mode);
+int ext2_chmod(struct inode * inode, uint32_t mode);
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 

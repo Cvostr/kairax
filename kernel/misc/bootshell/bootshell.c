@@ -6,6 +6,7 @@
 
 char command[256];
 int cmd_len = 0;
+extern char curdir[512];
 
 void bootshell_print_sign(){
     printf("KAIRAX > ");

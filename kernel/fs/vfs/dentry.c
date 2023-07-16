@@ -101,7 +101,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
     if (strlen(path) == 0)
         return p_parent;
 
-    char* path_temp = path;
+    char* path_temp = (char*)path;
     char* name_temp = kmalloc(strlen(path));
 
     while (1) {

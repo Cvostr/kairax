@@ -11,6 +11,8 @@
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
 
+#define AHCI_INT_ON_COMPLETION 0
+
 static int get_device_type(HBA_PORT *port)
 {
 	uint32_t ssts = port->ssts;
@@ -203,7 +205,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer){
 	cmdtbl->prdt_entry[0].dba = (uint32_t)((uintptr_t)buffer & 0xFFFFFFFF);
 	cmdtbl->prdt_entry[0].dbau = (uint32_t)((uintptr_t)buffer >> 32);
 	cmdtbl->prdt_entry[0].dbc = 512 - 1;
-	cmdtbl->prdt_entry[0].i = 1;
+	cmdtbl->prdt_entry[0].i = AHCI_INT_ON_COMPLETION;
 
 	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
 	memset((void*)cmdfis, 0, sizeof(FIS_HOST_TO_DEV));
@@ -309,7 +311,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
 		cmdtbl->prdt_entry[i].dbau = (uint32_t) ((uintptr_t) buf >> 32);
 		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
-		cmdtbl->prdt_entry[i].i = 1;
+		cmdtbl->prdt_entry[i].i = AHCI_INT_ON_COMPLETION;
 		buf += 4 * 1024;	// 4K слов
 		count -= 16;	// 16 секторов
 	}
@@ -318,7 +320,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) ((uintptr_t)buf & 0xFFFFFFFF);
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbau = (uint32_t) ((uintptr_t)buf >> 32);
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9) - 1;	// 512 байт в секторе
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = 1;
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = AHCI_INT_ON_COMPLETION;
 	
 	// Подготовить команду
 	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
@@ -405,7 +407,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
 		cmdtbl->prdt_entry[i].dbau = (uint32_t) ((uintptr_t) buf >> 32);
 		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
-		cmdtbl->prdt_entry[i].i = 1;
+		cmdtbl->prdt_entry[i].i = AHCI_INT_ON_COMPLETION;
 		buf += 4 * 1024;	// 4K words
 		count -= 16;	// 16 sectors
 	}
@@ -414,7 +416,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbau = (uint32_t) ((uintptr_t)buf >> 32);
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9) - 1;	// 512 bytes per sector
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = 1;
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = AHCI_INT_ON_COMPLETION;
 	
 	// Setup command
 	FIS_HOST_TO_DEV *cmdfis = (FIS_HOST_TO_DEV*)(&cmdtbl->cfis);
