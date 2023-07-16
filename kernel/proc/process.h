@@ -5,8 +5,7 @@
 #include "fs/vfs/file.h"
 #include "fs/vfs/stat.h"
 
-#define MAX_DESCRIPTORS     48
-#define MAX_PATH_LEN 512
+#define MAX_DESCRIPTORS     64
 
 struct process {
     char            name[30];
@@ -17,7 +16,7 @@ struct process {
 
     uint32_t        state;
     // Путь к текущей рабочей папке
-    char            cur_dir[MAX_PATH_LEN];
+    struct dentry*  workdir;
     // Таблица виртуальной памяти процесса
     void*           vmemory_table;  
     // Процесс - родитель
@@ -33,6 +32,12 @@ struct process {
     size_t          tls_size;
 
     spinlock_t      fd_spinlock;
+};
+
+struct process_start_info {
+    char*   workdir;
+    size_t  args_size;
+    char**  args;
 };
 
 //Создать новый пустой процесс

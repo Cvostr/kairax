@@ -25,6 +25,8 @@ struct superblock** vfs_get_mounts();
 
 //Функции файловой системы
 
-struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry);
+struct inode* vfs_fopen(struct dentry* parent, const char* path, uint32_t flags, struct dentry** dentry);
+
+struct dentry* vfs_get_root_dentry();
 
 #endif

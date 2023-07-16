@@ -22,10 +22,15 @@ void vfs_init()
     vfs_mounts = (struct superblock**)kmalloc(sizeof(struct superblock*) * MAX_MOUNTS);
     memset(vfs_mounts, 0, sizeof(struct superblock*) * MAX_MOUNTS);
 
-    // Создать корневой dentry / с пустым именем
+    // Создать корневой dentry с пустым именем
     root_dentry = new_dentry();
     root_dentry->inode = 0; // пока inode нет
-    dentry_open(root_dentry);
+    dentry_open(root_dentry); // Он должен всегда существовать
+}
+
+struct dentry* vfs_get_root_dentry()
+{
+    return root_dentry;
 }
 
 int vfs_get_free_mount_info_pos()
@@ -126,17 +131,19 @@ struct superblock** vfs_get_mounts()
     return vfs_mounts;
 }
 
-struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry)
+struct inode* vfs_fopen(struct dentry* parent, const char* path, uint32_t flags, struct dentry** dentry)
 {
     struct inode* result = NULL;
-    int offset = 0;
+    int offset = path[0] == '/' ? 1 : 0;     // Пропускаем первый "/"
     
     // Корневая dentry
-    struct dentry* curr_dentry = root_dentry;
+    struct dentry* curr_dentry = parent;
+    if (!parent || path[0] == '/') {
+        curr_dentry = root_dentry;
+    }
+
     // Корневой superblock
     struct superblock* sb = root_dentry->sb;
-
-    offset += 1;
     // Путь к файлу в ФС, отделенный от пути монтирования
     char* fs_path = (char*)path + offset;
     // Если обращаемся к корневой папке ФС - просто возращаем корень
@@ -144,50 +151,49 @@ struct inode* vfs_fopen(const char* path, uint32_t flags, struct dentry** dentry
     {
         result = superblock_get_inode(sb, curr_dentry->inode);
         inode_open(result, flags);
-        dentry_open(curr_dentry);
-        *dentry = curr_dentry;
+        if (dentry) {
+            dentry_open(curr_dentry);
+            *dentry = curr_dentry;
+        }
         return result;
     }
 
     //Временный буфер
     char* temp = (char*)kmalloc(strlen(fs_path) + 1);
-    while(strlen(fs_path) > 0)
+    while (strlen(fs_path) > 0)
     {
         int len = 0;
-        int is_dir = 0;
+        int is_nested = 0; // Есть ли вложение пути
         // Позиция / относительно начала
         char* slash_pos = strchr(fs_path, '/');
         
         if (slash_pos != NULL) { //Это директория
             len = slash_pos - fs_path;
-            is_dir = 1;
+            is_nested = 1;
         } else
             len = strlen(fs_path);
         
         strncpy(temp, fs_path, len);
 
         // Получить следующую dentry
-        struct dentry* next_dentry = superblock_get_dentry(sb, curr_dentry, temp);
+        curr_dentry = superblock_get_dentry(sb, curr_dentry, temp);
         // Обновляем указатель на superblock
-        sb = next_dentry->sb;
+        sb = curr_dentry->sb;
         
-        if(is_dir == 1) {
-            if(next_dentry != NULL) {
-                // Заменить указатель
-                curr_dentry = next_dentry;
-            } else {
+        if (is_nested == 1) {
+            if (curr_dentry == NULL) {
                 // следующего файла или папки нет, выходим
                 goto exit;
             }
         } else {
-            if(next_dentry != NULL) {
+            if (curr_dentry != NULL) {
                 // Попробуем найти ноду в списке суперблока
-                result = superblock_get_inode(sb, next_dentry->inode);
+                result = superblock_get_inode(sb, curr_dentry->inode);
                 // Увеличение счетчика, операции с ФС
                 inode_open(result, flags);
                 if (dentry) {
-                    dentry_open(next_dentry);
-                    *dentry = next_dentry;
+                    dentry_open(curr_dentry);
+                    *dentry = curr_dentry;
                 }
             }
             goto exit;

@@ -66,18 +66,18 @@ void bootshell_process_cmd(char* cmdline){
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args);
     }
-    /*if(strcmp(cmd, "path") == 0){
+    if(strcmp(cmd, "path") == 0){
         int offset = 0;
-        struct superblock* result = vfs_get_mounted_partition_split(args, &offset);
-        if(result == NULL){
+        struct superblock* result = dentry_traverse_path(vfs_get_root_dentry(), args + 1)->sb;
+        if (result == NULL) {
             printf("No mounted device\n");
         }else 
-            printf("Partition: %s, Subpath: %s\n", result->partition->name, args + offset);
+            printf("Partition: %s\n", result->partition->name);
         
-    }*/
+    }
     if(strcmp(cmd, "ls") == 0){
         uint32_t index = 0;
-        struct inode* inode = vfs_fopen(args, 0, NULL);
+        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
             return;
@@ -85,14 +85,14 @@ void bootshell_process_cmd(char* cmdline){
         struct dirent* child = NULL;
         while((child = inode_readdir(inode, index++)) != NULL){
             //printf("TYPE %s, NAME %s, SIZE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->size);
-            printf("TYPE %s, NAME %s INODE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->inode);
+            printf("TYPE %s,   NAME %s   INODE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->inode);
             kfree(child);
         }
 
         inode_close(inode); 
     }
     if(strcmp(cmd, "cat") == 0){
-        struct inode* inode = vfs_fopen(args, 0, NULL);
+        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
             return;
@@ -111,9 +111,9 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(inode);
     }
     if(strcmp(cmd, "stress") == 0) {
-        struct inode* sysn_i = vfs_fopen("/sysn.a", 0, NULL);
-        struct inode* sysc_i = vfs_fopen("/sysc.a", 0, NULL);
-        struct inode* ls_i = vfs_fopen("/ls.a", 0, NULL);
+        struct inode* sysn_i = vfs_fopen(NULL, "/sysn.a", 0, NULL);
+        struct inode* sysc_i = vfs_fopen(NULL, "/sysc.a", 0, NULL);
+        struct inode* ls_i = vfs_fopen(NULL, "/ls.a", 0, NULL);
 
         loff_t offset = 0;
         int size = sysn_i->size;
@@ -146,7 +146,7 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(ls_i);
     }
     if(strcmp(cmd, "exec") == 0) {
-        struct inode* inode = vfs_fopen(args, 0, NULL);
+        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
         if(inode == NULL){
             printf("Can't open file with path : ", args);
             return;
@@ -172,9 +172,15 @@ void bootshell_process_cmd(char* cmdline){
         struct superblock** mounts = vfs_get_mounts();
         for(int i = 0; i < 100; i ++){
             struct superblock* mount = mounts[i];
-            if(mount != NULL){
-                //printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, mount->mount_path, mount->filesystem->name);
-                printf("Partition %s mounted to Filesystem %s\n", mount->partition->name, mount->filesystem->name);
+            if(mount != NULL) {
+                size_t reqd_size = 0;
+                char* abs_path_buffer = NULL;
+                dentry_get_absolute_path(mount->root_dir, &reqd_size, NULL);
+                abs_path_buffer = kmalloc(reqd_size + 1);
+                memset(abs_path_buffer, 0, reqd_size + 1);
+                dentry_get_absolute_path(mount->root_dir, NULL, abs_path_buffer);
+                printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, abs_path_buffer, mount->filesystem->name);
+                kfree(abs_path_buffer);
             }
         }
     }

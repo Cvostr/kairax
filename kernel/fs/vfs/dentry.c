@@ -93,13 +93,13 @@ exit:
     return result;
 }
 
-struct dentry* dentry_traverse_path(struct dentry* parent, const char* path)
+struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
 {
     struct dentry* result = NULL;
-    struct dentry* current = parent;
+    struct dentry* current = p_parent;
 
     if (strlen(path) == 0)
-        return parent;
+        return p_parent;
 
     char* path_temp = path;
     char* name_temp = kmalloc(strlen(path));
@@ -126,4 +126,22 @@ struct dentry* dentry_traverse_path(struct dentry* parent, const char* path)
     kfree(name_temp);
 
     return result;
+}
+
+struct dentry* dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
+{
+    if (p_dentry->parent) {
+        dentry_get_absolute_path(p_dentry->parent, p_required_size, p_result);
+    }
+
+    if (strlen(p_dentry->name) > 0) {
+        if (p_required_size) {
+            *p_required_size += (strlen(p_dentry->name) + 1);
+        }
+
+        if (p_result) {
+            strcat(p_result, "/");
+            strcat(p_result, p_dentry->name);
+        }
+    }
 }

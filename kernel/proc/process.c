@@ -41,7 +41,7 @@ int process_open_file(struct process* process, const char* path, int mode, int f
 {
     int fd = -1;
     struct dentry* dentry;
-    struct inode* inode = vfs_fopen(path, 0, &dentry);
+    struct inode* inode = vfs_fopen(NULL, path, 0, &dentry);
 
     if (inode == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
@@ -212,15 +212,32 @@ exit:
 
 int process_get_working_dir(struct process* process, char* buffer, size_t size)
 {
-    memcpy(buffer, process->cur_dir, size);
-    return 0;
+    int rc = -1;
+    if (process->workdir) {
+        size_t reqd_size = 0;
+        dentry_get_absolute_path(process->workdir, &reqd_size, NULL);
+        if (reqd_size + 1 > size) {
+            goto exit;
+        }
+
+        dentry_get_absolute_path(process->workdir, NULL, buffer);
+        rc = 0;
+    }
+
+exit:
+    return rc;
 }
 
 int process_set_working_dir(struct process* process, const char* buffer)
 {
-    size_t buffer_length = strlen(buffer);
-    memcpy(process->cur_dir, buffer, buffer_length);
-    return 0;
+    int rc = -1;
+    struct dentry* new_wd = dentry_traverse_path(vfs_get_root_dentry(), buffer + 1);
+    if (new_wd) {
+        rc = 0;
+        process->workdir = new_wd;
+    }
+
+    return rc;
 }
 
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)

@@ -29,7 +29,7 @@ void devfs_init()
 
     filesystem_register(devfs);
 
-    vfs_mount_fs("/dev", NULL, "devfs");
+    //vfs_mount_fs("/dev", NULL, "devfs");
 
     root_inode_ops.open = devfs_open;
     root_inode_ops.chmod = NULL;
