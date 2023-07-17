@@ -95,17 +95,17 @@ typedef struct PACKED {
     uint32_t dtime;
     uint16_t gid;
     uint16_t hard_links;
-    uint32_t num_sectors;
+    uint32_t num_blocks;
     uint32_t flags;
     uint32_t os_specific1;
     uint32_t blocks[EXT2_DIRECT_BLOCKS + 3];
     uint32_t generation;
     uint32_t file_acl;
     union {
-        uint32_t dir_acl;
+        uint32_t dir_acl;   // для директорий
         uint32_t size_high;
     };
-    uint32_t f_block_addr;
+    uint32_t faddr;
     char os_specific2[12];
 } ext2_inode_t;
 
@@ -118,6 +118,7 @@ typedef struct PACKED {
     size_t              block_size;
     uint64_t            total_groups;
 
+    uint64_t            bgd_start_block;
     uint64_t            bgds_blocks;
 
     int                 file_size_64bit_flag;
@@ -146,15 +147,35 @@ uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 
 uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
 
+int ext2_inode_add_block(ext2_instance_t* inst, uint32_t inode, uint64_t abs_block, uint64_t inode_block);
+
+// Вызывается VFS при монтировании
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf);
+
+// Перезаписать на диск таблицу блоков
+void ext2_write_bgds(ext2_instance_t* inst);
+
+// Перезаписать на диск суперблок
+void ext2_rewrite_superblock(ext2_instance_t* inst);
 
 // Получение inode по номеру
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
 // Запись метаданных inode
 void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
+
+// Создание новой inode на диске
+uint32_t ext2_alloc_inode(ext2_instance_t* inst);
+
+// Выделение нового блока на диске
+uint64_t ext2_alloc_block(ext2_instance_t* inst);
+
+// Выделить блок для иноды
+int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index);
+
+int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode);
 
 struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num);
 

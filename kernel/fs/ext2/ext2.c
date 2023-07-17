@@ -146,10 +146,10 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
         instance->bgds_blocks++;
 
     instance->bgds = (ext2_bgd_t*)kmalloc(instance->bgds_blocks * instance->block_size);
-    uint64_t bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
+    instance->bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
     ext2_partition_read_block(instance, 
-        bgd_start_block,
+        instance->bgd_start_block,
         instance->bgds_blocks, 
         (char*)kheap_get_phys_address(instance->bgds));
     //Чтение корневой иноды с индексом 2
@@ -166,6 +166,180 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     sb->operations = &sb_ops;
 
     return result;
+}
+
+void ext2_write_bgds(ext2_instance_t* inst)
+{
+    ext2_partition_write_block( inst, 
+                                inst->bgd_start_block,
+                                inst->bgds_blocks,
+                                (char*)kheap_get_phys_address(inst->bgds));
+}
+
+void ext2_rewrite_superblock(ext2_instance_t* inst)
+{
+    ext2_partition_write_block( inst, 
+                                1,
+                                1,
+                                (char*)kheap_get_phys_address(inst->superblock));
+}
+
+uint32_t ext2_alloc_inode(ext2_instance_t* inst)
+{
+    uint32_t result = 0;
+    uint32_t* bitmap_buffer = (uint32_t*)kmalloc(inst->block_size);
+    // Найти свободный номер inode в битовой карте
+    for (uint32_t bgd_i = 0; bgd_i < inst->total_groups; bgd_i++) {
+
+        if (!inst->bgds[bgd_i].free_inodes)
+            continue;
+
+        // номер блока битмапы, в котором есть свободный номер inode
+        uint32_t bitmap_block_index = inst->bgds[bgd_i].inode_bitmap;
+        // считываем этот блок
+        ext2_partition_read_block(inst, bitmap_block_index, 1, (char*)kheap_get_phys_address(bitmap_buffer));
+
+        for (uint32_t j = 0; j < inst->block_size / 4; j ++) {
+            uint32_t bitmap = bitmap_buffer[j];
+
+            for (int bit_i = 0; bit_i < 32; bit_i ++) {
+                int is_bit_free = !((bitmap >> bit_i) & 1);
+
+                if (is_bit_free) {
+                    // Найден номер свободной inode
+                    bitmap_buffer[j] |= (1U << bit_i);
+                    // Запишем обновленную битмапу с занятым битом
+                    ext2_partition_write_block(inst, bitmap_block_index, 1, (char*)kheap_get_phys_address(bitmap_buffer));
+                    // Уменьшим количество свободных inode в выбранном BGD
+                    inst->bgds[bgd_i].free_inodes --;
+                    // Запишем изменения на диск
+                    ext2_write_bgds(inst);
+                    // Уменьшить количество свободных inode в суперблоке и перезаписать его на диск
+                    inst->superblock->free_inodes--;
+                    ext2_rewrite_superblock(inst);
+
+                    result = bgd_i * inst->superblock->inodes_per_group + j * 32 + bit_i;
+
+                    goto exit;
+                }
+            }
+        }
+    }
+
+exit:
+    kfree(bitmap_buffer);
+
+    return result;
+}
+
+uint64_t ext2_alloc_block(ext2_instance_t* inst)
+{
+    uint8_t* buffer = (uint8_t*)kmalloc(inst->block_size);
+
+    uint64_t bitmap_index = 0;
+    uint64_t block_index = 0;
+    uint64_t group_index = 0;
+
+    for (uint64_t bgd_i = 0; bgd_i < inst->bgds_blocks; bgd_i ++) {
+        if (inst->bgds[bgd_i].free_blocks > 0) {
+            ext2_partition_read_block(inst, inst->bgds[bgd_i].block_bitmap, 1, (char*)kheap_get_phys_address(buffer));
+
+            while (buffer[bitmap_index / 8] & (1 << (bitmap_index % 8))) {
+                bitmap_index++;
+            }
+
+            group_index = bgd_i;
+            block_index = bgd_i * inst->superblock->blocks_per_group + bitmap_index;
+            break;
+        }
+    }
+
+    if (block_index == 0) {
+        // Не удалось найти свободный блок
+        goto exit;
+    }
+
+    // Пометить блок в битмапе как занятый
+    buffer[bitmap_index / 8] |= (1 << (bitmap_index % 8));
+    ext2_partition_read_block(inst, inst->bgds[group_index].block_bitmap, 1, (uint8_t*)kheap_get_phys_address(buffer));
+
+    // Уменьшить количество свободных блоков в группе и записать на диск
+    inst->bgds[group_index].free_blocks--;
+    ext2_write_bgds(inst);
+
+    // Уменьшить количество свободных блоков в суперблоке и записать на диск
+    inst->superblock->free_blocks--;
+    ext2_rewrite_superblock(inst);
+
+exit:
+    kfree(buffer);
+    return block_index;
+}
+
+int ext2_inode_add_block(ext2_instance_t* inst, uint32_t inode, uint64_t abs_block, uint64_t inode_block)
+{
+    ///!!!!!!!!!!!!!!!!!!!!!!!!!!!
+}
+
+int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index)
+{
+    uint64_t new_block = ext2_alloc_block(inst);
+    if (!new_block) {
+        return -1;
+    }
+
+    // Добавим блок к inode
+    ext2_inode_add_block(inst, node_num, new_block, block_index);
+
+    uint32_t blocks_count = (block_index + 1) * (inst->block_size / 512);
+    if (inode->num_blocks < blocks_count) {
+        inode->num_blocks = blocks_count;
+    }
+
+    ext2_write_inode_metadata(inst, inode, node_num);
+
+    return 0;
+}
+
+int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode)
+{
+    ext2_inode_t*    e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, parent->inode);
+
+    if (((e2_inode->mode & EXT2_DT_CHR) == 0) || (name == NULL)) {
+		return -1;
+	}
+
+    // Размер записи
+    size_t dirent_len = sizeof(ext2_direntry_t) + strlen(name);
+
+    // Подготовить буфер для блоков
+    char* buffer = kmalloc(inst->block_size);
+
+    uint64_t offset = 0;
+    uint64_t in_block_offset = 0;
+    uint64_t block_index = 0;
+
+    ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+
+    while (offset < e2_inode->size) {
+        // dirent выравнены по размеру блока
+        if (in_block_offset >= inst->block_size) {
+            block_index++;
+            in_block_offset -= inst->block_size;
+            ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+        }
+
+        ext2_direntry_t* direntry = (ext2_direntry_t*)(buffer + in_block_offset);
+        size_t curr_direntry_len = sizeof(ext2_direntry_t) + direntry->name_len;
+        curr_direntry_len += (curr_direntry_len % 4) ? (4 - (curr_direntry_len % 4)) : 0;
+
+        // ALLOCATE INODE BLOCK
+    }
+
+
+    kfree(buffer);
+    kfree(inode);
 }
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf)
@@ -185,7 +359,7 @@ uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
     char* temp_buffer_phys = (char*)kheap_get_phys_address(temp_buffer);
     uint32_t current_offset = 0;
 
-    for(uint32_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++){
+    for (uint32_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++) {
         uint32_t left_offset = (block_i == start_inode_block) ? start_block_offset : 0;
         uint32_t right_offset = (block_i == end_inode_block) ? (end_size - 1) : (inst->block_size - 1);
         ext2_read_inode_block(inst, inode, block_i, temp_buffer_phys);
@@ -352,8 +526,38 @@ int ext2_chmod(struct inode * inode, uint32_t mode)
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
-    ext2_inode_t* e2_inode = new_ext2_inode();
+    
+    // Создать inode на диске
+    uint32_t inode_num = ext2_alloc_inode(inst);
+    // Прочитать inode
+    ext2_inode_t *inode = new_ext2_inode();
+    ext2_inode(inst, inode, inode_num);
 
+    inode->mode = EXT2_DT_DIR | (0xFFF & mode);
+    inode->atime = 0;
+    inode->ctime = 0;
+    inode->mtime = 0;
+    inode->dtime = 0;
+    inode->gid = 0;
+    inode->userid = 0;
+    inode->flags = 0;
+    inode->hard_links = 2;
+    inode->num_blocks = 0;
+    inode->os_specific1 = 0;
+    memset(inode->blocks, 0, sizeof(inode->blocks));
+    memset(inode->os_specific2, 0, 12);
+    inode->generation = 0;
+    inode->file_acl = 0;
+    inode->dir_acl = 0;
+    inode->faddr = 0;
+
+    // ???
+    inode->size = inst->block_size;
+
+    // Записать изменения на диск
+    ext2_write_inode_metadata(inst, inode, inode_num);
+
+    kfree(inode);
     return 0;
 }
 
