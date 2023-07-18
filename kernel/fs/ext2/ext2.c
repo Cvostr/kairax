@@ -55,7 +55,7 @@ uint32_t ext2_partition_write_block(ext2_instance_t* inst, uint64_t block_start,
 
 uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block_index)
 {
-    unsigned int level = inst->block_size / 4;
+    uint32_t level = inst->block_size / 4;
     int d, e, f, g;
     if(inode_block_index < EXT2_DIRECT_BLOCKS) {
         return inode->blocks[inode_block_index];
@@ -98,13 +98,45 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
     return 0;   
 }
 
-uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer){
+int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint64_t abs_block, uint64_t inode_block)
+{
+    uint32_t level = inst->block_size / 4;
+    int rc = 1;
+
+    char* buffer = (char*)kmalloc(inst->block_size);
+
+    if (inode_block < EXT2_DIRECT_BLOCKS) {
+
+        inode->blocks[inode_block] = abs_block;
+        goto exit;
+
+    } else if (inode_block < EXT2_DIRECT_BLOCKS + level) {
+        // TODO : IMPLEMENT
+    }
+
+exit:
+
+    kfree(buffer);
+
+    return rc;
+}
+
+uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer)
+{
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
     return ext2_partition_read_block(inst, inode_block_abs, 1, buffer);
 }
 
-uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer){
+uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer)
+{
+    // Если пытаемся записать в невыделенный номер блока
+    // Расширить размер inode
+    while (inode_block >= inode->num_blocks / (inst->block_size / 512)) {
+		ext2_alloc_inode_block(inst, inode, inode_num, inode->num_blocks / (inst->block_size / 512));
+		ext2_inode(inst, inode, inode_num);
+	}
+
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
     return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
@@ -276,26 +308,24 @@ exit:
     return block_index;
 }
 
-int ext2_inode_add_block(ext2_instance_t* inst, uint32_t inode, uint64_t abs_block, uint64_t inode_block)
-{
-    ///!!!!!!!!!!!!!!!!!!!!!!!!!!!
-}
-
 int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index)
 {
+    // Выделить блок
     uint64_t new_block = ext2_alloc_block(inst);
     if (!new_block) {
         return -1;
     }
 
     // Добавим блок к inode
-    ext2_inode_add_block(inst, node_num, new_block, block_index);
+    ext2_inode_add_block(inst, inode, new_block, block_index);
 
+    // Обновим количество блоков, занимаемых inode
     uint32_t blocks_count = (block_index + 1) * (inst->block_size / 512);
     if (inode->num_blocks < blocks_count) {
         inode->num_blocks = blocks_count;
     }
 
+    // Перезаписать inode
     ext2_write_inode_metadata(inst, inode, node_num);
 
     return 0;
@@ -316,9 +346,12 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     // Подготовить буфер для блоков
     char* buffer = kmalloc(inst->block_size);
 
-    uint64_t offset = 0;
+    uint64_t offset = 0;        // смещение относительно данных inode
     uint64_t in_block_offset = 0;
     uint64_t block_index = 0;
+
+    int action = 0;
+    ext2_direntry_t* previous;
 
     ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
 
@@ -334,12 +367,28 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
         size_t curr_direntry_len = sizeof(ext2_direntry_t) + direntry->name_len;
         curr_direntry_len += (curr_direntry_len % 4) ? (4 - (curr_direntry_len % 4)) : 0;
 
+        if (direntry->size != curr_direntry_len && offset + direntry->size == e2_inode->size) {
+
+            in_block_offset += curr_direntry_len;
+            offset += curr_direntry_len;
+
+            action = 1;
+            previous = direntry;
+
+            break;
+        } else if (direntry->inode == 0) {
+            action = 2;
+        }
+
+        in_block_offset += direntry->size;
+
+
         // ALLOCATE INODE BLOCK
     }
 
 
     kfree(buffer);
-    kfree(inode);
+    kfree(e2_inode);
 }
 
 uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf)
@@ -556,6 +605,40 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 
     // Записать изменения на диск
     ext2_write_inode_metadata(inst, inode, inode_num);
+
+    // Добавить иноду в директорию
+    ext2_create_dentry(inst, parent, dir_name, inode_num);
+
+    // Добавить . и .. в новую директорию
+    char* block_temp = kmalloc(inst->block_size);
+    memset(block_temp, 0, sizeof(inst->block_size));
+    // .
+    ext2_direntry_t* dot_direntry = (ext2_direntry_t*)block_temp;
+    dot_direntry->inode = inode_num;
+	dot_direntry->size = 12;
+	dot_direntry->name_len = 1;
+	dot_direntry->name[0] = '.';
+    // ..
+    dot_direntry = (ext2_direntry_t*)(block_temp + 12);
+    dot_direntry->inode = parent->inode;
+	dot_direntry->size = 12;
+	dot_direntry->name_len = 2;
+	dot_direntry->name[0] = '.';
+    dot_direntry->name[1] = '.';
+
+    // записать блок в inode
+    ext2_write_inode_block(inst, inode, inode_num, 0, (char*)kheap_get_phys_address(block_temp));
+    kfree(block_temp);
+
+    // Увеличить количество ссылок родительской иноды
+    ext2_inode(inst, inode, parent->inode);
+    inode->hard_links++;
+    ext2_write_inode_metadata(inst, inode, parent->inode);
+
+    // Обновить информацию о свободных папках в bgds
+    uint32_t new_inode_group = inode_num / inst->superblock->inodes_per_group;
+	inst->bgds[new_inode_group].used_dirs++;
+	ext2_write_bgds(inst);
 
     kfree(inode);
     return 0;

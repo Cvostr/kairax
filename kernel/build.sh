@@ -78,6 +78,9 @@ gcc $GCC_ARGS fs/vfs/superblock.c -o ./bin/superblock.o
 gcc $GCC_ARGS proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS proc/thread.c -o ./bin/thread.o
 
+#generic ipc
+gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o
+
 #generic sync
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 

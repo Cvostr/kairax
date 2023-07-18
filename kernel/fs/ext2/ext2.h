@@ -69,11 +69,10 @@ typedef struct PACKED {
     uint32_t block_bitmap;
     uint32_t inode_bitmap;
     uint32_t inode_table;
-    uint32_t free_blocks;
-    uint32_t free_inodes;
-    uint32_t num_dirs;
-    uint32_t unused1;
-    uint32_t unused2;
+    uint16_t free_blocks;
+    uint16_t free_inodes;
+    uint16_t used_dirs;
+    char unused[14];
 } ext2_bgd_t;
 
 
@@ -95,7 +94,7 @@ typedef struct PACKED {
     uint32_t dtime;
     uint16_t gid;
     uint16_t hard_links;
-    uint32_t num_blocks;
+    uint32_t num_blocks; //LBA блоки по 512 байт
     uint32_t flags;
     uint32_t os_specific1;
     uint32_t blocks[EXT2_DIRECT_BLOCKS + 3];
@@ -145,9 +144,10 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
 
 uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
 
-uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
+uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer);
 
-int ext2_inode_add_block(ext2_instance_t* inst, uint32_t inode, uint64_t abs_block, uint64_t inode_block);
+// Добавление блока с номером abs_block к ноде
+int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint64_t abs_block, uint64_t inode_block);
 
 // Вызывается VFS при монтировании
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
