@@ -101,6 +101,16 @@ void bootshell_process_cmd(char* cmdline){
         inode_chmod(inode, 0xFFF);
         inode_close(inode);
     }
+    if(strcmp(cmd, "mkdir") == 0) {
+        struct inode* inode = vfs_fopen(NULL, "/", 0, NULL);
+        if(inode == NULL){
+            printf("Can't open file with path : `%s", args);
+            return;
+        }
+
+        inode_mkdir(inode, args, 0xFFF);
+        inode_close(inode);
+    }
     if(strcmp(cmd, "cat") == 0){
         struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
         if(inode == NULL){

@@ -147,7 +147,7 @@ uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer);
 
 // Добавление блока с номером abs_block к ноде
-int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint64_t abs_block, uint64_t inode_block);
+int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_index, uint32_t abs_block, uint32_t inode_block);
 
 // Вызывается VFS при монтировании
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
@@ -175,7 +175,7 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst);
 // Выделить блок для иноды
 int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index);
 
-int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode);
+int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode, int type);
 
 struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num);
 
