@@ -108,7 +108,10 @@ void bootshell_process_cmd(char* cmdline){
             return;
         }
 
-        inode_mkdir(inode, args, 0xFFF);
+        int rc = inode_mkdir(inode, args, 0xFFF);
+        if (rc != 0) {
+            printf("Error creating dir : %i", rc);
+        }
         inode_close(inode);
     }
     if(strcmp(cmd, "cat") == 0){

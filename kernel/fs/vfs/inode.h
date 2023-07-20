@@ -20,7 +20,7 @@ struct inode_operations {
 
     int      (*chmod)(struct inode*, uint32_t);
     int      (*mkdir)(struct inode*, const char*, uint32_t);
-    void      (*mkfile)(struct inode*, char*);
+    int      (*mkfile)(struct inode*, const char*, uint32_t);
 };
 
 #define INODE_TYPE_MASK        0xF000

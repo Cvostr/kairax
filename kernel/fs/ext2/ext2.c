@@ -10,7 +10,8 @@ struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
 struct super_operations sb_ops;
 
-void ext2_init(){
+void ext2_init()
+{
     filesystem_t* ext2fs = new_filesystem();
     ext2fs->name = "ext2";
     ext2fs->mount = ext2_mount;
@@ -744,6 +745,10 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
     
+    if (ext2_find_dentry(parent->sb, parent->inode, dir_name) != WRONG_INODE_INDEX) {
+        return -2; //уже существует
+    }
+
     // Создать inode на диске
     uint32_t inode_num = ext2_alloc_inode(inst);
     // Прочитать inode
@@ -814,8 +819,47 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     return 0;
 }
 
-void ext2_mkfile(struct inode* parent, char* file_name){
+int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
+    if (ext2_find_dentry(parent->sb, parent->inode, dir_name) != WRONG_INODE_INDEX) {
+        return -2; //уже существует
+    }
+
+    // Создать inode на диске
+    uint32_t inode_num = ext2_alloc_inode(inst);
+    // Прочитать inode
+    ext2_inode_t *inode = new_ext2_inode();
+    ext2_inode(inst, inode, inode_num);
+
+    inode->mode = INODE_TYPE_FILE | (0xFFF & mode);
+    inode->atime = 0;
+    inode->ctime = 0;
+    inode->mtime = 0;
+    inode->dtime = 0;
+    inode->gid = 0;
+    inode->userid = 0;
+    inode->flags = 0;
+    inode->hard_links = 1;
+    inode->num_blocks = 0;
+    inode->os_specific1 = 0;
+    memset(inode->blocks, 0, sizeof(inode->blocks));
+    memset(inode->os_specific2, 0, 12);
+    inode->generation = 0;
+    inode->file_acl = 0;
+    inode->dir_acl = 0;
+    inode->faddr = 0;
+    inode->size = 0;
+
+    // Записать изменения на диск
+    ext2_write_inode_metadata(inst, inode, inode_num);
+
+    // Добавить иноду в директорию
+    ext2_create_dentry(inst, parent, file_name, inode_num, EXT2_DT_REG);
+    
+    kfree(inode);
+    return 0;
 }
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index)

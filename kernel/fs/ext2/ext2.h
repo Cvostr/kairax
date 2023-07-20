@@ -187,7 +187,7 @@ void ext2_close(struct inode* inode);
 
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 
-void ext2_mkfile(struct inode* parent, char* file_name);
+int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
 
 int ext2_chmod(struct inode * inode, uint32_t mode);
 

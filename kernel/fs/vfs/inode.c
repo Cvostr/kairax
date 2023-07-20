@@ -54,10 +54,24 @@ void inode_chmod(struct inode* node, uint32_t mode)
 
 int inode_mkdir(struct inode* node, const char* name, uint32_t mode)
 {
+    int rc = -1;
     acquire_spinlock(&node->spinlock);
 
     if(node->operations->mkdir) {
-        node->operations->mkdir(node, name, mode);
+        rc = node->operations->mkdir(node, name, mode);
+    }
+
+    release_spinlock(&node->spinlock);
+
+    return rc;
+}
+
+int inode_mkfile(struct inode* node, const char* name, uint32_t mode)
+{
+    acquire_spinlock(&node->spinlock);
+
+    if(node->operations->mkfile) {
+        node->operations->mkfile(node, name, mode);
     }
 
     release_spinlock(&node->spinlock);
