@@ -54,6 +54,8 @@ uintptr_t        process_brk(struct process* process, uint64_t addr);
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
+file_t* process_get_file(struct process* process, int fd);
+
 int process_open_file(struct process* process, const char* path, int mode, int flags);
 
 int process_close_file(struct process* process, int fd);

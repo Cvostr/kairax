@@ -823,7 +823,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
-    if (ext2_find_dentry(parent->sb, parent->inode, dir_name) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent->inode, file_name) != WRONG_INODE_INDEX) {
         return -2; //уже существует
     }
 

@@ -37,6 +37,13 @@ void free_process(struct process* process)
     scheduler_from_killed();
 }
 
+file_t* process_get_file(struct process* process, int fd)
+{
+    if (fd < 0)
+        return NULL;
+    return process->fds[fd];
+}
+
 int process_open_file(struct process* process, const char* path, int mode, int flags)
 {
     int fd = -1;
@@ -85,7 +92,8 @@ int process_close_file(struct process* process, int fd)
         goto exit;
     }
 
-    file_t* file = process->fds[fd];
+    file_t* file = process_get_file(process, fd);
+
     if (file != NULL) {
         file_close(file);
         process->fds[fd] = NULL;
@@ -105,7 +113,7 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
     ssize_t bytes_read = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process->fds[fd];
+    file_t* file = process_get_file(process, fd);
 
     if (file == NULL) {
         //TODO: set errno to EBADF
@@ -128,7 +136,7 @@ off_t process_file_seek(struct process* process, int fd, off_t offset, int whenc
     off_t result = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process->fds[fd];
+    file_t* file = process_get_file(process, fd);
 
     if (file != NULL) {
 
@@ -161,7 +169,8 @@ int process_stat(struct process* process, int fd, struct stat* stat)
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process->fds[fd];
+    file_t* file = process_get_file(process, fd);
+
     if (file != NULL) {
         struct inode* inode = file->inode;
         inode_stat(inode, stat);
@@ -180,7 +189,7 @@ int process_readdir(struct process* process, int fd, struct dirent* dirent)
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process->fds[fd];
+    file_t* file = process_get_file(process, fd);
 
     if (file != NULL) {
         acquire_spinlock(&file->spinlock);
