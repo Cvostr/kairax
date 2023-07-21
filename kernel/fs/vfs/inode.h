@@ -9,6 +9,7 @@
 
 struct inode;
 struct superblock;
+struct dentry;
 
 struct inode_operations {
     void      (*open)(struct inode*, uint32_t);
@@ -21,6 +22,8 @@ struct inode_operations {
     int      (*chmod)(struct inode*, uint32_t);
     int      (*mkdir)(struct inode*, const char*, uint32_t);
     int      (*mkfile)(struct inode*, const char*, uint32_t);
+    int      (*truncate)(struct inode*);
+    int      (*unlink)(struct inode*, struct dentry*);
 };
 
 #define INODE_TYPE_MASK        0xF000
@@ -67,8 +70,14 @@ void inode_open(struct inode* node, uint32_t flags);
 
 void inode_close(struct inode* node);
 
-void inode_stat(struct inode* node, struct stat* sstat);
+int inode_stat(struct inode* node, struct stat* sstat);
 
 int inode_mkdir(struct inode* node, const char* name, uint32_t mode);
+
+int inode_mkfile(struct inode* node, const char* name, uint32_t mode);
+
+int inode_truncate(struct inode* inode);
+
+int inode_unlink(struct inode* parent, struct dentry* child);
 
 #endif

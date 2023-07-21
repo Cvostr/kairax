@@ -23,6 +23,7 @@ void ext2_init()
     file_inode_ops.chmod = ext2_chmod;
     file_inode_ops.open = ext2_open;
     file_inode_ops.close = ext2_close;
+    file_inode_ops.truncate = ext2_truncate;
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
@@ -30,6 +31,7 @@ void ext2_init()
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.open = ext2_open;
     dir_inode_ops.close = ext2_close;
+    //dir_inode_ops.unlink = ext2_unlink;
 
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
@@ -558,26 +560,26 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     return 1;
 }
 
-uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf)
+ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf)
 {
     //Защита от выхода за границы файла
-    uint32_t end_offset = (inode->size >= offset + size) ? (offset + size) : (inode->size);
+    off_t end_offset = (inode->size >= offset + size) ? (offset + size) : (inode->size);
     //Номер начального блока ноды
-    uint32_t start_inode_block = offset / inst->block_size;
+    off_t start_inode_block = offset / inst->block_size;
     //Смещение в начальном блоке
-    uint32_t start_block_offset = offset % inst->block_size; 
+    off_t start_block_offset = offset % inst->block_size; 
     //Номер последнего блока
-    uint32_t end_inode_block = end_offset / inst->block_size;
+    off_t end_inode_block = end_offset / inst->block_size;
     //сколько байт взять из последнего блока
-    uint32_t end_size = end_offset - end_inode_block * inst->block_size;
+    off_t end_size = end_offset - end_inode_block * inst->block_size;
 
     char* temp_buffer = (char*)kmalloc(inst->block_size);
     char* temp_buffer_phys = (char*)kheap_get_phys_address(temp_buffer);
-    uint32_t current_offset = 0;
+    off_t current_offset = 0;
 
-    for (uint32_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++) {
-        uint32_t left_offset = (block_i == start_inode_block) ? start_block_offset : 0;
-        uint32_t right_offset = (block_i == end_inode_block) ? (end_size - 1) : (inst->block_size - 1);
+    for (off_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++) {
+        off_t left_offset = (block_i == start_inode_block) ? start_block_offset : 0;
+        off_t right_offset = (block_i == end_inode_block) ? (end_size - 1) : (inst->block_size - 1);
         ext2_read_inode_block(inst, inode, block_i, temp_buffer_phys);
 
         memcpy(buf + current_offset, temp_buffer + left_offset, (right_offset - left_offset + 1));
@@ -586,6 +588,27 @@ uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
 
     kfree(temp_buffer);
     return end_offset - offset;
+}
+
+// Записать данные файла inode
+ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, const char * buf)
+{
+    //Не реализовано!!!
+
+    //Защита от выхода за границы файла
+    off_t end_offset = (inode->size >= offset + size) ? (offset + size) : (inode->size);
+
+    //Номер начального блока ноды
+    off_t start_inode_block = offset / inst->block_size;
+    //Смещение в начальном блоке
+    off_t start_block_offset = offset % inst->block_size; 
+
+    //Номер последнего блока
+    off_t end_inode_block = end_offset / inst->block_size;
+    //сколько байт взять из последнего блока
+    off_t end_size = end_offset - end_inode_block * inst->block_size;
+
+    return 0;
 }
 
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
@@ -724,8 +747,20 @@ ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* bu
     ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
     ext2_inode_t*    inode = new_ext2_inode();
     ext2_inode(inst, inode, file->inode);
-    //Не реализовано
+    write_inode_filedata(inst, inode, offset, size, buffer);
     kfree(inode);
+    return 0;
+}
+
+int ext2_truncate(struct inode* inode)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
+    ext2_inode_t* e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, inode->inode);
+    e2_inode->size = 0;
+    ext2_write_inode_metadata(inst, e2_inode, inode->inode);
+    kfree(e2_inode);
+
     return 0;
 }
 

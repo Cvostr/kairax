@@ -152,7 +152,11 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
 // Вызывается VFS при монтировании
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
 
-uint32_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t offset, uint32_t size, char * buf);
+// Прочитать данные файла inode
+ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf);
+
+// Записать данные файла inode
+ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, const char * buf);
 
 // Перезаписать на диск таблицу блоков
 void ext2_write_bgds(ext2_instance_t* inst);
@@ -201,5 +205,6 @@ ssize_t ext2_read(struct inode* file, off_t offset, size_t size, char* buffer);
 
 ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* buffer);
 
+int ext2_truncate(struct inode* inode);
 
 #endif

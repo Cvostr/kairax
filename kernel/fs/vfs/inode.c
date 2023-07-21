@@ -77,6 +77,31 @@ int inode_mkfile(struct inode* node, const char* name, uint32_t mode)
     release_spinlock(&node->spinlock);
 }
 
+int inode_truncate(struct inode* inode)
+{
+    acquire_spinlock(&inode->spinlock);
+
+    if(inode->operations->truncate) {
+        inode->operations->truncate(inode);
+    }
+
+    release_spinlock(&inode->spinlock);
+}
+
+int inode_unlink(struct inode* parent, struct dentry* child)
+{
+    // NOT IMPLEMENTED, DENTRY LOCKS REQUIRED
+    acquire_spinlock(&parent->spinlock);
+
+    if(parent->operations->unlink) {
+        parent->operations->unlink(parent, child);
+    }
+
+    release_spinlock(&parent->spinlock);
+
+    return 0;
+}
+
 ssize_t inode_read(struct inode* node, loff_t* offset, size_t size, char* buffer)
 {
     ssize_t result = 0;
@@ -138,4 +163,5 @@ void inode_stat(struct inode* node, struct stat* sstat)
     sstat->st_mtime = node->modify_time;
 
     release_spinlock(&node->spinlock);
+    return 0;
 }
