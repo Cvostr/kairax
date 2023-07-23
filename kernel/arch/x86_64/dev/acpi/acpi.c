@@ -10,11 +10,6 @@
 acpi_rsdp_t acpi_rsdp;
 
 acpi_fadt_t* acpi_fadt = NULL;
-acpi_madt_t* acpi_apic;
-
-#define MAX_CPU_COUNT 64
-uint32_t            cpus_apic_count = 0;
-apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 
 int is_table_checksum_valid(acpi_header_t* acpi_header)
 {
@@ -35,42 +30,6 @@ uint32_t acpi_fadt_get_smi_cmd_port()
     return acpi_fadt->smi_cmd_port;
 }
 
-uint32_t acpi_get_cpus_apic_count(){
-    return cpus_apic_count;
-}
-
-apic_local_cpu_t** acpi_get_cpus_apic(){
-    return cpus_apic;
-}
-
-void acpi_parse_apic_madt(acpi_madt_t* madt)
-{
-    acpi_apic = madt;
-
-    madt = (acpi_madt_t*)P2V(madt);
-
-    uint8_t *p = (uint8_t *)(madt + 1);
-    uint8_t *end = (uint8_t *)madt + madt->header.length;
-
-    while(p < end){
-        apic_header_t* apic_header = (apic_header_t*)p;
-        uint8_t type = apic_header->type;
-        
-        switch (type)
-        {
-        case 0:
-            //Это контроллер для одного из ядер процессора
-            apic_local_cpu_t* cpu_apic = (apic_local_cpu_t*)p;
-            cpus_apic[cpus_apic_count++] = cpu_apic;
-            break;
-        
-        default:
-            break;
-        }
-
-        p += apic_header->length;   
-    }
-}
 
 void acpi_parse_dt(acpi_header_t* dt)
 {

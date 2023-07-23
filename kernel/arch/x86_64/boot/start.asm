@@ -10,6 +10,7 @@ extern gdtptr
 extern kmain
 extern init_x64
 global kernel_stack_top
+global p4_table
 
 global _start
 

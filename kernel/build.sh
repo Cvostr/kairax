@@ -17,11 +17,13 @@ nasm $NASM_ARGS $x64_SRC/boot/x64.asm -o ./bin/x64.o
 nasm $NASM_ARGS $x64_SRC/interrupts/interrupts.asm -o ./bin/interrupts.o
 nasm $NASM_ARGS $x64_SRC/proc/syscalls_entry.asm -o ./bin/syscalls_entry.o
 nasm $NASM_ARGS $x64_SRC/proc/scheduler_entry.asm -o ./bin/scheduler_entry.o
+nasm $NASM_ARGS $x64_SRC/cpu/smp_trampoline.asm -o ./bin/smp_trampoline.o
 
 gcc $GCC_ARGS $x64_SRC/boot/multiboot.c -o ./bin/multiboot.o
 
 gcc $GCC_ARGS $x64_SRC/cpu/msr.c -o ./bin/msr.o
 gcc $GCC_ARGS $x64_SRC/cpu/gdt.c -o ./bin/gdt.o
+gcc $GCC_ARGS $x64_SRC/cpu/smp.c -o ./bin/smp.o
 
 gcc $GCC_ARGS $x64_SRC/kernel.c -o ./bin/kernel.o
 gcc $GCC_ARGS $x64_SRC/interrupts/idt.c -o ./bin/idt.o
@@ -34,6 +36,7 @@ gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
+gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
 gcc $GCC_ARGS $x64_SRC/dev/b8-console/b8-console.c -o ./bin/b8-console.o
 
 gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process_x64.o

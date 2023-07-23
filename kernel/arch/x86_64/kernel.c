@@ -32,6 +32,7 @@
 #include "cpu/gdt.h"
 #include "cpu/msr.h"
 #include "proc/kernel_stack.h"
+#include "cpu/smp.h"
 
 extern void syscall_entry_x64();
 
@@ -104,6 +105,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	} else {
 		printf("Success!\n");
 	}
+
+	smp_init();
 
 	init_interrupts_handler(); 
 	init_ints_keyboard();

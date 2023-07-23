@@ -149,7 +149,7 @@ struct dirent* inode_readdir(struct inode* node, uint32_t index)
     return result;
 }
 
-void inode_stat(struct inode* node, struct stat* sstat)
+int inode_stat(struct inode* node, struct stat* sstat)
 {
     acquire_spinlock(&node->spinlock);
 

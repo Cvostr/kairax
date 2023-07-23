@@ -20,6 +20,13 @@ typedef struct PACKED
 
 typedef struct PACKED
 {
+    uint8_t type;
+    uint8_t length;
+    
+} apic_header_t;
+
+typedef struct PACKED
+{
     acpi_header_t header;
     uint32_t local_apic_address;
     uint32_t flags;
@@ -27,15 +34,9 @@ typedef struct PACKED
 
 typedef struct PACKED
 {
-    uint8_t type;
-    uint8_t length;
-} apic_header_t;
-
-typedef struct PACKED
-{
     apic_header_t header;
     uint8_t acpi_cpu_id;
-    uint8_t apic_id;
+    uint8_t lapic_id;
     uint32_t flags;
 } apic_local_cpu_t;
 

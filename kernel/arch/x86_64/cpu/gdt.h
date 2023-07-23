@@ -89,12 +89,19 @@ void new_gdt(   uint32_t entries_num,
 
 tss_t* new_tss();
 
+size_t gdt_get_required_size(uint32_t entries_num, uint32_t sys_seg_descs_num);
+
 void gdt_set(gdt_entry_t* entry_begin, uint32_t limit, uint32_t base, uint8_t access, uint8_t flags);
 
 void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t base, uint8_t access, uint8_t flags);
 
 void gdt_init();
 
+void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss);
+
 void tss_set_rsp0(uintptr_t address);
+
+extern void gdt_update(void*);
+extern void x64_ltr(int);
 
 #endif

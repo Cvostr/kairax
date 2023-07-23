@@ -3,10 +3,12 @@
 #include "mem/pmm.h"
 #include "string.h"
 
-extern void gdt_update(void*);
-extern void x64_ltr(int);
+tss_t* _tss;
 
-tss_t* tss;
+size_t gdt_get_required_size(uint32_t entries_num, uint32_t sys_seg_descs_num)
+{
+    return entries_num * sizeof(gdt_entry_t) + sys_seg_descs_num * sizeof(system_seg_desc_t);
+}
 
 void new_gdt(   uint32_t entries_num, 
                 uint32_t sys_seg_descs_num,
@@ -14,8 +16,8 @@ void new_gdt(   uint32_t entries_num,
                 system_seg_desc_t** sys_seg_begin,
                 uint32_t* size)
 {
-    *size = entries_num * sizeof(gdt_entry_t) + sys_seg_descs_num * sizeof(system_seg_desc_t);
-
+    *size = gdt_get_required_size(entries_num, sys_seg_descs_num);
+    
     void* mem = kmalloc(*size);
     memset(mem, 0, *size);
 
@@ -55,23 +57,8 @@ void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t
 void gdt_init()
 {
     uint32_t size;
-    gdt_entry_t* entry_ptr;
-    system_seg_desc_t* sys_seg_ptr;
-    new_gdt(5, 1, &entry_ptr, &sys_seg_ptr, &size);
-    // код ядра (0x8)
-    gdt_set(entry_ptr + 1, 0, 0, GDT_BASE_KERNEL_CODE_ACCESS, GDT_FLAGS);
-    // данные ядра (0x10)
-    gdt_set(entry_ptr + 2, 0, 0, GDT_BASE_KERNEL_DATA_ACCESS, GDT_FLAGS);
-    // данные пользователя + стэк (0x18)
-    gdt_set(entry_ptr + 3, 0, 0, GDT_BASE_USER_DATA_ACCESS, GDT_FLAGS);
-    // код пользователя (0x20)
-    gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
-
-    tss = new_tss();
-    tss->ist2 = (uintptr_t)P2V(pmm_alloc_page());
-    tss->iopb = sizeof(tss_t) - 1;
-
-    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)tss, 0b10001001, 0b1001);
+    gdt_entry_t* entry_ptr = NULL;
+    gdt_create(&entry_ptr, &size, &_tss);
 
     gdtr_t gdtr;
     gdtr.base = (uintptr_t)entry_ptr;
@@ -81,7 +68,29 @@ void gdt_init()
     x64_ltr(0x28);
 }
 
+void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss)
+{
+    gdt_entry_t* entry_ptr;
+    system_seg_desc_t* sys_seg_ptr;
+    new_gdt(5, 1, &entry_ptr, &sys_seg_ptr, size);
+    // код ядра (0x8)
+    gdt_set(entry_ptr + 1, 0, 0, GDT_BASE_KERNEL_CODE_ACCESS, GDT_FLAGS);
+    // данные ядра (0x10)
+    gdt_set(entry_ptr + 2, 0, 0, GDT_BASE_KERNEL_DATA_ACCESS, GDT_FLAGS);
+    // данные пользователя + стэк (0x18)
+    gdt_set(entry_ptr + 3, 0, 0, GDT_BASE_USER_DATA_ACCESS, GDT_FLAGS);
+    // код пользователя (0x20)
+    gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
+
+    *tss = new_tss();
+    (*tss)->ist2 = (uintptr_t)P2V(pmm_alloc_page());
+    (*tss)->iopb = sizeof(tss_t) - 1;
+
+    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)*tss, 0b10001001, 0b1001);
+    *gdt = entry_ptr;
+}
+
 void tss_set_rsp0(uintptr_t address)
 {
-    tss->rsp0 = address;
+    _tss->rsp0 = address;
 }

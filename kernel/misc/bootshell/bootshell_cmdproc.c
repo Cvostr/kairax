@@ -242,7 +242,7 @@ void bootshell_process_cmd(char* cmdline){
         printf("ACPI OEM = %s\n", acpi_get_oem_str());
         printf("ACPI version = %i\n", acpi_get_revision());
         for(uint32_t i = 0; i < acpi_get_cpus_apic_count(); i ++){
-		    printf("APIC on CPU %i Id : %i \n", acpi_get_cpus_apic()[i]->acpi_cpu_id, acpi_get_cpus_apic()[i]->apic_id);
+		    printf("APIC on CPU %i Id : %i \n", acpi_get_cpus_apic()[i]->acpi_cpu_id, acpi_get_cpus_apic()[i]->lapic_id);
 	    }
     }
     else if(strcmp(cmdline, "shutdown") == 0){

@@ -25,7 +25,11 @@ uint32_t acpi_fadt_get_smi_cmd_port();
 
 uint32_t acpi_get_cpus_apic_count();
 
+acpi_madt_t* acpi_get_madt();
+
 apic_local_cpu_t** acpi_get_cpus_apic();
+
+apic_io_t*  acpi_get_global_apic();
 
 void acpi_parse_apic_madt(acpi_madt_t* madt);
 
