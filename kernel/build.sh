@@ -27,9 +27,11 @@ gcc $GCC_ARGS $x64_SRC/cpu/smp.c -o ./bin/smp.o
 
 gcc $GCC_ARGS $x64_SRC/kernel.c -o ./bin/kernel.o
 gcc $GCC_ARGS $x64_SRC/interrupts/idt.c -o ./bin/idt.o
+gcc $GCC_ARGS $x64_SRC/interrupts/pit.c -o ./bin/pit.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/handler.c -o ./bin/ints_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exceptions_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
+gcc $GCC_ARGS $x64_SRC/interrupts/apic.c -o ./bin/apic.o
 gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging.o
 gcc $GCC_ARGS $x64_SRC/memory/kernel_vmm.c -o ./bin/kernel_vmm.o
 gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o

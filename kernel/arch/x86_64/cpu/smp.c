@@ -9,11 +9,14 @@
 #include "cpu_local_x64.h"
 #include "mem/kheap.h"
 #include "msr.h"
+#include "interrupts/apic.h"
+#include "interrupts/idt.h"
 
 extern char ap_trampoline[];
 extern char ap_trampoline_end[];
 extern char ap_gdtr[];
 extern char ap_vmem[];
+void* ap_stack;
 
 int ap_counter = 0;
 int ap_started_flag = 0;
@@ -21,23 +24,6 @@ int ap_started_flag = 0;
 struct cpu_local_x64* curr_cpu_local;
 
 #define TRAMPOLINE_PAGE 1
-
-void lapic_write(size_t addr, uint32_t value) {
-    char* mm = P2V(acpi_get_madt()->local_apic_address);
-	*((volatile uint32_t*)(mm + addr)) = value;
-	asm volatile ("":::"memory");
-}
-
-uint32_t lapic_read(size_t addr) {
-    char* mm = P2V(acpi_get_madt()->local_apic_address);
-	return *((volatile uint32_t*)(mm + addr));
-}
-
-void lapic_send_ipi(int i, uint32_t val) {
-	lapic_write(0x310, i << 24);
-	lapic_write(0x300, val);
-	do { asm volatile ("pause" : : : "memory"); } while (lapic_read(0x300) & (1 << 12));
-}
 
 static inline uint64_t read_tsc(void) {
 	uint32_t lo, hi;
@@ -60,7 +46,11 @@ void ap_init()
     // Установка GDT и TSS
     gdt_update(&gdtr);
     x64_ltr(TSS_DEFAULT_OFFSET);
+    // Установить таблицу дескрипторов прерываний
+    ap_setup_idt();
+    lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
 
+    // Ядро запущено, можно запускать следующее
     ap_started_flag = 1;
 
     while(1) {
@@ -95,9 +85,10 @@ void smp_init()
     uint64_t trampoline_gdtr_offset = (uint64_t)&ap_gdtr - (uint64_t)&ap_trampoline;
     gdtr_t* ap_gdtr = (gdtr_t*)P2V(trampoline_addr + trampoline_gdtr_offset); 
 
-
+    // Вычислить адрес поля для адреса страницы памяти в трамплине
     uint64_t vmem_offset = (uint64_t)&ap_vmem - (uint64_t)&ap_trampoline;
     uint32_t* vmem_addr = P2V(trampoline_addr + vmem_offset);
+    // Записать адрес таблицы
     *vmem_addr = K2P(get_kernel_pml4());
 
     // Страница для временных GDT
@@ -136,7 +127,11 @@ void smp_init()
 
         printf("CORE %i\n", cpu_i);
 
+        // сбрасываем флаг старта
         ap_started_flag = 0;
+
+        // Выделить память для стека ядра и сохранить ее
+        ap_stack = P2V(pmm_alloc_page() + PAGE_SIZE);
 
         // Создать структуру локальных данных ядра
         curr_cpu_local = (struct cpu_local_x64*)kmalloc(sizeof(struct cpu_local_x64));
@@ -164,4 +159,6 @@ void smp_init()
 
     unmap_page(get_kernel_pml4(), bootstrap_page);
     unmap_page(get_kernel_pml4(), trampoline_addr);
+
+    memset(P2V(K2P(get_kernel_pml4())), 0, 2048);
 }

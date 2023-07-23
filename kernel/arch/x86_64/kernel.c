@@ -33,6 +33,7 @@
 #include "cpu/msr.h"
 #include "proc/kernel_stack.h"
 #include "cpu/smp.h"
+#include "interrupts/apic.h"
 
 extern void syscall_entry_x64();
 
@@ -106,6 +107,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		printf("Success!\n");
 	}
 
+	apic_init();
 	smp_init();
 
 	init_interrupts_handler(); 

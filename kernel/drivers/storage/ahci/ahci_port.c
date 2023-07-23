@@ -292,6 +292,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; 
 	int slot = ahci_port_get_free_cmdslot(port);
+	//printf("CMDSLOT %i\n", slot);
 	if (slot == -1)
 		return 0;
 

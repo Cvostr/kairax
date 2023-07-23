@@ -8,7 +8,7 @@ global ap_gdtr
 global ap_vmem
 
 extern ap_init
-extern kernel_stack_top
+extern ap_stack
 
 bits 16
 section .text
@@ -43,8 +43,8 @@ ap_farjump:
     mov es, ax
     ; на стартовом TSS не делаем LTR
 
-    mov rsp, kernel_stack_top
-    mov rbp, kernel_stack_top
+    mov rsp, [ap_stack]
+    mov rbp, rsp
 
     lea rax, [ap_init] 
     call QWORD rax
@@ -55,7 +55,5 @@ ap_gdtr:
     dq 0
 ap_vmem:
     dd 0
-ap_stack:
-    dq 0
 
 ap_trampoline_end:

@@ -45,3 +45,12 @@ void setup_idt(){
     // включение прерываний
 	enable_interrupts();
 }
+
+void ap_setup_idt()
+{
+    idtr_t idtr;
+	idtr.base = (uint64_t)(idt_descriptors); //адрес таблицы дескрипторов
+    idtr.limit = (uint16_t)sizeof(idt_descriptor_t) * IDT_MAX_DESCRIPTORS - 1;
+
+    x64_lidt(&idtr);
+}

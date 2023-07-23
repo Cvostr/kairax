@@ -47,4 +47,5 @@ void pic_eoi(uint8_t irq)
         outb(PORT_PIC_SLAVE_CMD, PIC_EOI);
 
     outb(PORT_PIC_MASTER_CMD, PIC_EOI);
+    //lapic_eoi();
 }
