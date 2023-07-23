@@ -34,6 +34,7 @@
 #include "proc/kernel_stack.h"
 #include "cpu/smp.h"
 #include "interrupts/apic.h"
+#include "cpu/cpuid.h"
 
 extern void syscall_entry_x64();
 

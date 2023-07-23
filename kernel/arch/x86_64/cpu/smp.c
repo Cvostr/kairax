@@ -11,6 +11,7 @@
 #include "msr.h"
 #include "interrupts/apic.h"
 #include "interrupts/idt.h"
+#include "cpuid.h"
 
 extern char ap_trampoline[];
 extern char ap_trampoline_end[];
@@ -22,6 +23,8 @@ int ap_counter = 0;
 int ap_started_flag = 0;
 
 struct cpu_local_x64* curr_cpu_local;
+
+extern void syscall_entry_x64();
 
 #define TRAMPOLINE_PAGE 1
 
@@ -49,6 +52,8 @@ void ap_init()
     // Установить таблицу дескрипторов прерываний
     ap_setup_idt();
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
+    // Установка параметров для syscall
+    cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
 
     // Ядро запущено, можно запускать следующее
     ap_started_flag = 1;
@@ -76,8 +81,7 @@ void smp_init()
     memcpy(P2V(trampoline_addr), &ap_trampoline, trampoline_size);
 
     // Получить номер начального ядра
-    uint8_t bspid = 0;
-    asm volatile ("mov $1, %%eax; cpuid; shrl $24, %%ebx;": "=b"(bspid) : : );
+    uint8_t bspid = cpuid_get_apic_id();
 
     apic_local_cpu_t** lapic_array = acpi_get_cpus_apic();
 
@@ -125,7 +129,7 @@ void smp_init()
         if (cpu_i == bspid)
             continue;
 
-        printf("CORE %i\n", cpu_i);
+        //printf("CORE %i\n", cpu_i);
 
         // сбрасываем флаг старта
         ap_started_flag = 0;
@@ -152,6 +156,10 @@ void smp_init()
 
         do { asm volatile ("pause" : : : "memory"); } while (!ap_started_flag);
     }
+
+    char* model[48];
+	cpuid_get_model_string(model);
+	printf("CPU %s, %i cores initialized\n", model, acpi_get_cpus_apic_count());
 
     memcpy(P2V(trampoline_addr), P2V(temp), PAGE_SIZE);
     pmm_free_page(temp);

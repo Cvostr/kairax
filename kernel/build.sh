@@ -24,6 +24,7 @@ gcc $GCC_ARGS $x64_SRC/boot/multiboot.c -o ./bin/multiboot.o
 gcc $GCC_ARGS $x64_SRC/cpu/msr.c -o ./bin/msr.o
 gcc $GCC_ARGS $x64_SRC/cpu/gdt.c -o ./bin/gdt.o
 gcc $GCC_ARGS $x64_SRC/cpu/smp.c -o ./bin/smp.o
+gcc $GCC_ARGS $x64_SRC/cpu/cpuid.c -o ./bin/cpuid.o
 
 gcc $GCC_ARGS $x64_SRC/kernel.c -o ./bin/kernel.o
 gcc $GCC_ARGS $x64_SRC/interrupts/idt.c -o ./bin/idt.o
