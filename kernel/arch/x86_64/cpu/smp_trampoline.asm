@@ -1,7 +1,5 @@
 %include "memory/mem_layout.asm"
 
-extern p4_table
-
 ; адреса начала и конца кода трамплина
 global ap_trampoline
 global ap_trampoline_end
@@ -18,7 +16,6 @@ ap_trampoline:
     mov eax, 0xA0
     mov cr4, eax
 
-    ;mov edx, V2P(p4_table)
     mov edx, [cs : ap_vmem - ap_trampoline]
     mov cr3, edx
 
@@ -36,7 +33,7 @@ ap_trampoline:
     jmp dword 0x08:(0x1000 + ap_farjump - ap_trampoline)
 
 bits 64
-;align 16
+align 16
 ap_farjump:
     mov ax, 0x10
     mov ds, ax
@@ -44,11 +41,7 @@ ap_farjump:
     mov gs, ax
     mov fs, ax
     mov es, ax
-
-    xor rax, rax
-    ; ???
-    ;mov rax, 0x28
-    ;ltr ax
+    ; на стартовом TSS не делаем LTR
 
     mov rsp, kernel_stack_top
     mov rbp, kernel_stack_top
@@ -66,9 +59,3 @@ ap_stack:
     dq 0
 
 ap_trampoline_end:
-
-asas:
-
-    mov ax, 125
-stub:
-    jmp stub

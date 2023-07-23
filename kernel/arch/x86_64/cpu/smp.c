@@ -6,6 +6,9 @@
 #include "gdt.h"
 #include "stdio.h"
 #include "kstdlib.h"
+#include "cpu_local_x64.h"
+#include "mem/kheap.h"
+#include "msr.h"
 
 extern char ap_trampoline[];
 extern char ap_trampoline_end[];
@@ -14,6 +17,8 @@ extern char ap_vmem[];
 
 int ap_counter = 0;
 int ap_started_flag = 0;
+
+struct cpu_local_x64* curr_cpu_local;
 
 #define TRAMPOLINE_PAGE 1
 
@@ -48,6 +53,14 @@ static void short_delay(unsigned long amount) {
 void ap_init()
 {
     ap_counter ++;
+
+    gdtr_t gdtr;
+    gdtr.base = (uintptr_t)curr_cpu_local->gdt;
+    gdtr.limit = curr_cpu_local->gdt_size - 1;
+    // Установка GDT и TSS
+    gdt_update(&gdtr);
+    x64_ltr(TSS_DEFAULT_OFFSET);
+
     ap_started_flag = 1;
 
     while(1) {
@@ -72,9 +85,9 @@ void smp_init()
     // Скопировать код трамплина в первую физическую страницу
     memcpy(P2V(trampoline_addr), &ap_trampoline, trampoline_size);
 
+    // Получить номер начального ядра
     uint8_t bspid = 0;
     asm volatile ("mov $1, %%eax; cpuid; shrl $24, %%ebx;": "=b"(bspid) : : );
-    printf("BSP %i\n", bspid);
 
     apic_local_cpu_t** lapic_array = acpi_get_cpus_apic();
 
@@ -82,7 +95,6 @@ void smp_init()
     uint64_t trampoline_gdtr_offset = (uint64_t)&ap_gdtr - (uint64_t)&ap_trampoline;
     gdtr_t* ap_gdtr = (gdtr_t*)P2V(trampoline_addr + trampoline_gdtr_offset); 
 
-    page_table_t* ap_vmm = vmm_clone_kernel_memory_map();
 
     uint64_t vmem_offset = (uint64_t)&ap_vmem - (uint64_t)&ap_trampoline;
     uint32_t* vmem_addr = P2V(trampoline_addr + vmem_offset);
@@ -92,8 +104,10 @@ void smp_init()
     char* bootstrap_page = (char*)pmm_alloc_page();
     map_page_mem(get_kernel_pml4(), bootstrap_page, bootstrap_page, PAGE_PRESENT | PAGE_WRITABLE);
 
+    // замапить страницу с трамплином на 0x1000
     map_page_mem(get_kernel_pml4(), trampoline_addr, trampoline_addr, PAGE_PRESENT | PAGE_WRITABLE);
 
+    // Создаем стартовую GDT, общую для старта всех ядер
     size_t reqd_gdt_size = gdt_get_required_size(5, 1);
     gdt_entry_t* gdt_addr = (gdt_entry_t*)bootstrap_page;
     // код ядра (0x8)
@@ -104,10 +118,15 @@ void smp_init()
     gdt_set(gdt_addr + 3, 0, 0, GDT_BASE_USER_DATA_ACCESS, GDT_FLAGS);
     // код пользователя (0x20)
     gdt_set(gdt_addr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
+    // TSS
     tss_t* tss_addr = (tss_t*)(bootstrap_page + reqd_gdt_size);
     tss_addr->iopb = sizeof(tss_t) - 1;
     // TSS 0x28
     gdt_set_sys_seg(gdt_addr + 5, sizeof(tss_t) - 1, (uintptr_t)tss_addr, 0b10001001, 0b1001);
+
+    // запись GDT в память трамплина
+    ap_gdtr->base = gdt_addr;
+    ap_gdtr->limit = reqd_gdt_size - 1;
 
     // Инициализировать ядра
     for (int cpu_i = 0; cpu_i < acpi_get_cpus_apic_count(); cpu_i ++) {
@@ -119,13 +138,18 @@ void smp_init()
 
         ap_started_flag = 0;
 
-        // GDT для ядра
-        ap_gdtr->base = gdt_addr;
-        ap_gdtr->limit = reqd_gdt_size - 1;
+        // Создать структуру локальных данных ядра
+        curr_cpu_local = (struct cpu_local_x64*)kmalloc(sizeof(struct cpu_local_x64));
+        curr_cpu_local->lapic_id = lapic_array[cpu_i]->lapic_id;
+        curr_cpu_local->id = cpu_i;
+
+        // Создать GDT для ядра
+        gdt_create(&curr_cpu_local->gdt, &curr_cpu_local->gdt_size, &curr_cpu_local->tss);
 
         // IPI
         lapic_send_ipi(lapic_array[cpu_i]->lapic_id, 0x4500);
 
+        // задержка
 		short_delay(5000UL);
 
 		/* SIPI со страницей 1 */

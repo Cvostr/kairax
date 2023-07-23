@@ -65,7 +65,7 @@ void gdt_init()
     gdtr.limit = size - 1;
 
     gdt_update(&gdtr);
-    x64_ltr(0x28);
+    x64_ltr(TSS_DEFAULT_OFFSET);
 }
 
 void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss)

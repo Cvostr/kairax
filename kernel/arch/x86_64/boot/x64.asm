@@ -42,7 +42,7 @@ gdt_update:
 	lgdt  [rdi]
     push 0x08                 
     lea rax, [rel .reload_code_seg]
-    push RAX                  
+    push rax                  
     retfq                    
 
 .reload_code_seg:
