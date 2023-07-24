@@ -3,13 +3,14 @@
 #include "cpu/msr.h"
 #include "stdio.h"
 
+
 kernel_stack_t kstack;
 
 void init_kernel_stack()
 {
     kstack.kernel_stack = NULL;
     cpu_set_kernel_gs_base(&kstack);
-    cpu_set_gs_base(&kstack);
+    asm volatile("swapgs");
 }
 
 void set_kernel_stack(void* kstack_top)

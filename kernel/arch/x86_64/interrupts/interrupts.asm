@@ -1,5 +1,6 @@
 %include "memory/mem_layout.asm"
 %include "base/regs_stack.asm"
+%include "base/swapgs.asm"
 
 [BITS 64]
 [SECTION .text]
@@ -19,6 +20,7 @@ extern scheduler_entry
 
 section .text
 isr_entry:
+    _swapgs 24
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
@@ -42,7 +44,11 @@ isr_entry:
     mov ds, ax
     ; Извлечь 64 битные регистры из стека
     popaq
+
+    _swapgs 24
+
     add rsp, 16 ; Вытащить код ошибки из стека
+    
     iretq
 
 %macro isr_wrapper 1

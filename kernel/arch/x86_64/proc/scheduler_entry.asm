@@ -1,4 +1,5 @@
 %include "base/regs_stack.asm"
+%include "base/swapgs.asm"
 
 [BITS 64]
 [SECTION .text]
@@ -11,6 +12,7 @@ extern scheduler_entry_from_killed
 
 global scheduler_entry
 scheduler_entry:
+    _swapgs 8
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
@@ -37,6 +39,9 @@ scheduler_entry_from_killed:
     mov ds, ax
     ; Извлечь значения основных регистров
     popaq
+
+    _swapgs 8
+
     iretq
     
 global scheduler_yield_entry
