@@ -54,20 +54,6 @@ void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t
     sys_seg_begin->flags = flags;
 }
 
-void gdt_init()
-{
-    uint32_t size;
-    gdt_entry_t* entry_ptr = NULL;
-    gdt_create(&entry_ptr, &size, &_tss);
-
-    gdtr_t gdtr;
-    gdtr.base = (uintptr_t)entry_ptr;
-    gdtr.limit = size - 1;
-
-    gdt_update(&gdtr);
-    x64_ltr(TSS_DEFAULT_OFFSET);
-}
-
 void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss)
 {
     gdt_entry_t* entry_ptr;
@@ -88,9 +74,4 @@ void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss)
 
     gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)*tss, 0b10001001, 0b1001);
     *gdt = entry_ptr;
-}
-
-void tss_set_rsp0(uintptr_t address)
-{
-    _tss->rsp0 = address;
 }

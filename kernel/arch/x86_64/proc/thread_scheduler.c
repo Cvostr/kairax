@@ -6,11 +6,11 @@
 #include "memory/mem_layout.h"
 #include "string.h"
 #include "cpu/gdt.h"
-#include "kernel_stack.h"
 #include "mem/pmm.h"
 #include "memory/paging.h"
 #include "x64_context.h"
 #include "cpu/msr.h"
+#include "cpu/cpu_local_x64.h"
 
 list_t* threads_list;
 int curr_thread = 0;
@@ -22,6 +22,28 @@ int is_from_interrupt = 1;
 
 extern void scheduler_yield_entry();
 extern void scheduler_entry_from_killed(char* stub);
+
+static struct cpu_local_x64 __seg_gs * const this_core = 0;
+
+void set_kernel_stack(void* kstack_top)
+{
+    this_core->kernel_stack = kstack_top;
+}
+
+void* get_user_stack_ptr()
+{
+    return this_core->user_stack;
+}
+
+void set_user_stack_ptr(void* stack_ptr)
+{
+    this_core->user_stack = stack_ptr;
+}
+
+void tss_set_rsp0(uintptr_t address)
+{
+    this_core->tss->rsp0 = address;
+}
 
 void scheduler_yield()
 {

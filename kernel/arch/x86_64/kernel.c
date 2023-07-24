@@ -31,12 +31,9 @@
 #include "misc/bootshell/bootshell.h"
 #include "cpu/gdt.h"
 #include "cpu/msr.h"
-#include "proc/kernel_stack.h"
 #include "cpu/smp.h"
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
-
-extern void syscall_entry_x64();
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	b8_set_addr(P2K(0xB8000));
@@ -46,7 +43,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);
 	printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
 	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
-	printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
+	//printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
 
 	init_pmm();
 
@@ -94,10 +91,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		goto fatal_error;
 	}
 
-	//GDT
-	printf("GDT: Initialization ...\n");
-	gdt_init();
-
 	printf("ACPI: Initialization ...\n");
 	acpi_init();
 	printf("Enabling ACPI ...  ");
@@ -125,8 +118,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	devfs_init();
 	ahci_init();	
 	init_nvme();
-	cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
-	init_kernel_stack();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {
 		drive_device_t* device = get_drive(i);

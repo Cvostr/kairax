@@ -134,7 +134,7 @@ void smp_init()
 
         if (cpu_i == bspid) {
             // Обрабатываем стартовое ядро
-            /*struct cpu_local_x64* bsp_cpu_local = (struct cpu_local_x64*)kmalloc(sizeof(struct cpu_local_x64));
+            struct cpu_local_x64* bsp_cpu_local = (struct cpu_local_x64*)kmalloc(sizeof(struct cpu_local_x64));
             bsp_cpu_local->lapic_id = lapic_array[cpu_i]->lapic_id;
             bsp_cpu_local->id = cpu_i;
 
@@ -142,16 +142,16 @@ void smp_init()
             gdt_create(&bsp_cpu_local->gdt, &bsp_cpu_local->gdt_size, &bsp_cpu_local->tss);
 
             gdtr_t bsp_gdtr;
-            bsp_gdtr.base = (uintptr_t)curr_cpu_local->gdt;
-            bsp_gdtr.limit = curr_cpu_local->gdt_size - 1;
+            bsp_gdtr.base = (uintptr_t)bsp_cpu_local->gdt;
+            bsp_gdtr.limit = bsp_cpu_local->gdt_size - 1;
             // Установка GDT и TSS
             gdt_update(&bsp_gdtr);
             x64_ltr(TSS_DEFAULT_OFFSET);
             // Установка параметров для syscall
             cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
             // Запомнить данные ядра в KERNEL GS
-            cpu_set_kernel_gs_base(curr_cpu_local);
-            asm volatile("swapgs");*/
+            cpu_set_kernel_gs_base(bsp_cpu_local);
+            asm volatile("swapgs");
             continue;
         }
 
