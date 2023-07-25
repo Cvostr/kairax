@@ -102,9 +102,6 @@ syscall_process_exit:
     mov rax, 0x3C
     syscall
 
-stub:
-    jmp stub
-
 syscall_create_thread:
     mov rax, 0xFF10
     syscall

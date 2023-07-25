@@ -62,9 +62,10 @@ void ap_init()
     // Ядро запущено, можно запускать следующее
     ap_started_flag = 1;
 
-    while(1) {
-        char* addr = P2V(0xB8002);
-        *addr = 'X';
+    while (1) {
+        asm volatile ("nop");
+        //char* addr = P2V(0xB8002);
+        //*addr = 'X';
     }
 }
 
@@ -127,8 +128,6 @@ void smp_init()
     ap_gdtr->base = gdt_addr;
     ap_gdtr->limit = reqd_gdt_size - 1;
 
-
-
     // Инициализировать ядра
     for (int cpu_i = 0; cpu_i < acpi_get_cpus_apic_count(); cpu_i ++) {
 
@@ -151,6 +150,7 @@ void smp_init()
             cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
             // Запомнить данные ядра в KERNEL GS
             cpu_set_kernel_gs_base(bsp_cpu_local);
+            //cpu_set_gs_base(bsp_cpu_local);
             asm volatile("swapgs");
             continue;
         }
@@ -183,7 +183,7 @@ void smp_init()
         do { asm volatile ("pause" : : : "memory"); } while (!ap_started_flag);
     }
 
-    char* model[48];
+    char model[48];
 	cpuid_get_model_string(model);
 	printf("CPU %s, %i cores initialized\n", model, acpi_get_cpus_apic_count());
 

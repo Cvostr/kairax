@@ -16,6 +16,11 @@ pid_t process_get_id()
     return (pid_t)syscall_process_get_id();
 }
 
+pid_t thread_get_id()
+{
+    return (pid_t)syscall_thread_get_id();
+}
+
 void sleep(int time)
 {
     syscall_sleep(time);

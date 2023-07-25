@@ -57,6 +57,9 @@ void scheduler_from_killed()
     asm("cli");
     is_from_interrupt = 0;
     scheduler_entry_from_killed(NULL);
+    while (1) {
+        asm volatile ("nop");
+    }
 }
 
 void scheduler_add_thread(struct thread* thread)

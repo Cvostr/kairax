@@ -14,6 +14,6 @@ struct cpu_local_x64 {
     size_t gdt_size;
     int lapic_id;
     int id;
-};
+} PACKED;
 
 #endif
