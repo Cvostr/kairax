@@ -3,8 +3,6 @@
 #include "mem/pmm.h"
 #include "string.h"
 
-tss_t* _tss;
-
 size_t gdt_get_required_size(uint32_t entries_num, uint32_t sys_seg_descs_num)
 {
     return entries_num * sizeof(gdt_entry_t) + sys_seg_descs_num * sizeof(system_seg_desc_t);
@@ -69,9 +67,9 @@ void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss)
     gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
 
     *tss = new_tss();
-    (*tss)->ist2 = (uintptr_t)P2V(pmm_alloc_page());
+    (*tss)->ist2 = (uint64_t)P2V(pmm_alloc_page());
     (*tss)->iopb = sizeof(tss_t) - 1;
 
-    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uintptr_t)*tss, 0b10001001, 0b1001);
+    gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uint64_t)(*tss), 0b10001001, 0b1001);
     *gdt = entry_ptr;
 }

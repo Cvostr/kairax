@@ -97,8 +97,6 @@ void gdt_set(gdt_entry_t* entry_begin, uint32_t limit, uint32_t base, uint8_t ac
 
 void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t base, uint8_t access, uint8_t flags);
 
-void gdt_init();
-
 void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss);
 
 void tss_set_rsp0(uintptr_t address);
