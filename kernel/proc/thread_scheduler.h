@@ -13,8 +13,6 @@ void scheduler_remove_thread(struct thread* thread);
 
 void scheduler_remove_process_threads(struct process* process);
 
-struct thread* scheduler_get_current_thread();
-
 void scheduler_yield();
 
 void scheduler_from_killed();

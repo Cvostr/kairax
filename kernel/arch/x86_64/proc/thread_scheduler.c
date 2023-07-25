@@ -15,35 +15,12 @@
 list_t* threads_list;
 int curr_thread = 0;
 
-struct thread* prev_thread = NULL;
 spinlock_t threads_mutex = 0;
 
 int is_from_interrupt = 1;
 
 extern void scheduler_yield_entry();
 extern void scheduler_entry_from_killed(char* stub);
-
-static struct cpu_local_x64 __seg_gs * const this_core = 0;
-
-void set_kernel_stack(void* kstack_top)
-{
-    this_core->kernel_stack = kstack_top;
-}
-
-void* get_user_stack_ptr()
-{
-    return this_core->user_stack;
-}
-
-void set_user_stack_ptr(void* stack_ptr)
-{
-    this_core->user_stack = stack_ptr;
-}
-
-void tss_set_rsp0(uintptr_t address)
-{
-    this_core->tss->rsp0 = address;
-}
 
 void scheduler_yield()
 {
@@ -88,11 +65,6 @@ void scheduler_remove_process_threads(struct process* process)
     release_spinlock(&threads_mutex);
 }
 
-struct thread* scheduler_get_current_thread()
-{
-    return prev_thread;
-}
-
 void scheduler_eoi()
 {
     if (is_from_interrupt) {
@@ -113,15 +85,17 @@ void* scheduler_handler(thread_frame_t* frame)
         return frame;
 	}
 
+    struct thread* previous_thread = cpu_get_current_thread();
+
     // Сохранить состояние 
-    if(prev_thread != NULL && frame) {
+    if(previous_thread != NULL && frame) {
 
         // Сохранить указатель на контекст
-        prev_thread->context = frame;
+        previous_thread->context = frame;
 
-        if (prev_thread->is_userspace) {
+        if (previous_thread->is_userspace) {
             // Сохранить указатель на вершину стека пользователя
-            prev_thread->stack_ptr = get_user_stack_ptr();
+            previous_thread->stack_ptr = get_user_stack_ptr();
         }
     }
 
@@ -140,7 +114,7 @@ void* scheduler_handler(thread_frame_t* frame)
         thread_frame->rflags |= 0x200;
         if (new_thread->is_userspace) {
             // Обновить данные об указателях на стек
-            set_kernel_stack(new_thread->kernel_stack_ptr);
+            cpu_set_kernel_stack(new_thread->kernel_stack_ptr);
             tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
             set_user_stack_ptr(new_thread->stack_ptr);
 
@@ -150,12 +124,13 @@ void* scheduler_handler(thread_frame_t* frame)
             }
         }
 
-        prev_thread = new_thread;
+        // Сохранить указатель на новый поток в локальной структуре ядра
+        cpu_set_current_thread(new_thread);
 
         // Заменить таблицу виртуальной памяти процесса
         switch_pml4(V2P(process->vmemory_table));
     } else {
-        new_thread = prev_thread;
+        new_thread = cpu_get_current_thread();
     }
 
     scheduler_eoi();

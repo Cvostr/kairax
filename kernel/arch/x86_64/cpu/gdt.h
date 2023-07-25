@@ -99,8 +99,6 @@ void gdt_set_sys_seg(system_seg_desc_t* sys_seg_begin, uint32_t limit, uintptr_t
 
 void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss);
 
-void tss_set_rsp0(uintptr_t address);
-
 extern void gdt_update(void*);
 extern void x64_ltr(int);
 

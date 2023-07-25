@@ -1,6 +1,7 @@
 #include "types.h"
 #include "stdio.h"
 #include "proc/thread_scheduler.h"
+#include "cpu/cpu_local_x64.h"
 
 typedef struct PACKED 
 {
@@ -25,7 +26,7 @@ typedef struct PACKED
 
 void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
-    struct thread* current_thread = scheduler_get_current_thread();
+    struct thread* current_thread = this_core->current_thread;
     struct process* current_process = current_thread->process;
     size_t buffer_length = 0;
     
