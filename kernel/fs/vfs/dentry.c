@@ -109,6 +109,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
             break;
         }
 
+        // Получить позицию следующего разделителя
         char* slash_pos = strchr(path_temp, '/');
 
         if (slash_pos != NULL) {

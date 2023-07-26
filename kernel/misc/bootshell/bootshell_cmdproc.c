@@ -99,7 +99,7 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "ls") == 0) {
         uint32_t index = 0;
 
-        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
+        struct inode* inode = vfs_fopen(wd_dentry, argc > 1 ? args[1] : NULL, 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
             goto exit;
@@ -143,7 +143,7 @@ void bootshell_process_cmd(char* cmdline)
             goto exit;
         }
         int size = inode->size;
-        printf("%s: ", args);
+        printf("%s: ", args[1]);
         char* buffer = kmalloc(size);
 
         loff_t offset = 0;
