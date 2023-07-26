@@ -240,7 +240,7 @@ exit:
 int process_set_working_dir(struct process* process, const char* buffer)
 {
     int rc = -1;
-    struct dentry* new_wd = dentry_traverse_path(vfs_get_root_dentry(), buffer + 1);
+    struct dentry* new_wd = vfs_dentry_traverse_path(vfs_get_root_dentry(), buffer);
     if (new_wd) {
         rc = 0;
         process->workdir = new_wd;

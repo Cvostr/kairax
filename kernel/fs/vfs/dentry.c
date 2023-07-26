@@ -112,11 +112,13 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
         char* slash_pos = strchr(path_temp, '/');
 
         if (slash_pos != NULL) {
+            // еще есть разделители /
             strncpy(name_temp, path_temp, slash_pos - path_temp);
             path_temp = slash_pos + 1;
             current = superblock_get_dentry(current->sb, current, name_temp);
             continue;
         } else {
+            // Больше нет разделителей /
             strncpy(name_temp, path_temp, strlen(path_temp));
             result = superblock_get_dentry(current->sb, current, name_temp);
             break;

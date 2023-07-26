@@ -950,6 +950,8 @@ uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, cons
     uint64_t result = WRONG_INODE_INDEX;
     ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
     
+    size_t name_len = strlen(name);
+
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();
     ext2_inode(inst, parent_inode, parent_inode_index);
@@ -978,7 +980,7 @@ uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, cons
         // Считанный dirent
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
         // Проверка совпадения имени
-        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0)) {
+        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) {
             result = curr_entry->inode;
             goto exit;
         }

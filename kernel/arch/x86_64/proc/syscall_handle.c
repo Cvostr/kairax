@@ -26,7 +26,7 @@ typedef struct PACKED
 
 void syscall_handle(syscall_frame_t* frame) {
     char* mem = (char*)frame->rdi;
-    struct thread* current_thread = this_core->current_thread;
+    struct thread* current_thread = cpu_get_current_thread();
     struct process* current_process = current_thread->process;
     size_t buffer_length = 0;
     

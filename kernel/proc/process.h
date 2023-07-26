@@ -34,9 +34,9 @@ struct process {
     spinlock_t      fd_spinlock;
 };
 
-struct process_start_info {
+struct new_process_info {
     char*   workdir;
-    size_t  args_size;
+    size_t  num_args;
     char**  args;
 };
 

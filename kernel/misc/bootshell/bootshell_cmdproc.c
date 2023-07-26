@@ -17,40 +17,48 @@
 
 #include "stdio.h"
 
-void bootshell_process_cmd(char* cmdline){
-    char* cmd = NULL;
-    char* args = NULL;
-    char* space_index = strchr(cmdline, ' ');
-    if(space_index != NULL){
-        int cmdlen = space_index - cmdline;
-        cmd = kmalloc(cmdlen + 1);
-        strncpy(cmd, cmdline, cmdlen);
-        args = space_index + 1;
-    } else {
-        int cmdline_len = strlen(cmdline);
-        cmd = kmalloc(cmdline_len + 1);
-        strncpy(cmd, cmdline, cmdline_len);
+extern char curdir[512];
+extern struct inode* wd_inode;
+extern struct dentry* wd_dentry;
+
+void bootshell_process_cmd(char* cmdline) 
+{
+    int argc = 1;
+    // подсчет аргументов по количеству пробелов
+    for (int i = 0; i < strlen(cmdline); i ++) {
+        if (cmdline[i] == ' ')
+            argc++;
     }
 
+    char* cmdline_temp = cmdline;
+    char** args = kmalloc(sizeof(char*) * argc);
+    for (int i = 0; i < argc; i ++) {
+        char* space_ptr = strchr(cmdline_temp, ' ');
+        int len = 0;
+        if (space_ptr != NULL) {
+            len = space_ptr - cmdline_temp;
+        } else {
+            len = strlen(cmdline_temp);
+        }
+        
+        args[i] = kmalloc(sizeof(char) * (len + 1));
+        strncpy(args[i], cmdline_temp, len);
+        cmdline_temp = space_ptr + 1;
+    }
+
+    char* cmd = args[0];
+
     if(strcmp(cmd, "mount") == 0){
-        char* args_space_index = strchr(args, ' ');
-        int partition_name_len = args_space_index - args;
-        int mount_path_len = strlen(args_space_index + 1);
 
-        char* partition_name = kmalloc(partition_name_len + 1);
-        strncpy(partition_name, args, partition_name_len);
-
-        char* mnt_path = kmalloc(mount_path_len + 1);
-        strcpy(mnt_path, args_space_index + 1);
+        char* partition_name = args[1];
+        char* mnt_path = args[2];
 
         printf("Mounting partition %s to path %s\n", partition_name, mnt_path);
 
         drive_partition_t* partition = get_partition_with_name(partition_name);
         if(partition == NULL){
             printf("ERROR: No partition with name %s\n", partition_name);
-            kfree(partition_name);
-            kfree(mnt_path);
-            return;
+            goto exit;
         }
 
         int result = vfs_mount(mnt_path, partition);
@@ -60,15 +68,28 @@ void bootshell_process_cmd(char* cmdline){
             printf("Successfully mounted!\n");
         }
 
-        kfree(partition_name);
-        kfree(mnt_path);
+    }
+    if(strcmp(cmd, "cd") == 0){
+        if (!wd_inode) {
+            inode_close(wd_inode);
+        }
+        struct dentry* new_dentry;
+        wd_inode = vfs_fopen(wd_dentry, args[1], 0, &new_dentry);
+        if (wd_inode == NULL) {
+            printf("ERROR: cant cd to %s\n", args[1]);
+            goto exit;
+        }
+        wd_dentry = new_dentry;
+        memset(curdir, 0, 512);
+        dentry_get_absolute_path(wd_dentry, NULL, curdir);
+                
     }
     if(strcmp(cmd, "unmount") == 0){
-        int result = vfs_unmount(args);
+        int result = vfs_unmount(args[1]);
     }
     if(strcmp(cmd, "path") == 0){
         int offset = 0;
-        struct superblock* result = dentry_traverse_path(vfs_get_root_dentry(), args + 1)->sb;
+        struct superblock* result = vfs_dentry_traverse_path(vfs_get_root_dentry(), args[1])->sb;
         if (result == NULL) {
             printf("No mounted device\n");
         }else 
@@ -77,10 +98,11 @@ void bootshell_process_cmd(char* cmdline){
     }
     if(strcmp(cmd, "ls") == 0) {
         uint32_t index = 0;
-        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
+
+        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : ", args);
-            return;
+            goto exit;
         }
         struct dirent* child = NULL;
         while((child = inode_readdir(inode, index++)) != NULL){
@@ -92,10 +114,10 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(inode); 
     }
     if(strcmp(cmd, "chmod") == 0) {
-        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
+        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
         if(inode == NULL){
-            printf("Can't open file with path : `%s", args);
-            return;
+            printf("Can't open file with path : %s", args[1]);
+            goto exit;
         }
 
         inode_chmod(inode, 0xFFF);
@@ -104,21 +126,21 @@ void bootshell_process_cmd(char* cmdline){
     if(strcmp(cmd, "mkdir") == 0) {
         struct inode* inode = vfs_fopen(NULL, "/", 0, NULL);
         if(inode == NULL){
-            printf("Can't open file with path : `%s", args);
-            return;
+            printf("Can't open file with path : %s", args[1]);
+            goto exit;
         }
 
-        int rc = inode_mkdir(inode, args, 0xFFF);
+        int rc = inode_mkdir(inode, args[1], 0xFFF);
         if (rc != 0) {
             printf("Error creating dir : %i", rc);
         }
         inode_close(inode);
     }
     if(strcmp(cmd, "cat") == 0){
-        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
+        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
         if(inode == NULL){
-            printf("Can't open directory with path : %s", args);
-            return;
+            printf("Can't open directory with path : %s", args[1]);
+            goto exit;
         }
         int size = inode->size;
         printf("%s: ", args);
@@ -169,9 +191,9 @@ void bootshell_process_cmd(char* cmdline){
         inode_close(ls_i);
     }
     if(strcmp(cmd, "exec") == 0) {
-        struct inode* inode = vfs_fopen(NULL, args, 0, NULL);
+        struct inode* inode = vfs_fopen(NULL, args[1], 0, NULL);
         if(inode == NULL){
-            printf("Can't open file with path : ", args);
+            printf("Can't open file with path : ", args[1]);
             return;
         }
         int size = inode->size;
@@ -339,7 +361,9 @@ void bootshell_process_cmd(char* cmdline){
         }
     }
 
-    if(cmd != NULL){
-        kfree(cmd);
+exit:
+    for (int i = 0; i < argc; i ++) {
+        kfree(args[i]);
     }
+    kfree(args);
 }

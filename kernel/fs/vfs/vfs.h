@@ -29,4 +29,6 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, uint32_t flags,
 
 struct dentry* vfs_get_root_dentry();
 
+struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path);
+
 #endif

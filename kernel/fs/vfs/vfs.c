@@ -50,7 +50,7 @@ int vfs_mount(char* mount_path, drive_partition_t* partition)
 
 int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
 {
-    struct dentry* mp = dentry_traverse_path(root_dentry, mount_path + 1);
+    struct dentry* mp = vfs_dentry_traverse_path(root_dentry, mount_path);
 
     int mount_pos = vfs_get_free_mount_info_pos();
     if(mount_pos == -1)
@@ -90,7 +90,7 @@ int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
 
 int vfs_unmount(char* mount_path)
 {
-    struct dentry* root_dentry = dentry_traverse_path(root_dentry, mount_path + 1);
+    struct dentry* root_dentry = vfs_dentry_traverse_path(root_dentry, mount_path);
     
     if (!root_dentry) {
         return -1;
@@ -120,7 +120,7 @@ int vfs_unmount(char* mount_path)
 
 struct superblock* vfs_get_mounted_partition(const char* mount_path)
 {
-    struct dentry* path_dentry = dentry_traverse_path(root_dentry, mount_path + 1);
+    struct dentry* path_dentry = vfs_dentry_traverse_path(root_dentry, mount_path);
 
     return path_dentry->sb;
 }
@@ -204,4 +204,16 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, uint32_t flags,
 exit:
     kfree(temp);
     return result;
+}
+
+struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
+{
+    if (path[0] == '/') {
+        parent = root_dentry;
+        path++;
+    } else if (parent == NULL) {
+        return NULL;
+    }
+
+    return dentry_traverse_path(parent, path);
 }
