@@ -4,7 +4,7 @@
 #include "../sdk/libc/errno.h"
 #include "../sdk/libc/process.h"
 
-char buff[120];
+char buff[220];
 
 void thread_func(int * arg) {
     printf("ARG : %i\n", *arg);
@@ -21,6 +21,9 @@ int main() {
     int counter = 0;
     printf("PID : %i\n", process_get_id());
     
+    syscall_get_working_dir(buff, 220);
+    printf("CWD : %s\n", buff);
+
     int fd1 = open_file("/mydir/blabla", FILE_OPEN_MODE_READ_ONLY, 0);
     int fd2 = open_file("/mydir", FILE_OPEN_MODE_READ_ONLY, 0);
     int rc1 = read(fd1, buff, 119);

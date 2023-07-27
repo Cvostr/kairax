@@ -12,9 +12,11 @@
 
 #define lseek file_seek
 
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
+#define SEEK_SET    0
+#define SEEK_CUR    1
+#define SEEK_END    2
+
+#define FD_CWD		-2
 
 int open_file(const char* filepath, int flags, int mode);
 

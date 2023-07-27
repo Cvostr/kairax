@@ -4,7 +4,7 @@
 
 int main() {
 
-    int dirfd = open_file("/", 0, FILE_OPEN_MODE_READ_ONLY);
+    int dirfd = open_file("", 0, FILE_OPEN_MODE_READ_ONLY);
     struct stat dirstat;
     int rc = fdstat(dirfd, &dirstat);
 

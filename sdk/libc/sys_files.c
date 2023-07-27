@@ -3,7 +3,7 @@
 
 int open_file(const char* filepath, int flags, int mode)
 {
-    return syscall_open_file(filepath, flags, mode);
+    return syscall_open_file(FD_CWD, filepath, flags, mode);
 }
 
 int close(int fd)

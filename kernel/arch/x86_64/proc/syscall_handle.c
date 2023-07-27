@@ -41,9 +41,10 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x2: // Открытие файла
             frame->rax = process_open_file(current_process, 
-               (char*)frame->rdi,
-               frame->rsi,
-               frame->rdx);
+               frame->rdi,
+               (char*)frame->rsi,
+               frame->rdx,
+               frame->r8);
             break;
 
         case 0x3: // Закрытие файла

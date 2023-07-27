@@ -16,7 +16,8 @@ struct process {
 
     uint32_t        state;
     // Путь к текущей рабочей папке
-    struct dentry*  workdir;
+    struct dentry*  cwd_dentry;
+    struct inode*   cwd_inode;
     // Таблица виртуальной памяти процесса
     void*           vmemory_table;  
     // Процесс - родитель
@@ -34,8 +35,8 @@ struct process {
     spinlock_t      fd_spinlock;
 };
 
-struct new_process_info {
-    char*   workdir;
+struct process_create_info {
+    char*   current_directory;
     size_t  num_args;
     char**  args;
 };
@@ -45,18 +46,20 @@ struct process*  create_new_process(struct process* parent);
 
 void free_process(struct process* process);
 
-int create_new_process_from_image(struct process* parent, char* image);
+int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info);
 
 // Установить адрес конца памяти процесса
 uintptr_t        process_brk_flags(struct process* process, void* addr, uint64_t flags);
 
 uintptr_t        process_brk(struct process* process, uint64_t addr);
 
+int process_create_process(struct process* process, const char* filepath, struct process_create_info* info);
+
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
 file_t* process_get_file(struct process* process, int fd);
 
-int process_open_file(struct process* process, const char* path, int mode, int flags);
+int process_open_file(struct process* process, int dirfd, const char* path, int mode, int flags);
 
 int process_close_file(struct process* process, int fd);
 

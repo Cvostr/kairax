@@ -166,3 +166,18 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
 
     return dentry_traverse_path(parent, path);
 }
+
+void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
+{
+    if (p_dentry == root_dentry) {
+        if (p_required_size) {
+            p_required_size = 1;
+        }
+
+        if (p_result) {
+            strcat(p_result, "/");
+        }
+    }
+
+    dentry_get_absolute_path(p_dentry, p_required_size, p_result);
+}

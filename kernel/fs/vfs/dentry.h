@@ -33,6 +33,6 @@ struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* chi
 
 struct dentry* dentry_traverse_path(struct dentry* p_dentry, const char* path);
 
-struct dentry* dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
+void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
 
 #endif

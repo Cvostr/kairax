@@ -131,13 +131,14 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
     return result;
 }
 
-struct dentry* dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
+void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
 {
     if (p_dentry->parent) {
         dentry_get_absolute_path(p_dentry->parent, p_required_size, p_result);
     }
 
     if (strlen(p_dentry->name) > 0) {
+
         if (p_required_size) {
             *p_required_size += (strlen(p_dentry->name) + 1);
         }

@@ -30,7 +30,7 @@ struct process*  create_new_process(struct process* parent)
     return process;
 }
 
-int create_new_process_from_image(struct process* parent, char* image)
+int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info)
 {
     elf_header_t* elf_header = (elf_header_t*)image;
 
@@ -78,6 +78,23 @@ int create_new_process_from_image(struct process* parent, char* image)
             proc->tls = kmalloc(tdata_ptr->size);
             memcpy(proc->tls, image + tdata_ptr->offset, tdata_ptr->size);
             proc->tls_size = tdata_ptr->size;
+        }
+
+        if (info) {
+            if (info->current_directory) {
+                // Указана папка
+                proc->cwd_inode = vfs_fopen(NULL, info->current_directory, 0, &proc->cwd_dentry);
+            } else {
+                // TODO: Используем папку родителя
+            }
+
+            /*size_t args_array_size = sizeof(char*) * info->num_args;
+            size_t reqd_size = args_array_size;
+            for (size_t i = 0; i < args_array_size; i ++) {
+                reqd_size += strlen(info->args[i]);
+            }*/
+            
+            //char* args_mem = (char*)process_brk(proc, proc->brk + reqd_size) - reqd_size;
         }
 
         // Создание главного потока и передача выполнения

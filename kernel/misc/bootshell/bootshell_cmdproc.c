@@ -81,7 +81,7 @@ void bootshell_process_cmd(char* cmdline)
         }
         wd_dentry = new_dentry;
         memset(curdir, 0, 512);
-        dentry_get_absolute_path(wd_dentry, NULL, curdir);
+        vfs_dentry_get_absolute_path(wd_dentry, NULL, curdir);
                 
     }
     if(strcmp(cmd, "unmount") == 0){
@@ -123,18 +123,11 @@ void bootshell_process_cmd(char* cmdline)
         inode_chmod(inode, 0xFFF);
         inode_close(inode);
     }
-    if(strcmp(cmd, "mkdir") == 0) {
-        struct inode* inode = vfs_fopen(NULL, "/", 0, NULL);
-        if(inode == NULL){
-            printf("Can't open file with path : %s", args[1]);
-            goto exit;
-        }
-
-        int rc = inode_mkdir(inode, args[1], 0xFFF);
+    if (strcmp(cmd, "mkdir") == 0) {
+        int rc = inode_mkdir(wd_inode, args[1], 0xFFF);
         if (rc != 0) {
             printf("Error creating dir : %i", rc);
         }
-        inode_close(inode);
     }
     if(strcmp(cmd, "cat") == 0){
         struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
@@ -177,9 +170,9 @@ void bootshell_process_cmd(char* cmdline)
         inode_read(ls_i, &offset, size, ls_d);
 
         for (int i = 0; i < 30; i ++) {
-            int rc = create_new_process_from_image(NULL, sysn_d); 
-            rc = create_new_process_from_image(NULL, sysc_d); 
-            rc = create_new_process_from_image(NULL, ls_d); 
+            int rc = create_new_process_from_image(NULL, sysn_d, NULL); 
+            rc = create_new_process_from_image(NULL, sysc_d, NULL); 
+            rc = create_new_process_from_image(NULL, ls_d, NULL); 
         }
 
         kfree(sysn_d);
@@ -191,13 +184,13 @@ void bootshell_process_cmd(char* cmdline)
         inode_close(ls_i);
     }
     if(strcmp(cmd, "exec") == 0) {
-        struct inode* inode = vfs_fopen(NULL, args[1], 0, NULL);
+        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
         if(inode == NULL){
             printf("Can't open file with path : ", args[1]);
             return;
         }
         int size = inode->size;
-        printf("%s: ", args);
+        printf("\n");
         char* buffer = kmalloc(size);
         if(buffer == NULL) {
             printf("Error allocating memory");
@@ -208,7 +201,9 @@ void bootshell_process_cmd(char* cmdline)
         inode_read(inode, &offset, size, buffer);
 
         //Запуск
-        int rc = create_new_process_from_image(NULL, buffer); 
+        struct process_create_info info;
+        info.current_directory = curdir;
+        int rc = create_new_process_from_image(NULL, buffer, &info); 
 
         kfree(buffer);
         inode_close(inode);
@@ -220,10 +215,10 @@ void bootshell_process_cmd(char* cmdline)
             if(mount != NULL) {
                 size_t reqd_size = 0;
                 char* abs_path_buffer = NULL;
-                dentry_get_absolute_path(mount->root_dir, &reqd_size, NULL);
+                vfs_dentry_get_absolute_path(mount->root_dir, &reqd_size, NULL);
                 abs_path_buffer = kmalloc(reqd_size + 1);
                 memset(abs_path_buffer, 0, reqd_size + 1);
-                dentry_get_absolute_path(mount->root_dir, NULL, abs_path_buffer);
+                vfs_dentry_get_absolute_path(mount->root_dir, NULL, abs_path_buffer);
                 printf("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, abs_path_buffer, mount->filesystem->name);
                 kfree(abs_path_buffer);
             }

@@ -1,7 +1,7 @@
 #ifndef KAIRAX_H
 #define KAIRAX_H
 
-extern int syscall_open_file(const char* filepath, int flags, int mode);
+extern int syscall_open_file(int dirfd, const char* filepath, int flags, int mode);
 extern int syscall_close(int fd);
 extern int syscall_read(int fd, char* buffer, unsigned long long size);
 extern int syscall_readdir(int fd, void* buffer);

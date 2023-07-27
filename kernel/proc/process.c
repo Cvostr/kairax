@@ -44,11 +44,49 @@ file_t* process_get_file(struct process* process, int fd)
     return process->fds[fd];
 }
 
-int process_open_file(struct process* process, const char* path, int mode, int flags)
+int process_create_process(struct process* process, const char* filepath, struct process_create_info* info)
+{
+    struct inode* inode = vfs_fopen(NULL, filepath, 0, NULL);
+    if (inode == NULL) {
+        return -1;
+    }
+
+    loff_t offset = 0;
+    int size = inode->size;
+    char* image_data = kmalloc(size);
+    inode_read(inode, &offset, size, image_data);
+
+    int rc = create_new_process_from_image(process, image_data, info);
+
+exit:
+    kfree(image_data);
+
+    return rc;
+}
+
+int process_open_file(struct process* process, int dirfd, const char* path, int mode, int flags)
 {
     int fd = -1;
+    struct dentry* dir_dentry = NULL;
+
+    if (dirfd == -2) {
+        // Открыть относительно рабочей директории
+        dir_dentry = process->cwd_dentry;
+    } else {
+        // Открыть относительно другого файла
+        acquire_spinlock(&process->fd_spinlock);
+        file_t* dirfile = process_get_file(process, dirfd);
+        if (dirfile) {
+            dir_dentry = dirfile->dentry;
+        } else {
+            // Файл не нашелся
+            // TODO: Проверить относительность пути
+        }
+        release_spinlock(&process->fd_spinlock);
+    }
+
     struct dentry* dentry;
-    struct inode* inode = vfs_fopen(NULL, path, 0, &dentry);
+    struct inode* inode = vfs_fopen(dir_dentry, path, 0, &dentry);
 
     if (inode == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
@@ -222,14 +260,14 @@ exit:
 int process_get_working_dir(struct process* process, char* buffer, size_t size)
 {
     int rc = -1;
-    if (process->workdir) {
+    if (process->cwd_dentry) {
         size_t reqd_size = 0;
-        dentry_get_absolute_path(process->workdir, &reqd_size, NULL);
+        vfs_dentry_get_absolute_path(process->cwd_dentry, &reqd_size, NULL);
         if (reqd_size + 1 > size) {
             goto exit;
         }
 
-        dentry_get_absolute_path(process->workdir, NULL, buffer);
+        vfs_dentry_get_absolute_path(process->cwd_dentry, NULL, buffer);
         rc = 0;
     }
 
@@ -240,10 +278,21 @@ exit:
 int process_set_working_dir(struct process* process, const char* buffer)
 {
     int rc = -1;
-    struct dentry* new_wd = vfs_dentry_traverse_path(vfs_get_root_dentry(), buffer);
-    if (new_wd) {
+    struct dentry* new_wd_dentry = NULL;
+    struct inode* new_wd_inode = vfs_fopen(process->cwd_dentry, buffer, 0, &new_wd_dentry);
+
+    if (new_wd_inode && new_wd_dentry) {
+        if ( process->cwd_inode) {
+            inode_close(process->cwd_inode);
+        }
+        if (process->cwd_dentry) {
+            dentry_close(process->cwd_dentry);
+        }
+
+        process->cwd_inode = new_wd_inode;
+        process->cwd_dentry = new_wd_dentry;
+
         rc = 0;
-        process->workdir = new_wd;
     }
 
     return rc;

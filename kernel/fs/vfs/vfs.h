@@ -31,4 +31,6 @@ struct dentry* vfs_get_root_dentry();
 
 struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path);
 
+void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
+
 #endif
