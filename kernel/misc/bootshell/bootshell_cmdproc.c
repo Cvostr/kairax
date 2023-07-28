@@ -83,6 +83,7 @@ void bootshell_process_cmd(char* cmdline)
         memset(curdir, 0, 512);
         vfs_dentry_get_absolute_path(wd_dentry, NULL, curdir);
                 
+        //process_set_working_dir(NULL, args[1]);
     }
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args[1]);

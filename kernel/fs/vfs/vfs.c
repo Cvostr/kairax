@@ -171,7 +171,7 @@ void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_si
 {
     if (p_dentry == root_dentry) {
         if (p_required_size) {
-            p_required_size = 1;
+            *p_required_size = 1;
         }
 
         if (p_result) {

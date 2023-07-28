@@ -83,9 +83,31 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
         if (info) {
             if (info->current_directory) {
                 // Указана папка
-                proc->cwd_inode = vfs_fopen(NULL, info->current_directory, 0, &proc->cwd_dentry);
+                struct dentry* wd_dentry = NULL;
+                struct inode* wd_inode = vfs_fopen(NULL, info->current_directory, 0, &wd_dentry);
+
+                if (wd_inode) {
+                    if (wd_inode->mode & INODE_TYPE_DIRECTORY) {
+                        proc->cwd_inode = wd_inode;
+                        proc->cwd_dentry = wd_dentry;
+                    } else {
+                        inode_close(wd_inode);
+                        dentry_close(wd_dentry);
+                    }
+                }
+
             } else {
-                // TODO: Используем папку родителя
+                // Используем папку родителя, если она есть
+                if (parent->cwd_inode && parent->cwd_dentry) {
+
+                    // Увеличиваем счетчик ссылок
+                    inode_open(parent->cwd_inode, 0);
+                    dentry_open(parent->cwd_dentry);
+
+                    // Копируем указатели
+                    proc->cwd_inode = parent->cwd_inode;
+                    proc->cwd_dentry = parent->cwd_dentry;
+                }
             }
 
             /*size_t args_array_size = sizeof(char*) * info->num_args;
@@ -98,7 +120,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
         }
 
         // Создание главного потока и передача выполнения
-        struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, NULL, 0);
+        struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, NULL, NULL, 0);
 	    scheduler_add_thread(thr);  
         
     } else {

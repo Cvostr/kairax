@@ -27,6 +27,12 @@ void free_process(struct process* process)
             file_close(process->fds[i]);
         }
     }
+
+    // Закрыть объекты рабочей папки
+    if (process->cwd_inode) {
+        inode_close(process->cwd_inode);
+        dentry_close(process->cwd_dentry);
+    }
     
     // Уничтожение таблицы виртуальной памяти процесса
     // и освобождение занятых таблиц физической
@@ -75,18 +81,21 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
     } else {
         // Открыть относительно другого файла
         acquire_spinlock(&process->fd_spinlock);
+
         file_t* dirfile = process_get_file(process, dirfd);
+
         if (dirfile) {
             dir_dentry = dirfile->dentry;
         } else {
             // Файл не нашелся
             // TODO: Проверить относительность пути
         }
+
         release_spinlock(&process->fd_spinlock);
     }
 
     struct dentry* dentry;
-    struct inode* inode = vfs_fopen(dir_dentry, path, 0, &dentry);
+    struct inode* inode = vfs_fopen(dir_dentry, path, flags, &dentry);
 
     if (inode == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
@@ -261,6 +270,7 @@ int process_get_working_dir(struct process* process, char* buffer, size_t size)
 {
     int rc = -1;
     if (process->cwd_dentry) {
+        
         size_t reqd_size = 0;
         vfs_dentry_get_absolute_path(process->cwd_dentry, &reqd_size, NULL);
         if (reqd_size + 1 > size) {
@@ -282,17 +292,23 @@ int process_set_working_dir(struct process* process, const char* buffer)
     struct inode* new_wd_inode = vfs_fopen(process->cwd_dentry, buffer, 0, &new_wd_dentry);
 
     if (new_wd_inode && new_wd_dentry) {
-        if ( process->cwd_inode) {
-            inode_close(process->cwd_inode);
-        }
-        if (process->cwd_dentry) {
-            dentry_close(process->cwd_dentry);
-        }
+        // inode найдена, убеждаемся что это директория 
+        if (new_wd_inode->mode & INODE_TYPE_DIRECTORY) {
 
-        process->cwd_inode = new_wd_inode;
-        process->cwd_dentry = new_wd_dentry;
+            //  Закрываем старые объекты, если были
+            if (process->cwd_inode) {
+                inode_close(process->cwd_inode);
+            }
 
-        rc = 0;
+            if (process->cwd_dentry) {
+                dentry_close(process->cwd_dentry);
+            }
+
+            process->cwd_inode = new_wd_inode;
+            process->cwd_dentry = new_wd_dentry;
+
+            rc = 0;
+        }
     }
 
     return rc;
@@ -300,7 +316,7 @@ int process_set_working_dir(struct process* process, const char* buffer)
 
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 {
-    struct thread* thread = create_thread(process, entry_ptr, arg, stack_size);
+    struct thread* thread = create_thread(process, entry_ptr, arg, NULL, stack_size);
 
     if (thread == NULL) {
         return -1;

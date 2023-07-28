@@ -42,7 +42,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     return thread;
 }
 
-struct thread* create_thread(struct process* process, void* entry, void* arg, size_t stack_size)
+struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size)
 {
     if (!process) {
         return NULL;
@@ -80,8 +80,9 @@ struct thread* create_thread(struct process* process, void* entry, void* arg, si
     //Установить стек для потока
     ctx->rbp = (uint64_t)thread->stack_ptr;
     ctx->rsp = (uint64_t)thread->stack_ptr;
-    // Установка аргумента
-    ctx->rdi = (uint64_t)arg;
+    // Установка аргументов
+    ctx->rdi = (uint64_t)arg1;
+    ctx->rsi = (uint64_t)arg2;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных пользователя
     ctx->ds = (selector);

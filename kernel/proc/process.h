@@ -6,6 +6,7 @@
 #include "fs/vfs/stat.h"
 
 #define MAX_DESCRIPTORS     64
+#define PROCESS_MAX_ARGS    65535
 
 struct process {
     char            name[30];

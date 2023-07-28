@@ -10,6 +10,9 @@
 #define FILE_OPEN_MODE_WRITE_ONLY   0b10
 #define FILE_OPEN_MODE_READ_WRITE   0b11
 
+#define FILE_OPEN_FLAG_TRUNCATE     0b1
+#define FILE_OPEN_FLAG_APPEND       0b10
+
 #define ERROR_BAD_FD                9
 
 #define SEEK_SET 0
