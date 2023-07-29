@@ -87,7 +87,7 @@ void new_gdt(   uint32_t entries_num,
                 uint32_t sys_seg_descs_num,
                 gdt_entry_t** entry_begin,
                 system_seg_desc_t** sys_seg_begin,
-                uint32_t* size);
+                size_t* size);
 
 tss_t* new_tss();
 

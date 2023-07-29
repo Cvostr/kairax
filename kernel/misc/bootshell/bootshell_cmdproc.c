@@ -70,8 +70,9 @@ void bootshell_process_cmd(char* cmdline)
 
     }
     if(strcmp(cmd, "cd") == 0){
-        if (!wd_inode) {
+        if (!wd_inode && !wd_dentry) {
             inode_close(wd_inode);
+            dentry_close(wd_dentry);
         }
         struct dentry* new_dentry;
         wd_inode = vfs_fopen(wd_dentry, args[1], 0, &new_dentry);
@@ -170,10 +171,13 @@ void bootshell_process_cmd(char* cmdline)
         offset = 0;
         inode_read(ls_i, &offset, size, ls_d);
 
+        struct process_create_info info;
+        info.current_directory = curdir;
+        info.num_args = 0;
         for (int i = 0; i < 30; i ++) {
-            int rc = create_new_process_from_image(NULL, sysn_d, NULL); 
-            rc = create_new_process_from_image(NULL, sysc_d, NULL); 
-            rc = create_new_process_from_image(NULL, ls_d, NULL); 
+            int rc = create_new_process_from_image(NULL, sysn_d, &info); 
+            rc = create_new_process_from_image(NULL, sysc_d, &info); 
+            rc = create_new_process_from_image(NULL, ls_d, &info); 
         }
 
         kfree(sysn_d);
@@ -204,6 +208,7 @@ void bootshell_process_cmd(char* cmdline)
         //Запуск
         struct process_create_info info;
         info.current_directory = curdir;
+        info.num_args = 0;
         int rc = create_new_process_from_image(NULL, buffer, &info); 
 
         kfree(buffer);

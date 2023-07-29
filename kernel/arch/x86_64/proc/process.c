@@ -32,7 +32,11 @@ struct process*  create_new_process(struct process* parent)
 
 int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info)
 {
+    int rc = -1;
     elf_header_t* elf_header = (elf_header_t*)image;
+
+    int argc = 0;
+    char** argv = NULL;
 
     if(elf_check_signature(elf_header)) {
         //Это ELF файл
@@ -95,37 +99,54 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
                         dentry_close(wd_dentry);
                     }
                 }
-
-            } else {
-                // Используем папку родителя, если она есть
-                if (parent->cwd_inode && parent->cwd_dentry) {
-
-                    // Увеличиваем счетчик ссылок
-                    inode_open(parent->cwd_inode, 0);
-                    dentry_open(parent->cwd_dentry);
-
-                    // Копируем указатели
-                    proc->cwd_inode = parent->cwd_inode;
-                    proc->cwd_dentry = parent->cwd_dentry;
-                }
             }
 
+            // Проверить количество аргументов
+            if (info->num_args > PROCESS_MAX_ARGS) {
+                // Слишком много аргументов, выйти с ошибкой
+                goto exit;
+            }
+
+            argc = info->num_args;
             /*size_t args_array_size = sizeof(char*) * info->num_args;
             size_t reqd_size = args_array_size;
             for (size_t i = 0; i < args_array_size; i ++) {
-                reqd_size += strlen(info->args[i]);
+                reqd_size += strlen(info->args[i]) + 1;
+            }
+
+            // Выделить память процесса под аргументы
+            char* args_mem = (char*)process_brk(proc, proc->brk + reqd_size) - reqd_size;
+
+            // Копировать аргументы
+            off_t args_offset = 0;
+            for (size_t i = 0; i < args_array_size; i ++) {
+                size_t arg_len = strlen(info->args[i]) + 1;
+                copy_to_vm(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
+                args_offset += arg_len;
             }*/
-            
-            //char* args_mem = (char*)process_brk(proc, proc->brk + reqd_size) - reqd_size;
+        }
+
+        // У процесса так и нет рабочей папки
+        // Используем папку родителя, если она есть
+        if (proc->cwd_inode == NULL && proc->cwd_dentry == NULL && parent->cwd_inode && parent->cwd_dentry) {
+
+            // Увеличиваем счетчик ссылок
+            inode_open(parent->cwd_inode, 0);
+            dentry_open(parent->cwd_dentry);
+
+            // Копируем указатели
+            proc->cwd_inode = parent->cwd_inode;
+            proc->cwd_dentry = parent->cwd_dentry;
         }
 
         // Создание главного потока и передача выполнения
-        struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, NULL, NULL, 0);
+        struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, argc, argv, 0);
 	    scheduler_add_thread(thr);  
         
-    } else {
-        return -1;
     }
+
+exit:
+    return rc;
 }
 
 uintptr_t process_brk_flags(struct process* process, void* addr, uint64_t flags)

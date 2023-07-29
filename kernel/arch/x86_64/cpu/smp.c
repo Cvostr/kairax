@@ -102,7 +102,7 @@ void smp_init()
     uint64_t vmem_offset = (uint64_t)&ap_vmem - (uint64_t)&ap_trampoline;
     uint32_t* vmem_addr = P2V(trampoline_addr + vmem_offset);
     // Записать адрес таблицы
-    *vmem_addr = V2P(ap_bootstrap_vm);
+    *vmem_addr = (uint32_t)V2P(ap_bootstrap_vm);
 
     // Страница для временных GDT
     char* bootstrap_page = (char*)pmm_alloc_page();
@@ -129,7 +129,7 @@ void smp_init()
     gdt_set_sys_seg(gdt_addr + 5, sizeof(tss_t) - 1, (uintptr_t)tss_addr, 0b10001001, 0b1001);
 
     // запись GDT в память трамплина
-    ap_gdtr->base = gdt_addr;
+    ap_gdtr->base = (uintptr_t)gdt_addr;
     ap_gdtr->limit = reqd_gdt_size - 1;
 
     // Инициализировать ядра

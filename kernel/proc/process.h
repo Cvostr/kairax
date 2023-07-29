@@ -38,7 +38,7 @@ struct process {
 
 struct process_create_info {
     char*   current_directory;
-    size_t  num_args;
+    int  num_args;
     char**  args;
 };
 

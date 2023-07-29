@@ -18,6 +18,7 @@ void free_process(struct process* process)
         kfree(process->tls);
     }
 
+    // Освободить память списков
     free_list(process->threads);
     free_list(process->children);
 
@@ -47,6 +48,7 @@ file_t* process_get_file(struct process* process, int fd)
 {
     if (fd < 0)
         return NULL;
+
     return process->fds[fd];
 }
 
@@ -65,6 +67,9 @@ int process_create_process(struct process* process, const char* filepath, struct
     int rc = create_new_process_from_image(process, image_data, info);
 
 exit:
+
+    // Закрыть inode, освободить память
+    inode_close(inode);
     kfree(image_data);
 
     return rc;
@@ -94,21 +99,12 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
         release_spinlock(&process->fd_spinlock);
     }
 
-    struct dentry* dentry;
-    struct inode* inode = vfs_fopen(dir_dentry, path, flags, &dentry);
+    file_t* file = file_open(dir_dentry, path, mode, flags);
 
-    if (inode == NULL) {
+    if (file == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
         return fd;
     }
-
-    // Создать новый дескриптор файла
-    file_t* file = new_file();
-    file->inode = inode;
-    file->mode = mode;
-    file->flags = flags;
-    file->pos = 0;
-    file->dentry = dentry;
 
     // Найти свободный номер дескриптора для процесса
     acquire_spinlock(&process->fd_spinlock);

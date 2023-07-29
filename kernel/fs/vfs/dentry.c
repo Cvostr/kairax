@@ -73,10 +73,25 @@ struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* chi
         goto exit;
     }
 
+    if (strcmp(child_name, ".") == 0) {
+        result = parent;
+        goto exit;
+    }
+
+    if (strcmp(child_name, "..") == 0) {
+
+        if (parent->parent)
+            result = parent->parent;
+        else 
+            result = parent;
+
+        goto exit;
+    }
+
     struct list_node* current = parent->subdirs->head;
     struct dentry* child = (struct dentry*)current->element;
 
-    for (unsigned int i = 0; i < parent->subdirs->size; i++) {
+    for (size_t i = 0; i < parent->subdirs->size; i++) {
         
         if (strcmp(child->name, child_name) == 0) {
             result = child;
@@ -105,6 +120,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
     char* name_temp = kmalloc(strlen(path));
 
     while (1) {
+        
         if (current == NULL) {
             break;
         }
