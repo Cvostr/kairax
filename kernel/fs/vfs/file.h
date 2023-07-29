@@ -34,6 +34,8 @@ file_t* new_file();
 
 file_t* file_open(struct dentry* dir, const char* path, int mode, int flags);
 
+file_t* file_clone(file_t* original);
+
 void file_close(file_t* file);
 
 #endif

@@ -41,3 +41,12 @@ file_t* file_open(struct dentry* dir, const char* path, int mode, int flags)
 
     return file;
 }
+
+file_t* file_clone(file_t* original)
+{
+    file_t* file = new_file();
+    file->inode = original->inode;
+    file->dentry = original->dentry;
+    
+    return file;
+}

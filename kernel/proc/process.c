@@ -30,9 +30,8 @@ void free_process(struct process* process)
     }
 
     // Закрыть объекты рабочей папки
-    if (process->cwd_inode) {
-        inode_close(process->cwd_inode);
-        dentry_close(process->cwd_dentry);
+    if (process->workdir) {
+        file_close(process->workdir);
     }
     
     // Уничтожение таблицы виртуальной памяти процесса
@@ -82,7 +81,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
 
     if (dirfd == -2) {
         // Открыть относительно рабочей директории
-        dir_dentry = process->cwd_dentry;
+        dir_dentry = process->workdir->dentry;
     } else {
         // Открыть относительно другого файла
         acquire_spinlock(&process->fd_spinlock);
@@ -265,15 +264,15 @@ exit:
 int process_get_working_dir(struct process* process, char* buffer, size_t size)
 {
     int rc = -1;
-    if (process->cwd_dentry) {
+    if (process->workdir) {
         
         size_t reqd_size = 0;
-        vfs_dentry_get_absolute_path(process->cwd_dentry, &reqd_size, NULL);
+        vfs_dentry_get_absolute_path(process->workdir->dentry, &reqd_size, NULL);
         if (reqd_size + 1 > size) {
             goto exit;
         }
 
-        vfs_dentry_get_absolute_path(process->cwd_dentry, NULL, buffer);
+        vfs_dentry_get_absolute_path(process->workdir->dentry, NULL, buffer);
         rc = 0;
     }
 
@@ -284,26 +283,23 @@ exit:
 int process_set_working_dir(struct process* process, const char* buffer)
 {
     int rc = -1;
-    struct dentry* new_wd_dentry = NULL;
-    struct inode* new_wd_inode = vfs_fopen(process->cwd_dentry, buffer, 0, &new_wd_dentry);
 
-    if (new_wd_inode && new_wd_dentry) {
-        // inode найдена, убеждаемся что это директория 
-        if (new_wd_inode->mode & INODE_TYPE_DIRECTORY) {
+    file_t* new_workdir = file_open(process->workdir->dentry, buffer, 0, 0);
 
-            //  Закрываем старые объекты, если были
-            if (process->cwd_inode) {
-                inode_close(process->cwd_inode);
+    if (new_workdir) {
+        // файл открыт, убеждаемся что это директория 
+        if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
+
+            //  Закрываем старый файл, если был
+            if (process->workdir) {
+                file_close(process->workdir);
             }
 
-            if (process->cwd_dentry) {
-                dentry_close(process->cwd_dentry);
-            }
-
-            process->cwd_inode = new_wd_inode;
-            process->cwd_dentry = new_wd_dentry;
+            process->workdir = new_workdir;
 
             rc = 0;
+        } else {
+            file_close(new_workdir);
         }
     }
 

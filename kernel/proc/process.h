@@ -16,9 +16,8 @@ struct process {
     uint64_t        brk;
 
     uint32_t        state;
-    // Путь к текущей рабочей папке
-    struct dentry*  cwd_dentry;
-    struct inode*   cwd_inode;
+    // Рабочая папка
+    file_t*         workdir;
     // Таблица виртуальной памяти процесса
     void*           vmemory_table;  
     // Процесс - родитель

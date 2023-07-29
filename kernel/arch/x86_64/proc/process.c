@@ -87,16 +87,16 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
         if (info) {
             if (info->current_directory) {
                 // Указана папка
-                struct dentry* wd_dentry = NULL;
-                struct inode* wd_inode = vfs_fopen(NULL, info->current_directory, 0, &wd_dentry);
+                file_t* new_workdir = file_open(parent->workdir->dentry, info->current_directory, 0, 0);
 
-                if (wd_inode) {
-                    if (wd_inode->mode & INODE_TYPE_DIRECTORY) {
-                        proc->cwd_inode = wd_inode;
-                        proc->cwd_dentry = wd_dentry;
+                if (new_workdir) {
+                    
+                    if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
+                    
+                        proc->workdir = new_workdir;
                     } else {
-                        inode_close(wd_inode);
-                        dentry_close(wd_dentry);
+
+                        file_close(new_workdir);
                     }
                 }
             }
@@ -128,15 +128,9 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 
         // У процесса так и нет рабочей папки
         // Используем папку родителя, если она есть
-        if (proc->cwd_inode == NULL && proc->cwd_dentry == NULL && parent->cwd_inode && parent->cwd_dentry) {
+        if (proc->workdir == NULL && parent->workdir != NULL) {
 
-            // Увеличиваем счетчик ссылок
-            inode_open(parent->cwd_inode, 0);
-            dentry_open(parent->cwd_dentry);
-
-            // Копируем указатели
-            proc->cwd_inode = parent->cwd_inode;
-            proc->cwd_dentry = parent->cwd_dentry;
+            proc->workdir = file_clone(parent->workdir);
         }
 
         // Создание главного потока и передача выполнения
