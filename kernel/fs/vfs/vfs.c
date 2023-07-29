@@ -153,14 +153,20 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, uint32_t flags,
 
 struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
 {
-    if (path == NULL || path[0] == '\0'){
+    if (path == NULL) {
+        return parent;
+    }
+
+    if (path[0] == '\0') {
         return parent;
     }
 
     if (path[0] == '/') {
+        // Путь абсолюютный - ищем относительно корня
         parent = root_dentry;
         path++;
     } else if (parent == NULL) {
+        // Путь не абсолютный и родитель не указан - нечего искать
         return NULL;
     }
 

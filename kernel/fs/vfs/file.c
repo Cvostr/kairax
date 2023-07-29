@@ -47,6 +47,9 @@ file_t* file_clone(file_t* original)
     file_t* file = new_file();
     file->inode = original->inode;
     file->dentry = original->dentry;
+
+    inode_open(file->inode, 0);
+    dentry_open(file->dentry);
     
     return file;
 }
