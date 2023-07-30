@@ -173,7 +173,8 @@ void bootshell_process_cmd(char* cmdline)
 
         struct process_create_info info;
         info.current_directory = curdir;
-        info.num_args = 0;
+        info.num_args = argc - 1;
+        info.args = args + 1;
         for (int i = 0; i < 30; i ++) {
             int rc = create_new_process_from_image(NULL, sysn_d, &info); 
             rc = create_new_process_from_image(NULL, sysc_d, &info); 

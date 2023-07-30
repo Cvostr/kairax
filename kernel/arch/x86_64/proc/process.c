@@ -95,7 +95,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
                     
                         proc->workdir = new_workdir;
                     } else {
-
+                        // Это не директория - закрываем файл
                         file_close(new_workdir);
                     }
                 }
@@ -108,7 +108,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
             }
 
             argc = info->num_args;
-
+            
             // Вычисляем память, необходимую под массив указателей + строки аргументов
             size_t args_array_size = sizeof(char*) * info->num_args;
             size_t reqd_size = args_array_size;
@@ -116,6 +116,11 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
             // Прибавляем длины строк аргументов
             for (int i = 0; i < info->num_args; i ++) {
                 reqd_size += strlen(info->args[i]) + 1;
+            }
+
+            if (reqd_size > PROCESS_MAX_ARGS_SIZE) {
+                // Суммарный размер аргуменов большой, выйти с ошибкой
+                goto exit;
             }
 
             // Выделить память процесса под аргументы
@@ -127,16 +132,17 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
             off_t args_offset = args_array_size;
 
             for (int i = 0; i < argc; i ++) {
-
+                // Длина строки аргумента с терминатором
                 size_t arg_len = strlen(info->args[i]) + 1;
 
                 // Записать адрес
                 uint64_t addr = args_mem + args_offset;
-                copy_to_vm(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(char*));
+                copy_to_vm(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(uint64_t));
 
                 // Записать строку аргумента
                 copy_to_vm(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
 
+                // Увеличить смещения
                 args_offset += arg_len;
                 pointers_offset += sizeof(char*);
             }
