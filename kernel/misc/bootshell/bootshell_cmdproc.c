@@ -208,7 +208,8 @@ void bootshell_process_cmd(char* cmdline)
         //Запуск
         struct process_create_info info;
         info.current_directory = curdir;
-        info.num_args = 0;
+        info.num_args = argc - 1;
+        info.args = args + 1;
         int rc = create_new_process_from_image(NULL, buffer, &info); 
 
         kfree(buffer);

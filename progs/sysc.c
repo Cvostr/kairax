@@ -6,7 +6,12 @@
 
 int big_array[BSS_LEN];
 
-int main() {
+int main(int argc, char** argv) {
+
+    printf("ARGS %i\n", argc);
+    for(int i = 0; i < argc; i ++) {
+        printf("%i : %s \n", i, argv[i]);
+    }
 
     for(int i = 0; i < BSS_LEN; i ++)
         big_array[i] = i;

@@ -86,7 +86,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 
         if (info) {
             if (info->current_directory) {
-                // Указана папка
+                // Указана рабочая директория
                 file_t* new_workdir = file_open(parent->workdir->dentry, info->current_directory, 0, 0);
 
                 if (new_workdir) {
@@ -108,22 +108,38 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
             }
 
             argc = info->num_args;
-            /*size_t args_array_size = sizeof(char*) * info->num_args;
+
+            // Вычисляем память, необходимую под массив указателей + строки аргументов
+            size_t args_array_size = sizeof(char*) * info->num_args;
             size_t reqd_size = args_array_size;
-            for (size_t i = 0; i < args_array_size; i ++) {
+
+            // Прибавляем длины строк аргументов
+            for (int i = 0; i < info->num_args; i ++) {
                 reqd_size += strlen(info->args[i]) + 1;
             }
 
             // Выделить память процесса под аргументы
             char* args_mem = (char*)process_brk(proc, proc->brk + reqd_size) - reqd_size;
+            argv = args_mem;
 
             // Копировать аргументы
-            off_t args_offset = 0;
-            for (size_t i = 0; i < args_array_size; i ++) {
+            off_t pointers_offset = 0;
+            off_t args_offset = args_array_size;
+
+            for (int i = 0; i < argc; i ++) {
+
                 size_t arg_len = strlen(info->args[i]) + 1;
+
+                // Записать адрес
+                uint64_t addr = args_mem + args_offset;
+                copy_to_vm(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(char*));
+
+                // Записать строку аргумента
                 copy_to_vm(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
+
                 args_offset += arg_len;
-            }*/
+                pointers_offset += sizeof(char*);
+            }
         }
 
         // У процесса так и нет рабочей папки
