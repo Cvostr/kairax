@@ -134,13 +134,19 @@ struct superblock** vfs_get_mounts()
 struct inode* vfs_fopen(struct dentry* parent, const char* path, uint32_t flags, struct dentry** dentry)
 {
     struct dentry* result_dentry = vfs_dentry_traverse_path(parent, path);
+
     if (result_dentry) {
+
         struct inode* result = superblock_get_inode(result_dentry->sb, result_dentry->inode);
+
         if (result) {
             // Увеличение счетчика, операции с ФС
             inode_open(result, flags);
-            dentry_open(result_dentry);
-            *dentry = result_dentry;
+
+            if (dentry) {
+                dentry_open(result_dentry);
+                *dentry = result_dentry;
+            }
 
             return result;
         }
@@ -183,7 +189,14 @@ void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_si
         if (p_result) {
             strcat(p_result, "/");
         }
+
+        return;
     }
 
     dentry_get_absolute_path(p_dentry, p_required_size, p_result);
+}
+
+int vfs_is_path_absolute(const char* path)
+{
+    return path != NULL && path[0] == '/';
 }

@@ -96,6 +96,7 @@ void smp_init()
 
     // клонировать таблицу виртуальной памяти для AP
     page_table_t* ap_bootstrap_vm = vmm_clone_kernel_memory_map();
+    // И использовать её
     switch_pml4(V2P(ap_bootstrap_vm));
 
     // Вычислить адрес поля для адреса страницы памяти в трамплине

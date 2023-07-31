@@ -45,7 +45,7 @@ void free_process(struct process* process)
 
 file_t* process_get_file(struct process* process, int fd)
 {
-    if (fd < 0)
+    if (fd < 0 || fd >= MAX_DESCRIPTORS)
         return NULL;
 
     return process->fds[fd];
@@ -79,20 +79,22 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
     int fd = -1;
     struct dentry* dir_dentry = NULL;
 
-    if (dirfd == -2) {
+    if (dirfd == -2 && process->workdir) {
         // Открыть относительно рабочей директории
         dir_dentry = process->workdir->dentry;
-    } else {
+        
+    } else if (!vfs_is_path_absolute(path)) {
         // Открыть относительно другого файла
         acquire_spinlock(&process->fd_spinlock);
 
         file_t* dirfile = process_get_file(process, dirfd);
 
         if (dirfile) {
+            // проверить тип inode
             dir_dentry = dirfile->dentry;
         } else {
-            // Файл не нашелся
-            // TODO: Проверить относительность пути
+            // Файл не нашелся, а путь не является абсолютным - выходим
+            goto exit;
         }
 
         release_spinlock(&process->fd_spinlock);
@@ -128,11 +130,6 @@ int process_close_file(struct process* process, int fd)
 {
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
-
-    if (fd >= MAX_DESCRIPTORS) {
-        // set to errno  ERROR_BAD_FD;
-        goto exit;
-    }
 
     file_t* file = process_get_file(process, fd);
 

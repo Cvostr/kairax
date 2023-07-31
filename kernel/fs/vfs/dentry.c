@@ -31,7 +31,7 @@ void dentry_close(struct dentry* dentry)
     if (atomic_dec_and_test(&dentry->refs_count)) {
         
         if (dentry->parent) {
-            // Если есть родитель, удалиться его списка и уменьшить счетчик
+            // Если есть родитель, удалиться из его списка и уменьшить счетчик родителя
             dentry_remove_subdir(dentry->parent, dentry);
             dentry_close(dentry->parent);
         }

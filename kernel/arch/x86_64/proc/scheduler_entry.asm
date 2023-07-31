@@ -27,8 +27,8 @@ scheduler_entry:
 
     ; Переход в код планировщика
     mov rdi, rsp
-    cld
 scheduler_entry_from_killed:
+    cld
     call scheduler_handler
     mov rsp, rax
 

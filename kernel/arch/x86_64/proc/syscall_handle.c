@@ -41,15 +41,14 @@ void syscall_handle(syscall_frame_t* frame) {
 
         case 0x2: // Открытие файла
             frame->rax = process_open_file(current_process, 
-               frame->rdi,
+               (int)frame->rdi,
                (char*)frame->rsi,
                frame->rdx,
                frame->r8);
             break;
 
         case 0x3: // Закрытие файла
-            frame->rax = process_close_file(current_process, 
-               frame->rdi);
+            frame->rax = process_close_file(current_process, (int)frame->rdi);
             break;
 
         case 0x5: // Закрытие файла
@@ -94,7 +93,7 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x59:
-            frame->rax = process_readdir(current_process, frame->rdi, (struct dirent*)frame->rsi);
+            frame->rax = process_readdir(current_process, (int)frame->rdi, (struct dirent*)frame->rsi);
             break;
 
         case 0x3C:  //Завершение процесса
