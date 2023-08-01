@@ -21,6 +21,28 @@ extern char curdir[512];
 extern struct inode* wd_inode;
 extern struct dentry* wd_dentry;
 
+void cd(const char* path) 
+{
+    if (!wd_inode && !wd_dentry) {
+        inode_close(wd_inode);
+        dentry_close(wd_dentry);
+    }
+
+    struct dentry* new_dentry;
+    wd_inode = vfs_fopen(wd_dentry, path, 0, &new_dentry);
+
+    if (wd_inode == NULL) {
+        printf("ERROR: cant cd to %s\n", path);
+        return;
+    }
+
+    wd_dentry = new_dentry;
+    memset(curdir, 0, 512);
+    vfs_dentry_get_absolute_path(wd_dentry, NULL, curdir);
+                
+    //process_set_working_dir(NULL, args[1]);    
+}
+
 void bootshell_process_cmd(char* cmdline) 
 {
     int argc = 1;
@@ -49,7 +71,7 @@ void bootshell_process_cmd(char* cmdline)
 
     char* cmd = args[0];
 
-    if(strcmp(cmd, "mount") == 0){
+    if (strcmp(cmd, "mount") == 0) {
 
         char* partition_name = args[1];
         char* mnt_path = args[2];
@@ -57,35 +79,46 @@ void bootshell_process_cmd(char* cmdline)
         printf("Mounting partition %s to path %s\n", partition_name, mnt_path);
 
         drive_partition_t* partition = get_partition_with_name(partition_name);
-        if(partition == NULL){
+        if (partition == NULL) {
             printf("ERROR: No partition with name %s\n", partition_name);
             goto exit;
         }
 
         int result = vfs_mount(mnt_path, partition);
-        if(result < 0){
+        if (result < 0) {
+            printf("ERROR: vfs_mount returned with code %i\n", result);
+        }else{
+            printf("Successfully mounted!\n");
+        }
+    }
+    if(strcmp(cmd, "mnroot") == 0) {
+
+        char* partition_name = args[1];
+
+        printf("Mounting partition %s to root\n", partition_name);
+
+        drive_partition_t* partition = get_partition_with_name(partition_name);
+        if (partition == NULL) {
+            printf("ERROR: No partition with name %s\n", partition_name);
+            goto exit;
+        }
+
+        // mount /
+        int result = vfs_mount("/", partition);
+        if (result < 0) {
             printf("ERROR: vfs_mount returned with code %i\n", result);
         }else{
             printf("Successfully mounted!\n");
         }
 
+        // Монтировать dev
+        result = vfs_mount_fs("/dev", NULL, "devfs");
+
+        // Сменить рабочую папку
+        cd("/");
     }
-    if(strcmp(cmd, "cd") == 0){
-        if (!wd_inode && !wd_dentry) {
-            inode_close(wd_inode);
-            dentry_close(wd_dentry);
-        }
-        struct dentry* new_dentry;
-        wd_inode = vfs_fopen(wd_dentry, args[1], 0, &new_dentry);
-        if (wd_inode == NULL) {
-            printf("ERROR: cant cd to %s\n", args[1]);
-            goto exit;
-        }
-        wd_dentry = new_dentry;
-        memset(curdir, 0, 512);
-        vfs_dentry_get_absolute_path(wd_dentry, NULL, curdir);
-                
-        //process_set_working_dir(NULL, args[1]);
+    if (strcmp(cmd, "cd") == 0) {
+        cd(args[1]);
     }
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args[1]);
@@ -132,7 +165,7 @@ void bootshell_process_cmd(char* cmdline)
             printf("Error creating dir : %i", rc);
         }
     }
-    if(strcmp(cmd, "cat") == 0){
+    if (strcmp(cmd, "cat") == 0) {
         struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
         if(inode == NULL){
             printf("Can't open directory with path : %s", args[1]);
@@ -151,7 +184,7 @@ void bootshell_process_cmd(char* cmdline)
         kfree(buffer);
         inode_close(inode);
     }
-    if(strcmp(cmd, "stress") == 0) {
+    if (strcmp(cmd, "stress") == 0) {
         struct inode* sysn_i = vfs_fopen(NULL, "/sysn.a", 0, NULL);
         struct inode* sysc_i = vfs_fopen(NULL, "/sysc.a", 0, NULL);
         struct inode* ls_i = vfs_fopen(NULL, "/ls.a", 0, NULL);
@@ -190,7 +223,7 @@ void bootshell_process_cmd(char* cmdline)
         inode_close(sysc_i);
         inode_close(ls_i);
     }
-    if(strcmp(cmd, "exec") == 0) {
+    if (strcmp(cmd, "exec") == 0) {
         struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
         if(inode == NULL){
             printf("Can't open file with path : ", args[1]);
@@ -217,7 +250,7 @@ void bootshell_process_cmd(char* cmdline)
         kfree(buffer);
         inode_close(inode);
     }
-    else if(strcmp(cmdline, "mounts") == 0){
+    else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();
         for(int i = 0; i < 100; i ++){
             struct superblock* mount = mounts[i];
@@ -264,7 +297,7 @@ void bootshell_process_cmd(char* cmdline)
         printf("Kheap free space: %i\n", total_free_bytes);
         printf("Kheap used space: %i\n", total_used_bytes);
     }
-    if(strcmp(cmdline, "acpi") == 0){
+    if (strcmp(cmdline, "acpi") == 0) {
         printf("ACPI OEM = %s\n", acpi_get_oem_str());
         printf("ACPI version = %i\n", acpi_get_revision());
         for(uint32_t i = 0; i < acpi_get_cpus_apic_count(); i ++){

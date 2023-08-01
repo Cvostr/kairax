@@ -6,6 +6,13 @@
 #include "../vfs/file.h"
 #include "../vfs/superblock.h"
 
+struct devfs_device {
+    struct inode* inode;
+    struct dentry* dentry;
+
+    struct inode_operations* ops;
+};
+
 void devfs_init();
 
 struct inode* devfs_mount(drive_partition_t* drive, struct superblock* sb);

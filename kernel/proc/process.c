@@ -79,7 +79,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
     int fd = -1;
     struct dentry* dir_dentry = NULL;
 
-    if (dirfd == -2 && process->workdir) {
+    if (dirfd == FD_CWD && process->workdir) {
         // Открыть относительно рабочей директории
         dir_dentry = process->workdir->dentry;
         
@@ -100,7 +100,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
         release_spinlock(&process->fd_spinlock);
     }
 
-    file_t* file = file_open(dir_dentry, path, mode, flags);
+    file_t* file = file_open(dir_dentry, path, flags, mode);
 
     if (file == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
@@ -117,6 +117,8 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
             goto exit;
         }
     }
+
+    // TODO: ERROR_TOO_MANY_OPEN_FILES
 
     // Не получилось привязать дескриптор к процессу, закрыть файл
     file_close(file);
@@ -159,10 +161,8 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
         goto exit;
     }
 
-    if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
-        struct inode* inode = file->inode;
-        bytes_read = inode_read(inode, &file->pos, size, buffer);
-    }
+    // Чтение из файла
+    bytes_read = file_read(file, size, buffer);
 
 exit:
     release_spinlock(&process->fd_spinlock);
@@ -178,24 +178,7 @@ off_t process_file_seek(struct process* process, int fd, off_t offset, int whenc
     file_t* file = process_get_file(process, fd);
 
     if (file != NULL) {
-
-        acquire_spinlock(&file->spinlock);
-        struct inode* inode = file->inode;
-
-        switch (whence) {
-            case SEEK_SET: 
-                file->pos = offset;
-                break;
-            case SEEK_CUR:
-                file->pos += offset;
-                break;
-            case SEEK_END:
-                file->pos = inode->size + offset;
-                break;
-        }
-
-        result = file->pos;
-        release_spinlock(&file->spinlock);
+        result = file_seek(file, offset, whence);
     }
 
     release_spinlock(&process->fd_spinlock);
@@ -231,25 +214,8 @@ int process_readdir(struct process* process, int fd, struct dirent* dirent)
     file_t* file = process_get_file(process, fd);
 
     if (file != NULL) {
-        acquire_spinlock(&file->spinlock);
-
-        struct inode* inode = file->inode;
-        
-        struct dirent* ndirent = inode_readdir(inode, file->pos ++);
-        
-        release_spinlock(&file->spinlock);
-        
-        if (ndirent == NULL) {
-            rc = 0;
-            goto exit;
-        }
-
-        memcpy(dirent, ndirent, sizeof(struct dirent));
-        kfree(ndirent);
-        
-        rc = 1;
-    } else {
-        rc = -1;
+        // Вызов readdir из файла   
+        rc = file_readdir(file, dirent);
     }
 
 exit:

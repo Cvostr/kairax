@@ -11,12 +11,13 @@ char curdir[512];
 struct inode* wd_inode = NULL;
 struct dentry* wd_dentry = NULL;
 
-void bootshell_print_sign(){
+void bootshell_print_sign()
+{
     printf("KAIRAX:%s# ", curdir);
 }
 
-void bootshell(){
-    //strcpy(curdir, "/");
+void bootshell()
+{
     bootshell_print_sign();
 
     while(1){
