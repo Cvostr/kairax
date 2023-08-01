@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    int dirfd = open_file(path, 0, FILE_OPEN_MODE_READ_ONLY);
+    int dirfd = open_file(path, FILE_OPEN_MODE_READ_ONLY, 0);
     struct stat dirstat;
     int rc = fdstat(dirfd, &dirstat);
 

@@ -49,8 +49,9 @@ void ap_init()
     // Установка GDT и TSS
     gdt_update(&gdtr);
     x64_ltr(TSS_DEFAULT_OFFSET);
-    // Установить таблицу дескрипторов прерываний
-    ap_setup_idt();
+    // Установить таблицу дескрипторов прерываний, включить прерывания sti
+    load_idt();
+    // включить APIC
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
     // Установка параметров для syscall
     cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
@@ -141,6 +142,7 @@ void smp_init()
 
         // Создать структуру локальных данных ядра
         curr_cpu_local = (struct cpu_local_x64*)kmalloc(sizeof(struct cpu_local_x64));
+        memset(curr_cpu_local, 0, sizeof(struct cpu_local_x64));
         curr_cpu_local->lapic_id = lapic_array[cpu_i]->lapic_id;
         curr_cpu_local->id = cpu_i;
 
@@ -155,6 +157,8 @@ void smp_init()
             // Установка GDT и TSS
             gdt_update(&bsp_gdtr);
             x64_ltr(TSS_DEFAULT_OFFSET);
+            // Установить IDT, включить прерывания
+            load_idt();
             // Установка параметров для syscall
             cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
             // Запомнить данные ядра в KERNEL GS
@@ -176,7 +180,7 @@ void smp_init()
         // задержка
 		short_delay(5000UL);
 
-		/* SIPI со страницей 1 */
+		// SIPI со страницей 1
 		lapic_send_ipi(lapic_array[cpu_i]->lapic_id, (0x4600 | TRAMPOLINE_PAGE));
 
         do { asm volatile ("pause" : : : "memory"); } while (!ap_started_flag);

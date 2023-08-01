@@ -91,6 +91,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 
                 if (new_workdir) {
                     
+                    // Проверить тип inode, убедиться что это директория
                     if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
                     
                         proc->workdir = new_workdir;
@@ -150,10 +151,10 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 
         // У процесса так и нет рабочей папки
         // Используем папку родителя, если она есть
-        /*if (proc->workdir == NULL && parent->workdir != NULL) {
+        if (proc->workdir == NULL && parent->workdir != NULL) {
 
             proc->workdir = file_clone(parent->workdir);
-        }*/
+        }
 
         // Создание главного потока и передача выполнения
         struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, argc, argv, 0);

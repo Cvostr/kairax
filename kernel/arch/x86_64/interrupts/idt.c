@@ -15,7 +15,8 @@ extern void x64_lidt(idtr_t *idt);
 
 extern void enable_interrupts();
 
-void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags){
+void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags)
+{
 	idt_descriptor_t* descriptor = &idt_descriptors[vector];
  
     descriptor->isr_0_16       = (uint64_t)isr & 0xFFFF;
@@ -27,7 +28,8 @@ void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags){
     descriptor->reserved       = 0;
 }
 
-void setup_idt(){
+void setup_idt()
+{
     idtr_t idtr;
 	idtr.base = (uint64_t)(idt_descriptors); //адрес таблицы дескрипторов
     idtr.limit = (uint16_t)sizeof(idt_descriptor_t) * IDT_MAX_DESCRIPTORS - 1;
@@ -38,19 +40,17 @@ void setup_idt(){
     }
 
     set_int_descriptor(0x20, isr_stub_table[0x20], 0, 0x8E);
-
-    // Загрузка дескриптора
-	x64_lidt(&idtr);
-
-    // включение прерываний
-	enable_interrupts();
 }
 
-void ap_setup_idt()
+void load_idt()
 {
     idtr_t idtr;
 	idtr.base = (uint64_t)(idt_descriptors); //адрес таблицы дескрипторов
     idtr.limit = (uint16_t)sizeof(idt_descriptor_t) * IDT_MAX_DESCRIPTORS - 1;
 
+    // Загрузка дескриптора
     x64_lidt(&idtr);
+
+    // включение прерываний
+	enable_interrupts();
 }

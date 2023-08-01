@@ -22,6 +22,6 @@ void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags);
 
 void setup_idt();
 
-void ap_setup_idt();
+void load_idt();
 
 #endif

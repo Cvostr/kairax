@@ -159,7 +159,7 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
         goto exit;
     }
 
-    if (file->mode & FILE_OPEN_MODE_READ_ONLY) {
+    if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
         struct inode* inode = file->inode;
         bytes_read = inode_read(inode, &file->pos, size, buffer);
     }

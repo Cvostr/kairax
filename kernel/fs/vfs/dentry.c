@@ -110,7 +110,6 @@ exit:
 
 struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
 {
-    struct dentry* result = NULL;
     struct dentry* current = p_parent;
 
     if (strlen(path) == 0)
@@ -137,14 +136,14 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
         } else {
             // Больше нет разделителей /
             strncpy(name_temp, path_temp, strlen(path_temp));
-            result = superblock_get_dentry(current->sb, current, name_temp);
+            current = superblock_get_dentry(current->sb, current, name_temp);
             break;
         }
     }
 
     kfree(name_temp);
 
-    return result;
+    return current;
 }
 
 void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)

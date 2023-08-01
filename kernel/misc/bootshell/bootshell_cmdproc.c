@@ -24,15 +24,16 @@ extern struct dentry* wd_dentry;
 void bootshell_process_cmd(char* cmdline) 
 {
     int argc = 1;
+    int i = 0;
     // подсчет аргументов по количеству пробелов
-    for (int i = 0; i < strlen(cmdline); i ++) {
+    for (i = 0; i < strlen(cmdline); i ++) {
         if (cmdline[i] == ' ')
             argc++;
     }
 
     char* cmdline_temp = cmdline;
     char** args = kmalloc(sizeof(char*) * argc);
-    for (int i = 0; i < argc; i ++) {
+    for (i = 0; i < argc; i ++) {
         char* space_ptr = strchr(cmdline_temp, ' ');
         int len = 0;
         if (space_ptr != NULL) {
@@ -173,8 +174,8 @@ void bootshell_process_cmd(char* cmdline)
 
         struct process_create_info info;
         info.current_directory = curdir;
-        info.num_args = argc - 1;
-        info.args = args + 1;
+        info.num_args = argc;
+        info.args = args;
         for (int i = 0; i < 30; i ++) {
             int rc = create_new_process_from_image(NULL, sysn_d, &info); 
             rc = create_new_process_from_image(NULL, sysc_d, &info); 
