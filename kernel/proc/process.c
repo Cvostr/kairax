@@ -104,7 +104,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
 
     if (file == NULL) {
         // TODO: обработать для отсутствия файла ENOENT
-        return fd;
+        return -ERROR_NO_FILE;
     }
 
     // Найти свободный номер дескриптора для процесса
@@ -118,7 +118,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
         }
     }
 
-    // TODO: ERROR_TOO_MANY_OPEN_FILES
+    fd = -ERROR_TOO_MANY_OPEN_FILES;
 
     // Не получилось привязать дескриптор к процессу, закрыть файл
     file_close(file);
@@ -141,7 +141,8 @@ int process_close_file(struct process* process, int fd)
         rc = 0;
         goto exit;
     } else {
-        //set to errno ERROR_BAD_FD;
+
+        rc = -ERROR_BAD_FD;
     }
 
 exit:
@@ -157,7 +158,8 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
     file_t* file = process_get_file(process, fd);
 
     if (file == NULL) {
-        //TODO: set errno to EBADF
+
+        bytes_read = -ERROR_BAD_FD;
         goto exit;
     }
 
@@ -216,6 +218,9 @@ int process_readdir(struct process* process, int fd, struct dirent* dirent)
     if (file != NULL) {
         // Вызов readdir из файла   
         rc = file_readdir(file, dirent);
+    } else {
+        
+        rc = -ERROR_BAD_FD;
     }
 
 exit:

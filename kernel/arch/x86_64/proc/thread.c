@@ -6,6 +6,10 @@
 #include "cpu/gdt.h"
 #include "x64_context.h"
 
+struct x64_uthread {
+    struct x64_uthread* this;
+};
+
 struct thread* create_kthread(struct process* process, void (*function)(void))
 {
     if (!process || !function) {
@@ -61,8 +65,18 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     thread->kernel_stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
 
     if (process->tls) {
-        thread->tls = (void*)process_brk(process, process->brk + process->tls_size) - process->tls_size;
+        // TLS должно также включать в себя
+        size_t required_tls_size = process->tls_size + sizeof(struct x64_uthread);
+        // Выделить память и запомнить адрес начала TLS
+        thread->tls = (void*)process_brk(process, process->brk + required_tls_size) - required_tls_size;
+        // Копировать данные TLS из процесса
         copy_to_vm(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
+
+        struct x64_uthread uthread;
+        uthread.this = thread->tls + process->tls_size;
+
+        // Копировать данные структуры
+        copy_to_vm(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
     }
 
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц

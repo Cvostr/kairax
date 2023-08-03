@@ -1,7 +1,13 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H
 
-__thread int errno;
+//extern __thread int errno;
+
+#define __set_errno(x) long ret = x; if (ret < 0) { errno = -ret; ret = -1; } return ret
+
+int* __errno_location();
+
+#define errno (*(__errno_location()))
 
 #define ERROR_BAD_FD                9
 #define ERROR_NO_FILE               2

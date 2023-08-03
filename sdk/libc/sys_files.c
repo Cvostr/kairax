@@ -1,5 +1,6 @@
 #include "sys_files.h"
 #include "../sys/syscalls.h"
+#include "errno.h"
 
 int open_file(const char* filepath, int flags, int mode)
 {
@@ -8,7 +9,7 @@ int open_file(const char* filepath, int flags, int mode)
 
 int close(int fd)
 {
-    return syscall_close(fd);
+    __set_errno(syscall_close(fd));
 }
 
 ssize_t read(int fd, char* buffer, size_t size)

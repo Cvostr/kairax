@@ -3,11 +3,11 @@ COMPILER=gcc
 
 all: libc_static
 
-libc: math.o stdlib.o string.o sys_files.o process.o
-	ld -melf_x86_64 -shared -o libc.so math.o stdlib.o string.o sys_files.o process.o
+libc: math.o stdlib.o string.o sys_files.o process.o errno.o
+	ld -melf_x86_64 -shared -o libc.so math.o stdlib.o string.o sys_files.o process.o errno.o
 
-libc_static: math.o stdlib.o string.o sys_files.o stdio.o process.o
-	ar rcs libc.a math.o stdlib.o string.o sys_files.o stdio.o process.o
+libc_static: math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o
+	ar rcs libc.a math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o
 
 clean:
 	rm -rf *.o libc.so
@@ -29,3 +29,6 @@ sys_files.o: sys_files.c
 
 process.o: process.c
 	$(COMPILER) $(ARGS) process.c -o process.o
+
+errno.o: errno.c
+	$(COMPILER) $(ARGS) errno.c -o errno.o
