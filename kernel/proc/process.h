@@ -60,7 +60,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
 file_t* process_get_file(struct process* process, int fd);
 
-int process_open_file(struct process* process, int dirfd, const char* path, int mode, int flags);
+int process_open_file(struct process* process, int dirfd, const char* path, int flags, int mode);
 
 int process_close_file(struct process* process, int fd);
 

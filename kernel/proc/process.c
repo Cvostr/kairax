@@ -74,7 +74,7 @@ exit:
     return rc;
 }
 
-int process_open_file(struct process* process, int dirfd, const char* path, int mode, int flags)
+int process_open_file(struct process* process, int dirfd, const char* path, int flags, int mode)
 {
     int fd = -1;
     struct dentry* dir_dentry = NULL;
@@ -103,8 +103,20 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
     file_t* file = file_open(dir_dentry, path, flags, mode);
 
     if (file == NULL) {
-        // TODO: обработать для отсутствия файла ENOENT
+        // Файл не найден
         return -ERROR_NO_FILE;
+    }
+
+    if ( !(file->inode->mode & INODE_TYPE_DIRECTORY) && (flags & FILE_OPEN_FLAG_DIRECTORY)) {
+        // Мы пытаемся открыть обыйчный файл с флагом директории - выходим
+        file_close(file);
+        return -ERROR_NOT_A_DIRECTORY;
+    }
+
+    if ((file->inode->mode & INODE_TYPE_DIRECTORY) && (flags & FILE_OPEN_MODE_WRITE_ONLY)) {
+        // Мы пытаемся открыть директорию с правами на запись
+        file_close(file);
+        return -ERROR_IS_DIRECTORY;
     }
 
     // Найти свободный номер дескриптора для процесса
@@ -165,7 +177,6 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
 
     // Чтение из файла
     bytes_read = file_read(file, size, buffer);
-
 exit:
     release_spinlock(&process->fd_spinlock);
 

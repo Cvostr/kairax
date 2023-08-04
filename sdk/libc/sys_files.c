@@ -4,7 +4,7 @@
 
 int open_file(const char* filepath, int flags, int mode)
 {
-    return syscall_open_file(FD_CWD, filepath, flags, mode);
+    __set_errno(syscall_open_file(FD_CWD, filepath, flags, mode));
 }
 
 int close(int fd)
@@ -14,12 +14,12 @@ int close(int fd)
 
 ssize_t read(int fd, char* buffer, size_t size)
 {
-    return syscall_read(fd, buffer, size);
+    __set_errno(syscall_read(fd, buffer, size));
 }
 
 int fdstat(int fd, struct stat* st)
 {
-    return syscall_fdstat(fd, st);
+    __set_errno(syscall_fdstat(fd, st));
 }
 
 int file_stat(const char* filepath, struct stat* st)
@@ -29,10 +29,10 @@ int file_stat(const char* filepath, struct stat* st)
 
 int readdir(int fd, struct dirent* direntry)
 {
-    return syscall_readdir(fd, direntry);
+    __set_errno(syscall_readdir(fd, direntry));
 }
 
 off_t file_seek(int fd, off_t offset, int whence)
 {
-    return syscall_file_seek(fd, offset, whence);
+    __set_errno(syscall_file_seek(fd, offset, whence));
 }

@@ -12,6 +12,8 @@ file_t* new_file()
 
 void file_close(file_t* file) 
 {
+    acquire_spinlock(&file->spinlock);
+    
     if (file->inode) {
         inode_close(file->inode);
     }
@@ -23,7 +25,7 @@ void file_close(file_t* file)
     kfree(file);
 }
 
-file_t* file_open(struct dentry* dir, const char* path, int mode, int flags)
+file_t* file_open(struct dentry* dir, const char* path, int flags, int mode)
 {
     struct dentry* dentry;
     struct inode* inode = vfs_fopen(dir, path, flags, &dentry);
@@ -61,10 +63,9 @@ ssize_t file_read(file_t* file, size_t size, char* buffer)
     acquire_spinlock(&file->spinlock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
-        //
         goto exit;
     }
-
+    
     if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
         struct inode* inode = file->inode;
         read = inode_read(inode, &file->pos, size, buffer);
