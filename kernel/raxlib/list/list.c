@@ -58,7 +58,7 @@ void list_remove(list_t* list, void* element)
 
     // Найти запись для удаления
     struct list_node* current = list->head;
-    for(size_t i = 0; i < list->size; i++)
+    for (size_t i = 0; i < list->size; i++)
     {
         if (current->element == element) {
             list_unlink(list, current);

@@ -19,4 +19,6 @@ void b8_console_print_string(const char* string);
 
 void b8_remove_from_end(int chars);
 
+void b8_init();
+
 #endif

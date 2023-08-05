@@ -36,22 +36,17 @@
 #include "cpu/cpuid.h"
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
-	b8_set_addr(P2K(0xB8000));
-	b8_console_clear();
-	printf("Kairax Kernel v0.1\n");
-
 	parse_mb2_tags(multiboot_struct_ptr);
-	printf("LOADER : %s\n", get_kernel_boot_info()->bootloader_string);
-	printf("CMDLINE : %s\n", get_kernel_boot_info()->command_line);
-	//printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
+
+	kernel_boot_info_t* kboot_info = get_kernel_boot_info();
 
 	init_pmm();
 
 	pmm_params_t pmm_params;
 	memset(&pmm_params, 0, sizeof(pmm_params_t));
-	pmm_params.kernel_base = get_kernel_boot_info()->load_base_addr;
+	pmm_params.kernel_base = kboot_info->load_base_addr;
 	// Проходимся по регионам grub
-	for (int i = 0; i < get_kernel_boot_info()->mmap_len; i ++) {
+	for (int i = 0; i < kboot_info->mmap_len; i ++) {
 		uintptr_t start, end;
 		uint32_t type;
 		multiboot_get_memory_area(i, &start, &end, &type);
@@ -74,15 +69,14 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_pic();
 	setup_idt();
 	
-	printf("VMM: Creating kernel memory map\n");
 	page_table_t* new_pt = create_kernel_vm_map();
-	printf("VMM: Setting kernel memory map\n");
-
-	//ASUS
 	switch_pml4(K2P(new_pt));
 
-	b8_set_addr(P2V(0xB8000));
-	//VBOX
+	b8_console_clear();
+	printf("Kairax Kernel v0.1\n");
+	//printf("LOADER : %s\n", P2V(kboot_info->bootloader_string));
+	//printf("CMDLINE : %s\n", P2V(kboot_info->command_line));
+	//printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
 
 	int rc = 0;
 	printf("KHEAP: Initialization...\n");
@@ -91,9 +85,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		goto fatal_error;
 	}
 
-	printf("ACPI: Initialization ...\n");
+	printf("ACPI: Initialization ... ");
 	acpi_init();
-	printf("Enabling ACPI ...  ");
 	if((rc = acpi_enable()) != 0) {
 		printf("ACPI: ERROR 0x%i\n", rc);
 		goto fatal_error;
@@ -118,6 +111,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	devfs_init();
 	ahci_init();	
 	init_nvme();
+
+	b8_init();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {
 		drive_device_t* device = get_drive(i);

@@ -193,7 +193,7 @@ ssize_t process_write_file(struct process* process, int fd, const char* buffer, 
         bytes_written = -ERROR_BAD_FD;
         goto exit;
     }
-
+    
     // Записать в файл
     bytes_written = file_write(file, size, buffer);
 

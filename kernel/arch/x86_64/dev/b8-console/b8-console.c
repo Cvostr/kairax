@@ -3,6 +3,10 @@
 #include "types.h"
 #include "string.h"
 #include "io.h"
+#include "fs/devfs/devfs.h"
+
+#define B8_WR_CMD 'w'
+#define B8_RM_CMD 'r'
 
 #define BUFFER_SIZE 4000 	//80 * 25 * 2
 #define BUFFER_LINE_SIZE 160	//80 * 2
@@ -13,9 +17,12 @@ char text_printing_color = 0x07;
 char text_buffer[BUFFER_SIZE]; //4000 chars
 int overstep = 0;
 
-void* b8_addr = (char*)0xB8000;
+void* b8_addr = (char*)P2V(0xB8000);
 
-char* b8_get_text_addr(){
+struct file_operations b8_fops;
+
+char* b8_get_text_addr()
+{
 	return b8_addr;
 }
 
@@ -101,4 +108,20 @@ void b8_remove_from_end(int chars){
 		volatile char* step = b8_get_text_addr() + passed_chars;
 		*step = ' ';
 	}
+}
+
+ssize_t b8_f_write (struct file* file, const char* buffer, size_t count, loff_t offset)
+{
+	if (buffer[0] == B8_WR_CMD) {
+		b8_console_print_char(buffer[1]);
+	}
+	if (buffer[0] == B8_RM_CMD) {
+		b8_remove_from_end(buffer[1]);
+	}
+}
+
+void b8_init()
+{
+	b8_fops.write = b8_f_write;
+	devfs_add_char_device("console", &b8_fops);
 }
