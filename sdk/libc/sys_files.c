@@ -17,6 +17,11 @@ ssize_t read(int fd, char* buffer, size_t size)
     __set_errno(syscall_read(fd, buffer, size));
 }
 
+ssize_t write(int fd, const char* buffer, size_t size)
+{
+    __set_errno(syscall_write(fd, buffer, size));
+}
+
 int fdstat(int fd, struct stat* st)
 {
     __set_errno(syscall_fdstat(fd, st));

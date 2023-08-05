@@ -45,10 +45,17 @@ void free_process(struct process* process)
 
 struct file* process_get_file(struct process* process, int fd)
 {
-    if (fd < 0 || fd >= MAX_DESCRIPTORS)
-        return NULL;
+    struct file* result = NULL;
+    acquire_spinlock(&process->fd_spinlock);
 
-    return process->fds[fd];
+    if (fd < 0 || fd >= MAX_DESCRIPTORS)
+        goto exit;
+
+    result = process->fds[fd];
+
+exit:
+    release_spinlock(&process->fd_spinlock);
+    return result;
 }
 
 int process_create_process(struct process* process, const char* filepath, struct process_create_info* info)
@@ -85,8 +92,6 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
         
     } else if (!vfs_is_path_absolute(path)) {
         // Открыть относительно другого файла
-        acquire_spinlock(&process->fd_spinlock);
-
         // Получить файл по дескриптору
         struct file* dirfile = process_get_file(process, dirfd);
 
@@ -99,10 +104,8 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
             dir_dentry = dirfile->dentry;
         } else {
             // Файл не нашелся, а путь не является абсолютным - выходим
-            goto exit;
+            return ERROR_BAD_FD;
         }
-
-        release_spinlock(&process->fd_spinlock);
     }
 
     struct file* file = file_open(dir_dentry, path, flags, mode);
@@ -148,10 +151,9 @@ exit:
 int process_close_file(struct process* process, int fd)
 {
     int rc = -1;
-    acquire_spinlock(&process->fd_spinlock);
-
     struct file* file = process_get_file(process, fd);
 
+    acquire_spinlock(&process->fd_spinlock);
     if (file != NULL) {
         file_close(file);
         process->fds[fd] = NULL;
@@ -169,8 +171,6 @@ exit:
 ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t size)
 {
     ssize_t bytes_read = -1;
-    acquire_spinlock(&process->fd_spinlock);
-
     struct file* file = process_get_file(process, fd);
 
     if (file == NULL) {
@@ -181,20 +181,29 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
     // Чтение из файла
     bytes_read = file_read(file, size, buffer);
 exit:
-    release_spinlock(&process->fd_spinlock);
-
     return bytes_read;
 }
 
 ssize_t process_write_file(struct process* process, int fd, const char* buffer, size_t size)
 {
-    return 0;
+    ssize_t bytes_written = -1;
+    struct file* file = process_get_file(process, fd);
+
+    if (file == NULL) {
+        bytes_written = -ERROR_BAD_FD;
+        goto exit;
+    }
+
+    // Записать в файл
+    bytes_written = file_write(file, size, buffer);
+
+exit:
+    return bytes_written;
 }
 
 off_t process_file_seek(struct process* process, int fd, off_t offset, int whence)
 {
     off_t result = -1;
-    acquire_spinlock(&process->fd_spinlock);
 
     struct file* file = process_get_file(process, fd);
 
@@ -202,15 +211,12 @@ off_t process_file_seek(struct process* process, int fd, off_t offset, int whenc
         result = file_seek(file, offset, whence);
     }
 
-    release_spinlock(&process->fd_spinlock);
-
     return result;
 }
 
 int process_stat(struct process* process, int fd, struct stat* stat)
 {
     int rc = -1;
-    acquire_spinlock(&process->fd_spinlock);
 
     struct file* file = process_get_file(process, fd);
 
@@ -222,16 +228,12 @@ int process_stat(struct process* process, int fd, struct stat* stat)
         rc = ERROR_BAD_FD;
     }
 
-    release_spinlock(&process->fd_spinlock);
-
     return rc;
 }
 
 int process_readdir(struct process* process, int fd, struct dirent* dirent)
 {
     int rc = -1;
-    acquire_spinlock(&process->fd_spinlock);
-
     struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
@@ -243,7 +245,6 @@ int process_readdir(struct process* process, int fd, struct dirent* dirent)
     }
 
 exit:
-    release_spinlock(&process->fd_spinlock);
 
     return rc;
 }

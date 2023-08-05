@@ -3,7 +3,8 @@
 
 extern int syscall_open_file(int dirfd, const char* filepath, int flags, int mode);
 extern int syscall_close(int fd);
-extern int syscall_read(int fd, char* buffer, unsigned long long size);
+extern long long syscall_read(int fd, char* buffer, unsigned long long size);
+extern long long syscall_write(int fd, const char* buffer, unsigned long long size);
 extern int syscall_readdir(int fd, void* buffer);
 extern unsigned long syscall_process_get_id();
 extern unsigned long int syscall_thread_get_id();

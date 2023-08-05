@@ -42,6 +42,10 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     file->dentry = dentry;
     file->ops = inode->file_ops;
 
+    if (file->ops->open) {
+        file->ops->open(inode, file);
+    }
+
     return file;
 }
 
@@ -64,12 +68,15 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
     acquire_spinlock(&file->lock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
+        read = ERROR_IS_DIRECTORY;
         goto exit;
     }
     
     if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
         struct inode* inode = file->inode;
         read = inode_read(inode, &file->pos, size, buffer);
+    } else {
+        read = ERROR_BAD_FD;
     }
 
 exit:
@@ -79,6 +86,21 @@ exit:
 
 ssize_t file_write(struct file* file, size_t size, const char* buffer)
 {
+    ssize_t read = -1;
+
+    acquire_spinlock(&file->lock);
+
+    if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
+        read = ERROR_IS_DIRECTORY;
+        goto exit;
+    }
+
+    if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) {
+        read = file->ops->write(file, buffer, size, file->pos);
+    }
+
+exit:
+    release_spinlock(&file->lock);
     return 0;
 }
 

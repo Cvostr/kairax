@@ -9,6 +9,7 @@ global syscall_process_exit
 global syscall_sleep
 global syscall_scheduler_yield
 global syscall_read
+global syscall_write
 global syscall_open_file
 global syscall_close
 global syscall_fdstat
@@ -19,12 +20,17 @@ global syscall_create_thread
 global syscall_mount
 
 syscall_printf:
-    mov rax, 1
+    mov rax, 1000
     syscall
     ret
 
 syscall_read:
     mov rax, 0x0
+    syscall
+    ret
+
+syscall_write:
+    mov rax, 0x1
     syscall
     ret
 

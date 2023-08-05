@@ -29,6 +29,8 @@ int close(int fd);
 
 ssize_t read(int fd, char* buffer, size_t size);
 
+ssize_t write(int fd, const char* buffer, size_t size);
+
 int fdstat(int fd, struct stat* st);
 
 int file_stat(const char* filepath, struct stat* st);
