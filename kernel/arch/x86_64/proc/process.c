@@ -87,7 +87,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
         if (info) {
             if (info->current_directory) {
                 // Указана рабочая директория
-                file_t* new_workdir = file_open(NULL, info->current_directory, 0, 0);
+                struct file* new_workdir = file_open(NULL, info->current_directory, 0, 0);
 
                 if (new_workdir) {
                     

@@ -26,6 +26,8 @@ struct inode_operations {
     int      (*unlink)(struct inode*, struct dentry*);
 };
 
+struct file_operations;
+
 #define INODE_TYPE_MASK        0xF000
 #define INODE_TYPE_FILE        0x8000
 #define INODE_TYPE_DIRECTORY   0x4000
@@ -54,6 +56,7 @@ struct inode {
     uint64_t    modify_time;
 
     struct inode_operations* operations;
+    struct file_operations*  file_ops;   
 
     spinlock_t      spinlock;
 };

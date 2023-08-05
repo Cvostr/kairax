@@ -43,7 +43,7 @@ void free_process(struct process* process)
     scheduler_from_killed();
 }
 
-file_t* process_get_file(struct process* process, int fd)
+struct file* process_get_file(struct process* process, int fd)
 {
     if (fd < 0 || fd >= MAX_DESCRIPTORS)
         return NULL;
@@ -87,9 +87,14 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
         // Открыть относительно другого файла
         acquire_spinlock(&process->fd_spinlock);
 
-        file_t* dirfile = process_get_file(process, dirfd);
+        // Получить файл по дескриптору
+        struct file* dirfile = process_get_file(process, dirfd);
 
         if (dirfile) {
+            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+                fd = -ERROR_NOT_A_DIRECTORY;
+                goto exit;
+            }
             // проверить тип inode
             dir_dentry = dirfile->dentry;
         } else {
@@ -100,7 +105,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
         release_spinlock(&process->fd_spinlock);
     }
 
-    file_t* file = file_open(dir_dentry, path, flags, mode);
+    struct file* file = file_open(dir_dentry, path, flags, mode);
 
     if (file == NULL) {
         // Файл не найден
@@ -145,7 +150,7 @@ int process_close_file(struct process* process, int fd)
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process_get_file(process, fd);
+    struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
         file_close(file);
@@ -153,7 +158,6 @@ int process_close_file(struct process* process, int fd)
         rc = 0;
         goto exit;
     } else {
-
         rc = -ERROR_BAD_FD;
     }
 
@@ -167,10 +171,9 @@ ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t 
     ssize_t bytes_read = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process_get_file(process, fd);
+    struct file* file = process_get_file(process, fd);
 
     if (file == NULL) {
-
         bytes_read = -ERROR_BAD_FD;
         goto exit;
     }
@@ -183,12 +186,17 @@ exit:
     return bytes_read;
 }
 
+ssize_t process_write_file(struct process* process, int fd, const char* buffer, size_t size)
+{
+    return 0;
+}
+
 off_t process_file_seek(struct process* process, int fd, off_t offset, int whence)
 {
     off_t result = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process_get_file(process, fd);
+    struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
         result = file_seek(file, offset, whence);
@@ -204,7 +212,7 @@ int process_stat(struct process* process, int fd, struct stat* stat)
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process_get_file(process, fd);
+    struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
         struct inode* inode = file->inode;
@@ -224,7 +232,7 @@ int process_readdir(struct process* process, int fd, struct dirent* dirent)
     int rc = -1;
     acquire_spinlock(&process->fd_spinlock);
 
-    file_t* file = process_get_file(process, fd);
+    struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
         // Вызов readdir из файла   
@@ -263,7 +271,7 @@ int process_set_working_dir(struct process* process, const char* buffer)
 {
     int rc = -1;
 
-    file_t* new_workdir = file_open(process->workdir->dentry, buffer, 0, 0);
+    struct file* new_workdir = file_open(process->workdir->dentry, buffer, 0, 0);
 
     if (new_workdir) {
         // файл открыт, убеждаемся что это директория 

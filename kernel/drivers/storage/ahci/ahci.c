@@ -97,12 +97,14 @@ void ahci_init()
 			controller->hba_mem = (HBA_MEMORY*)P2V(controller->hba_mem);
 
 			int reset = ahci_controller_reset(controller);
-			if(!reset){
+			if (!reset) {
 				printf("AHCI controller reset failed !\n");
 			}
 
-			register_interrupt_handler(0x20 + 11, ahci_int_handler);
-    		pic_unmask(0x20 + 11);
+			uint8_t irq = device_desc->interrupt_line;
+
+			register_interrupt_handler(0x20 + irq, ahci_int_handler);
+    		pic_unmask(0x20 + irq);
 
 			// Получить информацию о портах. первый этап инициализации
 			ahci_controller_probe_ports(controller);

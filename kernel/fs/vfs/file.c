@@ -3,16 +3,16 @@
 #include "string.h"
 #include "vfs.h"
 
-file_t* new_file()
+struct file* new_file()
 {
-    file_t* file = kmalloc(sizeof(file_t));
-    memset(file, 0, sizeof(file_t));
+    struct file* file = kmalloc(sizeof(struct file));
+    memset(file, 0, sizeof(struct file));
     return file;
 }
 
-void file_close(file_t* file) 
+void file_close(struct file* file) 
 {
-    acquire_spinlock(&file->spinlock);
+    acquire_spinlock(&file->lock);
     
     if (file->inode) {
         inode_close(file->inode);
@@ -25,7 +25,7 @@ void file_close(file_t* file)
     kfree(file);
 }
 
-file_t* file_open(struct dentry* dir, const char* path, int flags, int mode)
+struct file* file_open(struct dentry* dir, const char* path, int flags, int mode)
 {
     struct dentry* dentry;
     struct inode* inode = vfs_fopen(dir, path, flags, &dentry);
@@ -34,19 +34,20 @@ file_t* file_open(struct dentry* dir, const char* path, int flags, int mode)
         return NULL;
     }
 
-    file_t* file = new_file();
+    struct file* file = new_file();
     file->inode = inode;
     file->mode = mode;
     file->flags = flags;
     file->pos = 0;
     file->dentry = dentry;
+    file->ops = inode->file_ops;
 
     return file;
 }
 
-file_t* file_clone(file_t* original)
+struct file* file_clone(struct file* original)
 {
-    file_t* file = new_file();
+    struct file* file = new_file();
     file->inode = original->inode;
     file->dentry = original->dentry;
 
@@ -56,11 +57,11 @@ file_t* file_clone(file_t* original)
     return file;
 }
 
-ssize_t file_read(file_t* file, size_t size, char* buffer)
+ssize_t file_read(struct file* file, size_t size, char* buffer)
 {
     ssize_t read = -1;
 
-    acquire_spinlock(&file->spinlock);
+    acquire_spinlock(&file->lock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
         goto exit;
@@ -72,14 +73,24 @@ ssize_t file_read(file_t* file, size_t size, char* buffer)
     }
 
 exit:
-    release_spinlock(&file->spinlock);
+    release_spinlock(&file->lock);
     return read;
 }
 
-off_t file_seek(file_t* file, off_t offset, int whence)
+ssize_t file_write(struct file* file, size_t size, const char* buffer)
+{
+    return 0;
+}
+
+off_t file_seek(struct file* file, off_t offset, int whence)
 {
     off_t result = -1;
-    acquire_spinlock(&file->spinlock);
+
+    if ( !(whence >= SEEK_SET && whence <= SEEK_END)) {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    acquire_spinlock(&file->lock);
 
     struct inode* inode = file->inode;
 
@@ -98,15 +109,15 @@ off_t file_seek(file_t* file, off_t offset, int whence)
     result = file->pos;
 
 exit:
-    release_spinlock(&file->spinlock);
+    release_spinlock(&file->lock);
     return result;
 }
 
-int file_readdir(file_t* file, struct dirent* dirent)
+int file_readdir(struct file* file, struct dirent* dirent)
 {
     int result_code = 0;
 
-    acquire_spinlock(&file->spinlock);
+    acquire_spinlock(&file->lock);
 
     struct inode* inode = file->inode;
 
@@ -118,7 +129,7 @@ int file_readdir(file_t* file, struct dirent* dirent)
 
     struct dirent* ndirent = inode_readdir(inode, file->pos ++);
         
-    release_spinlock(&file->spinlock);
+    release_spinlock(&file->lock);
         
     // Больше в директории ничего нет
     if (ndirent == NULL) {

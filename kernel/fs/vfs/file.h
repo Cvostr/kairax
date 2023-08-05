@@ -29,29 +29,44 @@
 
 #define FD_CWD		-2
 
+struct file;
+
+struct file_operations {
+    loff_t (*llseek) (struct file* file, loff_t offset, int whence);
+    ssize_t (*read) (struct file* file, char* buffer, size_t count, loff_t offset);
+    ssize_t (*write) (struct file* file, const char* buffer, size_t count, loff_t offset);
+    int (*ioctl)(struct file* file, uint64_t request, uint64_t arg);
+
+    int (*open) (struct inode *inode, struct file *file);
+    int (*release) (struct inode *inode, struct file *file);
+};
+
 // Открытый файл
-typedef struct {
-    struct inode*   inode;
-    struct dentry*  dentry;
-    int             mode;
-    int             flags;
-    loff_t          pos;
-    void*           private_data;
-    spinlock_t      spinlock;
-} file_t;
+struct file {
+    struct inode*           inode;
+    struct dentry*          dentry;
+    struct file_operations* ops;
+    int                     mode;
+    int                     flags;
+    loff_t                  pos;
+    void*                   private_data;
+    spinlock_t              lock;
+};
 
-file_t* new_file();
+struct file* new_file();
 
-file_t* file_open(struct dentry* dir, const char* path, int flags, int mode);
+struct file* file_open(struct dentry* dir, const char* path, int flags, int mode);
 
-file_t* file_clone(file_t* original);
+struct file* file_clone(struct file* original);
 
-void file_close(file_t* file);
+void file_close(struct file* file);
 
-ssize_t file_read(file_t* file, size_t size, char* buffer);
+ssize_t file_read(struct file* file, size_t size, char* buffer);
 
-off_t file_seek(file_t* file, off_t offset, int whence);
+ssize_t file_write(struct file* file, size_t size, const char* buffer);
 
-int file_readdir(file_t* file, struct dirent* dirent);
+off_t file_seek(struct file* file, off_t offset, int whence);
+
+int file_readdir(struct file* file, struct dirent* dirent);
 
 #endif

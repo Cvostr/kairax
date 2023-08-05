@@ -18,7 +18,7 @@ struct process {
 
     uint32_t        state;
     // Рабочая папка
-    file_t*         workdir;
+    struct file*    workdir;
     // Таблица виртуальной памяти процесса
     void*           vmemory_table;  
     // Процесс - родитель
@@ -28,7 +28,7 @@ struct process {
     // Связный список потомков
     list_t*         children;
     // Указатели на открытые файловые дескрипторы
-    file_t*         fds[MAX_DESCRIPTORS];
+    struct file*    fds[MAX_DESCRIPTORS];
     // начальные данные для TLS
     char*           tls;
     size_t          tls_size;
@@ -58,13 +58,15 @@ int process_create_process(struct process* process, const char* filepath, struct
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
-file_t* process_get_file(struct process* process, int fd);
+struct file* process_get_file(struct process* process, int fd);
 
 int process_open_file(struct process* process, int dirfd, const char* path, int flags, int mode);
 
 int process_close_file(struct process* process, int fd);
 
 ssize_t process_read_file(struct process* process, int fd, char* buffer, size_t size);
+
+ssize_t process_write_file(struct process* process, int fd, const char* buffer, size_t size);
 
 off_t process_file_seek(struct process* process, int fd, off_t offset, int whence); 
 
