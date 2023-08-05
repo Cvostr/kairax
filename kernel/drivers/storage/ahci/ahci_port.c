@@ -42,6 +42,7 @@ void ahci_port_stop_commands(ahci_port_t* port)
 {
 	port->port_reg->cmd &= ~HBA_PxCMD_START;
 	port->port_reg->cmd &= ~HBA_PxCMD_FRE;
+
 	while(1)
 	{
 		if (port->port_reg->cmd & HBA_PxCMD_FR)
@@ -52,22 +53,16 @@ void ahci_port_stop_commands(ahci_port_t* port)
 	}
 }
 
-void ahci_port_start_commands(ahci_port_t* port)
-{
-	while(port->port_reg->cmd & HBA_PxCMD_CR);
-
-	// FIS receive enable
-	ahci_port_fis_receive_enable(port);
-}
 
 ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc)
 {
     memset(port, 0, sizeof(ahci_port_t));
-	port->implemented = 1;
-
+	
     ahci_device_type device_type = get_device_type(port_desc);
 	if(device_type == 0)
 		return NULL;
+
+	port->implemented = 1;
 		
     port->port_reg = port_desc;
     port->index = index;
@@ -108,19 +103,22 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 		hba_command_virtual[i].ctdba_up = HI32(cmd_table);
     }
 
-	// Разрешить выполнение команд
-	ahci_port_start_commands(port);
+	port->port_reg->sctl |= (SCTL_PORT_IPM_NOPART | SCTL_PORT_IPM_NOSLUM);
+
+	//Очистить бит IRQ статуса
+    port->port_reg->is = port->port_reg->is;
+
+	// Очистить регистр ошибок
+	ahci_port_clear_error_register(port);
+
+	ahci_port_power_on(port);
 
 	ahci_port_spin_up(port);
 
-    //Очистить бит IRQ статуса
-    port->port_reg->is = port->port_reg->is;
+	ahci_port_activate_link(port);
 
-    ahci_port_clear_error_register(port);
-
-    ahci_port_power_on(port);
-
-    ahci_port_activate_link(port);
+	// включает FIS Receive
+	ahci_port_fis_receive_enable(port);
 
     ahci_port_flush_posted_writes(port);
 
@@ -150,30 +148,99 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     return port;
 }
 
+void ahci_port_init2(ahci_port_t* port)
+{
+	ahci_port_enable(port);
+
+	port->port_reg->ie = PORT_INT_MASK;
+	ahci_port_flush_posted_writes(port);
+
+	ahci_port_reset(port);
+}
+
+int ahci_port_enable(ahci_port_t* port)
+{
+	if ((port->port_reg->cmd & HBA_PxCMD_START) != 0) {
+		printf("%s: Starting port already running!\n", __func__);
+		return 0;
+	}
+
+	if ((port->port_reg->cmd & HBA_PxCMD_FRE) == 0) {
+		printf("%s: Unable to start port without FRE enabled!\n", __func__);
+		return 0;
+	}
+
+	while (port->port_reg->cmd & HBA_PxCMD_CR);
+
+	port->port_reg->cmd |= HBA_PxCMD_START;
+	ahci_port_flush_posted_writes(port);
+
+	return 1;
+}
+
+int ahci_port_reset(ahci_port_t* port)
+{
+	port->port_reg->cmd &= ~HBA_PxCMD_START;
+	ahci_port_flush_posted_writes(port);
+	while (port->port_reg->cmd & HBA_PxCMD_CR);
+
+	ahci_port_clear_error_register(port);
+
+	int spin = 0;
+	while ((port->port_reg->tfd & (AHCI_DEV_BUSY | AHCI_DEV_DRQ)) && spin < 1000000)
+	{
+		spin++;
+	}
+	if (spin == 1000000)
+	{
+		printf("Port COMRESET\n");
+		port->port_reg->sctl = (SSTS_PORT_IPM_ACTIVE | SSTS_PORT_IPM_PARTIAL | SCTL_PORT_DET_INIT);
+		ahci_port_flush_posted_writes(port);
+
+		io_delay(200000);
+		port->port_reg->sctl = (port->port_reg->sctl & ~HBA_PORT_DET_MASK) | SCTL_PORT_DET_NOINIT;
+		ahci_port_flush_posted_writes(port);
+	}
+
+	ahci_port_enable(port);
+	while (!(port->port_reg->cmd & SSTS_PORT_DET_PRESENT));
+
+	return 1;
+}
+
 uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port)
 {
 	uint32_t slots = (port->port_reg->sact | port->port_reg->ci);
-	for(uint32_t i = 0; i < 32; i ++){
-		if((slots & 1) == 0)
+
+	for (uint32_t i = 0; i < 32; i ++) {
+
+		if ((slots & 1) == 0) {
 			return i;
+		}
+
 		slots >>= 1;
 	}
+
 	return -1;
 }
 
-void ahci_port_power_on(ahci_port_t* port){
-	port->port_reg->cmd |= (1 << 2);
+void ahci_port_power_on(ahci_port_t* port)
+{
+	port->port_reg->cmd |= HBA_PxCMD_POWER;
 }
 
-void ahci_port_spin_up(ahci_port_t* port){
-	port->port_reg->cmd |= HBA_PxCMD_START;
+void ahci_port_spin_up(ahci_port_t* port)
+{
+	port->port_reg->cmd |= HBA_PxCMD_SPINUP;
 }
 
-void ahci_port_activate_link(ahci_port_t* port){
-    port->port_reg->cmd = (port->port_reg->cmd & ~(0xf << 28)) | (1 << 28);
+void ahci_port_activate_link(ahci_port_t* port)
+{
+    port->port_reg->cmd = (port->port_reg->cmd & ~AHCI_PORT_CMD_ICC_MASK) | AHCI_PORT_CMD_ICC_ACTIVE;
 }
 
-void ahci_port_fis_receive_enable(ahci_port_t* port){
+void ahci_port_fis_receive_enable(ahci_port_t* port)
+{
     port->port_reg->cmd |= HBA_PxCMD_FRE;
 }
 
@@ -183,7 +250,8 @@ void ahci_port_clear_error_register(ahci_port_t* port)
 	ahci_port_flush_posted_writes(port);
 }
 
-int ahci_port_identity(ahci_port_t *port, char* buffer){
+int ahci_port_identity(ahci_port_t *port, char* buffer)
+{
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; 

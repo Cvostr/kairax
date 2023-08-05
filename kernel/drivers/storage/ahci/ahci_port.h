@@ -9,7 +9,9 @@
 #define AHCI_PORT_SPEED_6_0_GBPS    3
 #define AHCI_PORT_SPEED_UNRESTRICTED    4
 
+#define HBA_PxCMD_POWER         (1UL << 2)
 #define HBA_PxCMD_START         0x0001
+#define HBA_PxCMD_SPINUP        (1 << 1)
 #define HBA_PxCMD_FRE           0x0010
 #define HBA_PxCMD_CR            0x8000
 #define HBA_PxCMD_FR            0x4000
@@ -40,6 +42,12 @@ typedef struct PACKED {
 } ahci_port_t;
 
 ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc);
+
+void ahci_port_init2(ahci_port_t* port);
+
+int ahci_port_reset(ahci_port_t* port);
+
+int ahci_port_enable(ahci_port_t* port);
 
 uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port);
 

@@ -57,7 +57,8 @@ int ahci_controller_reset(ahci_controller_t* controller){
     return 1;
 }
 
-void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller){
+void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller)
+{
 	controller->hba_mem->ghc |= (1 << 1);
 }
 
@@ -103,9 +104,25 @@ void ahci_init()
 			register_interrupt_handler(0x20 + 11, ahci_int_handler);
     		pic_unmask(0x20 + 11);
 
-			ahci_controller_enable_interrupts_ghc(controller);
-
+			// Получить информацию о портах. первый этап инициализации
 			ahci_controller_probe_ports(controller);
+
+			uint32_t interruptsPending;
+			interruptsPending = controller->hba_mem->is;
+			controller->hba_mem->is = interruptsPending;
+			ahci_controller_flush_posted_writes(controller);
+			ahci_controller_enable_interrupts_ghc(controller);
+			ahci_controller_flush_posted_writes(controller);
+
+			for (int i = 0; i < 32; i ++) {
+				//Проверка, есть ли устройство
+				if(controller->ports[i].implemented == 0) {
+					continue;
+				}
+
+				ahci_port_init2(&controller->ports[i]);
+			}
+
 
 			for (int i = 0; i < 32; i ++) {
 				//Проверка, есть ли устройство

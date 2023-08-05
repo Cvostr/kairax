@@ -31,6 +31,9 @@ typedef uint32_t ahci_device_type;
 
 #define HBA_PxIS_TFE            (1 << 30)
 
+#define AHCI_PORT_CMD_ICC_ACTIVE    (1UL << 28)
+#define AHCI_PORT_CMD_ICC_MASK      (0xF << 28)
+
 typedef enum
 {
 	FIS_TYPE_REG_HOST_TO_DEV	= 0x27,	// Register FIS - host to device
@@ -80,6 +83,34 @@ typedef enum
     FIS_CMD_WRITE_SECTORS       = 0x30,
     FIS_CMD_WRITE_SECTORS_EXT   = 0x34,
 } FIS_COMMAND;
+
+enum {
+	PORT_INT_CPD	= (1 << 31),	// Cold Presence Detect Status/Enable
+	PORT_INT_TFE	= (1 << 30),	// Task File Error Status/Enable
+	PORT_INT_HBF	= (1 << 29),	// Host Bus Fatal Error Status/Enable
+	PORT_INT_HBD	= (1 << 28),	// Host Bus Data Error Status/Enable
+	PORT_INT_IF		= (1 << 27),	// Interface Fatal Error Status/Enable
+	PORT_INT_INF	= (1 << 26),	// Interface Non-fatal Error Status/Enable
+	PORT_INT_OF		= (1 << 24),	// Overflow Status/Enable
+	PORT_INT_IPM	= (1 << 23),	// Incorrect Port Multiplier Status/Enable
+	PORT_INT_PRC	= (1 << 22),	// PhyRdy Change Status/Enable
+	PORT_INT_DI		= (1 << 7),		// Device Interlock Status/Enable
+	PORT_INT_PC		= (1 << 6),		// Port Change Status/Enable
+	PORT_INT_DP		= (1 << 5),		// Descriptor Processed Interrupt
+	PORT_INT_UF		= (1 << 4),		// Unknown FIS Interrupt
+	PORT_INT_SDB	= (1 << 3),		// Set Device Bits FIS Interrupt
+	PORT_INT_DS		= (1 << 2),		// DMA Setup FIS Interrupt
+	PORT_INT_PS		= (1 << 1),		// PIO Setup FIS Interrupt
+	PORT_INT_DHR	= (1 << 0),		// Device to Host Register FIS Interrupt
+};
+
+#define PORT_INT_ERROR	(PORT_INT_TFE | PORT_INT_HBF | PORT_INT_HBD \
+							| PORT_INT_IF | PORT_INT_INF | PORT_INT_OF \
+							| PORT_INT_IPM | PORT_INT_PRC | PORT_INT_PC \
+							| PORT_INT_UF)
+
+#define PORT_INT_MASK	(PORT_INT_ERROR | PORT_INT_DP | PORT_INT_SDB \
+							| PORT_INT_DS | PORT_INT_PS | PORT_INT_DHR)
 
 typedef volatile struct PACKED
 {
@@ -273,5 +304,22 @@ typedef struct PACKED
 	uint8_t  reserved[48];	    
 	HBA_PRDT_ENTRY	prdt_entry[8];	// Physical region descriptor table entries, 0 ~ 65535
 } HBA_COMMAND_TABLE;
+
+#define HBA_PORT_IPM_MASK		0x00000f00	// Interface Power Management
+#define SSTS_PORT_IPM_ACTIVE	0x00000100	// active state
+#define SSTS_PORT_IPM_PARTIAL	0x00000200	// partial state
+#define SSTS_PORT_IPM_SLUMBER	0x00000600	// slumber power management state
+#define SSTS_PORT_IPM_DEVSLEEP	0x00000800	// devsleep power management state
+#define SCTL_PORT_IPM_NORES		0x00000000	// no power restrictions
+#define SCTL_PORT_IPM_NOPART	0x00000100	// no transitions to partial
+#define SCTL_PORT_IPM_NOSLUM	0x00000200	// no transitions to slumber
+#define HBA_PORT_DET_MASK		0x0000000f	// Device Detection
+#define SSTS_PORT_DET_NODEV		0x00000000	// no device detected
+#define SSTS_PORT_DET_NOPHY		0x00000001	// device present but PHY not est.
+#define SSTS_PORT_DET_PRESENT	0x00000003	// device present and PHY est.
+#define SSTS_PORT_DET_OFFLINE	0x00000004	// device offline due to disabled
+#define SCTL_PORT_DET_NOINIT	0x00000000	// no initalization request
+#define SCTL_PORT_DET_INIT		0x00000001	// perform interface initalization
+#define SCTL_PORT_DET_DISABLE	0x00000004	// disable phy
 
 #endif
