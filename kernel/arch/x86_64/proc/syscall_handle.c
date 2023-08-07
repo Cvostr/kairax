@@ -31,10 +31,7 @@ void syscall_handle(syscall_frame_t* frame) {
     size_t buffer_length = 0;
     
     switch (frame->rax) {
-        case 1000:
-            printf("%s", mem);
-            break;
-
+        
         case 0x0: // Чтение файла
             frame->rax = process_read_file(current_process, frame->rdi, (char*)frame->rsi, frame->rdx);
             break;

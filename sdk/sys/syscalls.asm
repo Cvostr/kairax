@@ -1,7 +1,6 @@
 [BITS 64]
 [SECTION .text]
 
-global syscall_printf
 global syscall_process_get_id
 global syscall_thread_get_id
 global syscall_get_working_dir
@@ -18,11 +17,6 @@ global syscall_file_seek
 global syscall_set_file_mode
 global syscall_create_thread
 global syscall_mount
-
-syscall_printf:
-    mov rax, 1000
-    syscall
-    ret
 
 syscall_read:
     mov rax, 0x0

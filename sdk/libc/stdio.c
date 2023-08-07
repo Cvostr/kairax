@@ -2,11 +2,11 @@
 #include "stdarg.h"
 #include "stdint.h"
 #include "string.h"
-#include "../sys/syscalls.h"
-
-extern void syscall_printf(char* str);
+#include "sys_files.h"
 
 static char destination[32] = {0};
+
+int console_fd = -1;
 
 char* itoa(long long number, int base){
 
@@ -27,10 +27,15 @@ char* itoa(long long number, int base){
 }
 
 int putchar(int ic) {
-    char str[2];
-    str[0] = ic;
-    str[1] = 0;
-    syscall_printf(str);
+	char str[2];
+    str[0] = 'w';
+    str[1] = ic;
+
+	if (console_fd == -1) {
+		console_fd = open_file("/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
+	}
+
+	write(console_fd, str, 2);
 	
 	return ic;
 }
