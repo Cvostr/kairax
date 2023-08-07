@@ -98,8 +98,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	smp_init();
 
 	init_interrupts_handler(); 
-	init_ints_keyboard();
-
 	printf("Reading PCI devices\n");
 	load_pci_devices_list();	
 
@@ -113,6 +111,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_nvme();
 
 	b8_init();
+	init_ints_keyboard();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {
 		drive_device_t* device = get_drive(i);

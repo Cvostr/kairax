@@ -2,27 +2,41 @@
 #include "interrupts/pic.h"
 #include "interrupts/handle/handler.h"
 #include "io.h"
+#include "fs/devfs/devfs.h"
 
 #define KEY_BUFFER_SIZE 16
 char key_buffer[KEY_BUFFER_SIZE];
 unsigned char buffer_start;
 unsigned char buffer_end;
 
+struct file_operations int_keyb_fops;
 void keyboard_int_handler(interrupt_frame_t* frame);
 
-void init_ints_keyboard(){
+ssize_t intk_f_read (struct file* file, char* buffer, size_t count, loff_t offset)
+{
+    buffer[0] = keyboard_get_key();
+    return buffer[0] != 0;
+}
+
+void init_ints_keyboard()
+{
     buffer_start = 0;
     buffer_end = 0;
 
     pic_unmask(0x21);
     register_interrupt_handler(0x21, keyboard_int_handler);
+
+    int_keyb_fops.read = intk_f_read;
+	devfs_add_char_device("keyboard", &int_keyb_fops);
 }
 
-void keyboard_int_handler(interrupt_frame_t* frame){
+void keyboard_int_handler(interrupt_frame_t* frame)
+{
     char keycode = inb(0x60) + 1;
     
-    if(buffer_end >= KEY_BUFFER_SIZE) 
-      buffer_end = 0;
+    if (buffer_end >= KEY_BUFFER_SIZE) 
+       buffer_end = 0;
+
     key_buffer[buffer_end] = keycode;
     buffer_end += 1;
 
@@ -32,13 +46,15 @@ void keyboard_int_handler(interrupt_frame_t* frame){
     pic_eoi(1);
 }
 
-char keyboard_get_key(){
-    if(buffer_start != buffer_end){
+char keyboard_get_key()
+{
+    if (buffer_start != buffer_end) {
         if(buffer_start >= KEY_BUFFER_SIZE) buffer_start = 0;
-          buffer_start++;
-    }else{
+            buffer_start++;
+    } else {
         return 0;
     }
+
     return key_buffer[buffer_start - 1];
 }
 

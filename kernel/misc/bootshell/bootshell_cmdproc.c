@@ -174,7 +174,6 @@ void bootshell_process_cmd(char* cmdline)
         }
 
         int size = file->inode->size;
-        printf("size %i", size);
         printf("%s: ", args[1]);
         char* buffer = kmalloc(size);
         
