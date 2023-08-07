@@ -60,22 +60,21 @@ exit:
 
 int process_create_process(struct process* process, const char* filepath, struct process_create_info* info)
 {
-    struct inode* inode = vfs_fopen(NULL, filepath, 0, NULL);
-    if (inode == NULL) {
+    struct file* proc_file = file_open(NULL, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
+    if (proc_file == NULL) {
         return -1;
     }
 
-    loff_t offset = 0;
-    int size = inode->size;
+    int size = proc_file->inode->size;
     char* image_data = kmalloc(size);
-    inode_read(inode, &offset, size, image_data);
+    file_read(proc_file, size, image_data);
 
     int rc = create_new_process_from_image(process, image_data, info);
 
 exit:
 
     // Закрыть inode, освободить память
-    inode_close(inode);
+    file_close(proc_file);
     kfree(image_data);
 
     return rc;

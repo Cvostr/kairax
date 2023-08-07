@@ -166,44 +166,44 @@ void bootshell_process_cmd(char* cmdline)
         }
     }
     if (strcmp(cmd, "cat") == 0) {
-        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
-        if(inode == NULL){
+        struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
+        
+        if (file == NULL) {
             printf("Can't open directory with path : %s", args[1]);
             goto exit;
         }
-        int size = inode->size;
+
+        int size = file->inode->size;
+        printf("size %i", size);
         printf("%s: ", args[1]);
         char* buffer = kmalloc(size);
+        
+        file_read(file, size, buffer);
 
-        loff_t offset = 0;
-        inode_read(inode, &offset, size, buffer);
         for(int i = 0; i < size; i++){
             printf("%c", buffer[i]);
         }
         printf("\n");
         kfree(buffer);
-        inode_close(inode);
+
+        file_close(file);
     }
     if (strcmp(cmd, "stress") == 0) {
-        struct inode* sysn_i = vfs_fopen(NULL, "/sysn.a", 0, NULL);
-        struct inode* sysc_i = vfs_fopen(NULL, "/sysc.a", 0, NULL);
-        struct inode* ls_i = vfs_fopen(NULL, "/ls.a", 0, NULL);
+        struct file* sysn_f = file_open(wd_dentry, "/sysn.a", FILE_OPEN_MODE_READ_ONLY, 0);
+        struct file* sysc_f = file_open(wd_dentry, "/sysc.a", FILE_OPEN_MODE_READ_ONLY, 0);
+        struct file* ls_f = file_open(wd_dentry, "/ls.a", FILE_OPEN_MODE_READ_ONLY, 0);
 
-        loff_t offset = 0;
-        int size = sysn_i->size;
+        int size = sysn_f->inode->size;
         char* sysn_d = kmalloc(size);
+        file_read(sysn_f, size, sysn_d);
 
-        inode_read(sysn_i, &offset, size, sysn_d);
-
-        size = sysc_i->size;
+        size = sysc_f->inode->size;
         char* sysc_d = kmalloc(size);
-        offset = 0;
-        inode_read(sysc_i, &offset, size, sysc_d);
+        file_read(sysc_f, size, sysc_d);
 
-        size = ls_i->size;
+        size = ls_f->inode->size;
         char* ls_d = kmalloc(size);
-        offset = 0;
-        inode_read(ls_i, &offset, size, ls_d);
+        file_read(ls_f, size, ls_d);
 
         struct process_create_info info;
         info.current_directory = curdir;
@@ -219,17 +219,18 @@ void bootshell_process_cmd(char* cmdline)
         kfree(sysc_d);
         kfree(ls_d);
         
-        inode_close(sysn_i);
-        inode_close(sysc_i);
-        inode_close(ls_i);
+        file_close(sysn_f);
+        file_close(sysc_f);
+        file_close(ls_f);
     }
     if (strcmp(cmd, "exec") == 0) {
-        struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);
-        if(inode == NULL){
+        struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
+
+        if(file == NULL){
             printf("Can't open file with path : ", args[1]);
             return;
         }
-        int size = inode->size;
+        int size = file->inode->size;
         printf("\n");
         char* buffer = kmalloc(size);
         if(buffer == NULL) {
@@ -237,8 +238,7 @@ void bootshell_process_cmd(char* cmdline)
             return;
         }
 
-        loff_t offset = 0;
-        inode_read(inode, &offset, size, buffer);
+        file_read(file, size, buffer);
 
         //Запуск
         struct process_create_info info;
@@ -248,7 +248,7 @@ void bootshell_process_cmd(char* cmdline)
         int rc = create_new_process_from_image(NULL, buffer, &info); 
 
         kfree(buffer);
-        inode_close(inode);
+        file_close(file);
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();

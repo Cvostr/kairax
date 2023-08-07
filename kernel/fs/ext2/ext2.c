@@ -8,6 +8,10 @@
 
 struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
+
+struct file_operations file_ops;
+struct file_operations dir_ops;
+
 struct super_operations sb_ops;
 
 void ext2_init()
@@ -18,8 +22,6 @@ void ext2_init()
 
     filesystem_register(ext2fs);
 
-    file_inode_ops.read = ext2_read;
-    file_inode_ops.write = ext2_write;
     file_inode_ops.chmod = ext2_chmod;
     file_inode_ops.open = ext2_open;
     file_inode_ops.close = ext2_close;
@@ -32,6 +34,9 @@ void ext2_init()
     dir_inode_ops.open = ext2_open;
     dir_inode_ops.close = ext2_close;
     //dir_inode_ops.unlink = ext2_unlink;
+
+    file_ops.read = ext2_file_read;
+    file_ops.write = ext2_file_write;
 
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
@@ -708,6 +713,7 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
         }
 
         result->operations = &file_inode_ops;
+        result->file_ops = &file_ops;
     }
 
     if((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) {
@@ -733,23 +739,36 @@ void ext2_close(struct inode* inode)
     
 }
 
-ssize_t ext2_read(struct inode* file, off_t offset, size_t size, char* buffer)
+ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
-    ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
-    ext2_inode_t*    inode = new_ext2_inode();
-    ext2_inode(inst, inode, file->inode);
-    ssize_t result = read_inode_filedata(inst, inode, offset, size, buffer);
-    kfree(inode);
+    struct inode* inode = file->inode;
+    
+    ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
+    ext2_inode_t*    e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, inode->inode);
+    
+    ssize_t result = read_inode_filedata(inst, e2_inode, offset, count, buffer);
+    file->pos += result;
+
+    kfree(e2_inode);
+    
     return result;
 }
 
-ssize_t ext2_write(struct inode* file, off_t offset, size_t size, const char* buffer){
-    ext2_instance_t* inst = (ext2_instance_t*)file->sb->fs_info;
-    ext2_inode_t*    inode = new_ext2_inode();
-    ext2_inode(inst, inode, file->inode);
-    write_inode_filedata(inst, inode, offset, size, buffer);
-    kfree(inode);
-    return 0;
+ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
+{
+    struct inode* inode = file->inode;
+
+    ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
+    ext2_inode_t*    e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, file->inode);
+
+    ssize_t result = write_inode_filedata(inst, e2_inode, offset, count, buffer);
+    file->pos += result;
+
+    kfree(e2_inode);
+
+    return result;
 }
 
 int ext2_truncate(struct inode* inode)

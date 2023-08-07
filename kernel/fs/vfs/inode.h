@@ -14,8 +14,6 @@ struct dentry;
 struct inode_operations {
     void      (*open)(struct inode*, uint32_t);
     void      (*close)(struct inode*);
-    ssize_t   (*read)(struct inode*, off_t, size_t, char*);
-    ssize_t   (*write)(struct inode*, off_t, size_t, const char*);
 
     struct dirent* (*readdir)(struct inode*, uint32_t);
 
@@ -60,10 +58,6 @@ struct inode {
 
     spinlock_t      spinlock;
 };
-
-ssize_t inode_read(struct inode* node, loff_t* offset, size_t size, char* buffer);
-
-ssize_t inode_write(struct inode* node, loff_t* offset, size_t size, const char* buffer);
 
 struct dirent* inode_readdir(struct inode* node, uint32_t index);
 

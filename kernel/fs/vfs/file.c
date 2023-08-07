@@ -73,8 +73,7 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
     }
     
     if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
-        struct inode* inode = file->inode;
-        read = inode_read(inode, &file->pos, size, buffer);
+        read = file->ops->read(file, buffer, size, file->pos);
     } else {
         read = ERROR_BAD_FD;
     }
@@ -97,6 +96,8 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
 
     if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) {
         read = file->ops->write(file, buffer, size, file->pos);
+    } else {
+        read = ERROR_BAD_FD;
     }
 
 exit:

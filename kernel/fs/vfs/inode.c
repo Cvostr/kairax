@@ -102,38 +102,6 @@ int inode_unlink(struct inode* parent, struct dentry* child)
     return 0;
 }
 
-ssize_t inode_read(struct inode* node, loff_t* offset, size_t size, char* buffer)
-{
-    ssize_t result = 0;
-    acquire_spinlock(&node->spinlock);
-
-    if(node->operations->read) {
-        result = node->operations->read(node, *offset, size, buffer);
-        *offset += result;
-    }
-
-    release_spinlock(&node->spinlock);
-
-    return result;
-}
-
-ssize_t inode_write(struct inode* node, loff_t* offset, size_t size, const char* buffer)
-{
-    ssize_t result = 0;
-    acquire_spinlock(&node->spinlock);
-
-    if(node) {
-        if(node->operations->write) {
-            result = node->operations->write(node, *offset, size, buffer);
-            *offset += result;
-        }
-    }
-
-    release_spinlock(&node->spinlock);
-
-    return result;
-}
-
 struct dirent* inode_readdir(struct inode* node, uint32_t index)
 {
     struct dirent* result = NULL;
