@@ -763,7 +763,7 @@ ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, lof
 
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
     ext2_inode_t*    e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, file->inode);
+    ext2_inode(inst, e2_inode, inode->inode);
 
     ssize_t result = write_inode_filedata(inst, e2_inode, offset, count, buffer);
     file->pos += result;

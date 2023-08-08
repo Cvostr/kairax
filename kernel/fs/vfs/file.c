@@ -12,17 +12,20 @@ struct file* new_file()
 
 void file_close(struct file* file) 
 {
-    acquire_spinlock(&file->lock);
-    
-    if (file->inode) {
-        inode_close(file->inode);
-    }
+    if (atomic_dec_and_test(&file->refs)) {
 
-    if (file->dentry) {
-        dentry_close(file->dentry);
-    }
+        acquire_spinlock(&file->lock);
+        
+        if (file->inode) {
+            inode_close(file->inode);
+        }
 
-    kfree(file);
+        if (file->dentry) {
+            dentry_close(file->dentry);
+        }
+
+        kfree(file);
+    }
 }
 
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode)
@@ -45,6 +48,8 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     if (file->ops->open) {
         file->ops->open(inode, file);
     }
+
+    atomic_inc(&file->refs);
 
     return file;
 }

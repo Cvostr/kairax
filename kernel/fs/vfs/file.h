@@ -52,6 +52,7 @@ struct file {
     loff_t                  pos;
     void*                   private_data;
     spinlock_t              lock;
+    atomic_t                refs;
 };
 
 struct file* new_file();
