@@ -19,7 +19,7 @@ struct inode* devfs_mount(drive_partition_t* drive, struct superblock* sb);
 
 void devfs_open(struct inode* inode, uint32_t flags);
 
-struct dirent* devfs_readdir(struct inode* dir, uint32_t index);
+struct dirent* devfs_readdir(struct file* dir, uint32_t index);
 
 struct inode* devfs_read_node(struct superblock* sb, uint64_t ino_num);
 

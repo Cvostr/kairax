@@ -133,21 +133,21 @@ void bootshell_process_cmd(char* cmdline)
         
     }
     if(strcmp(cmd, "ls") == 0) {
-        uint32_t index = 0;
+        struct file* file = file_open(wd_dentry, argc > 1 ? args[1] : NULL, FILE_OPEN_MODE_READ_ONLY, 0);
 
-        struct inode* inode = vfs_fopen(wd_dentry, argc > 1 ? args[1] : NULL, 0, NULL);
-        if(inode == NULL){
+        if(file == NULL){
             printf("Can't open directory with path : ", args);
             goto exit;
         }
-        struct dirent* child = NULL;
-        while((child = inode_readdir(inode, index++)) != NULL){
-            //printf("TYPE %s, NAME %s, SIZE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->size);
-            printf("TYPE %s,   NAME %s   INODE %i\n", (child->type == DT_REG) ? "FILE" : "DIR", child->name, child->inode);
-            kfree(child);
+
+        struct dirent child;
+        int rc = 0;
+        while((rc = file_readdir(file, &child)) != 0){
+
+            printf("TYPE %s,   NAME %s   INODE %i\n", (child.type == DT_REG) ? "FILE" : "DIR", child.name, child.inode);
         }
 
-        inode_close(inode); 
+        file_close(file); 
     }
     if(strcmp(cmd, "chmod") == 0) {
         struct inode* inode = vfs_fopen(wd_dentry, args[1], 0, NULL);

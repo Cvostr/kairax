@@ -73,7 +73,9 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
     }
     
     if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
-        read = file->ops->read(file, buffer, size, file->pos);
+        if (file->ops->read) {
+            read = file->ops->read(file, buffer, size, file->pos);
+        }
     } else {
         read = ERROR_BAD_FD;
     }
@@ -95,7 +97,9 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
     }
 
     if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) {
-        read = file->ops->write(file, buffer, size, file->pos);
+        if (file->ops->write) {
+            read = file->ops->write(file, buffer, size, file->pos);
+        }
     } else {
         read = ERROR_BAD_FD;
     }
@@ -150,7 +154,10 @@ int file_readdir(struct file* file, struct dirent* dirent)
         goto exit;
     }
 
-    struct dirent* ndirent = inode_readdir(inode, file->pos ++);
+    struct dirent* ndirent = NULL;
+    if (file->ops->readdir) {
+        ndirent = file->ops->readdir(file, file->pos ++);
+    }
         
     release_spinlock(&file->lock);
         

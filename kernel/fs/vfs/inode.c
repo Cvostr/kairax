@@ -102,21 +102,6 @@ int inode_unlink(struct inode* parent, struct dentry* child)
     return 0;
 }
 
-struct dirent* inode_readdir(struct inode* node, uint32_t index)
-{
-    struct dirent* result = NULL;
-
-    acquire_spinlock(&node->spinlock);
-
-    if(node)
-        if(node->operations->readdir)
-            result = node->operations->readdir(node, index);
-
-    release_spinlock(&node->spinlock);
-
-    return result;
-}
-
 int inode_stat(struct inode* node, struct stat* sstat)
 {
     acquire_spinlock(&node->spinlock);

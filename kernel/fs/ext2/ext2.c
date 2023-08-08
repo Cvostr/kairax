@@ -29,7 +29,6 @@ void ext2_init()
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
-    dir_inode_ops.readdir = ext2_readdir;
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.open = ext2_open;
     dir_inode_ops.close = ext2_close;
@@ -37,6 +36,8 @@ void ext2_init()
 
     file_ops.read = ext2_file_read;
     file_ops.write = ext2_file_write;
+
+    dir_ops.readdir = ext2_file_readdir;
 
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
@@ -716,13 +717,14 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
         result->file_ops = &file_ops;
     }
 
-    if((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) {
+    if ((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) {
         result->operations = &dir_inode_ops;
+        result->file_ops = &dir_ops;
     }
-    if((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) {
+    if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) {
     
     }
-    if((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_BLOCKDEVICE) {
+    if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_BLOCKDEVICE) {
     
     }
 
@@ -916,13 +918,14 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     return 0;
 }
 
-struct dirent* ext2_readdir(struct inode* dir, uint32_t index)
+struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
 {
+    struct inode* vfs_inode = dir->inode;
     struct dirent* result = NULL;
-    ext2_instance_t* inst = (ext2_instance_t*)dir->sb->fs_info;
+    ext2_instance_t* inst = (ext2_instance_t*)vfs_inode->sb->fs_info;
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();
-    ext2_inode(inst, parent_inode, dir->inode);
+    ext2_inode(inst, parent_inode, vfs_inode->inode);
     //Переменные
     uint32_t curr_offset = 0;
     uint32_t block_offset = 0;
@@ -935,6 +938,7 @@ struct dirent* ext2_readdir(struct inode* dir, uint32_t index)
     ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
     //Проверка, не прочитан ли весь блок?
     while (curr_offset < parent_inode->size) {
+
         if (in_block_offset >= inst->block_size) {
             block_offset++;
             in_block_offset = 0;

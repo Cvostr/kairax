@@ -15,8 +15,6 @@ struct inode_operations {
     void      (*open)(struct inode*, uint32_t);
     void      (*close)(struct inode*);
 
-    struct dirent* (*readdir)(struct inode*, uint32_t);
-
     int      (*chmod)(struct inode*, uint32_t);
     int      (*mkdir)(struct inode*, const char*, uint32_t);
     int      (*mkfile)(struct inode*, const char*, uint32_t);
@@ -58,8 +56,6 @@ struct inode {
 
     spinlock_t      spinlock;
 };
-
-struct dirent* inode_readdir(struct inode* node, uint32_t index);
 
 void inode_chmod(struct inode* node, uint32_t mode);
 

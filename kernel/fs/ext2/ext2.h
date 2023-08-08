@@ -201,6 +201,8 @@ uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, cons
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 
+struct dirent* ext2_file_readdir(struct file* dir, uint32_t index);
+
 ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 
 ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);

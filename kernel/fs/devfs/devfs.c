@@ -4,6 +4,7 @@
 #include "mem/kheap.h"
 
 struct inode_operations root_inode_ops;
+struct file_operations  root_file_ops;
 struct super_operations devfs_sb_ops;
 
 struct inode_operations dev_inode_ops;
@@ -28,6 +29,7 @@ void devfs_init()
     devfs_root_inode->access_time = 0;
     devfs_root_inode->modify_time = 0;
     devfs_root_inode->operations = &root_inode_ops;
+    devfs_root_inode->file_ops = &root_file_ops;
     atomic_inc(&devfs_root_inode->reference_count);
 
     filesystem_t* devfs = new_filesystem();
@@ -40,7 +42,8 @@ void devfs_init()
     root_inode_ops.chmod = NULL;
     root_inode_ops.mkdir = NULL;
     root_inode_ops.mkfile = NULL;
-    root_inode_ops.readdir = devfs_readdir;
+
+    root_file_ops.readdir = devfs_readdir;
 
     devfs_sb_ops.read_inode = devfs_read_node;
     devfs_sb_ops.find_dentry = devfs_find_dentry;
@@ -102,9 +105,10 @@ void devfs_open(struct inode* inode, uint32_t flags)
 
 }
 
-struct dirent* devfs_readdir(struct inode* dir, uint32_t index)
+struct dirent* devfs_readdir(struct file* dir, uint32_t index)
 {
-    if (dir->inode != DEVFS_ROOT_INODE)
+    struct inode* vfs_inode = dir->inode;
+    if (vfs_inode->inode != DEVFS_ROOT_INODE)
         return NULL;
 
     if (index >= devfs_devices->size)
