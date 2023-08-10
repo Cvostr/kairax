@@ -43,12 +43,14 @@ void ahci_port_stop_commands(ahci_port_t* port)
 	port->port_reg->cmd &= ~HBA_PxCMD_START;
 	port->port_reg->cmd &= ~HBA_PxCMD_FRE;
 
-	while(1)
-	{
+	while(1) {
+		
 		if (port->port_reg->cmd & HBA_PxCMD_FR)
 			continue;
+
 		if (port->port_reg->cmd & HBA_PxCMD_CR)
 			continue;
+
 		break;
 	}
 }
@@ -92,7 +94,9 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	//Выделить память под буфер команд
 	char* cmd_tables_mem = (char*)pmm_alloc_pages(pages_num);
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
-	set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(cmd_tables_mem), pageFlags);
+	for (int i = 0; i < pages_num; i ++) {
+		set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(cmd_tables_mem) + i * PAGE_SIZE, pageFlags);
+	}
 
     for(int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++){
 		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(port->command_list);
@@ -122,14 +126,6 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 
     ahci_port_flush_posted_writes(port);
 
-    if ((port->port_reg->tfd & 0xff) == 0xff)
-		io_delay(200000);
-
-	if ((port->port_reg->tfd & 0xff) == 0xff) {
-		printf("%s: port %i: invalid task file status 0xff\n", __func__, index);
-		return NULL;
-	}
-
 	switch (port->port_reg->ssts & HBA_PORT_SPD_MASK) {
 		case 0x10:
 			port->speed = AHCI_PORT_SPEED_1_5_GBPS;
@@ -152,10 +148,24 @@ void ahci_port_init2(ahci_port_t* port)
 {
 	ahci_port_enable(port);
 
+	// Включение прерываний
 	port->port_reg->ie = PORT_INT_MASK;
 	ahci_port_flush_posted_writes(port);
 
+	// Reset device
 	ahci_port_reset(port);
+	
+	if ((port->port_reg->tfd & 0xff) == 0xff)
+		io_delay(200000);
+
+	if ((port->port_reg->tfd & 0xff) == 0xff) {
+		printf("%s: port %i: invalid task file status 0xff\n", __func__, port->index);
+		return NULL;
+	}
+
+	while (port->port_reg->tfd & (AHCI_DEV_BUSY));
+
+	ahci_port_flush_posted_writes(port);
 }
 
 int ahci_port_enable(ahci_port_t* port)
@@ -180,10 +190,7 @@ int ahci_port_enable(ahci_port_t* port)
 
 int ahci_port_reset(ahci_port_t* port)
 {
-	port->port_reg->cmd &= ~HBA_PxCMD_START;
-	ahci_port_flush_posted_writes(port);
-	while (port->port_reg->cmd & HBA_PxCMD_CR);
-
+	ahci_port_disable(port);
 	ahci_port_clear_error_register(port);
 
 	int spin = 0;
@@ -208,11 +215,22 @@ int ahci_port_reset(ahci_port_t* port)
 	return 1;
 }
 
+int ahci_port_disable(ahci_port_t* port)
+{
+	if ((port->port_reg->cmd & HBA_PxCMD_START) == 0) {
+	} else {
+		port->port_reg->cmd &= ~HBA_PxCMD_START;
+		ahci_port_flush_posted_writes(port);
+	}
+
+	while (port->port_reg->cmd & HBA_PxCMD_CR);
+}
+
 uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port)
 {
 	uint32_t slots = (port->port_reg->sact | port->port_reg->ci);
 
-	for (uint32_t i = 0; i < 32; i ++) {
+	for (uint32_t i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++) {
 
 		if ((slots & 1) == 0) {
 			return i;
@@ -299,6 +317,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer)
 	{
 		if ((hba_port->ci & (1 << slot)) == 0) 
 			break;
+			
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
 		{
 			printf("Disk identity error\n");
@@ -360,7 +379,6 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; 
 	int slot = ahci_port_get_free_cmdslot(port);
-	//printf("CMDSLOT %i\n", slot);
 	if (slot == -1)
 		return 0;
 

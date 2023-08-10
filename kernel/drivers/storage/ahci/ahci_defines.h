@@ -29,7 +29,7 @@ typedef uint32_t ahci_device_type;
 #define COMMAND_LIST_ENTRY_COUNT 32
 #define PRD_TABLE_ENTRY_COUNT COMMAND_LIST_ENTRY_COUNT * 8 //8 per each cmdslot
 
-#define HBA_PxIS_TFE            (1 << 30)
+#define HBA_PxIS_TFE                (1 << 30)
 
 #define AHCI_PORT_CMD_ICC_ACTIVE    (1UL << 28)
 #define AHCI_PORT_CMD_ICC_MASK      (0xF << 28)
@@ -253,7 +253,7 @@ typedef volatile struct PACKED
 	uint32_t ghc;		    // 0x04, Global host control
 	uint32_t is;		    // 0x08, Interrupt status
 	uint32_t pi;		    // 0x0C, Port implemented
-	uint32_t version;		    // 0x10, Version
+	uint32_t version;		// 0x10, Version
 	uint32_t ccc_ctl;	    // 0x14, Command completion coalescing control
 	uint32_t ccc_pts;	    // 0x18, Command completion coalescing ports
 	uint32_t em_loc;		// 0x1C, Enclosure management location

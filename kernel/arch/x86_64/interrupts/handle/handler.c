@@ -14,7 +14,7 @@ void int_handler(interrupt_frame_t* frame){
 }
 
 void register_interrupt_handler(int interrupt_num, void* handler_func){
-	if(interrupt_num <= 255){
+	if (interrupt_num <= 255) {
 		interrupt_handlers[interrupt_num] = handler_func;
 	}
 }

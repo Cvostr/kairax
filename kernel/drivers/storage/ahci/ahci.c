@@ -39,8 +39,18 @@ void ahci_int_handler(interrupt_frame_t* frame){
 	pic_eoi(11);
 }
 
-int ahci_controller_reset(ahci_controller_t* controller){
-	controller->hba_mem->ghc = 1;
+int ahci_controller_reset(ahci_controller_t* controller) 
+{
+	uint32_t pi = controller->hba_mem->pi;
+	uint32_t caps = controller->hba_mem->cap;
+
+	// включение AHCI
+	controller->hba_mem->ghc |= AHCI_CONTROLLER_GHC_AHCI_ENABLE;
+	ahci_controller_flush_posted_writes(controller);
+	
+	// Перезапуск
+	controller->hba_mem->ghc |= AHCI_CONTROLLER_GHC_RESET;
+	ahci_controller_flush_posted_writes(controller);
 
     full_memory_barrier();
     size_t retry = 0;
@@ -48,53 +58,73 @@ int ahci_controller_reset(ahci_controller_t* controller){
     while (1) {
         if (retry > 1000)
             return 0;
+
         if (!(controller->hba_mem->ghc & 1))
             break;
+
         io_delay(1000);
         retry++;
     }
+
+	// включение AHCI
+	controller->hba_mem->ghc |= AHCI_CONTROLLER_GHC_AHCI_ENABLE;
+	ahci_controller_flush_posted_writes(controller);
+
+	controller->hba_mem->pi = pi;
+	controller->hba_mem->cap = caps;
+	ahci_controller_flush_posted_writes(controller);
     
     return 1;
 }
 
 void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller)
 {
-	controller->hba_mem->ghc |= (1 << 1);
+	controller->hba_mem->ghc |= AHCI_CONTROLLER_INTERRUPTS_ENABLE;
 }
 
-void ahci_controller_get_capabilities(ahci_controller_t* controller, uint32_t* capabilities, uint32_t* capabilities_ext){
+void ahci_controller_get_capabilities(ahci_controller_t* controller, uint32_t* capabilities, uint32_t* capabilities_ext)
+{
 	*capabilities = controller->hba_mem->cap;
 	*capabilities_ext = controller->hba_mem->cap2;
-}
-
-uint32_t ahci_controller_get_version(ahci_controller_t* controller){
-	return controller->hba_mem->version;
 }
 
 void ahci_init()
 {
 	//найти необходимое PCI устройство
 	int pci_devices_count = get_pci_devices_count();
-	for(int device_i = 0; device_i < pci_devices_count; device_i ++){
+
+	for (int device_i = 0; device_i < pci_devices_count; device_i ++) {
+
 		pci_device_desc* device_desc = &get_pci_devices_descs()[device_i];
 
 		// Поиск подходящего PCI устройства
-		if(device_desc->device_class == 0x1 && device_desc->device_subclass == 0x6 && device_desc->prog_if == 0x01){
+		if (device_desc->device_class == 0x1 && device_desc->device_subclass == 0x6 && device_desc->prog_if == 0x01) {
+			
 			ahci_controller_t* controller = (ahci_controller_t*)kmalloc(sizeof(ahci_controller_t));
 			memset(controller, 0, sizeof(ahci_controller_t));
 
 			controller->pci_device = device_desc;
 			controller->hba_mem = (HBA_MEMORY*)device_desc->BAR[5].address;
+
+			size_t pages_num = align(device_desc->BAR[5].size, PAGE_SIZE) / PAGE_SIZE;
 			//Включить прерывания, DMA и MSA
 			pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			pci_device_set_enable_interrupts(device_desc, 1);
 
 			// Данная страница уже замаплена, но без PAGE_UNCACHED, добавим флагов
 			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
-			set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(controller->hba_mem), pageFlags);
+			for (int page_i = 0; page_i < pages_num; page_i ++) {
+				set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(controller->hba_mem) + page_i * PAGE_SIZE, pageFlags);
+			}
 
 			// Сохранение виртуального адреса на гллавную структуру контроллера
 			controller->hba_mem = (HBA_MEMORY*)P2V(controller->hba_mem);
+
+			controller->version = controller->hba_mem->version;
+
+			// Выключение прерываний
+			controller->hba_mem->ghc &= ~AHCI_CONTROLLER_INTERRUPTS_ENABLE;
+			ahci_controller_flush_posted_writes(controller);
 
 			int reset = ahci_controller_reset(controller);
 			if (!reset) {
@@ -102,7 +132,6 @@ void ahci_init()
 			}
 
 			uint8_t irq = device_desc->interrupt_line;
-
 			register_interrupt_handler(0x20 + irq, ahci_int_handler);
     		pic_unmask(0x20 + irq);
 

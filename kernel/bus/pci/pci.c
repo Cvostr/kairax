@@ -80,9 +80,9 @@ uint16_t pci_get_command_reg(pci_device_desc* device)
 void pci_device_set_enable_interrupts(pci_device_desc* device, int enable)
 {
 	uint16_t cmd = pci_get_command_reg(device);
-	if(enable > 0){
+	if (enable > 0) {
 		cmd = cmd & ~(PCI_DEVCMP_INTERRUPTS_DISABLE);
-	}else{
+	} else {
 		cmd = cmd | PCI_DEVCMP_INTERRUPTS_DISABLE;
 	}
 

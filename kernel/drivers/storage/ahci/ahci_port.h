@@ -47,6 +47,8 @@ void ahci_port_init2(ahci_port_t* port);
 
 int ahci_port_reset(ahci_port_t* port);
 
+int ahci_port_disable(ahci_port_t* port);
+
 int ahci_port_enable(ahci_port_t* port);
 
 uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port);
