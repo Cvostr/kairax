@@ -108,3 +108,15 @@ char* strchr(const char * string, int symbol)
 
 	return NULL;
 }
+
+char* strrchr(const char * string, int symbol)
+{
+	size_t len = strlen(string);
+
+	for (size_t i = len - 1; i >= 0; i --) {
+		if (string[i] == symbol)
+			return string + i;
+	}
+
+	return NULL;
+}

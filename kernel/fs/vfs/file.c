@@ -28,13 +28,68 @@ void file_close(struct file* file)
     }
 }
 
+int mkfile(struct dentry* dir, const char* path, int mode) {
+
+    int result = 0;
+    char* directory_path = NULL;
+    char* filename = NULL;
+
+    // Поиск разделителя файла
+    char* last_slash = strrchr(path, '/');
+
+    if (last_slash != NULL) {
+        // Разделитель найден
+        filename = last_slash + 1;
+        // Длина строки директории
+        size_t dir_size = filename - path;
+
+        directory_path = kmalloc(dir_size + 1);
+        strncpy(directory_path, path, dir_size - 1);
+    } else {
+        // Разделителей в пути нет
+        filename = path;
+        directory_path = NULL;
+    }
+
+    // Открываем inode директории
+    struct inode* dir_inode = vfs_fopen(dir, directory_path, 0, NULL);
+
+    if (dir_inode == NULL) {
+        // Отсутствует полный путь к директории
+        goto exit;
+    }
+
+    // Создать файл
+    int rc = inode_mkfile(dir_inode, filename, mode);
+    inode_close(dir_inode);
+    result = 1;
+
+exit:
+    if (directory_path)
+        kfree(directory_path);
+    
+    return result;
+}
+
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode)
 {
     struct dentry* dentry;
     struct inode* inode = vfs_fopen(dir, path, flags, &dentry);
 
     if (!inode) {
-        return NULL;
+        // Файл не найден
+        if (flags & FILE_OPEN_FLAG_CREATE) {
+            
+            // Создаем новый файл
+            if (!mkfile(dir, path, mode))
+                return NULL;
+
+            // Файл создан, открываем его
+            inode = vfs_fopen(dir, path, flags, &dentry);
+        } else {
+
+            return NULL;
+        }
     }
 
     struct file* file = new_file();

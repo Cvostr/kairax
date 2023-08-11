@@ -20,20 +20,29 @@ spinlock_t threads_mutex = 0;
 int is_from_interrupt = 1;
 
 extern void scheduler_yield_entry();
-extern void scheduler_entry_from_killed(char* stub);
+extern void scheduler_entry_from_killed();
 
 void scheduler_yield()
 {
-    asm("cli");
+    // Выключение прерываний
+    disable_interrupts();
+
     is_from_interrupt = 0;
     scheduler_yield_entry();
 }
 
 void scheduler_from_killed()
 {
-    asm("cli");
+    // Выключение прерываний
+    disable_interrupts();
+
+    cpu_set_current_thread(NULL);
     is_from_interrupt = 0;
-    scheduler_entry_from_killed(NULL);
+
+    // Переход в планировщик
+    scheduler_entry_from_killed();
+
+    // Не должны сюда попасть
     while (1) {
         asm volatile ("nop");
     }

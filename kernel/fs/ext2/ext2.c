@@ -35,7 +35,7 @@ void ext2_init()
     //dir_inode_ops.unlink = ext2_unlink;
 
     file_ops.read = ext2_file_read;
-    file_ops.write = ext2_file_write;
+    //file_ops.write = ext2_file_write;
 
     dir_ops.readdir = ext2_file_readdir;
 
@@ -901,7 +901,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     inode->num_blocks = 0;
     inode->os_specific1 = 0;
     memset(inode->blocks, 0, sizeof(inode->blocks));
-    memset(inode->os_specific2, 0, 12);
+    memset(inode->os_specific2, 0, sizeof(inode->os_specific2));
     inode->generation = 0;
     inode->file_acl = 0;
     inode->dir_acl = 0;
@@ -913,7 +913,9 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
     // Добавить иноду в директорию
     ext2_create_dentry(inst, parent, file_name, inode_num, EXT2_DT_REG);
-    
+
+    ext2_write_bgds(inst);
+
     kfree(inode);
     return 0;
 }

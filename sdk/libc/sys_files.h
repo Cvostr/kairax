@@ -23,6 +23,8 @@
 
 #define FD_CWD		-2
 
+int open_file_at(int dirfd, const char* filepath, int flags, int mode);
+
 int open_file(const char* filepath, int flags, int mode);
 
 int close(int fd);

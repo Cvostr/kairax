@@ -2,6 +2,11 @@
 #include "../sys/syscalls.h"
 #include "errno.h"
 
+int open_file_at(int dirfd, const char* filepath, int flags, int mode)
+{
+    __set_errno(syscall_open_file(dirfd, filepath, flags, mode));
+}
+
 int open_file(const char* filepath, int flags, int mode)
 {
     __set_errno(syscall_open_file(FD_CWD, filepath, flags, mode));

@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
             content = argv[i];
         } else {
 
-            if (argv[i][0] != '>') {
+            if (argv[i][0] == '.') {
                 path_mode = 1;
             } else if (path_mode == 1) {
                 path = argv[i];
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int fd = open_file(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0);
+    int fd = open_file(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0xFFF);
 
     if (fd == -1) {
         printf("Can't open file with path %s", path);

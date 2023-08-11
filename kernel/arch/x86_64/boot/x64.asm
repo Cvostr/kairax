@@ -68,6 +68,11 @@ enable_interrupts:
     sti
     ret
 
+global disable_interrupts 
+disable_interrupts:
+    cli
+    ret
+
 bind_kernel_stack:
     mov rsp, kernel_stack_top
     ret
