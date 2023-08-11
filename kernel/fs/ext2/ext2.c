@@ -35,7 +35,7 @@ void ext2_init()
     //dir_inode_ops.unlink = ext2_unlink;
 
     file_ops.read = ext2_file_read;
-    //file_ops.write = ext2_file_write;
+    file_ops.write = ext2_file_write;
 
     dir_ops.readdir = ext2_file_readdir;
 
@@ -596,13 +596,39 @@ ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t of
     return end_offset - offset;
 }
 
-// Записать данные файла inode
-ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, const char * buf)
+size_t ext2_inode_get_size(ext2_instance_t* inst, ext2_inode_t* inode)
 {
+    if (inst->file_size_64bit_flag) {
+        return (size_t) inode->size_high | inode->size;
+    }
+
+    return inode->size;
+}
+
+void ext2_inode_set_size(ext2_instance_t* inst, ext2_inode_t* inode, size_t size)
+{
+    if (inst->file_size_64bit_flag) {
+        inode->size_high = (size >> 32) & 0xFFFFFFFF;
+    }
+
+    inode->size = size & 0xFFFFFFFF;
+}
+
+// Записать данные файла inode
+ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, off_t offset, size_t size, const char * buf)
+{
+    size_t write_end = offset + size;
     //Не реализовано!!!
 
-    //Защита от выхода за границы файла
-    off_t end_offset = (inode->size >= offset + size) ? (offset + size) : (inode->size);
+    if (write_end > ext2_inode_get_size(inst, inode)) {
+        ext2_inode_set_size(inst, inode, write_end);
+        ext2_write_inode_metadata(inst, inode, inode_num);
+    }
+
+    //Защита от выхода за границы файла в 32х битном режиме
+    if (write_end > ext2_inode_get_size(inst, inode)) {
+        return -1;
+    }
 
     //Номер начального блока ноды
     off_t start_inode_block = offset / inst->block_size;
@@ -610,11 +636,26 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t o
     off_t start_block_offset = offset % inst->block_size; 
 
     //Номер последнего блока
-    off_t end_inode_block = end_offset / inst->block_size;
+    off_t end_inode_block = write_end / inst->block_size;
     //сколько байт взять из последнего блока
-    off_t end_size = end_offset - end_inode_block * inst->block_size;
+    off_t end_size = write_end - end_inode_block * inst->block_size;
 
-    return 0;
+    char* temp_buffer = kmalloc(inst->block_size);
+    char* phys_temp_buffer = (char*)kheap_get_phys_address(temp_buffer);
+
+    if (start_inode_block == end_inode_block) {
+        ext2_read_inode_block(inst, inode, start_inode_block, phys_temp_buffer);
+        memcpy(temp_buffer + start_block_offset, buf, size);
+        ext2_write_inode_block(inst, inode, inode_num, start_inode_block, phys_temp_buffer);
+        goto exit;
+    } else {
+
+    }
+
+exit:
+    ext2_write_bgds(inst);
+    kfree(temp_buffer);
+    return size;
 }
 
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
@@ -765,7 +806,7 @@ ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, lof
     ext2_inode_t*    e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, inode->inode);
 
-    ssize_t result = write_inode_filedata(inst, e2_inode, offset, count, buffer);
+    ssize_t result = write_inode_filedata(inst, e2_inode, inode->inode, offset, count, buffer);
     file->pos += result;
 
     kfree(e2_inode);

@@ -109,14 +109,16 @@ char* strchr(const char * string, int symbol)
 	return NULL;
 }
 
-char* strrchr(const char * string, int symbol)
+char* strrchr(const char* string, int symbol)
 {
-	size_t len = strlen(string);
+	char* s = (char*) string;
+	char* result = 0;
 
-	for (size_t i = len - 1; i >= 0; i --) {
-		if (string[i] == symbol)
-			return string + i;
-	}
+  	do {
+    	if (*s == symbol)
+      		result = (char*) s;
 
-	return NULL;
+  	} while (*s++);
+  	
+	return (result);
 }

@@ -136,6 +136,10 @@ void ext2_init();
 
 ext2_inode_t* new_ext2_inode();
 
+size_t ext2_inode_get_size(ext2_instance_t* inst, ext2_inode_t* inode);
+
+void ext2_inode_set_size(ext2_instance_t* inst, ext2_inode_t* inode, size_t size);
+
 uint32_t ext2_partition_read_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer);
 
 uint32_t ext2_partition_write_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer);
@@ -156,7 +160,7 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
 ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf);
 
 // Записать данные файла inode
-ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, const char * buf);
+ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, off_t offset, size_t size, const char * buf);
 
 // Перезаписать на диск таблицу блоков
 void ext2_write_bgds(ext2_instance_t* inst);
