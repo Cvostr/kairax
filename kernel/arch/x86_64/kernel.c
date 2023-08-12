@@ -70,7 +70,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	setup_idt();
 	
 	page_table_t* new_pt = create_kernel_vm_map();
-	switch_pml4(K2P(new_pt));
+	vmm_use_kernel_vm();
 
 	b8_console_clear();
 	printf("Kairax Kernel v0.1\n");

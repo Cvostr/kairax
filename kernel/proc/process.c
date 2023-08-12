@@ -34,9 +34,12 @@ void free_process(struct process* process)
         file_close(process->workdir);
     }
     
+    // Переключаемся на основную виртуальную таблицу памяти ядра
+    vmm_use_kernel_vm();
+
     // Уничтожение таблицы виртуальной памяти процесса
     // и освобождение занятых таблиц физической
-    //vmm_destroy_root_page_table(process->vmemory_table);
+    vmm_destroy_root_page_table(process->vmemory_table);
 
     kfree(process);
 

@@ -1,6 +1,6 @@
 #include "storage_devices.h"
 #include "mem/kheap.h"
-#include "raxlib/list/list.h"
+#include "list/list.h"
 #include "string.h"
 
 #define MAX_STOR_DEVICES_HEADERS 300

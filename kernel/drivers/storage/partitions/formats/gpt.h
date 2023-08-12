@@ -2,7 +2,7 @@
 #define _GPT_H
 
 #include "types.h"
-#include "raxlib/guid/guid.h"
+#include "guid/guid.h"
 
 #define GPT_BLOCK_SIZE      512
 #define GPT_SIGNATURE       "EFI PART"

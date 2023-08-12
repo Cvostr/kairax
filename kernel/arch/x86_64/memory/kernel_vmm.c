@@ -98,13 +98,20 @@ page_table_t* create_kernel_vm_map()
 		map_page_mem_bt(root_pml4, (virtual_addr_t)P2V(iter), iter, pageFlags);
 	}
 
+    root_pml4 = P2V(K2P(root_pml4));
+
     return root_pml4;
+}
+
+void vmm_use_kernel_vm()
+{
+    switch_pml4(V2P(root_pml4));
 }
 
 page_table_t* vmm_clone_kernel_memory_map()
 {
     page_table_t* result = new_page_table();
-    memcpy(result, P2V(K2P(root_pml4)), sizeof(page_table_t));
+    memcpy(result, root_pml4, sizeof(page_table_t));
     return result;
 }
 

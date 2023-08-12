@@ -47,7 +47,7 @@ int mkfile(struct dentry* dir, const char* path, int mode) {
         strncpy(directory_path, path, dir_size - 1);
     } else {
         // Разделителей в пути нет
-        filename = path;
+        filename = (char*)path;
         directory_path = NULL;
     }
 

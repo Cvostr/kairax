@@ -1,6 +1,6 @@
 #include "storage_partitions.h"
 #include "mem/kheap.h"
-#include "raxlib/list/list.h"
+#include "list/list.h"
 #include "memory/kernel_vmm.h"
 #include "string.h"
 

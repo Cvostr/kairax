@@ -62,7 +62,8 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = (void*)process_brk(process, process->brk + stack_size);
-    thread->kernel_stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
+    //thread->kernel_stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
+    thread->kernel_stack_ptr = P2V(pmm_alloc_page() + PAGE_SIZE);
 
     if (process->tls) {
         // TLS должно также включать в себя
@@ -79,10 +80,6 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
         copy_to_vm(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
     }
 
-    //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
-    physical_addr_t kernel_stack_phys = 
-        get_physical_address(process->vmemory_table, (uintptr_t)thread->kernel_stack_ptr - PAGE_SIZE);
-    thread->kernel_stack_ptr = P2V(kernel_stack_phys + PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста

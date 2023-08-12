@@ -4,7 +4,6 @@ rm -rf bin
 mkdir bin
 
 x64_SRC=./arch/x86_64
-RAXLIB_PATH=./raxlib
 STDC_PATH=./stdc
 GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
@@ -50,8 +49,8 @@ gcc $GCC_ARGS $x64_SRC/proc/syscall_handle.c -o ./bin/syscall_handle.o
 gcc $GCC_ARGS $x64_SRC/base/stdc/stdio.c -o ./bin/stdc_stdio.o
 
 #raxlib
-gcc $GCC_ARGS $RAXLIB_PATH/list/list.c -o ./bin/list.o
-gcc $GCC_ARGS $RAXLIB_PATH/guid/guid.c -o ./bin/guid.o
+gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o
+gcc $GCC_ARGS $STDC_PATH/guid/guid.c -o ./bin/guid.o
 
 #generic stdc
 gcc $GCC_ARGS $STDC_PATH/string.c -o ./bin/stdc_string.o
