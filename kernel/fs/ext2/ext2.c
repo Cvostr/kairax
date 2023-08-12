@@ -277,7 +277,9 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
     // Если пытаемся записать в невыделенный номер блока
     // Расширить размер inode
     while (inode_block >= inode->num_blocks / (inst->block_size / 512)) {
+        // Выделить блок
 		ext2_alloc_inode_block(inst, inode, inode_num, inode->num_blocks / (inst->block_size / 512));
+        // Обновить данные inode
 		ext2_inode(inst, inode, inode_num);
 	}
 
@@ -617,9 +619,10 @@ void ext2_inode_set_size(ext2_instance_t* inst, ext2_inode_t* inode, size_t size
 // Записать данные файла inode
 ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, off_t offset, size_t size, const char * buf)
 {
+    // Вычислить необходимый размер файла
     size_t write_end = offset + size;
-    //Не реализовано!!!
 
+    // Проверить размер иноды, при необходимости расширить её
     if (write_end > ext2_inode_get_size(inst, inode)) {
         ext2_inode_set_size(inst, inode, write_end);
         ext2_write_inode_metadata(inst, inode, inode_num);
@@ -634,7 +637,6 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
     off_t start_inode_block = offset / inst->block_size;
     //Смещение в начальном блоке
     off_t start_block_offset = offset % inst->block_size; 
-
     //Номер последнего блока
     off_t end_inode_block = write_end / inst->block_size;
     //сколько байт взять из последнего блока
@@ -644,12 +646,48 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
     char* phys_temp_buffer = (char*)kheap_get_phys_address(temp_buffer);
 
     if (start_inode_block == end_inode_block) {
+        // Размер данных входит в 1 блок
         ext2_read_inode_block(inst, inode, start_inode_block, phys_temp_buffer);
         memcpy(temp_buffer + start_block_offset, buf, size);
         ext2_write_inode_block(inst, inode, inode_num, start_inode_block, phys_temp_buffer);
         goto exit;
     } else {
+        
+        uint32_t written_blocks = 0;
 
+        for (uint32_t block_i = start_inode_block; block_i < end_inode_block; block_i ++, written_blocks++) {
+            // Зануляем память
+            memset(temp_buffer, 0, inst->block_size);
+            // Смещение буфера
+            size_t buffer_offset = written_blocks * inst->block_size - start_block_offset;
+
+            if (block_i == start_inode_block) {
+                // Возможно, у нас есть неполный блок в начале
+                // Считаем блок
+                ext2_read_inode_block(inst, inode, start_inode_block, phys_temp_buffer);
+                // Скопируем новую часть блока
+                memcpy(temp_buffer + start_block_offset, buf, inst->block_size - start_block_offset);
+                // Запишем на диск
+                ext2_write_inode_block(inst, inode, inode_num, start_inode_block, phys_temp_buffer);
+            } else {
+                //ext2_read_inode_block(inst, inode, block_i, phys_temp_buffer);
+                // Скопировать в буфер данные для записи
+                memcpy(temp_buffer, buf + buffer_offset, inst->block_size);
+                // Запишем на диск
+                ext2_write_inode_block(inst, inode, inode_num, block_i, phys_temp_buffer);
+            }
+        }
+
+        if (end_size > 0) {
+            // Есть остатки данных
+            // Считать блок
+            ext2_read_inode_block(inst, inode, end_inode_block, phys_temp_buffer);
+            // Скопировать в буфер данные для записи
+            size_t buffer_offset = written_blocks * inst->block_size - start_block_offset;
+            memcpy(temp_buffer, buf + buffer_offset, end_size);
+            // Запишем на диск
+            ext2_write_inode_block(inst, inode, inode_num, end_inode_block, phys_temp_buffer);
+        }
     }
 
 exit:
