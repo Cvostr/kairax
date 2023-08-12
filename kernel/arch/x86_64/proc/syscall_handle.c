@@ -62,6 +62,11 @@ void syscall_handle(syscall_frame_t* frame) {
                frame->rdi, frame->rsi, frame->rdx);
             break;
 
+        case 0x10: // ioctl
+            frame->rax = process_ioctl(current_process, 
+               frame->rdi, frame->rsi, frame->rdx);
+            break;
+
         case 0x18:
             current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
             scheduler_yield();

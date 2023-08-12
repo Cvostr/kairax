@@ -67,6 +67,8 @@ ssize_t file_read(struct file* file, size_t size, char* buffer);
 
 ssize_t file_write(struct file* file, size_t size, const char* buffer);
 
+int file_ioctl(struct file* file, uint64_t request, uint64_t arg);
+
 off_t file_seek(struct file* file, off_t offset, int whence);
 
 int file_readdir(struct file* file, struct dirent* dirent);

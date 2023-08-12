@@ -147,26 +147,40 @@ exit:
 
 ssize_t file_write(struct file* file, size_t size, const char* buffer)
 {
-    ssize_t read = -1;
+    ssize_t written = -1;
 
     acquire_spinlock(&file->lock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
-        read = ERROR_IS_DIRECTORY;
+        written = ERROR_IS_DIRECTORY;
         goto exit;
     }
 
     if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) {
         if (file->ops->write) {
-            read = file->ops->write(file, buffer, size, file->pos);
+            written = file->ops->write(file, buffer, size, file->pos);
         }
     } else {
-        read = ERROR_BAD_FD;
+        written = ERROR_BAD_FD;
     }
 
 exit:
     release_spinlock(&file->lock);
-    return 0;
+    return written;
+}
+
+int file_ioctl(struct file* file, uint64_t request, uint64_t arg)
+{
+    int result = 0;
+    acquire_spinlock(&file->lock);
+    
+    if (file->ops->ioctl) {
+        result = file->ops->ioctl(file, request, arg);
+    }
+
+    release_spinlock(&file->lock);
+
+    return result;
 }
 
 off_t file_seek(struct file* file, off_t offset, int whence)

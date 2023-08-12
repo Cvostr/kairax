@@ -213,6 +213,21 @@ off_t process_file_seek(struct process* process, int fd, off_t offset, int whenc
     return result;
 }
 
+int process_ioctl(struct process* process, int fd, uint64_t request, uint64_t arg)
+{
+    int rc = -1;
+
+    struct file* file = process_get_file(process, fd);
+
+    if (file != NULL) {
+        rc = file_ioctl(file, request, arg);
+    } else {
+        rc = ERROR_BAD_FD;
+    }
+
+    return rc;
+}
+
 int process_stat(struct process* process, int fd, struct stat* stat)
 {
     int rc = -1;
