@@ -9,6 +9,7 @@ global syscall_sleep
 global syscall_scheduler_yield
 global syscall_read
 global syscall_write
+global syscall_ioctl
 global syscall_open_file
 global syscall_close
 global syscall_fdstat
@@ -17,6 +18,7 @@ global syscall_file_seek
 global syscall_set_file_mode
 global syscall_create_thread
 global syscall_mount
+global syscall_create_directory
 
 syscall_read:
     mov rax, 0x0
@@ -45,6 +47,11 @@ syscall_fdstat:
 
 syscall_file_seek:
     mov rax, 0x08
+    syscall
+    ret
+
+syscall_ioctl:
+    mov rax, 0x10
     syscall
     ret
 
@@ -88,6 +95,11 @@ syscall_set_working_dir:
     syscall
     ret
 
+syscall_create_directory:
+    mov rax, 0x53
+    syscall
+    ret
+    
 syscall_set_file_mode:
     mov rax, 0x5A
     syscall

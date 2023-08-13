@@ -6,6 +6,7 @@
 #include "thread.h"
 #include "thread_scheduler.h"
 #include "memory/kernel_vmm.h"
+#include "errors.h"
 
 void free_process(struct process* process)
 {
@@ -33,7 +34,7 @@ void free_process(struct process* process)
     if (process->workdir) {
         file_close(process->workdir);
     }
-    
+
     // Переключаемся на основную виртуальную таблицу памяти ядра
     vmm_use_kernel_vm();
 
@@ -41,6 +42,7 @@ void free_process(struct process* process)
     // и освобождение занятых таблиц физической
     vmm_destroy_root_page_table(process->vmemory_table);
 
+    // Освободить структуру
     kfree(process);
 
     scheduler_from_killed();
@@ -225,24 +227,45 @@ int process_ioctl(struct process* process, int fd, uint64_t request, uint64_t ar
     if (file != NULL) {
         rc = file_ioctl(file, request, arg);
     } else {
-        rc = ERROR_BAD_FD;
+        rc = -ERROR_BAD_FD;
     }
 
     return rc;
 }
 
-int process_stat(struct process* process, int fd, struct stat* stat)
+int process_stat(struct process* process, int dirfd, const char* filepath, struct stat* statbuf, int flags)
 {
     int rc = -1;
+    int close_at_end = 0;
 
-    struct file* file = process_get_file(process, fd);
+    struct file* file = NULL;
+    if (flags & DIRFD_IS_FD) {
+        // Дескриптор файла передан в dirfd
+        file = process_get_file(process, dirfd);
+
+        if (file == NULL) {
+            return -ERROR_BAD_FD;
+        }
+
+    } else if (dirfd == FD_CWD && process->workdir->dentry) {
+        // Указан путь относительно рабочей директории
+        file = file_open(process->workdir->dentry, filepath, 0, 0);
+        close_at_end = 1;
+    } else {
+        // Открываем файл относительно dirfd
+        struct file* dirfile = process_get_file(process, dirfd);
+        file = file_open(dirfile->dentry, filepath, 0, 0);
+        close_at_end = 1;
+    }
 
     if (file != NULL) {
         struct inode* inode = file->inode;
-        inode_stat(inode, stat);
+        inode_stat(inode, statbuf);
         rc = 0;
-    } else {
-        rc = ERROR_BAD_FD;
+    }
+
+    if (close_at_end) {
+        file_close(file);
     }
 
     return rc;

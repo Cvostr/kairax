@@ -72,7 +72,7 @@ off_t process_file_seek(struct process* process, int fd, off_t offset, int whenc
 
 int process_ioctl(struct process* process, int fd, uint64_t request, uint64_t arg);
 
-int process_stat(struct process* process, int fd, struct stat* stat);
+int process_stat(struct process* process, int dirfd, const char* filepath, struct stat* statbuf, int flags);
 
 int process_readdir(struct process* process, int fd, struct dirent* dirent);
 

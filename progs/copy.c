@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     ssize_t readed = 0;
     size_t bytes_written = 0;
     while ((readed = read(srcfd, region, REGION_LEN)) > 0) {
-        write(dstfd, region, REGION_LEN);
+        write(dstfd, region, readed);
         bytes_written += readed;
     }
 

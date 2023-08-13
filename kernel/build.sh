@@ -61,7 +61,6 @@ gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
 gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o
 
 #generic drivers
-gcc $GCC_ARGS drivers/storage/ata/ata.c -o ./bin/ata.o
 gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o
 gcc $GCC_ARGS drivers/storage/ahci/ahci_port.c -o ./bin/ahci_port.o
 gcc $GCC_ARGS drivers/storage/nvme/nvme.c -o ./bin/nvme.o

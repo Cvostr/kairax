@@ -82,12 +82,6 @@ void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller)
 	controller->hba_mem->ghc |= AHCI_CONTROLLER_INTERRUPTS_ENABLE;
 }
 
-void ahci_controller_get_capabilities(ahci_controller_t* controller, uint32_t* capabilities, uint32_t* capabilities_ext)
-{
-	*capabilities = controller->hba_mem->cap;
-	*capabilities_ext = controller->hba_mem->cap2;
-}
-
 void ahci_init()
 {
 	//найти необходимое PCI устройство
@@ -121,6 +115,8 @@ void ahci_init()
 			controller->hba_mem = (HBA_MEMORY*)P2V(controller->hba_mem);
 
 			controller->version = controller->hba_mem->version;
+			controller->capabilities = controller->hba_mem->cap;
+			controller->capabilities_ext = controller->hba_mem->cap2;
 
 			// Выключение прерываний
 			controller->hba_mem->ghc &= ~AHCI_CONTROLLER_INTERRUPTS_ENABLE;

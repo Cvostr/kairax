@@ -23,6 +23,8 @@
 
 #define FD_CWD		-2
 
+#define DIRFD_IS_FD 1
+
 int open_file_at(int dirfd, const char* filepath, int flags, int mode);
 
 int open_file(const char* filepath, int flags, int mode);
@@ -33,12 +35,16 @@ ssize_t read(int fd, char* buffer, size_t size);
 
 ssize_t write(int fd, const char* buffer, size_t size);
 
-int fdstat(int fd, struct stat* st);
+int fstat(int fd, struct stat* st);
 
-int file_stat(const char* filepath, struct stat* st);
+int stat(const char* filepath, struct stat* st);
+
+int stat_at(int dirfd, const char* filepath, struct stat* st);
 
 int readdir(int fd, struct dirent* direntry);
 
 off_t file_seek(int fd, off_t offset, int whence);
+
+int ioctl(int fd, uint64_t request, uint64_t arg);
 
 #endif

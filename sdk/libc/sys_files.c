@@ -27,14 +27,19 @@ ssize_t write(int fd, const char* buffer, size_t size)
     __set_errno(syscall_write(fd, buffer, size));
 }
 
-int fdstat(int fd, struct stat* st)
+int fstat(int fd, struct stat* st)
 {
-    __set_errno(syscall_fdstat(fd, st));
+    __set_errno(syscall_fdstat(fd, "", st, DIRFD_IS_FD));
 }
 
-int file_stat(const char* filepath, struct stat* st)
+int stat(const char* filepath, struct stat* st)
 {
-    return 0;
+    __set_errno(syscall_fdstat(FD_CWD, filepath, st, 0));
+}
+
+int stat_at(int dirfd, const char* filepath, struct stat* st)
+{
+    __set_errno(syscall_fdstat(dirfd, filepath, st, 0));
 }
 
 int readdir(int fd, struct dirent* direntry)

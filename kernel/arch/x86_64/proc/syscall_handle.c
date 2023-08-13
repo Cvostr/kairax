@@ -52,9 +52,9 @@ void syscall_handle(syscall_frame_t* frame) {
             frame->rax = process_close_file(current_process, (int)frame->rdi);
             break;
 
-        case 0x5: // Закрытие файла
+        case 0x5: // stat
             frame->rax = process_stat(current_process, 
-               frame->rdi, (struct stat*)frame->rsi);
+               frame->rdi, frame->rsi, (struct stat*)frame->rdx, frame->r8);
             break;
 
         case 0x8: // перемещение каретки файла

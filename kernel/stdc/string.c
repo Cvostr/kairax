@@ -90,7 +90,7 @@ void strcpy(char* dst, const char* src){
 	*(dst++) = '\0';
 }
 
-void strncpy(char* dst, char* src, size_t size){
+void strncpy(char* dst, const char* src, size_t size){
 	for(uint32_t it = 0; it < size; it ++){
     		*(dst++) = src[it];
   	}

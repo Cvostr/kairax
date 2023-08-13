@@ -12,7 +12,7 @@ char*  strcat(char *str, char *add_str);
 int strcmp(const char* str1, const char* str2);
 int strncmp(const char* str1, const char* str2, size_t len);
 void strcpy(char* dst, const char* src);
-void strncpy(char* dst, char* src, size_t size);
+void strncpy(char* dst, const char* src, size_t size);
 
 char* strchr(const char * string, int symbol);
 char* strrchr(const char * string, int symbol);

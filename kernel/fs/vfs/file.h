@@ -5,6 +5,7 @@
 #include "inode.h"
 #include "sync/spinlock.h"
 #include "dentry.h"
+#include "errors.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    00000001
 #define FILE_OPEN_MODE_WRITE_ONLY   00000002
@@ -15,19 +16,12 @@
 #define FILE_OPEN_FLAG_APPEND       00002000
 #define FILE_OPEN_FLAG_DIRECTORY    00200000
 
-// TODO: Перенести
-#define ERROR_BAD_FD                9
-#define ERROR_NO_FILE               2
-#define ERROR_IS_DIRECTORY          21
-#define ERROR_INVALID_VALUE         22
-#define ERROR_NOT_A_DIRECTORY       20        
-#define ERROR_TOO_MANY_OPEN_FILES   24
-
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
 
 #define FD_CWD		-2
+#define DIRFD_IS_FD  1  
 
 struct file;
 

@@ -31,6 +31,8 @@ typedef struct PACKED {
     HBA_MEMORY*         hba_mem;
     ahci_port_t         ports[32];
     uint32_t            version;
+    uint32_t            capabilities;
+    uint32_t            capabilities_ext;
 } ahci_controller_t;
 
 int ahci_controller_reset(ahci_controller_t* controller);
@@ -44,8 +46,6 @@ static inline void ahci_controller_flush_posted_writes(ahci_controller_t* contro
 }
 
 void ahci_controller_probe_ports(ahci_controller_t* controller);
-
-void ahci_controller_get_capabilities(ahci_controller_t* controller, uint32_t* capabilities, uint32_t* capabilities_ext);
 
 void ahci_init();
 

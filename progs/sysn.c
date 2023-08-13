@@ -40,9 +40,9 @@ int main() {
     lseek(fd, 100, SEEK_SET);
     printf("AFTER SEEK POS %i\n", lseek(fd, 0, SEEK_CUR));
 
-    struct stat fstat;
-    rc = fdstat(fd, &fstat);
-    printf("TYPE : %i, SIZE : %i, CTIME : %i, MODE : %i\n", fstat.st_mode, fstat.st_size, fstat.st_ctime, fstat.st_mode);
+    struct stat statbuf;
+    rc = fstat(fd, &statbuf);
+    printf("TYPE : %i, SIZE : %i, CTIME : %i, MODE : %i\n", statbuf.st_mode, statbuf.st_size, statbuf.st_ctime, statbuf.st_mode);
 
 	buff[119] = '\0';
 	printf(buff);

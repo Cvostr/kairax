@@ -58,14 +58,13 @@ char keyboard_get_key()
     return key_buffer[buffer_start - 1];
 }
 
-char keyboard_get_key_ascii(char keycode){
-	switch(keycode){
+char keyboard_get_key_ascii(char keycode)
+{
+	switch(keycode) {
     case 0x11:
-      return 'q';
-      break;
+        return 'q';
     case 0x12:
-      return 'w';
-      break;
+        return 'w';
     case 0x13:
       return 'e';
       break;
@@ -168,9 +167,10 @@ char keyboard_get_key_ascii(char keycode){
     case 0xC:
       return '0';
       break;
+    case 0xD:
+        return '-';
     case 0x1D:
-      return '\n';
-    break;
+        return '\n';
     case 0x3A:
       return ' ';
       break;
@@ -180,6 +180,9 @@ char keyboard_get_key_ascii(char keycode){
     case 0x35:
       return '.';
       break;
+    default:
+        //if (keycode != 0)
+        //printf("%i ", keycode);
 	}
 	return 0;
 }

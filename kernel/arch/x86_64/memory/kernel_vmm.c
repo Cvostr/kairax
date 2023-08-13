@@ -134,6 +134,5 @@ void vmm_destroy_page_table(table_entry_t* entries, int level)
 
 void vmm_destroy_root_page_table(page_table_t* root)
 {
-    switch_pml4(K2P(root_pml4));
     vmm_destroy_page_table(root->entries, 4);
 }
