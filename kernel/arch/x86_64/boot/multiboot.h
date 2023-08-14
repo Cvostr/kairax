@@ -27,15 +27,30 @@ typedef struct PACKED {
   mmap_entry_t entries[];
 } mmap_t ;
 
-typedef struct {
-  char* bootloader_string;
-  char* command_line;
-  uint32_t load_base_addr;
+#define BOOTLOADER_STRING_MAX_LEN 64
+#define BOOTLOADER_ARGS_MAX_LEN   256  
 
-  size_t mmap_size;
-  unsigned int mmap_len;
-  mmap_t* mmap;
-}kernel_boot_info_t;
+typedef struct  PACKED {
+    uint64_t fb_addr;
+    uint32_t fb_pitch;
+    uint32_t fb_width;
+    uint32_t fb_height;
+    uint8_t  fb_bpp;
+    uint8_t  fb_type;
+    uint8_t  reserved; 
+} framebuffer_info_t;
+
+typedef struct {
+    char bootloader_string[BOOTLOADER_STRING_MAX_LEN];
+    char command_line[BOOTLOADER_ARGS_MAX_LEN];
+    uint32_t load_base_addr;
+
+    size_t mmap_size;
+    unsigned int mmap_len;
+    mmap_t* mmap;
+
+    framebuffer_info_t fb_info;
+} kernel_boot_info_t;
 
 int parse_mb2_tags(taglist_t *tags);
 

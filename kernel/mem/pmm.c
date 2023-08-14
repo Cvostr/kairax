@@ -195,7 +195,7 @@ void pmm_take_base_regions()
 	uint64_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
 	//Запретить выделение памяти в 1-м мегабайте
 	pmm_set_mem_region(0x0, 0x100000);
-
+	// Запретить выделение памяти в области кода ядра
 	pmm_set_mem_region(0x100000, kernel_size);
 }
 

@@ -2,7 +2,7 @@
 #include "dev/keyboard/int_keyboard.h"
 #include "bootshell_cmdproc.h"
 #include "stdio.h"
-#include "dev/b8-console/b8-console.h"
+#include "dev/video/video.h"
 
 char command[256];
 int cmd_len = 0;
@@ -40,7 +40,7 @@ void bootshell()
 
         if(keycode == 15 && cmd_len > 0){ //удаление символа
             cmd_len--;
-            b8_remove_from_end(1);
+            console_remove_from_end(1);
         }
     }
 }

@@ -1,4 +1,5 @@
 #include "dev/b8-console/b8-console.h"
+#include "dev/video/video.h"
 #include "stdio.h"
 #include "kstdlib.h"
 #include "interrupts/idt.h"
@@ -72,11 +73,13 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	page_table_t* new_pt = create_kernel_vm_map();
 	vmm_use_kernel_vm();
 
-	b8_console_clear();
+	//b8_console_clear();
+	vga_init(P2V(kboot_info->fb_info.fb_addr), kboot_info->fb_info.fb_pitch, kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height,
+	kboot_info->fb_info.fb_bpp);
 	printf("Kairax Kernel v0.1\n");
-	//printf("LOADER : %s\n", P2V(kboot_info->bootloader_string));
+	//printf("LOADER : %s\n", kboot_info->bootloader_string);
 	//printf("CMDLINE : %s\n", P2V(kboot_info->command_line));
-	//printf("BASE : %i\n", get_kernel_boot_info()->load_base_addr);
+	//printf("width %i, height %i, addr %i\n", kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height, kboot_info->fb_info.fb_addr);
 
 	int rc = 0;
 	printf("KHEAP: Initialization...\n");
@@ -110,7 +113,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	ahci_init();	
 	init_nvme();
 
-	b8_init();
+	
 	init_ints_keyboard();
 
 	for(int i = 0; i < get_drive_devices_count(); i ++) {
