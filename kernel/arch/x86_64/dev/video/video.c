@@ -4,6 +4,7 @@
 #include "string.h"
 #include "io.h"
 #include "fs/devfs/devfs.h"
+#include "mem/kheap.h"
 
 #define B8_WR_CMD 'w'
 #define B8_RM_CMD 'r'
@@ -146,12 +147,18 @@ uint32_t _width;
 uint32_t _height;
 uint32_t _depth;
 
-#define BUFFER_SIZE 2000 	//80 * 25
-#define BUFFER_LINE_SIZE 80	//80
+#define BUFFER_LINE_LENGTH  82
+#define BUFFER_LINES        42
+#define BUFFER_SIZE (BUFFER_LINE_LENGTH * BUFFER_LINES)
+
+
+#define LETTER_SIZE 2
+#define LINE_SIZE   17
+#define COL_SIZE    15
 
 uint32_t console_passed_chars = 0;
+uint32_t console_lines = 1;
 char console_text_buffer[BUFFER_SIZE];
-int console_overstep = 0;
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset);
 
@@ -164,9 +171,12 @@ void vga_init(uint64_t addr, uint32_t pitch, uint32_t width, uint32_t height, ui
     _width = width;
     _height = height;
     _depth = depth;
+}
 
+void vga_init_dev()
+{
     vga_fops.write = vga_f_write;
-	//devfs_add_char_device("console", &vga_fops);
+	devfs_add_char_device("console", &vga_fops);
 }
 
 void vga_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) 
@@ -209,27 +219,35 @@ void vga_draw_char(char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t
     }
 }
 
-void vga_clear() {
+void vga_clear() 
+{
     memset(_addr, 0, _width * _height * 4);
 }
 
-void console_check_for_refill()
+void console_scroll()
 {
-	if(console_passed_chars >= BUFFER_SIZE){
-		strncpy(console_text_buffer, console_text_buffer + BUFFER_LINE_SIZE, BUFFER_SIZE - BUFFER_LINE_SIZE);
-		console_passed_chars = BUFFER_SIZE - BUFFER_LINE_SIZE;
+    int size = strchr(console_text_buffer, '\n') - console_text_buffer + 1;
+
+	if (console_lines >= BUFFER_LINES) {
+		memcpy(console_text_buffer, console_text_buffer + size, console_passed_chars - size);
+
+		console_passed_chars -= size;
+
+        console_lines--;
+
+        vga_clear();
+        console_redraw();
 	}
 }
 
-void console_redraw() {
+void console_redraw() 
+{
     int xoffset = 5;
     int yoffset = 10;
-    int size = 2;
-    int line_size = 17;
-    int col_size = 15;
 
     int current_line = 0;
     int current_col = 0;
+
     for (uint32_t i = 0; i < console_passed_chars; i ++) {
         char sym = console_text_buffer[i];
         if (sym == '\n') {
@@ -238,8 +256,18 @@ void console_redraw() {
             continue;
         }
             
-        vga_draw_char(console_text_buffer[i], xoffset + current_col * col_size, yoffset + current_line * line_size, 255, 255, 255, size, size);
+        vga_draw_char(console_text_buffer[i],
+            xoffset + current_col * COL_SIZE,
+            yoffset + current_line * LINE_SIZE,
+            255, 255, 255,
+            LETTER_SIZE, LETTER_SIZE);
+
         current_col ++;
+
+        if (current_col > BUFFER_LINE_LENGTH) {
+            current_line++;
+            current_col = 0;
+        }
     }
 }
 
@@ -248,9 +276,12 @@ void console_print_char(char chr)
 	char* step = console_text_buffer + console_passed_chars;
 		
     *step = chr; //Записать в буфер
+    console_passed_chars += 1;
 
-	console_passed_chars += 1;
-	console_check_for_refill();
+    if (chr == '\n') {
+        console_lines++;
+        console_scroll();
+    }
 
     console_redraw();
 }

@@ -112,7 +112,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	devfs_init();
 	ahci_init();	
 	init_nvme();
-
+	
+	vga_init_dev();
 	
 	init_ints_keyboard();
 
