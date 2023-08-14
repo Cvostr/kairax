@@ -2,7 +2,7 @@
 #include "dev/keyboard/int_keyboard.h"
 #include "bootshell_cmdproc.h"
 #include "stdio.h"
-#include "dev/video/video.h"
+#include "drivers/video/video.h"
 
 char command[256];
 int cmd_len = 0;

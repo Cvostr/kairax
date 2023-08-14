@@ -1,9 +1,8 @@
 #include "stdio.h"
-#include "dev/b8-console/b8-console.h"
 #include "stdarg.h"
 #include "string.h"
 #include "kstdlib.h"
-#include "dev/video/video.h"
+#include "drivers/video/video.h"
 
 int putchar(int ic) {
 	console_print_char((char)ic);

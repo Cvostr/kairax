@@ -39,15 +39,11 @@ gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
-gcc $GCC_ARGS $x64_SRC/dev/b8-console/b8-console.c -o ./bin/b8-console.o
-gcc $GCC_ARGS $x64_SRC/dev/video/video.c -o ./bin/video.o
 
 gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS $x64_SRC/proc/syscall_handle.c -o ./bin/syscall_handle.o
-#stdc
-gcc $GCC_ARGS $x64_SRC/base/stdc/stdio.c -o ./bin/stdc_stdio.o
 
 #raxlib
 gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o
@@ -57,6 +53,7 @@ gcc $GCC_ARGS $STDC_PATH/guid/guid.c -o ./bin/guid.o
 gcc $GCC_ARGS $STDC_PATH/string.c -o ./bin/stdc_string.o
 gcc $GCC_ARGS $STDC_PATH/stdlib.c -o ./bin/stdc_stdlib.o
 gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
+gcc $GCC_ARGS $STDC_PATH/stdio.c -o ./bin/stdc_stdio.o
 
 #generic bus
 gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o
@@ -68,6 +65,7 @@ gcc $GCC_ARGS drivers/storage/nvme/nvme.c -o ./bin/nvme.o
 gcc $GCC_ARGS drivers/storage/devices/storage_devices.c -o ./bin/storage_devices.o
 gcc $GCC_ARGS drivers/storage/partitions/storage_partitions.c -o ./bin/storage_partitions.o
 gcc $GCC_ARGS drivers/storage/partitions/formats/gpt.c -o ./bin/gpt.o
+gcc $GCC_ARGS drivers/video/video.c -o ./bin/video.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o

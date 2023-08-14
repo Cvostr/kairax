@@ -151,13 +151,18 @@ uint32_t _depth;
 #define BUFFER_LINES        42
 #define BUFFER_SIZE (BUFFER_LINE_LENGTH * BUFFER_LINES)
 
-
 #define LETTER_SIZE 2
 #define LINE_SIZE   17
 #define COL_SIZE    15
 
+int xoffset = 5;
+int yoffset = 5;
+
+#define CONSOLE_TEXT_COLOR 180, 180, 180
+
 uint32_t console_passed_chars = 0;
-uint32_t console_lines = 1;
+uint32_t console_lines = 0;
+uint32_t console_col = 0;
 char console_text_buffer[BUFFER_SIZE];
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset);
@@ -171,6 +176,8 @@ void vga_init(uint64_t addr, uint32_t pitch, uint32_t width, uint32_t height, ui
     _width = width;
     _height = height;
     _depth = depth;
+
+    memset(console_text_buffer, 0, BUFFER_SIZE);
 }
 
 void vga_init_dev()
@@ -226,12 +233,9 @@ void vga_clear()
 
 void console_scroll()
 {
-    int size = strchr(console_text_buffer, '\n') - console_text_buffer + 1;
-
 	if (console_lines >= BUFFER_LINES) {
-		memcpy(console_text_buffer, console_text_buffer + size, console_passed_chars - size);
-
-		console_passed_chars -= size;
+		memcpy(console_text_buffer, console_text_buffer + BUFFER_LINE_LENGTH, BUFFER_SIZE - BUFFER_LINE_LENGTH);
+        memset(console_text_buffer + BUFFER_LINE_LENGTH * (BUFFER_LINES - 1), 0, BUFFER_LINE_LENGTH);
 
         console_lines--;
 
@@ -242,48 +246,41 @@ void console_scroll()
 
 void console_redraw() 
 {
-    int xoffset = 5;
-    int yoffset = 10;
+    for (uint32_t i = 0; i < console_lines; i ++) {
+        for (uint32_t j = 0; j < BUFFER_LINE_LENGTH; j ++) {
 
-    int current_line = 0;
-    int current_col = 0;
+            char* step = console_text_buffer + i * BUFFER_LINE_LENGTH + j;
 
-    for (uint32_t i = 0; i < console_passed_chars; i ++) {
-        char sym = console_text_buffer[i];
-        if (sym == '\n') {
-            current_line++;
-            current_col = 0;
-            continue;
-        }
-            
-        vga_draw_char(console_text_buffer[i],
-            xoffset + current_col * COL_SIZE,
-            yoffset + current_line * LINE_SIZE,
-            255, 255, 255,
-            LETTER_SIZE, LETTER_SIZE);
-
-        current_col ++;
-
-        if (current_col > BUFFER_LINE_LENGTH) {
-            current_line++;
-            current_col = 0;
+            if (*step > 0) {    
+                vga_draw_char(*step,
+                    xoffset + j * COL_SIZE,
+                    yoffset + i * LINE_SIZE,
+                    CONSOLE_TEXT_COLOR,
+                    LETTER_SIZE, LETTER_SIZE);
+            }
         }
     }
 }
 
 void console_print_char(char chr)
 {
-	char* step = console_text_buffer + console_passed_chars;
-		
+	char* step = console_text_buffer + console_lines * BUFFER_LINE_LENGTH + console_col;
     *step = chr; //Записать в буфер
-    console_passed_chars += 1;
 
-    if (chr == '\n') {
+    vga_draw_char(chr,
+        xoffset + console_col * COL_SIZE,
+        yoffset + console_lines * LINE_SIZE,
+        CONSOLE_TEXT_COLOR,
+        LETTER_SIZE, LETTER_SIZE);
+
+    console_col++;
+
+    // Вышли ли за правую границу экрана? или символ переноса
+    if (console_col > BUFFER_LINE_LENGTH || chr == '\n') {
         console_lines++;
+        console_col = 0;
         console_scroll();
     }
-
-    console_redraw();
 }
 
 void console_console_print_string(const char* string){
@@ -297,13 +294,20 @@ void console_console_print_string(const char* string){
 void console_remove_from_end(int chars)
 {
 	for (int i = 0; i < chars; i ++) {
-		console_passed_chars -= 1;
-		char* step = console_text_buffer + console_passed_chars;
-		*step = ' ';
-	}
+        char* step = console_text_buffer + console_lines * BUFFER_LINE_LENGTH + console_col;
+        *step = ' ';
 
-    vga_clear();
-    console_redraw();
+        if (console_col > 0)
+            console_col --;
+        else {
+            console_lines--;
+            console_col = 0;
+        }
+
+        vga_draw_rect(xoffset + console_col * COL_SIZE,
+            yoffset + console_lines * LINE_SIZE, LETTER_SIZE * 8, LETTER_SIZE * 8, 0, 0, 0);
+
+	}
 }
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset)

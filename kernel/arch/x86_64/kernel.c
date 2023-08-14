@@ -1,5 +1,4 @@
-#include "dev/b8-console/b8-console.h"
-#include "dev/video/video.h"
+#include "drivers/video/video.h"
 #include "stdio.h"
 #include "kstdlib.h"
 #include "interrupts/idt.h"
@@ -112,7 +111,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	devfs_init();
 	ahci_init();	
 	init_nvme();
-	
+
 	vga_init_dev();
 	
 	init_ints_keyboard();

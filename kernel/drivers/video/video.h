@@ -13,6 +13,8 @@ void vga_draw_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint
 
 void vga_clear();
 
+void console_redraw();
+
 void console_print_char(char chr);
 
 void console_remove_from_end(int chars);
