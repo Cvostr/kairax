@@ -311,10 +311,6 @@ int process_stat(struct process* process, int dirfd, const char* filepath, struc
         // Дескриптор файла передан в dirfd
         file = process_get_file(process, dirfd);
 
-        if (file == NULL) {
-            return -ERROR_BAD_FD;
-        }
-
     } else if (dirfd == FD_CWD && process->workdir->dentry) {
         // Указан путь относительно рабочей директории
         file = file_open(process->workdir->dentry, filepath, 0, 0);
@@ -322,15 +318,25 @@ int process_stat(struct process* process, int dirfd, const char* filepath, struc
     } else {
         // Открываем файл относительно dirfd
         struct file* dirfile = process_get_file(process, dirfd);
+
+        if (dirfile == NULL) {
+            // Не найден дескриптор dirfd
+            return -ERROR_BAD_FD;
+        }
+
+        // Открыть файл
         file = file_open(dirfile->dentry, filepath, 0, 0);
         close_at_end = 1;
     }
 
-    if (file != NULL) {
-        struct inode* inode = file->inode;
-        inode_stat(inode, statbuf);
-        rc = 0;
+    if (file == NULL) {
+        // Не получилось открыть файл, выходим
+        return -ERROR_BAD_FD;
     }
+
+    struct inode* inode = file->inode;
+    inode_stat(inode, statbuf);
+    rc = 0;
 
     if (close_at_end) {
         file_close(file);

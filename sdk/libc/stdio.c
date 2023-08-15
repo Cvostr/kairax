@@ -26,25 +26,39 @@ char* itoa(long long number, int base){
 
 }
 
-int putchar(int ic) {
-	char str[2];
-    str[0] = 'w';
-    str[1] = ic;
+char temp[130];
+
+void write_to_console(const char* buffer, int size) {
+	temp[0] = 'w';
+	temp[1] = size;
+
+	for (int i = 0; i < size; i ++) {
+		temp[2 + i] = buffer[i];
+	}
 
 	if (console_fd == -1) {
 		console_fd = open_file("/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
 	}
 
-	write(console_fd, str, 2);
+	write(console_fd, temp, 2 + size);
+}
+
+int putchar(int ic) {
+
 	
 	return ic;
 }
 
 static int print(const char* data, size_t length) {
 	const unsigned char* bytes = (const unsigned char*) data;
+	int len = 0;
 	for (size_t i = 0; i < length; i++)
-		if (putchar(bytes[i]) == EOF)
-			return 0;
+		if (putchar(bytes[i]) != EOF)
+			len ++;
+
+	write_to_console(data, len);
+
+
 	return 1;
 }
 

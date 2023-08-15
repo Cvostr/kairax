@@ -5,6 +5,7 @@
 #include "io.h"
 #include "fs/devfs/devfs.h"
 #include "mem/kheap.h"
+#include "sync/spinlock.h"
 
 #define B8_WR_CMD 'w'
 #define B8_RM_CMD 'r'
@@ -169,6 +170,8 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 
 struct file_operations vga_fops;
 
+spinlock_t vga_console_lock = 0;
+
 void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint32_t depth)
 {
     _addr = addr;
@@ -239,8 +242,15 @@ void console_scroll()
 
         console_lines--;
 
-        vga_clear();
-        console_redraw();
+        // Перенести строки фреймбуффера вверх
+        int pixel_lines = (YOFFSET + LINE_SIZE) * _pitch;
+        int to_copy = (_height - YOFFSET - LINE_SIZE) * _pitch;
+        memcpy(_addr + YOFFSET * _pitch, _addr + pixel_lines, to_copy);
+
+        // Очистить последнюю строку
+        pixel_lines = LINE_SIZE * _pitch;
+        int offset = (YOFFSET + (BUFFER_LINES - 1) * LINE_SIZE) * _pitch;
+        memset(_addr + offset, 0, pixel_lines);
 	}
 }
 
@@ -314,10 +324,16 @@ void console_remove_from_end(int chars)
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset)
 {
+    acquire_mutex(&vga_console_lock);
+
 	if (buffer[0] == B8_WR_CMD) {
-		console_print_char(buffer[1]);
+        int len = buffer[1];
+        for (int i = 0; i < len; i ++)
+		    console_print_char(buffer[2 + i]);
 	}
 	if (buffer[0] == B8_RM_CMD) {
-		console_print_char(buffer[1]);
+		console_remove_from_end(buffer[1]);
 	}
+
+    release_spinlock(&vga_console_lock);
 }
