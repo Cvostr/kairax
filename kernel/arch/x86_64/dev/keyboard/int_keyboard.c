@@ -1,6 +1,5 @@
 #include "int_keyboard.h"
 #include "interrupts/pic.h"
-#include "interrupts/handle/handler.h"
 #include "io.h"
 #include "fs/devfs/devfs.h"
 
@@ -10,7 +9,6 @@ unsigned char buffer_start;
 unsigned char buffer_end;
 
 struct file_operations int_keyb_fops;
-void keyboard_int_handler(interrupt_frame_t* frame);
 
 ssize_t intk_f_read (struct file* file, char* buffer, size_t count, loff_t offset)
 {
@@ -30,7 +28,7 @@ void init_ints_keyboard()
 	devfs_add_char_device("keyboard", &int_keyb_fops);
 }
 
-void keyboard_int_handler(interrupt_frame_t* frame)
+void keyboard_int_handler(interrupt_frame_t* frame, void* data)
 {
     char keycode = inb(0x60) + 1;
     

@@ -28,28 +28,33 @@ void file_close(struct file* file)
     }
 }
 
+void split_path(const char* path, char** directory_path_ptr, char** filename_ptr) {
+    // Поиск разделителя файла
+    char* last_slash = strrchr(path, '/');
+
+    if (last_slash != NULL) {
+        // Разделитель найден
+        *filename_ptr = last_slash + 1;
+        // Длина строки директории
+        size_t dir_size = *filename_ptr - path;
+
+        *directory_path_ptr = kmalloc(dir_size);
+        strncpy(*directory_path_ptr, path, dir_size - 1);
+    } else {
+        // Разделителей в пути нет
+        *filename_ptr = (char*)path;
+        *directory_path_ptr = NULL;
+    }
+}
+
 int mkfile(struct dentry* dir, const char* path, int mode) {
 
     int result = 0;
     char* directory_path = NULL;
     char* filename = NULL;
 
-    // Поиск разделителя файла
-    char* last_slash = strrchr(path, '/');
-
-    if (last_slash != NULL) {
-        // Разделитель найден
-        filename = last_slash + 1;
-        // Длина строки директории
-        size_t dir_size = filename - path;
-
-        directory_path = kmalloc(dir_size + 1);
-        strncpy(directory_path, path, dir_size - 1);
-    } else {
-        // Разделителей в пути нет
-        filename = (char*)path;
-        directory_path = NULL;
-    }
+    // Разделить путь на путь директории имя файла
+    split_path(path, &directory_path, &filename);
 
     // Открываем inode директории
     struct inode* dir_inode = vfs_fopen(dir, directory_path, 0, NULL);

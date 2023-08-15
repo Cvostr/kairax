@@ -45,6 +45,8 @@ struct process_create_info {
 //Создать новый пустой процесс
 struct process*  create_new_process(struct process* parent);
 
+int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result);
+
 void free_process(struct process* process);
 
 int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info);
@@ -61,6 +63,8 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 struct file* process_get_file(struct process* process, int fd);
 
 int process_open_file(struct process* process, int dirfd, const char* path, int flags, int mode);
+
+int process_mkdir(struct process* process, int dirfd, const char* path, int mode);
 
 int process_close_file(struct process* process, int fd);
 

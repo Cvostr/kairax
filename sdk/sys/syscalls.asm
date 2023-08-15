@@ -19,6 +19,7 @@ global syscall_set_file_mode
 global syscall_create_thread
 global syscall_mount
 global syscall_create_directory
+global syscall_process_map_memory
 
 syscall_read:
     mov rax, 0x0
@@ -47,6 +48,11 @@ syscall_fdstat:
 
 syscall_file_seek:
     mov rax, 0x08
+    syscall
+    ret
+
+syscall_process_map_memory:
+    mov rax, 0x9
     syscall
     ret
 

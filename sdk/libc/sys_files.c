@@ -12,6 +12,11 @@ int open_file(const char* filepath, int flags, int mode)
     __set_errno(syscall_open_file(FD_CWD, filepath, flags, mode));
 }
 
+int mkdir(const char* dirpath, int mode)
+{
+    __set_errno(syscall_create_directory(FD_CWD, dirpath, mode));
+}
+
 int close(int fd)
 {
     __set_errno(syscall_close(fd));

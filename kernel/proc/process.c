@@ -85,12 +85,43 @@ exit:
     return rc;
 }
 
+int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result)
+{
+    if (dirfd == FD_CWD && process->workdir) {
+        // Открыть относительно рабочей директории
+        *result = process->workdir->dentry;
+        
+    } else if (!vfs_is_path_absolute(path)) {
+        // Открыть относительно другого файла
+        // Получить файл по дескриптору
+        struct file* dirfile = process_get_file(process, dirfd);
+
+        if (dirfile) {
+            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+                return -ERROR_NOT_A_DIRECTORY;
+            }
+            // проверить тип inode
+            *result = dirfile->dentry;
+        } else {
+            // Файл не нашелся, а путь не является абсолютным - выходим
+            return ERROR_BAD_FD;
+        }
+    }
+
+    return 0;
+}
+
 int process_open_file(struct process* process, int dirfd, const char* path, int flags, int mode)
 {
     int fd = -1;
     struct dentry* dir_dentry = NULL;
 
-    if (dirfd == FD_CWD && process->workdir) {
+    // Получить dentry, относительно которой открыть файл
+    fd = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
+    if (fd != 0) {
+        return fd;
+    }
+    /*if (dirfd == FD_CWD && process->workdir) {
         // Открыть относительно рабочей директории
         dir_dentry = process->workdir->dentry;
         
@@ -110,7 +141,7 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
             // Файл не нашелся, а путь не является абсолютным - выходим
             return ERROR_BAD_FD;
         }
-    }
+    }*/
 
     struct file* file = file_open(dir_dentry, path, flags, mode);
 
@@ -150,6 +181,43 @@ int process_open_file(struct process* process, int dirfd, const char* path, int 
 exit:
     release_spinlock(&process->fd_spinlock);
     return fd;
+}
+
+int process_mkdir(struct process* process, int dirfd, const char* path, int mode)
+{
+    int rc = -1;
+    struct dentry* dir_dentry = NULL;
+
+    // Получить dentry, относительно которой создать папку
+    rc = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
+    if (rc != 0) {
+        return rc;
+    }
+
+    char* directory_path = NULL;
+    char* filename = NULL;
+
+    // Разделить путь на путь директории имя файла
+    split_path(path, &directory_path, &filename);
+
+    // Открываем inode директории
+    struct inode* dir_inode = vfs_fopen(dir_dentry, directory_path, 0, NULL);
+
+    if (directory_path) {
+        kfree(directory_path);
+    }
+
+    if (dir_inode == NULL) {
+        // Отсутствует полный путь к директории
+        return -1;
+    }
+
+    // Создать папку
+    rc = inode_mkdir(dir_inode, filename, mode);
+    // Закрыть inode директории
+    inode_close(dir_inode);
+
+    return rc;
 }
 
 int process_close_file(struct process* process, int fd)

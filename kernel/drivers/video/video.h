@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-void vga_init(uint64_t addr, uint32_t pitch, uint32_t width, uint32_t height, uint32_t depth);
+void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint32_t depth);
 
 void vga_init_dev();
 

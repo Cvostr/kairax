@@ -14,3 +14,9 @@ ld -melf_x86_64 -o echo.a echo.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../s
 
 gcc $ARGS copy.c -o copy.o
 ld -melf_x86_64 -o copy.a copy.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
+
+gcc $ARGS mkdir.c -o mkdir.o
+ld -melf_x86_64 -o mkdir.a mkdir.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
+
+gcc $ARGS floattest.c -o floattest.o
+ld -melf_x86_64 -o floattest.a floattest.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc

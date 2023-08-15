@@ -152,11 +152,11 @@ uint32_t _depth;
 #define BUFFER_SIZE (BUFFER_LINE_LENGTH * BUFFER_LINES)
 
 #define LETTER_SIZE 2
-#define LINE_SIZE   17
+#define LINE_SIZE   18
 #define COL_SIZE    15
 
 #define XOFFSET 5
-int yoffset = 5;
+#define YOFFSET 5
 
 #define CONSOLE_TEXT_COLOR 180, 180, 180
 
@@ -169,7 +169,7 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 
 struct file_operations vga_fops;
 
-void vga_init(uint64_t addr, uint32_t pitch, uint32_t width, uint32_t height, uint32_t depth)
+void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint32_t depth)
 {
     _addr = addr;
     _pitch = pitch;
@@ -228,7 +228,7 @@ void vga_draw_char(char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t
 
 void vga_clear() 
 {
-    memset(_addr, 0, _width * _height * 4);
+    memset(_addr, 0, _pitch * _height);
 }
 
 void console_scroll()
@@ -254,7 +254,7 @@ void console_redraw()
             if (*step > 0) {    
                 vga_draw_char(*step,
                     XOFFSET + j * COL_SIZE,
-                    yoffset + i * LINE_SIZE,
+                    YOFFSET + i * LINE_SIZE,
                     CONSOLE_TEXT_COLOR,
                     LETTER_SIZE, LETTER_SIZE);
             }
@@ -269,7 +269,7 @@ void console_print_char(char chr)
 
     vga_draw_char(chr,
         XOFFSET + console_col * COL_SIZE,
-        yoffset + console_lines * LINE_SIZE,
+        YOFFSET + console_lines * LINE_SIZE,
         CONSOLE_TEXT_COLOR,
         LETTER_SIZE, LETTER_SIZE);
 
@@ -304,8 +304,10 @@ void console_remove_from_end(int chars)
             console_col = 0;
         }
 
-        vga_draw_rect(XOFFSET + console_col * COL_SIZE,
-            yoffset + console_lines * LINE_SIZE, LETTER_SIZE * 8, LETTER_SIZE * 8, 0, 0, 0);
+        vga_draw_rect(  XOFFSET + console_col * COL_SIZE,
+                        YOFFSET + console_lines * LINE_SIZE, 
+                        LETTER_SIZE * 8,
+                        LETTER_SIZE * 8, 0, 0, 0);
 
 	}
 }

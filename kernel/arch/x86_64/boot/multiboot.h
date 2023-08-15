@@ -29,9 +29,10 @@ typedef struct PACKED {
 
 #define BOOTLOADER_STRING_MAX_LEN 64
 #define BOOTLOADER_ARGS_MAX_LEN   256  
+#define RSDP_DATA_MAX_SIZE        200
 
 typedef struct  PACKED {
-    uint64_t fb_addr;
+    void* fb_addr;
     uint32_t fb_pitch;
     uint32_t fb_width;
     uint32_t fb_height;
@@ -53,7 +54,7 @@ typedef struct {
 
     int rsdp_version;
     int rsdp_size;
-    char rsdp_data[100];
+    char rsdp_data[RSDP_DATA_MAX_SIZE];
 } kernel_boot_info_t;
 
 int parse_mb2_tags(taglist_t *tags);

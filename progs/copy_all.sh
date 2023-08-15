@@ -1,0 +1,1 @@
+sudo cp *.a /mnt/kxvol

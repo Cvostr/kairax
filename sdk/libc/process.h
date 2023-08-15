@@ -14,4 +14,6 @@ pid_t process_get_id();
 
 void sleep(int time);
 
+void* mmap(void* addr, size_t size, int protection);
+
 #endif

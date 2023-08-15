@@ -49,7 +49,8 @@ void register_exceptions_handlers(){
 	}
 }
 
-void exception_handler(interrupt_frame_t* frame){
+void exception_handler(interrupt_frame_t* frame)
+{
     uint64_t cr2;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
     printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
