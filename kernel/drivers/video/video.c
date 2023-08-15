@@ -141,13 +141,13 @@ uint8_t defaultFont[128][8] = {
 };
 
 
-uint32_t* _addr;
+char* _addr;
 uint32_t _pitch;
 uint32_t _width;
 uint32_t _height;
 uint32_t _depth;
 
-#define BUFFER_LINE_LENGTH  82
+#define BUFFER_LINE_LENGTH  67
 #define BUFFER_LINES        42
 #define BUFFER_SIZE (BUFFER_LINE_LENGTH * BUFFER_LINES)
 
@@ -155,7 +155,7 @@ uint32_t _depth;
 #define LINE_SIZE   17
 #define COL_SIZE    15
 
-int xoffset = 5;
+#define XOFFSET 5
 int yoffset = 5;
 
 #define CONSOLE_TEXT_COLOR 180, 180, 180
@@ -188,29 +188,29 @@ void vga_init_dev()
 
 void vga_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) 
 {
-    uint32_t colour = r << 16 | g << 8 | b;
-    (_addr)[(y * _width) + x] = colour;
+    int pixwidth = _depth / 8;
+    char* fb_addr = _addr + y * _pitch + x * pixwidth;
+    fb_addr[0] = b;
+    fb_addr[1] = g;
+    fb_addr[2] = r;
 }
 
 void vga_draw_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b) 
 {
-    uint32_t colour = r << 16 | g << 8 | b;
-
     for (uint32_t i = 0; i < height; i++) {
         for (uint32_t j = 0; j < width; j++) {
-            (_addr)[((i + y) * _width) + j + x] = colour;
+            vga_draw_pixel(j + x, i + y, r, g, b);
         }
     }
 }
 
 void vga_draw_char(char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale) {
     if (vscale <= 1 && hscale <= 1) {
-        uint32_t colour = r << 16 | g << 8 | b;
         for (uint32_t i = 0; i < 8; i++) {
             int row = defaultFont[(int)c][i];
             for (uint32_t j = 0; j < 8; j++) {
                 if ((row & (1 << j)) >> j) {
-                    (_addr)[((y + i) * _width) + x + j] = colour;
+                    vga_draw_pixel(x + j, y + i, r, g, b);
                 }
             }
         }
@@ -253,7 +253,7 @@ void console_redraw()
 
             if (*step > 0) {    
                 vga_draw_char(*step,
-                    xoffset + j * COL_SIZE,
+                    XOFFSET + j * COL_SIZE,
                     yoffset + i * LINE_SIZE,
                     CONSOLE_TEXT_COLOR,
                     LETTER_SIZE, LETTER_SIZE);
@@ -268,7 +268,7 @@ void console_print_char(char chr)
     *step = chr; //Записать в буфер
 
     vga_draw_char(chr,
-        xoffset + console_col * COL_SIZE,
+        XOFFSET + console_col * COL_SIZE,
         yoffset + console_lines * LINE_SIZE,
         CONSOLE_TEXT_COLOR,
         LETTER_SIZE, LETTER_SIZE);
@@ -304,7 +304,7 @@ void console_remove_from_end(int chars)
             console_col = 0;
         }
 
-        vga_draw_rect(xoffset + console_col * COL_SIZE,
+        vga_draw_rect(XOFFSET + console_col * COL_SIZE,
             yoffset + console_lines * LINE_SIZE, LETTER_SIZE * 8, LETTER_SIZE * 8, 0, 0, 0);
 
 	}

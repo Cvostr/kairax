@@ -50,6 +50,10 @@ typedef struct {
     mmap_t* mmap;
 
     framebuffer_info_t fb_info;
+
+    int rsdp_version;
+    int rsdp_size;
+    char rsdp_data[100];
 } kernel_boot_info_t;
 
 int parse_mb2_tags(taglist_t *tags);

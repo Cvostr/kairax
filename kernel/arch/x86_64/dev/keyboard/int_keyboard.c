@@ -24,7 +24,7 @@ void init_ints_keyboard()
     buffer_end = 0;
 
     pic_unmask(0x21);
-    register_interrupt_handler(0x21, keyboard_int_handler);
+    register_interrupt_handler(0x21, keyboard_int_handler, NULL);
 
     int_keyb_fops.read = intk_f_read;
 	devfs_add_char_device("keyboard", &int_keyb_fops);

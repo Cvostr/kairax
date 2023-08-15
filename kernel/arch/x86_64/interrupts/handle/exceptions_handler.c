@@ -45,7 +45,7 @@ char const *exception_message[33] =
 
 void register_exceptions_handlers(){
 	for(int i = 0; i < 32; i ++){
-		register_interrupt_handler(i, exception_handler);
+		register_interrupt_handler(i, exception_handler, NULL);
 	}
 }
 

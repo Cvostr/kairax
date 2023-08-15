@@ -89,7 +89,7 @@ int acpi_read_rsdp(uint8_t *p)
     if (checksum)
     {
         printf("ACPI RSDP Checksum failed\n");
-        return 0;
+        return 2;
     }
     
     memcpy(acpi_rsdp.oem_id, p + 9, 6);
@@ -101,6 +101,7 @@ int acpi_read_rsdp(uint8_t *p)
     {
         acpi_rsdp.rsdt_addr = *(uint32_t*)(&p[16]);
         acpi_parse_rsdt(to_acpi_header(acpi_rsdp.rsdt_addr));
+        return 0;
     }
     else if (acpi_rsdp.revision == 2)
     {
@@ -110,14 +111,16 @@ int acpi_read_rsdp(uint8_t *p)
         if (acpi_rsdp.xsdt_addr)
         {
             acpi_read_xsdt(to_acpi_header(acpi_rsdp.xsdt_addr));
+            return 0;
         }
         else
         {
             acpi_parse_rsdt(to_acpi_header(acpi_rsdp.rsdt_addr));
+            return 0;
         }
     }
     
-    return 1;
+    return 3;
 }
 
 uint16_t acpi_is_enabled()
@@ -154,9 +157,13 @@ int acpi_enable()
     return 0;
 }
 
-int acpi_init()
+int acpi_init(void* rsdp_ptr)
 {
     memset(&acpi_rsdp, 0, sizeof(acpi_rsdp_t));
+
+    if (rsdp_ptr != NULL) {
+        return acpi_read_rsdp(rsdp_ptr);
+    }
 
     uint8_t *p = (uint8_t *)P2V(0x000e0000);
     uint8_t *end = (uint8_t *)P2V(0x000fffff);
@@ -166,10 +173,7 @@ int acpi_init()
         uint64_t signature = *(uint64_t*)p;
         if (signature == 0x2052545020445352) // 'RSD PTR '
         {
-            if (acpi_read_rsdp(p))
-            {
-                return 0;
-            }
+            return acpi_read_rsdp(p);
         }
 
         p += 16;

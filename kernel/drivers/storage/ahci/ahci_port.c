@@ -215,6 +215,12 @@ int ahci_port_reset(ahci_port_t* port)
 	return 1;
 }
 
+int ahci_port_interrupt(ahci_port_t *port)
+{
+	uint32_t is = port->port_reg->is;
+	port->port_reg->is = is;
+}
+
 int ahci_port_disable(ahci_port_t* port)
 {
 	if ((port->port_reg->cmd & HBA_PxCMD_START) == 0) {

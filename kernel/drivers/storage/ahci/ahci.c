@@ -32,9 +32,21 @@ void ahci_controller_probe_ports(ahci_controller_t* controller){
 	}
 }
 
-void ahci_int_handler(interrupt_frame_t* frame){
-	
-    printf("AHCI ");
+void ahci_int_handler(interrupt_frame_t* frame, void* data) 
+{
+	ahci_controller_t* controller = (ahci_controller_t*) data;
+	uint32 interrupt_pending = controller->hba_mem->is & controller->hba_mem->pi;
+
+	for (int i = 0; i < 32; i++) {
+		if (interrupt_pending & (1 << i)) {
+			if (controller->ports[i].implemented) {
+				ahci_port_interrupt(&controller->ports[i]);
+			}
+		}
+	}
+
+	// Очистка прерывания
+	controller->hba_mem->is = interrupt_pending;
 
 	pic_eoi(11);
 }
@@ -128,7 +140,7 @@ void ahci_init()
 			}
 
 			uint8_t irq = device_desc->interrupt_line;
-			register_interrupt_handler(0x20 + irq, ahci_int_handler);
+			register_interrupt_handler(0x20 + irq, ahci_int_handler, controller);
     		pic_unmask(0x20 + irq);
 
 			// Получить информацию о портах. первый этап инициализации

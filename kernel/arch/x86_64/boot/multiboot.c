@@ -9,6 +9,8 @@
 #define MBOOT2_VBE_INFO     7
 #define MBOOT2_FB_INFO      8
 #define MBOOT2_IMAGE_BASE   21
+#define MBOOT2_RSDP1        14
+#define MBOOT2_RSDP2        15
 
 static kernel_boot_info_t kernel_boot_info;
 
@@ -38,6 +40,14 @@ int parse_mb2_tags(taglist_t *tags)
             break;
         case MBOOT2_FB_INFO:
             memcpy(&kernel_boot_info.fb_info, (framebuffer_info_t*)tag->data, sizeof(framebuffer_info_t));
+            break;
+        case MBOOT2_RSDP1:
+            kernel_boot_info.rsdp_version = 1;
+            memcpy(kernel_boot_info.rsdp_data, tag->data, tag->size);
+            break;
+        case MBOOT2_RSDP2:
+            kernel_boot_info.rsdp_version = 2;
+            memcpy(kernel_boot_info.rsdp_data, tag->data, tag->size);
             break;
         }
         tag = (tag_t*) ((uint8_t*) tag + ((tag->size + 7) & ~7));

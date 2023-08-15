@@ -72,7 +72,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	page_table_t* new_pt = create_kernel_vm_map();
 	vmm_use_kernel_vm();
 
-	//b8_console_clear();
 	vga_init(P2V(kboot_info->fb_info.fb_addr), kboot_info->fb_info.fb_pitch, kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height,
 	kboot_info->fb_info.fb_bpp);
 	printf("Kairax Kernel v0.1\n");
@@ -88,9 +87,13 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	printf("ACPI: Initialization ... ");
-	acpi_init();
-	if((rc = acpi_enable()) != 0) {
-		printf("ACPI: ERROR 0x%i\n", rc);
+	void* rsdp_ptr = kboot_info->rsdp_version > 0 ? kboot_info->rsdp_data : NULL;
+	if ((rc = acpi_init(rsdp_ptr)) != 0) {
+		printf("ACPI: Init ERROR 0x%i\n", rc);
+		goto fatal_error;
+	}
+	if ((rc = acpi_enable()) != 0) {
+		printf("ACPI: Enable ERROR 0x%i\n", rc);
 		goto fatal_error;
 	} else {
 		printf("Success!\n");

@@ -35,7 +35,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt);
 
 void acpi_parse_dsdt(acpi_header_t* dsdt);
 
-int acpi_init();
+int acpi_init(void* rsdp_ptr);
 
 char* acpi_get_oem_str();
 
