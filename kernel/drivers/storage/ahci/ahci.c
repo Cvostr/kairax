@@ -54,7 +54,8 @@ void ahci_int_handler(interrupt_frame_t* frame, void* data)
 int ahci_controller_reset(ahci_controller_t* controller) 
 {
 	uint32_t pi = controller->hba_mem->pi;
-	uint32_t caps = controller->hba_mem->cap;
+	uint32_t caps = controller->hba_mem->cap & 
+		(AHCI_CAPABILITY_MPSW | AHCI_CAPABILITY_SSS | AHCI_CAPABILITY_PMUL | AHCI_CAPABILITY_EMS | AHCI_CAPABILITY_EXS);
 
 	// включение AHCI
 	controller->hba_mem->ghc |= AHCI_CONTROLLER_GHC_AHCI_ENABLE;
@@ -83,7 +84,7 @@ int ahci_controller_reset(ahci_controller_t* controller)
 	ahci_controller_flush_posted_writes(controller);
 
 	controller->hba_mem->pi = pi;
-	controller->hba_mem->cap = caps;
+	controller->hba_mem->cap |= caps;
 	ahci_controller_flush_posted_writes(controller);
     
     return 1;

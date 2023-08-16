@@ -14,6 +14,8 @@
 #define AHCI_CAPABILITY_CLO         (1 << 24)       //Command List Override
 #define AHCI_CAPABILITY_AM          (1 << 18)       //AHCI Mode Only
 #define AHCI_CAPABILITY_PMUL        (1 << 17)       //Port multiplier
+#define AHCI_CAPABILITY_EMS         (1 << 6)        //Enclosure management
+#define AHCI_CAPABILITY_EXS         (1 << 5)        //External SATA
 
 
 #define AHCI_CAPABILITY_EX_DEVSLEEP         (1 << 3)
