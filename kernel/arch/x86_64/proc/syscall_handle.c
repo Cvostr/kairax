@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include "proc/thread_scheduler.h"
 #include "cpu/cpu_local_x64.h"
+#include "proc/syscalls.h"
 
 typedef struct PACKED 
 {
@@ -32,15 +33,15 @@ void syscall_handle(syscall_frame_t* frame) {
     switch (frame->rax) {
         
         case 0x0: // Чтение файла
-            frame->rax = process_read_file(current_process, frame->rdi, (char*)frame->rsi, frame->rdx);
+            frame->rax = sys_read_file(frame->rdi, (char*)frame->rsi, frame->rdx);
             break;
 
         case 0x1:
-            frame->rax = process_write_file(current_process, frame->rdi, (const char*)frame->rsi, frame->rdx);
+            frame->rax = sys_write_file(frame->rdi, (const char*)frame->rsi, frame->rdx);
             break;
 
         case 0x2: // Открытие файла
-            frame->rax = process_open_file(current_process, 
+            frame->rax = sys_open_file( 
                (int)frame->rdi,
                (char*)frame->rsi,
                frame->rdx,
@@ -48,21 +49,21 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x3: // Закрытие файла
-            frame->rax = process_close_file(current_process, (int)frame->rdi);
+            frame->rax = sys_close_file((int)frame->rdi);
             break;
 
         case 0x5: // stat
-            frame->rax = process_stat(current_process, 
+            frame->rax = sys_stat( 
                frame->rdi, frame->rsi, (struct stat*)frame->rdx, frame->r8);
             break;
 
         case 0x8: // перемещение каретки файла
-            frame->rax = process_file_seek(current_process, 
+            frame->rax = sys_file_seek( 
                frame->rdi, frame->rsi, frame->rdx);
             break;
 
         case 0x10: // ioctl
-            frame->rax = process_ioctl(current_process, 
+            frame->rax = sys_ioctl( 
                frame->rdi, frame->rsi, frame->rdx);
             break;
 
@@ -73,36 +74,35 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x23:
-            thread_sleep(current_thread, frame->rdi);
+            sys_thread_sleep(frame->rdi);
             break;
 
         case 0x27:  //Получение PID процесса
-            frame->rax = current_process->pid;
+            frame->rax = sys_get_process_id();
             break;
 
         case 0xBA:  // Получение ID потока
-            frame->rax = current_thread->id;
+            frame->rax = sys_get_thread_id();
             break;
 
         case 0x4F:  // Получение директории
-            frame->rax = process_get_working_dir(current_process, mem, frame->rsi);
+            frame->rax = sys_get_working_dir(mem, frame->rsi);
             break;
 
         case 0x50:  // Установка директории
-            frame->rax = process_set_working_dir(current_process, mem);
+            frame->rax = sys_set_working_dir(mem);
             break;
 
         case 0x53:
-            frame->rax = process_mkdir(current_process, frame->rdi, frame->rsi, frame->rdx);
+            frame->rax = sys_mkdir(frame->rdi, frame->rsi, frame->rdx);
             break;
 
         case 0x59:
-            frame->rax = process_readdir(current_process, (int)frame->rdi, (struct dirent*)frame->rsi);
+            frame->rax = sys_readdir((int)frame->rdi, (struct dirent*)frame->rsi);
             break;
 
         case 0x3C:  //Завершение процесса
-            scheduler_remove_process_threads(current_process);
-            free_process(current_process);
+            sys_exit_process(frame->rdi);
             break;
 
         case 0xFF10:  // Создание потока

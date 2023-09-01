@@ -14,12 +14,3 @@ struct thread* new_thread(struct process* process)
     thread->process     = (process);
     return thread;
 }
-
-int thread_sleep(struct thread* thread, uint64_t time)
-{
-    thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
-    for (uint64_t i = 0; i < time; i ++) {
-        scheduler_yield();
-    }
-    thread->state = THREAD_RUNNING;
-}

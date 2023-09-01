@@ -180,7 +180,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     uintptr_t size_aligned = align(size, PAGE_SIZE); //выравнивание в большую сторону
 
     for (uintptr_t page_i = start_aligned; page_i < start_aligned + size_aligned; page_i += PAGE_SIZE) {
-        if (!is_mapped(process->vmemory_table, page_i)) {
+        if (!is_mapped(process->vmemory_table->arch_table, page_i)) {
             map_page_mem(process->vmemory_table->arch_table, page_i, (physical_addr_t)pmm_alloc_page(), flags);
         }
 
