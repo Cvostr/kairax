@@ -43,7 +43,6 @@ gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
 gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
-gcc $GCC_ARGS $x64_SRC/proc/syscall_handle.c -o ./bin/syscall_handle.o
 
 #raxlib
 gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o

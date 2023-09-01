@@ -33,6 +33,7 @@ syscall_write:
 
 syscall_open_file:
     mov rax, 0x02
+    mov r10, rcx
     syscall
     ret
 
@@ -121,6 +122,7 @@ syscall_process_exit:
     syscall
 
 syscall_create_thread:
-    mov rax, 0xFF10
+    mov rax, 0x2FF
+    mov r10, rcx
     syscall
     ret

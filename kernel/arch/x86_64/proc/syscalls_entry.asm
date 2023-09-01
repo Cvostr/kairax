@@ -3,7 +3,7 @@
 [BITS 64]
 [SECTION .text]
 
-extern syscall_handle
+extern syscalls_table
 global syscall_entry_x64
 
 %macro push_regs 0
@@ -48,10 +48,10 @@ global syscall_entry_x64
 ; r11 - (SYSRET) - флаги возврата
 ; rdi - аргумент 1
 ; rsi - аргумент 2
-; rdx - 3
-; r8 - 4
-; r9 - 5
-; 10 - 6
+; rdx - аргумент 3
+; r10 - аргумент 4
+; r8 - аргумент 5
+; r9 - аргумент 6
 
 syscall_entry_x64:
     swapgs
@@ -61,11 +61,11 @@ syscall_entry_x64:
 
     push_regs            ; Запомнить основные регистры
 
-    mov rdi, rsp
+    sti                  ; Включение прерываний
 
-    sti                 ; Включение прерываний
-
-    call syscall_handle
+    mov rcx, r10
+    call syscalls_table[rax * 8]
+    mov [rsp + 96], rax
 
     cli                 ; Выключение прерываний
 

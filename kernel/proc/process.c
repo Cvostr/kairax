@@ -132,20 +132,3 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
 
     return 0;
 }
-
-int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
-{
-    struct thread* thread = create_thread(process, entry_ptr, arg, NULL, stack_size);
-
-    if (thread == NULL) {
-        return -1;
-    }
-
-    if (tid != NULL) {
-        *tid = thread->id;
-    }
-
-    scheduler_add_thread(thread);
-
-    return 0;
-}

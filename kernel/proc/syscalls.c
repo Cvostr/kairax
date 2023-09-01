@@ -342,3 +342,21 @@ int sys_thread_sleep(uint64_t time)
     }
     thread->state = THREAD_RUNNING;
 }
+
+int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
+{
+    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = create_thread(process, entry_ptr, arg, NULL, stack_size);
+
+    if (thread == NULL) {
+        return -1;
+    }
+
+    if (tid != NULL) {
+        *tid = thread->id;
+    }
+
+    scheduler_add_thread(thread);
+
+    return 0;
+}

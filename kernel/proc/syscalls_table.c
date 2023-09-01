@@ -5,7 +5,7 @@
 
 #define DEFINE_SYSCALL(num, func) [num] = func
 
-void* syscall_table[MAX_SYSCALLS] = {
+void* syscalls_table[MAX_SYSCALLS] = {
     DEFINE_SYSCALL(0x0, sys_read_file),
     DEFINE_SYSCALL(0x1, sys_write_file),
     DEFINE_SYSCALL(0x2, sys_open_file),
@@ -21,5 +21,7 @@ void* syscall_table[MAX_SYSCALLS] = {
     DEFINE_SYSCALL(0x4F, sys_get_working_dir),
     DEFINE_SYSCALL(0x50, sys_set_working_dir),
     DEFINE_SYSCALL(0x53, sys_mkdir),
-    DEFINE_SYSCALL(0x59, sys_readdir)
+    DEFINE_SYSCALL(0x59, sys_readdir),
+
+    DEFINE_SYSCALL(0x2FF, sys_create_thread)
 };

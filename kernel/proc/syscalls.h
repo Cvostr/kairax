@@ -34,4 +34,6 @@ void sys_exit_process(int code);
 
 int sys_thread_sleep(uint64_t time);
 
+int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
+
 #endif
