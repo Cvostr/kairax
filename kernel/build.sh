@@ -32,7 +32,7 @@ gcc $GCC_ARGS $x64_SRC/interrupts/handle/handler.c -o ./bin/ints_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exceptions_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
 gcc $GCC_ARGS $x64_SRC/interrupts/apic.c -o ./bin/apic.o
-gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging.o
+gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging_x64.o
 gcc $GCC_ARGS $x64_SRC/memory/kernel_vmm.c -o ./bin/kernel_vmm.o
 gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
@@ -88,6 +88,7 @@ gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 
 #generic memory
+gcc $GCC_ARGS mem/paging.c -o ./bin/paging.o
 gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
 gcc $GCC_ARGS mem/pmm.c -o ./bin/pmm.o
 

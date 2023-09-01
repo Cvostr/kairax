@@ -1,5 +1,5 @@
-#ifndef _PAGING_H
-#define _PAGING_H
+#ifndef _PAGING_X64_H
+#define _PAGING_X64_H
 
 #include "types.h"
 #include "mem_layout.h"
@@ -55,9 +55,9 @@ virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count);
 
 virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count);
 
-int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size);
+void arch_vm_memset(void* arch_table, uint64_t addr, int val, size_t size);
 
-void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size);
+size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size);
 
 //Переключить текущую 4х уровневую таблицу страниц
 void switch_pml4(page_table_t* pml4);

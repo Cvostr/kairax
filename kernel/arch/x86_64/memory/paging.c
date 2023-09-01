@@ -198,12 +198,12 @@ virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* roo
     return NULL;
 }
 
-int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
+size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size)
 {
-    int copied = 0;
+    size_t copied = 0;
 
     for (size_t i = 0; i < size; i ++) {
-        char* phys_addr = (char*)get_physical_address(root, dst + i);
+        char* phys_addr = (char*)get_physical_address((page_table_t*) arch_table, dst + i);
         
         if (phys_addr == NULL) {
             return copied;
@@ -217,10 +217,10 @@ int copy_to_vm(page_table_t* root, virtual_addr_t dst, void* src, size_t size)
     return copied;
 }
 
-void memset_vm(page_table_t* root, virtual_addr_t dst, int val, size_t size)
+void arch_vm_memset(void* arch_table, uint64_t addr, int val, size_t size)
 {
-    for (virtual_addr_t i = dst; i < dst + size; i += 1) {
-        copy_to_vm(root, i, &val, 1);
+    for (virtual_addr_t i = addr; i < addr + size; i += 1) {
+        arch_vm_memcpy(arch_table, i, &val, 1);
     }
 }
 

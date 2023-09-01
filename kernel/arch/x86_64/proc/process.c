@@ -63,9 +63,9 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
                 // Выделить память в виртуальной таблице процесса 
                 process_alloc_memory(proc, pehentry->v_addr, aligned_size, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
                 // Заполнить выделенную память нулями
-                memset_vm(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
+                arch_vm_memset(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
                 // Копировать фрагмент программы в память
-                copy_to_vm(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+                arch_vm_memcpy(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
             }
         }
 
@@ -138,10 +138,10 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 
                 // Записать адрес
                 uint64_t addr = args_mem + args_offset;
-                copy_to_vm(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(uint64_t));
+                arch_vm_memcpy(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(uint64_t));
 
                 // Записать строку аргумента
-                copy_to_vm(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
+                arch_vm_memcpy(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
 
                 // Увеличить смещения
                 args_offset += arg_len;

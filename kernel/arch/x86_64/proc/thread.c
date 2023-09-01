@@ -71,13 +71,13 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
         // Выделить память и запомнить адрес начала TLS
         thread->tls = (void*)process_brk(process, process->brk + required_tls_size) - required_tls_size;
         // Копировать данные TLS из процесса
-        copy_to_vm(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
+        arch_vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
 
         struct x64_uthread uthread;
         uthread.this = thread->tls + process->tls_size;
 
         // Копировать данные структуры
-        copy_to_vm(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
+        arch_vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
     }
 
     // Добавить поток в список потоков процесса
