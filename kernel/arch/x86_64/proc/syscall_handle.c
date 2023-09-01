@@ -73,11 +73,7 @@ void syscall_handle(syscall_frame_t* frame) {
             break;
 
         case 0x23:
-            current_thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
-            for (uint64_t i = 0; i < frame->rdi; i ++) {
-                scheduler_yield();
-            }
-            current_thread->state = THREAD_RUNNING;
+            thread_sleep(current_thread, frame->rdi);
             break;
 
         case 0x27:  //Получение PID процесса

@@ -8,6 +8,26 @@
 #include "memory/kernel_vmm.h"
 #include "errors.h"
 
+int last_pid = 0;
+
+struct process*  create_new_process(struct process* parent)
+{
+    struct process* process = (struct process*)kmalloc(sizeof(struct process));
+    memset(process, 0, sizeof(struct process));
+
+    process->name[0] = '\0';
+    // Склонировать таблицу виртуальной памяти ядра
+    process->vmemory_table = clone_kernel_vm_table();
+    process->brk = 0x0;
+    process->pid = last_pid++;
+    process->parent = parent;
+    // Создать список потоков
+    process->threads = create_list();
+    process->children = create_list();
+
+    return process;
+}
+
 void free_process(struct process* process)
 {
     for (unsigned int i = 0; i < list_size(process->threads); i ++) {
@@ -40,7 +60,7 @@ void free_process(struct process* process)
 
     // Уничтожение таблицы виртуальной памяти процесса
     // и освобождение занятых таблиц физической
-    vmm_destroy_root_page_table(process->vmemory_table);
+    vmm_destroy_root_page_table(process->vmemory_table->arch_table);
 
     // Освободить структуру
     kfree(process);

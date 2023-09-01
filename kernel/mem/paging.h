@@ -16,6 +16,8 @@ struct vm_table {
 
 struct vm_table* new_vm_table();
 
+struct vm_table* clone_kernel_vm_table();
+
 void free_vm_table(struct vm_table* table);
 
 void vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection);
@@ -29,6 +31,8 @@ void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size);
 // Общие архитектурно зависимые функции
 
 void* arch_new_vm_table();
+
+void* arch_clone_kernel_vm_table();
 
 void arch_destroy_vm_table();
 

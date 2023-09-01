@@ -7,9 +7,14 @@ struct vm_table* new_vm_table()
     struct vm_table* table = kmalloc(sizeof(struct vm_table));
     memset(table, 0, sizeof(struct vm_table));
 
-    table->arch_table = arch_new_vm_table();
-
     return table; 
+}
+
+struct vm_table* clone_kernel_vm_table()
+{
+    struct vm_table* table = new_vm_table();
+    table->arch_table = arch_clone_kernel_vm_table();
+    return table;
 }
 
 void free_vm_table(struct vm_table* table)

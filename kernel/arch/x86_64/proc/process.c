@@ -10,26 +10,6 @@
 #include "fs/vfs/vfs.h"
 #include "kstdlib.h"
 
-int last_pid = 0;
-
-struct process*  create_new_process(struct process* parent)
-{
-    struct process* process = (struct process*)kmalloc(sizeof(struct process));
-    memset(process, 0, sizeof(struct process));
-
-    process->name[0] = '\0';
-    // Склонировать таблицу виртуальной памяти ядра
-    process->vmemory_table = vmm_clone_kernel_memory_map();
-    process->brk = 0x0;
-    process->pid = last_pid++;
-    process->parent = parent;
-    // Создать список потоков
-    process->threads = create_list();
-    process->children = create_list();
-
-    return process;
-}
-
 int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info)
 {
     int rc = -1;
@@ -63,9 +43,9 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
                 // Выделить память в виртуальной таблице процесса 
                 process_alloc_memory(proc, pehentry->v_addr, aligned_size, PAGE_USER_ACCESSIBLE | PAGE_WRITABLE | PAGE_PRESENT);
                 // Заполнить выделенную память нулями
-                arch_vm_memset(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
+                vm_memset(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
                 // Копировать фрагмент программы в память
-                arch_vm_memcpy(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+                vm_memcpy(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
             }
         }
 
@@ -138,10 +118,10 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 
                 // Записать адрес
                 uint64_t addr = args_mem + args_offset;
-                arch_vm_memcpy(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(uint64_t));
+                vm_memcpy(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(uint64_t));
 
                 // Записать строку аргумента
-                arch_vm_memcpy(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
+                vm_memcpy(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
 
                 // Увеличить смещения
                 args_offset += arg_len;
@@ -173,7 +153,7 @@ uintptr_t process_brk_flags(struct process* process, void* addr, uint64_t flags)
     uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
     while((uint64_t)uaddr > process->brk) {
-        map_page_mem(process->vmemory_table, process->brk, (physical_addr_t)pmm_alloc_page(), flags);
+        map_page_mem(process->vmemory_table->arch_table, process->brk, (physical_addr_t)pmm_alloc_page(), flags);
         process->brk += PAGE_SIZE;
     }
 
@@ -201,7 +181,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
     for (uintptr_t page_i = start_aligned; page_i < start_aligned + size_aligned; page_i += PAGE_SIZE) {
         if (!is_mapped(process->vmemory_table, page_i)) {
-            map_page_mem(process->vmemory_table, page_i, (physical_addr_t)pmm_alloc_page(), flags);
+            map_page_mem(process->vmemory_table->arch_table, page_i, (physical_addr_t)pmm_alloc_page(), flags);
         }
 
         if (page_i > process->brk)

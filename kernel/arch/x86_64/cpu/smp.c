@@ -96,7 +96,7 @@ void smp_init()
     gdtr_t* ap_gdtr = (gdtr_t*)P2V(trampoline_addr + trampoline_gdtr_offset); 
 
     // клонировать таблицу виртуальной памяти для AP
-    page_table_t* ap_bootstrap_vm = vmm_clone_kernel_memory_map();
+    page_table_t* ap_bootstrap_vm = arch_clone_kernel_vm_table();
     // И использовать её
     switch_pml4(V2P(ap_bootstrap_vm));
 

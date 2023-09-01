@@ -137,7 +137,7 @@ void* scheduler_handler(thread_frame_t* frame)
         cpu_set_current_thread(new_thread);
 
         // Заменить таблицу виртуальной памяти процесса
-        switch_pml4(V2P(process->vmemory_table));
+        switch_pml4(V2P(process->vmemory_table->arch_table));
     } else {
         new_thread = cpu_get_current_thread();
     }

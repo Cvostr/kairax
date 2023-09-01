@@ -108,7 +108,7 @@ void vmm_use_kernel_vm()
     switch_pml4(V2P(root_pml4));
 }
 
-page_table_t* vmm_clone_kernel_memory_map()
+void* arch_clone_kernel_vm_table()
 {
     page_table_t* result = new_page_table();
     memcpy(result, root_pml4, sizeof(page_table_t));

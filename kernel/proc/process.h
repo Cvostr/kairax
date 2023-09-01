@@ -4,36 +4,37 @@
 #include "list/list.h"
 #include "fs/vfs/file.h"
 #include "fs/vfs/stat.h"
+#include "mem/paging.h"
 
 #define MAX_DESCRIPTORS         64
 #define PROCESS_MAX_ARGS        65535
 #define PROCESS_MAX_ARGS_SIZE   (128ULL * 1024 * 1024)
 
 struct process {
-    char            name[30];
+    char                name[30];
     // ID процесса
-    pid_t           pid;
+    pid_t               pid;
     // Адрес конца адресного пространства процесса
-    uint64_t        brk;
+    uint64_t            brk;
 
-    uint32_t        state;
+    uint32_t            state;
     // Рабочая папка
-    struct file*    workdir;
+    struct file*        workdir;
     // Таблица виртуальной памяти процесса
-    void*           vmemory_table;  
+    struct vm_table*    vmemory_table;  
     // Процесс - родитель
-    struct process*      parent;
+    struct process*     parent;
     // Связный список потоков
-    list_t*         threads;  
+    list_t*             threads;  
     // Связный список потомков
-    list_t*         children;
+    list_t*             children;
     // Указатели на открытые файловые дескрипторы
-    struct file*    fds[MAX_DESCRIPTORS];
+    struct file*        fds[MAX_DESCRIPTORS];
     // начальные данные для TLS
-    char*           tls;
-    size_t          tls_size;
+    char*               tls;
+    size_t              tls_size;
 
-    spinlock_t      fd_spinlock;
+    spinlock_t          fd_spinlock;
 };
 
 struct process_create_info {

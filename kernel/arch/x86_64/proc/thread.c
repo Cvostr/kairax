@@ -20,7 +20,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
     //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
-    physical_addr_t stack_phys_addr = get_physical_address(process->vmemory_table, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
+    physical_addr_t stack_phys_addr = get_physical_address(process->vmemory_table->arch_table, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
     thread->stack_ptr = P2V(stack_phys_addr + PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
@@ -62,7 +62,6 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = (void*)process_brk(process, process->brk + stack_size);
-    //thread->kernel_stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
     thread->kernel_stack_ptr = P2V(pmm_alloc_page() + PAGE_SIZE);
 
     if (process->tls) {
@@ -71,13 +70,13 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
         // Выделить память и запомнить адрес начала TLS
         thread->tls = (void*)process_brk(process, process->brk + required_tls_size) - required_tls_size;
         // Копировать данные TLS из процесса
-        arch_vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
+        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
 
         struct x64_uthread uthread;
         uthread.this = thread->tls + process->tls_size;
 
         // Копировать данные структуры
-        arch_vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
+        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
     }
 
     // Добавить поток в список потоков процесса
