@@ -15,6 +15,27 @@ page_table_t* new_page_table()
     return table;
 }
 
+void* arch_new_vm_table()
+{
+    return new_page_table();
+}
+
+void arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
+{
+    uint64_t flags = PAGE_PRESENT;
+
+    if (prot & PAGE_PROTECTION_WRITE_ENABLE)
+        flags |= PAGE_WRITABLE;
+
+    if (prot & PAGE_PROTECTION_USER)
+        flags |= PAGE_USER_ACCESSIBLE;
+
+    if ((prot & PAGE_PROTECTION_EXEC_ENABLE) == 0)
+        flags |= PAGE_EXEC_DISABLE;
+
+    map_page_mem(arch_table, vaddr, physaddr, flags);
+}
+
 void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
 {
     //Вычисление индексов страниц
@@ -66,6 +87,11 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
 
 void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags) {
     map_page_mem(root, virtual_addr, (physical_addr_t)pmm_alloc_page(), flags);
+}
+
+void arch_vm_unmap(void* arch_table, uint64_t vaddr)
+{
+    unmap_page(arch_table, vaddr);
 }
 
 int unmap_page(page_table_t* root, uintptr_t virtual_addr)

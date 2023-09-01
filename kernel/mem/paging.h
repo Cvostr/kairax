@@ -4,6 +4,10 @@
 #include "sync/spinlock.h"
 #include "atomic.h"
 
+#define PAGE_PROTECTION_WRITE_ENABLE    0b1
+#define PAGE_PROTECTION_EXEC_ENABLE     0b10
+#define PAGE_PROTECTION_USER            0b100
+
 struct vm_table {
     void*       arch_table;
     spinlock_t  lock;

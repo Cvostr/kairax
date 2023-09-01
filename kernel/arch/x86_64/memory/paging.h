@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "mem_layout.h"
+#include "mem/paging.h"
 
 #define PAGE_PRESENT 		    0x1
 #define PAGE_WRITABLE 		    0x2
@@ -38,6 +39,7 @@ typedef struct PACKED {
 } page_table_t;
 
 page_table_t* new_page_table();
+
 //Создать виртуальную страницу с указанным адресом и назначить ей указанный физический
 void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
 //Создать виртуальную страницу с указанным адресом
@@ -54,10 +56,6 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count);
 
 virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count);
-
-void arch_vm_memset(void* arch_table, uint64_t addr, int val, size_t size);
-
-size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size);
 
 //Переключить текущую 4х уровневую таблицу страниц
 void switch_pml4(page_table_t* pml4);

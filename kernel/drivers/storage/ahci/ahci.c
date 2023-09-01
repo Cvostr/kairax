@@ -156,17 +156,16 @@ void ahci_init()
 
 			for (int i = 0; i < 32; i ++) {
 				//Проверка, есть ли устройство
-				if(controller->ports[i].implemented == 0) {
+				if (controller->ports[i].implemented == 0) {
 					continue;
 				}
 
 				ahci_port_init2(&controller->ports[i]);
 			}
 
-
 			for (int i = 0; i < 32; i ++) {
 				//Проверка, есть ли устройство
-				if(controller->ports[i].implemented == 0) {
+				if (controller->ports[i].implemented == 0 || controller->ports[i].present == 0) {
 					continue;
 				}
 

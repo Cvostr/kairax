@@ -15,16 +15,6 @@
 
 static int get_device_type(HBA_PORT *port)
 {
-	uint32_t ssts = port->ssts;
- 
-	uint8_t ipm = (ssts >> 8) & 0x0F;
-	uint8_t det = ssts & 0x0F;
-
-	if (det != HBA_PORT_DET_PRESENT)	// Check drive status
-		return AHCI_DEV_NULL;
-	if (ipm != HBA_PORT_IPM_ACTIVE)
-		return AHCI_DEV_NULL;
-
 	switch (port->sig)
 	{
 	case SATA_SIG_ATAPI:
@@ -59,16 +49,10 @@ void ahci_port_stop_commands(ahci_port_t* port)
 ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc)
 {
     memset(port, 0, sizeof(ahci_port_t));
-	
-    ahci_device_type device_type = get_device_type(port_desc);
-	if(device_type == 0)
-		return NULL;
-
-	port->implemented = 1;
 		
+	port->implemented = 1;
     port->port_reg = port_desc;
     port->index = index;
-    port->device_type = device_type;
 	
 	// Чтобы избежать ошибок при конфигурации
 	ahci_port_stop_commands(port);	
@@ -126,7 +110,34 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 
     ahci_port_flush_posted_writes(port);
 
-	switch (port->port_reg->ssts & HBA_PORT_SPD_MASK) {
+    return port;
+}
+
+void ahci_port_init2(ahci_port_t* port)
+{
+	ahci_port_enable(port);
+
+	// Включение прерываний
+	port->port_reg->ie = PORT_INT_MASK;
+	ahci_port_flush_posted_writes(port);
+
+	// Reset device
+	int reset_rc = ahci_port_reset(port);
+	if (reset_rc == 0) {
+		return;
+	}
+
+	if ((port->port_reg->tfd & 0xff) == 0xff)
+		io_delay(200000);
+
+	if ((port->port_reg->tfd & 0xff) == 0xff) {
+		printf("%s: port %i: invalid task file status 0xff\n", __func__, port->index);
+		return NULL;
+	}
+
+	// Определение скорости
+	uint32_t ssts = port->port_reg->ssts;
+	switch (ssts & HBA_PORT_SPD_MASK) {
 		case 0x10:
 			port->speed = AHCI_PORT_SPEED_1_5_GBPS;
 			break;
@@ -140,30 +151,25 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 			port->speed = AHCI_PORT_SPEED_UNRESTRICTED;
 			break;
 	}
-	
-    return port;
-}
-
-void ahci_port_init2(ahci_port_t* port)
-{
-	ahci_port_enable(port);
-
-	// Включение прерываний
-	port->port_reg->ie = PORT_INT_MASK;
-	ahci_port_flush_posted_writes(port);
-
-	// Reset device
-	ahci_port_reset(port);
-	
-	if ((port->port_reg->tfd & 0xff) == 0xff)
-		io_delay(200000);
-
-	if ((port->port_reg->tfd & 0xff) == 0xff) {
-		printf("%s: port %i: invalid task file status 0xff\n", __func__, port->index);
-		return NULL;
-	}
 
 	while (port->port_reg->tfd & (AHCI_DEV_BUSY));
+
+	uint8_t ipm = (ssts >> 8) & 0x0F;
+	uint8_t det = ssts & 0x0F;
+	if (det == HBA_PORT_DET_PRESENT && ipm == HBA_PORT_IPM_ACTIVE)	// Check drive status
+		port->present = 1;
+	else {
+		return;
+	}
+
+	// Определение типа устройства
+	port->device_type = get_device_type(port->port_reg);
+
+	if (port->device_type == AHCI_DEV_SATAPI) {
+		port->port_reg->cmd |= HBA_PxCMD_ATAPI;
+	} else {
+		port->port_reg->cmd &= ~HBA_PxCMD_ATAPI;
+	}
 
 	ahci_port_flush_posted_writes(port);
 }
@@ -180,7 +186,14 @@ int ahci_port_enable(ahci_port_t* port)
 		return 0;
 	}
 
-	while (port->port_reg->cmd & HBA_PxCMD_CR);
+	// Ожидание
+	int step = 0;
+	while (port->port_reg->cmd & HBA_PxCMD_CR && step < 1000000) {
+		step++;
+	}
+	if (step == 1000000) {
+		return 0;
+	}
 
 	port->port_reg->cmd |= HBA_PxCMD_START;
 	ahci_port_flush_posted_writes(port);
@@ -210,7 +223,16 @@ int ahci_port_reset(ahci_port_t* port)
 	}
 
 	ahci_port_enable(port);
-	while (!(port->port_reg->cmd & SSTS_PORT_DET_PRESENT));
+
+	spin = 0;
+	while (!(port->port_reg->cmd & SSTS_PORT_DET_PRESENT) && spin < 1000000) {
+		spin++;
+	}
+	if (spin == 1000000) {
+		// Отсутствует диск в порту
+		printf("NO DEVICE IN PORT\n");
+		return 0;
+	}
 
 	return 1;
 }

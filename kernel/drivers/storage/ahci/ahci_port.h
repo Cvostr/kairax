@@ -15,6 +15,7 @@
 #define HBA_PxCMD_FRE           0x0010
 #define HBA_PxCMD_CR            0x8000
 #define HBA_PxCMD_FR            0x4000
+#define HBA_PxCMD_ATAPI         (1 << 24)
 
 #define ATA_IDENT_DEVICETYPE   0
 #define ATA_IDENT_CYLINDERS    2
@@ -30,6 +31,7 @@
 
 typedef struct PACKED {
     uint32_t            implemented;
+    uint32_t            present;
     uint32_t            index;
     HBA_PORT*           port_reg;
     ahci_device_type    device_type;
