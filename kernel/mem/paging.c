@@ -19,7 +19,13 @@ struct vm_table* clone_kernel_vm_table()
 
 void free_vm_table(struct vm_table* table)
 {
+    if (atomic_dec_and_test(&table->refs)) {
+        if (table->arch_table) {
+            arch_destroy_vm_table(table->arch_table);
+        }
 
+        kfree(table);
+    }
 }
 
 void vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection)

@@ -18,6 +18,8 @@ struct process*  create_new_process(struct process* parent)
     process->name[0] = '\0';
     // Склонировать таблицу виртуальной памяти ядра
     process->vmemory_table = clone_kernel_vm_table();
+    atomic_inc(&process->vmemory_table->refs);
+    
     process->brk = 0x0;
     process->pid = last_pid++;
     process->parent = parent;
@@ -60,7 +62,7 @@ void free_process(struct process* process)
 
     // Уничтожение таблицы виртуальной памяти процесса
     // и освобождение занятых таблиц физической
-    vmm_destroy_root_page_table(process->vmemory_table->arch_table);
+    free_vm_table(process->vmemory_table);
 
     // Освободить структуру
     kfree(process);

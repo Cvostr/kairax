@@ -132,7 +132,7 @@ void vmm_destroy_page_table(table_entry_t* entries, int level)
     pmm_free_page(V2P(entries));
 }
 
-void vmm_destroy_root_page_table(page_table_t* root)
+void arch_destroy_vm_table(void* root)
 {
-    vmm_destroy_page_table(root->entries, 4);
+    vmm_destroy_page_table(((page_table_t*)root)->entries, 4);
 }
