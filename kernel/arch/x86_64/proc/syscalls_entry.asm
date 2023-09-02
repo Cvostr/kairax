@@ -53,6 +53,8 @@ global syscall_entry_x64
 ; r8 - аргумент 5
 ; r9 - аргумент 6
 
+%define RAX_OFFSET 96
+
 syscall_entry_x64:
     swapgs
     
@@ -63,10 +65,14 @@ syscall_entry_x64:
 
     sti                  ; Включение прерываний
 
+    cmp rax, 800
+    ja exit
+
     mov rcx, r10
     call syscalls_table[rax * 8]
-    mov [rsp + 96], rax
+    mov [rsp + RAX_OFFSET], rax
 
+exit:
     cli                 ; Выключение прерываний
 
     pop_regs

@@ -126,7 +126,7 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
             *result = dirfile->dentry;
         } else {
             // Файл не нашелся, а путь не является абсолютным - выходим
-            return ERROR_BAD_FD;
+            return -ERROR_BAD_FD;
         }
     }
 

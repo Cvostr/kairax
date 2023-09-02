@@ -7,5 +7,6 @@
 #define ERROR_INVALID_VALUE         22
 #define ERROR_NOT_A_DIRECTORY       20        
 #define ERROR_TOO_MANY_OPEN_FILES   24
+#define ERROR_WRONG_FUNCTION        38
 
 #endif

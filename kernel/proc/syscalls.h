@@ -4,6 +4,8 @@
 #include "fs/vfs/stat.h"
 #include "fs/vfs/dirent.h"
 
+int sys_not_implemented();
+
 int sys_open_file(int dirfd, const char* path, int flags, int mode);
 
 int sys_mkdir(int dirfd, const char* path, int mode);
@@ -33,6 +35,8 @@ pid_t sys_get_thread_id();
 void sys_exit_process(int code);
 
 int sys_thread_sleep(uint64_t time);
+
+void* sys_memory_map(void* address, uint64_t length, int protection, int flags);
 
 int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
 

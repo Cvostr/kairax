@@ -17,7 +17,7 @@ extern long int syscall_file_seek(int fd, long int offset, int whence);
 extern int syscall_set_file_mode(int fd, unsigned int mode);
 extern int syscall_mount(const char* device, const char* mount_dir, const char* fs);
 extern int syscall_create_directory(int dirfd, const char* pathname, int mode);
-extern void* syscall_process_map_memory(void* address, unsigned long long length, int protection);
+extern void* syscall_process_map_memory(void* address, unsigned long long length, int protection, int flags);
 
 extern unsigned long int syscall_create_thread(void* entry, void* arg, unsigned long long* tid, unsigned long long stack_size);
 

@@ -54,6 +54,7 @@ syscall_file_seek:
 
 syscall_process_map_memory:
     mov rax, 0x9
+    mov r10, rcx
     syscall
     ret
 

@@ -5,6 +5,13 @@
 #include "cpu/cpu_local_x64.h"
 #include "mem/kheap.h"
 #include "proc/thread_scheduler.h"
+#include "mem/pmm.h"
+#include "kstdlib.h"
+
+int sys_not_implemented()
+{
+    return -ERROR_WRONG_FUNCTION;
+}
 
 int sys_open_file(int dirfd, const char* path, int flags, int mode)
 {
@@ -17,27 +24,6 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     if (fd != 0) {
         return fd;
     }
-    /*if (dirfd == FD_CWD && process->workdir) {
-        // Открыть относительно рабочей директории
-        dir_dentry = process->workdir->dentry;
-        
-    } else if (!vfs_is_path_absolute(path)) {
-        // Открыть относительно другого файла
-        // Получить файл по дескриптору
-        struct file* dirfile = process_get_file(process, dirfd);
-
-        if (dirfile) {
-            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
-                fd = -ERROR_NOT_A_DIRECTORY;
-                goto exit;
-            }
-            // проверить тип inode
-            dir_dentry = dirfile->dentry;
-        } else {
-            // Файл не нашелся, а путь не является абсолютным - выходим
-            return ERROR_BAD_FD;
-        }
-    }*/
 
     struct file* file = file_open(dir_dentry, path, flags, mode);
 
@@ -359,4 +345,20 @@ int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
     scheduler_add_thread(thread);
 
     return 0;
+}
+
+void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    if (length == 0) {
+        // ERROR_INVALID_VALUE
+    }
+
+    length = align(length, PAGE_SIZE);
+
+    //NOT IMPLEMENTED
+    //TODO: IMPLEMENT
+
+    return NULL;
 }
