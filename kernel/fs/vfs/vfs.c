@@ -43,12 +43,7 @@ int vfs_get_free_mount_info_pos()
     return -1;
 }
 
-int vfs_mount(char* mount_path, drive_partition_t* partition)
-{
-    return vfs_mount_fs(mount_path, partition, "ext2"); //Захардкожено!!!
-}
-
-int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname)
+int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname)
 {
     struct dentry* mp = vfs_dentry_traverse_path(root_dentry, mount_path);
 

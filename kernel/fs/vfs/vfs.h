@@ -13,9 +13,7 @@ struct dentry* get_mount_dentry(const char* mount_path);
 
 void vfs_init();
 
-int vfs_mount(char* mount_path, drive_partition_t* partition);
-
-int vfs_mount_fs(char* mount_path, drive_partition_t* partition, char* fsname);
+int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname);
 
 int vfs_unmount(char* mount_path);
 

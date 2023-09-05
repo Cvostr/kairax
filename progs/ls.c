@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
         if (all) {
             rc = stat_at(dirfd, dr.name, &dirstat);
             printf("TYPE %s, NAME %s, SIZE %i\n", (dr.type == DT_REG) ? "FILE" : "DIR", dr.name, dirstat.st_size);
-        }else {
+        } else {
             printf("TYPE %s, NAME %s\n", (dr.type == DT_REG) ? "FILE" : "DIR", dr.name);
         }
     }    

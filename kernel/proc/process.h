@@ -10,6 +10,12 @@
 #define PROCESS_MAX_ARGS        65535
 #define PROCESS_MAX_ARGS_SIZE   (128ULL * 1024 * 1024)
 
+struct mmap_range {
+    uint64_t        base;
+    uint64_t        length;
+    int             protection;
+};
+
 struct process {
     char                name[30];
     // ID процесса
@@ -30,11 +36,13 @@ struct process {
     list_t*             children;
     // Указатели на открытые файловые дескрипторы
     struct file*        fds[MAX_DESCRIPTORS];
+    spinlock_t          fd_lock;
     // начальные данные для TLS
     char*               tls;
     size_t              tls_size;
 
-    spinlock_t          fd_spinlock;
+    list_t*             mmap_ranges;
+    spinlock_t          mmap_lock;
 };
 
 struct process_create_info {
@@ -62,6 +70,8 @@ int process_create_process(struct process* process, const char* filepath, struct
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
 struct file* process_get_file(struct process* process, int fd);
+
+void process_add_mmap_region(struct process* process, struct mmap_range* region);
 
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
 

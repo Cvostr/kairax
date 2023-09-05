@@ -44,6 +44,7 @@ syscall_close:
 
 syscall_fdstat:
     mov rax, 0x05
+    mov r10, rcx
     syscall
     ret
 

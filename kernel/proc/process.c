@@ -27,16 +27,24 @@ struct process*  create_new_process(struct process* parent)
     process->threads = create_list();
     process->children = create_list();
 
+    process->mmap_ranges = create_list();
+
     return process;
 }
 
 void free_process(struct process* process)
 {
-    for (unsigned int i = 0; i < list_size(process->threads); i ++) {
+    for (size_t i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
         kfree(thread);
     }
 
+    for (size_t i = 0; i < list_size(process->mmap_ranges); i ++) {
+        struct mmap_range* range = list_get(process->mmap_ranges, i);
+        kfree(range);
+    }
+
+    // Освобождение памяти под данные TLS
     if (process->tls) {
         kfree(process->tls);
     }
@@ -44,6 +52,7 @@ void free_process(struct process* process)
     // Освободить память списков
     free_list(process->threads);
     free_list(process->children);
+    free_list(process->mmap_ranges);
 
     // Закрыть незакрытые файловые дескрипторы
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
@@ -73,7 +82,7 @@ void free_process(struct process* process)
 struct file* process_get_file(struct process* process, int fd)
 {
     struct file* result = NULL;
-    acquire_spinlock(&process->fd_spinlock);
+    acquire_spinlock(&process->fd_lock);
 
     if (fd < 0 || fd >= MAX_DESCRIPTORS)
         goto exit;
@@ -81,8 +90,17 @@ struct file* process_get_file(struct process* process, int fd)
     result = process->fds[fd];
 
 exit:
-    release_spinlock(&process->fd_spinlock);
+    release_spinlock(&process->fd_lock);
     return result;
+}
+
+void process_add_mmap_region(struct process* process, struct mmap_range* region)
+{
+    acquire_spinlock(&process->mmap_lock);
+
+    list_add(process->mmap_ranges, region);
+
+    release_spinlock(&process->mmap_lock);
 }
 
 int process_create_process(struct process* process, const char* filepath, struct process_create_info* info)

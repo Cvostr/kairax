@@ -49,4 +49,8 @@ off_t file_seek(int fd, off_t offset, int whence);
 
 int ioctl(int fd, uint64_t request, uint64_t arg);
 
+int chmod(const char* filepath, mode_t mode);
+
+int chmod_at(int dirfd, const char* filepath, mode_t mode);
+
 #endif

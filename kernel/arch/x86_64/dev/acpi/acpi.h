@@ -49,4 +49,6 @@ int acpi_aml_is_struct_valid(uint8_t* struct_address);
 
 void acpi_poweroff();
 
+void acpi_reboot();
+
 #endif

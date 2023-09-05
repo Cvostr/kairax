@@ -25,6 +25,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x50, sys_set_working_dir),
     DEFINE_SYSCALL(0x53, sys_mkdir),
     DEFINE_SYSCALL(0x59, sys_readdir),
+    DEFINE_SYSCALL(0xA5, sys_mount),
 
     DEFINE_SYSCALL(0x2FF, sys_create_thread)
 };

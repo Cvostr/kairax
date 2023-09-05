@@ -84,7 +84,7 @@ void bootshell_process_cmd(char* cmdline)
             goto exit;
         }
 
-        int result = vfs_mount(mnt_path, partition);
+        int result = vfs_mount_fs(mnt_path, partition, "ext2");
         if (result < 0) {
             printf("ERROR: vfs_mount returned with code %i\n", result);
         }else{
@@ -104,7 +104,7 @@ void bootshell_process_cmd(char* cmdline)
         }
 
         // mount /
-        int result = vfs_mount("/", partition);
+        int result = vfs_mount_fs("/", partition, "ext2");
         if (result < 0) {
             printf("ERROR: vfs_mount returned with code %i\n", result);
         }else{
@@ -303,8 +303,11 @@ void bootshell_process_cmd(char* cmdline)
 		    printf("APIC on CPU %i Id : %i \n", acpi_get_cpus_apic()[i]->acpi_cpu_id, acpi_get_cpus_apic()[i]->lapic_id);
 	    }
     }
-    else if(strcmp(cmdline, "shutdown") == 0){
+    else if(strcmp(cmd, "shutdown") == 0){
         acpi_poweroff();
+    }
+    else if(strcmp(cmd, "reboot") == 0){
+        acpi_reboot();
     }
     if(strcmp(cmdline, "pci") == 0){
         printf("PCI devices %i \n", get_pci_devices_count());

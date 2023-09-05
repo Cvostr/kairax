@@ -38,6 +38,8 @@ int sys_thread_sleep(uint64_t time);
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags);
 
+int sys_mount(const char* device, const char* mount_dir, const char* fs);
+
 int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
 
 #endif

@@ -61,3 +61,15 @@ void acpi_poweroff()
     outw((uint32_t) acpi_get_fadt()->pm1b_control_block, SLP_TYPb | SLP_EN );
     //Мы что, до сих пор работаем?? вот незадача
 }
+
+void acpi_reboot()
+{
+    if (acpi_get_revision() == 2) {
+        // Способ ACPI 2.0
+        uint8_t* reset_addr = (uint8_t*) P2V(acpi_get_fadt()->reset_reg.address);
+        *reset_addr = acpi_get_fadt()->reset_value;
+
+        // Для не memory mapped
+        outb(acpi_get_fadt()->reset_reg.address, acpi_get_fadt()->reset_value);
+    }
+}

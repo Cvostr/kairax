@@ -45,7 +45,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     }
 
     // Найти свободный номер дескриптора для процесса
-    acquire_spinlock(&process->fd_spinlock);
+    acquire_spinlock(&process->fd_lock);
 
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
@@ -61,7 +61,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     file_close(file);
 
 exit:
-    release_spinlock(&process->fd_spinlock);
+    release_spinlock(&process->fd_lock);
     return fd;
 }
 
@@ -72,7 +72,7 @@ int sys_close_file(int fd)
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = process_get_file(process, fd);
 
-    acquire_spinlock(&process->fd_spinlock);
+    acquire_spinlock(&process->fd_lock);
     if (file != NULL) {
         file_close(file);
         process->fds[fd] = NULL;
@@ -83,7 +83,7 @@ int sys_close_file(int fd)
     }
 
 exit:
-    release_spinlock(&process->fd_spinlock);
+    release_spinlock(&process->fd_lock);
     return rc;
 }
 
@@ -352,13 +352,31 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
-        // ERROR_INVALID_VALUE
+        return -ERROR_INVALID_VALUE;
     }
 
     length = align(length, PAGE_SIZE);
+
+    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    range->base = address;
+    range->length = length;
+    range->protection = protection;
+
+    process_add_mmap_region(process, range);
 
     //NOT IMPLEMENTED
     //TODO: IMPLEMENT
 
     return NULL;
+}
+
+int sys_mount(const char* device, const char* mount_dir, const char* fs)
+{
+    drive_partition_t* partition = get_partition_with_name(device);
+    
+    if (partition == NULL) {
+        return -1;
+    }
+
+    return vfs_mount_fs(mount_dir, partition, fs);
 }
