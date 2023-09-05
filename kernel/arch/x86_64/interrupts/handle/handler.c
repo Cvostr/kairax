@@ -10,8 +10,11 @@ void init_interrupts_handler(){
 	register_exceptions_handlers();
 }
 
-void int_handler(interrupt_frame_t* frame){
-	(interrupt_handlers[frame->int_no])(frame, interrupt_datas[frame->int_no]);
+void int_handler(interrupt_frame_t* frame) {
+	void (*handler)() = interrupt_handlers[frame->int_no];
+
+	if (handler)
+		handler(frame, interrupt_datas[frame->int_no]);
 }
 
 void register_interrupt_handler(int interrupt_num, void* handler_func, void* data){

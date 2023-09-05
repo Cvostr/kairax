@@ -111,6 +111,7 @@ syscall_create_directory:
     
 syscall_set_file_mode:
     mov rax, 0x5A
+    mov r10, rcx
     syscall
     ret
 

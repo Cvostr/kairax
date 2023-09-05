@@ -10,3 +10,4 @@
 kernel/bin
 /.vs
 /.vscode
+*.vhdx

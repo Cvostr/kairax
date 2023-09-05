@@ -53,6 +53,12 @@ void exception_handler(interrupt_frame_t* frame)
 {
     uint64_t cr2;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
+
+    if (frame->cs == 23) {
+        printf("PF in user");
+        return;
+    }
+
     printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);
     printf("RAX = %s ", ulltoa(frame->rax, 16));

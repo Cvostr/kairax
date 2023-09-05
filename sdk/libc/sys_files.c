@@ -59,10 +59,10 @@ off_t file_seek(int fd, off_t offset, int whence)
 
 int chmod(const char* filepath, mode_t mode)
 {
-    __set_errno(syscall_set_file_mode(FD_CWD, filepath, mode));
+    __set_errno(syscall_set_file_mode(FD_CWD, filepath, mode, 0));
 }
 
 int chmod_at(int dirfd, const char* filepath, mode_t mode)
 {
-    __set_errno(syscall_set_file_mode(dirfd, filepath, mode));
+    __set_errno(syscall_set_file_mode(dirfd, filepath, mode, 0));
 }

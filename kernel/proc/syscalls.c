@@ -380,3 +380,27 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
 
     return vfs_mount_fs(mount_dir, partition, fs);
 }
+
+int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
+{
+    int rc = -1;
+    int close_at_end = 0;
+    struct process* process = cpu_get_current_thread()->process;
+
+    struct file* file = NULL;
+    if (flags & DIRFD_IS_FD) {
+        // Дескриптор файла передан в dirfd
+        file = process_get_file(process, dirfd);
+    }
+
+    struct inode* inode = file->inode;
+    inode_chmod(inode, mode);
+
+    if (close_at_end) {
+        file_close(file);
+    }
+
+    //TODO: implement
+
+    return rc;
+}
