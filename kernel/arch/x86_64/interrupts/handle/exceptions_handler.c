@@ -3,6 +3,8 @@
 #include "kstdlib.h"
 #include "stdio.h"
 #include "memory/mem_layout.h"
+#include "proc/process.h"
+#include "cpu/cpu_local_x64.h"
 
 void exception_handler(interrupt_frame_t* frame); //; прототип
 
@@ -54,9 +56,18 @@ void exception_handler(interrupt_frame_t* frame)
     uint64_t cr2;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
 
-    if (frame->cs == 23) {
-        printf("PF in user");
-        return;
+    if (frame->cs == 0x23) {
+        // Исключение произошло в пользовательском процессе
+        
+        if (frame->int_no == 0xE) {
+            printf("PF in user");
+            int rc = process_handle_page_fault(cpu_get_current_thread()->process, cr2);
+
+            if (rc == 1) {
+                // Все нормально, можно выходить
+                return;
+            }
+        }
     }
 
     printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 

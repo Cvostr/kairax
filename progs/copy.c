@@ -1,6 +1,7 @@
 #include "../sdk/libc/stdio.h"
 #include "../sdk/libc/sys_files.h"
 #include "../sdk/sys/syscalls.h"
+#include "../sdk/libc/errno.h"
 
 #define REGION_LEN 9000
 char region[REGION_LEN];
@@ -18,14 +19,14 @@ int main(int argc, char** argv) {
     int srcfd = open_file(src, FILE_OPEN_MODE_READ_ONLY, 0xFFF);
 
     if (srcfd == -1) {
-        printf("Can't open source file %s", src);
+        printf("Can't open source file %s, code=%i\n", src, errno);
         return 2;
     }
 
     int dstfd = open_file(dest, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0xFFF);
 
     if (dstfd == -1) {
-        printf("Can't open destination file %s", dest);
+        printf("Can't open destination file %s, code=%i\n", dest, errno);
         return 3;
     }
 

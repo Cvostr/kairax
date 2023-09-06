@@ -23,3 +23,6 @@ ld -melf_x86_64 -o cat.a cat.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk
 
 gcc $ARGS floattest.c -o floattest.o
 ld -melf_x86_64 -o floattest.a floattest.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
+
+gcc $ARGS chmod.c -o chmod.o
+ld -melf_x86_64 -o chmod.a chmod.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc

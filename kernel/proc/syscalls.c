@@ -179,7 +179,14 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
         // Открываем файл относительно dirfd
         struct file* dirfile = process_get_file(process, dirfd);
 
-        if (dirfile == NULL) {
+        if (dirfile) {
+
+            // проверить тип inode от dirfd
+            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+                return -ERROR_NOT_A_DIRECTORY;
+            }
+
+        } else {
             // Не найден дескриптор dirfd
             return -ERROR_BAD_FD;
         }
@@ -196,6 +203,57 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
 
     struct inode* inode = file->inode;
     inode_stat(inode, statbuf);
+    rc = 0;
+
+    if (close_at_end) {
+        file_close(file);
+    }
+
+    return rc;
+}
+
+int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
+{
+    int rc = -1;
+    int close_at_end = 0;
+    struct process* process = cpu_get_current_thread()->process;
+
+    struct file* file = NULL;
+    if (flags & DIRFD_IS_FD) {
+        // Дескриптор файла передан в dirfd
+        file = process_get_file(process, dirfd);
+    } else if (dirfd == FD_CWD && process->workdir->dentry) {
+        // Указан путь относительно рабочей директории
+        file = file_open(process->workdir->dentry, filepath, 0, 0);
+        close_at_end = 1;
+    } else {
+        // Открываем файл относительно dirfd
+        struct file* dirfile = process_get_file(process, dirfd);
+
+        if (dirfile) {
+
+            // проверить тип inode от dirfd
+            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+                return -ERROR_NOT_A_DIRECTORY;
+            }
+
+        } else {
+            // Не найден дескриптор dirfd
+            return -ERROR_BAD_FD;
+        }
+
+        // Открыть файл
+        file = file_open(dirfile->dentry, filepath, 0, 0);
+        close_at_end = 1;
+    }
+
+    if (file == NULL) {
+        // Не получилось открыть файл, выходим
+        return -ERROR_BAD_FD;
+    }
+
+    struct inode* inode = file->inode;
+    inode_chmod(inode, mode);
     rc = 0;
 
     if (close_at_end) {
@@ -360,7 +418,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     range->base = address;
     range->length = length;
-    range->protection = protection;
+    range->protection = protection | PAGE_PROTECTION_USER;
 
     process_add_mmap_region(process, range);
 
@@ -373,34 +431,10 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 int sys_mount(const char* device, const char* mount_dir, const char* fs)
 {
     drive_partition_t* partition = get_partition_with_name(device);
-    
+
     if (partition == NULL) {
         return -1;
     }
 
     return vfs_mount_fs(mount_dir, partition, fs);
-}
-
-int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
-{
-    int rc = -1;
-    int close_at_end = 0;
-    struct process* process = cpu_get_current_thread()->process;
-
-    struct file* file = NULL;
-    if (flags & DIRFD_IS_FD) {
-        // Дескриптор файла передан в dirfd
-        file = process_get_file(process, dirfd);
-    }
-
-    struct inode* inode = file->inode;
-    inode_chmod(inode, mode);
-
-    if (close_at_end) {
-        file_close(file);
-    }
-
-    //TODO: implement
-
-    return rc;
 }

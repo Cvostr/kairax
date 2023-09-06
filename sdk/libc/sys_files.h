@@ -23,7 +23,22 @@
 
 #define FD_CWD		-2
 
-#define DIRFD_IS_FD 1
+#define DIRFD_IS_FD  1
+
+// user permissions
+#define PERM_USER_READ  00400
+#define PERM_USER_WRITE 00200
+#define PERM_USER_EXEC  00100
+
+// group permissions
+#define PERM_GROUP_READ 00040
+#define PERM_GROUP_WRITE 00020
+#define PERM_GROUP_EXEC  00010
+
+// others permissions
+#define PERM_OTHERS_READ    00004
+#define PERM_OTHERS_WRITE   00002
+#define PERM_OTHERS_EXEC    00001
 
 int open_file_at(int dirfd, const char* filepath, int flags, int mode);
 

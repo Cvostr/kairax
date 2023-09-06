@@ -7,6 +7,7 @@
 #include "thread_scheduler.h"
 #include "memory/kernel_vmm.h"
 #include "errors.h"
+#include "kstdlib.h"
 
 int last_pid = 0;
 
@@ -103,6 +104,20 @@ void process_add_mmap_region(struct process* process, struct mmap_range* region)
     release_spinlock(&process->mmap_lock);
 }
 
+struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t addr)
+{
+    for (size_t i = 0; i < list_size(process->mmap_ranges); i ++) {
+        struct mmap_range* range = list_get(process->mmap_ranges, i);
+        
+        uint64_t max_addr = range->base + range->length;
+        if (addr >= range->base && addr < max_addr) {
+            return range;
+        }
+    }
+
+    return NULL;
+}
+
 int process_create_process(struct process* process, const char* filepath, struct process_create_info* info)
 {
     struct file* proc_file = file_open(NULL, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
@@ -125,6 +140,26 @@ exit:
     return rc;
 }
 
+int process_handle_page_fault(struct process* process, uint64_t address)
+{
+    acquire_spinlock(&process->mmap_lock);
+    
+    struct mmap_range* range = process_get_range_by_addr(process, address);
+    if (range == NULL) {
+        return 0;
+    }
+
+    uint64_t aligned_base = align_down(range->base, PAGE_SIZE);
+    size_t pages_count = range->length / PAGE_SIZE;
+
+    for (size_t page_i = 0; page_i < pages_count; page_i ++) {
+        vm_table_map(process->vmemory_table, aligned_base + page_i * PAGE_SIZE, pmm_alloc_page(), range->protection);
+    }
+
+    release_spinlock(&process->mmap_lock);
+    return 1;
+}
+
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result)
 {
     if (dirfd == FD_CWD && process->workdir) {
@@ -137,10 +172,12 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
         struct file* dirfile = process_get_file(process, dirfd);
 
         if (dirfile) {
+
+            // проверить тип inode от dirfd
             if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
                 return -ERROR_NOT_A_DIRECTORY;
             }
-            // проверить тип inode
+
             *result = dirfile->dentry;
         } else {
             // Файл не нашелся, а путь не является абсолютным - выходим
