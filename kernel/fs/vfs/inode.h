@@ -57,7 +57,7 @@ struct inode {
     spinlock_t      spinlock;
 };
 
-void inode_chmod(struct inode* node, uint32_t mode);
+int inode_chmod(struct inode* node, uint32_t mode);
 
 void inode_open(struct inode* node, uint32_t flags);
 

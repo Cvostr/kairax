@@ -40,16 +40,18 @@ void inode_close(struct inode* node)
     }
 }
 
-void inode_chmod(struct inode* node, uint32_t mode)
+int inode_chmod(struct inode* node, uint32_t mode)
 {
+    int rc = -1;
     acquire_spinlock(&node->spinlock);
 
     if(node->operations->chmod) {
-        node->operations->chmod(node, mode);
+        rc =node->operations->chmod(node, mode);
         node->mode = (node->mode & 0xFFFFF000) | mode;
     }
 
     release_spinlock(&node->spinlock);
+    return rc;
 }
 
 int inode_mkdir(struct inode* node, const char* name, uint32_t mode)

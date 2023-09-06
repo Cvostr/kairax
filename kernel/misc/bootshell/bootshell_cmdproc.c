@@ -149,12 +149,6 @@ void bootshell_process_cmd(char* cmdline)
 
         file_close(file); 
     }
-    if (strcmp(cmd, "mkdir") == 0) {
-        int rc = inode_mkdir(wd_inode, args[1], 0xFFF);
-        if (rc != 0) {
-            printf("Error creating dir : %i", rc);
-        }
-    }
     if (strcmp(cmd, "cat") == 0) {
         struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
         

@@ -66,13 +66,13 @@ syscall_entry_x64:
     sti                  ; Включение прерываний
 
     cmp rax, 800
-    ja exit
+    ja syscalls_exit
 
     mov rcx, r10
     call syscalls_table[rax * 8]
     mov [rsp + RAX_OFFSET], rax
 
-exit:
+syscalls_exit:
     cli                 ; Выключение прерываний
 
     pop_regs

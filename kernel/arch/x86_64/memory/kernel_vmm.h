@@ -3,6 +3,8 @@
 
 #include "paging.h"
 
+page_table_t* create_kernel_vm_map();
+
 page_table_t* get_kernel_pml4();
 
 void vmm_use_kernel_vm();

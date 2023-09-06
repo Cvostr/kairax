@@ -21,6 +21,6 @@ void filesystem_register(filesystem_t* filesystem);
 
 void filesystem_unregister(filesystem_t* filesystem);
 
-filesystem_t* filesystem_get_by_name(char* name);
+filesystem_t* filesystem_get_by_name(const char* name);
 
 #endif

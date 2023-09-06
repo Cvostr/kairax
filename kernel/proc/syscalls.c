@@ -202,8 +202,7 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     }
 
     struct inode* inode = file->inode;
-    inode_stat(inode, statbuf);
-    rc = 0;
+    rc = inode_stat(inode, statbuf);
 
     if (close_at_end) {
         file_close(file);
@@ -253,8 +252,7 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     }
 
     struct inode* inode = file->inode;
-    inode_chmod(inode, mode);
-    rc = 0;
+    rc = inode_chmod(inode, mode);
 
     if (close_at_end) {
         file_close(file);
