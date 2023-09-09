@@ -23,7 +23,7 @@ uint32_t get_partitions_count();
 //Получить раздел по номеру
 drive_partition_t* get_partition(uint32_t index);
 //Получить раздел по указанному имени
-drive_partition_t* get_partition_with_name(char* name);
+drive_partition_t* get_partition_with_name(const char* name);
 
 uint32_t   partition_read(drive_partition_t*, uint64_t lba_start, uint64_t count, char* buffer);
 

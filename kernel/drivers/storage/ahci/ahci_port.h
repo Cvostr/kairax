@@ -45,7 +45,7 @@ typedef struct PACKED {
 
 ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_desc);
 
-void ahci_port_init2(ahci_port_t* port);
+int ahci_port_init2(ahci_port_t* port);
 
 int ahci_port_reset(ahci_port_t* port);
 

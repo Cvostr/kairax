@@ -48,8 +48,6 @@ void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags);
 int unmap_page(page_table_t* root, uintptr_t virtual_addr);
 //Получить физический адрес из виртуального для указанной корневой таблицы
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
-//Проверить, создана ли запись для указанного виртуального адреса
-int is_mapped(page_table_t* root, uintptr_t virtual_addr);
 
 int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
 

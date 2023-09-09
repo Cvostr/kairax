@@ -161,12 +161,13 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
     return (physical_addr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]) + GET_PAGE_OFFSET(virtual_addr);
 }
 
-int is_mapped(page_table_t* root, uintptr_t virtual_addr)
+int arch_vm_is_mapped(void* arch_table, uint64_t address)
 {
-    uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
-    uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
-    uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
-    uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
+    page_table_t* root = (page_table_t*) arch_table;
+    uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(address);
+    uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(address);
+    uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(address);
+    uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(address);
 
     if (!(root->entries[level4_index] & PAGE_PRESENT)) {
         return 0;
@@ -207,10 +208,10 @@ virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count)
 
 virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count){
     for(virtual_addr_t addr = start; addr < MAX_PAGES_4; addr += PAGE_SIZE){
-        if(!is_mapped(root, addr)){
+        if(!arch_vm_is_mapped(root, addr)){
             int free = 0;
             for(virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; saddr += PAGE_SIZE){
-                if(!is_mapped(root, saddr)){
+                if(!arch_vm_is_mapped(root, saddr)){
                     free++;
                     if(free = pages_count){
                         return addr;

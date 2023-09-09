@@ -113,7 +113,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     return port;
 }
 
-void ahci_port_init2(ahci_port_t* port)
+int ahci_port_init2(ahci_port_t* port)
 {
 	ahci_port_enable(port);
 
@@ -124,7 +124,7 @@ void ahci_port_init2(ahci_port_t* port)
 	// Reset device
 	int reset_rc = ahci_port_reset(port);
 	if (reset_rc == 0) {
-		return;
+		return 0;
 	}
 
 	if ((port->port_reg->tfd & 0xff) == 0xff)
@@ -132,7 +132,7 @@ void ahci_port_init2(ahci_port_t* port)
 
 	if ((port->port_reg->tfd & 0xff) == 0xff) {
 		printf("%s: port %i: invalid task file status 0xff\n", __func__, port->index);
-		return NULL;
+		return 0;
 	}
 
 	// Определение скорости
@@ -159,7 +159,7 @@ void ahci_port_init2(ahci_port_t* port)
 	if (det == HBA_PORT_DET_PRESENT && ipm == HBA_PORT_IPM_ACTIVE)	// Check drive status
 		port->present = 1;
 	else {
-		return;
+		return 0;
 	}
 
 	// Определение типа устройства
@@ -172,6 +172,8 @@ void ahci_port_init2(ahci_port_t* port)
 	}
 
 	ahci_port_flush_posted_writes(port);
+
+	return 1;
 }
 
 int ahci_port_enable(ahci_port_t* port)

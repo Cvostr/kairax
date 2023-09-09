@@ -60,7 +60,7 @@ void exception_handler(interrupt_frame_t* frame)
         // Исключение произошло в пользовательском процессе
         
         if (frame->int_no == 0xE) {
-            printf("PF in user");
+            // Page Fault
             int rc = process_handle_page_fault(cpu_get_current_thread()->process, cr2);
 
             if (rc == 1) {
@@ -79,7 +79,7 @@ void exception_handler(interrupt_frame_t* frame)
     printf("RSP = %s ", ulltoa(frame->rsp, 16));
     printf("RBP = %s \n", ulltoa(frame->rbp, 16));
     printf("CS = %s ", ulltoa(frame->cs, 16));
-    printf("SS = %s ", ulltoa(frame->cs, 16));
+    printf("SS = %s ", ulltoa(frame->ss, 16));
     printf("CR2 = %s \n", ulltoa(cr2, 16));
     printf("STACK TRACE: ");
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;

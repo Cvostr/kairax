@@ -182,7 +182,7 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
         if (dirfile) {
 
             // проверить тип inode от dirfd
-            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+            if ( (dirfile->inode->mode & INODE_TYPE_DIRECTORY) != INODE_TYPE_DIRECTORY) {
                 return -ERROR_NOT_A_DIRECTORY;
             }
 
@@ -198,7 +198,11 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
 
     if (file == NULL) {
         // Не получилось открыть файл, выходим
-        return -ERROR_BAD_FD;
+        if (flags & DIRFD_IS_FD) {
+            return -ERROR_BAD_FD;
+        } else {
+            return -ERROR_NO_FILE;
+        }
     }
 
     struct inode* inode = file->inode;

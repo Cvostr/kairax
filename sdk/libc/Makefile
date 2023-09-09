@@ -1,10 +1,13 @@
 ARGS=-nostdlib -m64 -c -nostdinc -ffreestanding -fPIC
 COMPILER=gcc
 
-all: libc_static
+all: libc_static libc errno
 
-libc: math.o stdlib.o string.o sys_files.o process.o errno.o
-	ld -melf_x86_64 -shared -o libc.so math.o stdlib.o string.o sys_files.o process.o errno.o
+errno: errno.o
+	ar rcs liberrno.a errno.o
+
+libc: math.o stdlib.o string.o sys_files.o process.o stdio.o
+	ld -melf_x86_64 -shared -o libc_dyn.so math.o stdlib.o string.o sys_files.o stdio.o process.o
 
 libc_static: math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o
 	ar rcs libc.a math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o

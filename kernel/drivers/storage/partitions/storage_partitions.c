@@ -119,7 +119,7 @@ drive_partition_t* get_partition(uint32_t index){
     return (drive_partition_t*)list_get(partitions, index);
 }
 
-drive_partition_t* get_partition_with_name(char* name)
+drive_partition_t* get_partition_with_name(const char* name)
 {
     for (uint32_t i = 0; i < partitions->size; i ++) {
         drive_partition_t* partition = (drive_partition_t*)list_get(partitions, i);

@@ -84,13 +84,13 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     if (!inode) {
         // Файл не найден
         if (flags & FILE_OPEN_FLAG_CREATE) {
-            
             // Создаем новый файл
             if (!mkfile(dir, path, mode))
                 return NULL;
 
             // Файл создан, открываем его
             inode = vfs_fopen(dir, path, flags, &dentry);
+
         } else {
 
             return NULL;
@@ -133,7 +133,7 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
     acquire_spinlock(&file->lock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
-        read = ERROR_IS_DIRECTORY;
+        read = -ERROR_IS_DIRECTORY;
         goto exit;
     }
     
@@ -142,7 +142,7 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
             read = file->ops->read(file, buffer, size, file->pos);
         }
     } else {
-        read = ERROR_BAD_FD;
+        read = -ERROR_BAD_FD;
     }
 
 exit:
@@ -157,7 +157,7 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
     acquire_spinlock(&file->lock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
-        written = ERROR_IS_DIRECTORY;
+        written = -ERROR_IS_DIRECTORY;
         goto exit;
     }
 
@@ -166,7 +166,7 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
             written = file->ops->write(file, buffer, size, file->pos);
         }
     } else {
-        written = ERROR_BAD_FD;
+        written = -ERROR_BAD_FD;
     }
 
 exit:
@@ -229,7 +229,7 @@ int file_readdir(struct file* file, struct dirent* dirent)
 
     if ( !(inode->mode & INODE_TYPE_DIRECTORY) ) {
         // Это не директория
-        result_code = ERROR_NOT_A_DIRECTORY;
+        result_code = -ERROR_NOT_A_DIRECTORY;
         goto exit;
     }
 

@@ -23,7 +23,7 @@ struct inode* superblock_get_cached_inode(struct superblock* sb, uint64 inode)
     struct inode* node = (struct inode*)current->element;
     struct inode* result = NULL;
 
-    for (unsigned int i = 0; i < sb->inodes->size; i++) {
+    for (size_t i = 0; i < sb->inodes->size; i++) {
         if (node->inode == inode) {
             result = node;
             goto exit;

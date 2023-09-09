@@ -164,7 +164,7 @@ uint32_t _depth;
 uint32_t console_passed_chars = 0;
 uint32_t console_lines = 0;
 uint32_t console_col = 0;
-char console_text_buffer[BUFFER_SIZE];
+//char console_text_buffer[BUFFER_SIZE];
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset);
 
@@ -180,7 +180,7 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _height = height;
     _depth = depth;
 
-    memset(console_text_buffer, 0, BUFFER_SIZE);
+    //memset(console_text_buffer, 0, BUFFER_SIZE);
 }
 
 void vga_init_dev()
@@ -237,8 +237,8 @@ void vga_clear()
 void console_scroll()
 {
 	if (console_lines >= BUFFER_LINES) {
-		memcpy(console_text_buffer, console_text_buffer + BUFFER_LINE_LENGTH, BUFFER_SIZE - BUFFER_LINE_LENGTH);
-        memset(console_text_buffer + BUFFER_LINE_LENGTH * (BUFFER_LINES - 1), 0, BUFFER_LINE_LENGTH);
+		//memcpy(console_text_buffer, console_text_buffer + BUFFER_LINE_LENGTH, BUFFER_SIZE - BUFFER_LINE_LENGTH);
+        //memset(console_text_buffer + BUFFER_LINE_LENGTH * (BUFFER_LINES - 1), 0, BUFFER_LINE_LENGTH);
 
         console_lines--;
 
@@ -256,7 +256,7 @@ void console_scroll()
 
 void console_redraw() 
 {
-    for (uint32_t i = 0; i < console_lines; i ++) {
+    /*for (uint32_t i = 0; i < console_lines; i ++) {
         for (uint32_t j = 0; j < BUFFER_LINE_LENGTH; j ++) {
 
             char* step = console_text_buffer + i * BUFFER_LINE_LENGTH + j;
@@ -269,13 +269,13 @@ void console_redraw()
                     LETTER_SIZE, LETTER_SIZE);
             }
         }
-    }
+    }*/
 }
 
 void console_print_char(char chr)
 {
-	char* step = console_text_buffer + console_lines * BUFFER_LINE_LENGTH + console_col;
-    *step = chr; //Записать в буфер
+	//char* step = console_text_buffer + console_lines * BUFFER_LINE_LENGTH + console_col;
+    //*step = chr; //Записать в буфер
 
     vga_draw_char(chr,
         XOFFSET + console_col * COL_SIZE,
@@ -304,8 +304,8 @@ void console_console_print_string(const char* string){
 void console_remove_from_end(int chars)
 {
 	for (int i = 0; i < chars; i ++) {
-        char* step = console_text_buffer + console_lines * BUFFER_LINE_LENGTH + console_col;
-        *step = ' ';
+        //char* step = console_text_buffer + console_lines * BUFFER_LINE_LENGTH + console_col;
+        //*step = ' ';
 
         if (console_col > 0)
             console_col --;

@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     int rc = fstat(dirfd, &dirstat);
 
     struct dirent dr;
-    while(readdir(dirfd, &dr) == 1) {
+    while (readdir(dirfd, &dr) == 1) {
 
         if (all) {
             rc = stat_at(dirfd, dr.name, &dirstat);

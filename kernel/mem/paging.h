@@ -28,6 +28,8 @@ void vm_memset(struct vm_table* table, uint64_t addr, int val, size_t size);
 
 void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size);
 
+int vm_is_mapped(struct vm_table* table, uint64_t address);
+
 // Общие архитектурно зависимые функции
 
 void* arch_new_vm_table();
@@ -43,5 +45,7 @@ void arch_vm_unmap(void* arch_table, uint64_t vaddr);
 void arch_vm_memset(void* arch_table, uint64_t addr, int val, size_t size);
 
 size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size);
+
+int arch_vm_is_mapped(void* arch_table, uint64_t address);
 
 #endif
