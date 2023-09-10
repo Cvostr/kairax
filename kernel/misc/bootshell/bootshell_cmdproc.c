@@ -229,6 +229,9 @@ void bootshell_process_cmd(char* cmdline)
         info.num_args = argc - 1;
         info.args = args + 1;
         int rc = create_new_process_from_image(NULL, buffer, &info); 
+        if (rc != 0) {
+            printf("Error creating process : %i\n", rc);
+        }
 
         kfree(buffer);
         file_close(file);

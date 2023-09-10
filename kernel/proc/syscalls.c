@@ -365,6 +365,7 @@ void sys_exit_process(int code)
     struct process* process = cpu_get_current_thread()->process;
     scheduler_remove_process_threads(process);
     free_process(process);
+    scheduler_from_killed();
 }
 
 pid_t sys_get_process_id()
@@ -412,7 +413,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
-        return -ERROR_INVALID_VALUE;
+        return (void*)-ERROR_INVALID_VALUE;
     }
 
     length = align(length, PAGE_SIZE);

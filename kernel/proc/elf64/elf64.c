@@ -1,5 +1,8 @@
 #include "elf64.h"
 #include "string.h"
+#include "../process.h"
+#include "kstdlib.h"
+#include "mem/kheap.h"
 
 int elf_check_signature(elf_header_t* elf_header)
 {
@@ -60,4 +63,70 @@ void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct)
                 sehentry->type,
                 sehentry->flags);*/
     }
+}
+
+int elf_load_process(struct process* process, char* image)
+{
+    elf_header_t* elf_header = (elf_header_t*)image;
+
+    if (!elf_check_signature(elf_header)) {
+        return ERROR_BAD_EXEC_FORMAT;
+    }
+
+    //Это ELF файл
+    elf_sections_ptr_t sections_ptrs;
+    // Считать таблицу секций
+    elf_read_sections(image, &sections_ptrs);
+
+    process_alloc_memory(process, 0, 0x100, PAGE_PROTECTION_USER | PAGE_PROTECTION_EXEC_ENABLE | PAGE_PROTECTION_WRITE_ENABLE);
+
+    for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
+        elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
+            printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i, flags %i\n",
+                pehentry->p_offset,
+                pehentry->p_filesz,
+                pehentry->v_addr,
+                pehentry->p_memsz,
+                pehentry->alignment,
+                pehentry->type,
+                pehentry->flags);
+
+        size_t aligned_size = align(pehentry->p_memsz, pehentry->alignment);
+
+        if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
+            uint64_t protection = PAGE_PROTECTION_USER;
+
+            //if (pehentry->flags & ELF_SEGMENT_FLAG_EXEC) {
+            //    printf("EXEC ALLOWED");
+                protection |= PAGE_PROTECTION_EXEC_ENABLE;
+            //}
+
+            //if (pehentry->flags & ELF_SEGMENT_FLAG_WRITE)
+                protection |= PAGE_PROTECTION_WRITE_ENABLE;
+
+            // Выделить память в виртуальной таблице процесса 
+            process_alloc_memory(process, pehentry->v_addr, aligned_size, protection);
+            // Заполнить выделенную память нулями
+            vm_memset(process->vmemory_table, pehentry->v_addr, 0, aligned_size);
+            // Копировать фрагмент программы в память
+            vm_memcpy(process->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+        }
+    }
+
+    if (sections_ptrs.tbss_ptr) {
+        // Есть секция TLS BSS
+        elf_section_header_entry_t* tbss_ptr = sections_ptrs.tbss_ptr;
+        process->tls = kmalloc(tbss_ptr->size);
+        memset(process->tls, 0, tbss_ptr->size);
+        process->tls_size = tbss_ptr->size;
+    } 
+    else if (sections_ptrs.tdata_ptr) {
+        // Есть секция TLS DATA
+        elf_section_header_entry_t* tdata_ptr = sections_ptrs.tdata_ptr;
+        process->tls = kmalloc(tdata_ptr->size);
+        memcpy(process->tls, image + tdata_ptr->offset, tdata_ptr->size);
+        process->tls_size = tdata_ptr->size;
+    }
+
+    return 0;
 }

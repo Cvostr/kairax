@@ -79,8 +79,6 @@ void free_process(struct process* process)
 
     // Освободить структуру
     kfree(process);
-
-    scheduler_from_killed();
 }
 
 int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info)
@@ -91,53 +89,16 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
     int argc = 0;
     char** argv = NULL;
 
-    if(elf_check_signature(elf_header)) {
-        //Это ELF файл
-        //Создаем объект процесса
-        struct process* proc = create_new_process(parent);
+    struct process* proc = create_new_process(parent);
 
-        elf_sections_ptr_t sections_ptrs;
-        // Считать таблицу секций
-        elf_read_sections(image, &sections_ptrs);
+    // Попытаемся загрузить файл программы
+    rc = elf_load_process(proc, image);
 
-        for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
-            elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
-            /*printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i\n",
-                pehentry->p_offset,
-                pehentry->p_filesz,
-                pehentry->v_addr,
-                pehentry->p_memsz,
-                pehentry->alignment,
-                pehentry->type);*/
-
-            size_t aligned_size = align(pehentry->p_memsz, pehentry->alignment);
-
-            if (pehentry->type != 7) {
-                // Выделить память в виртуальной таблице процесса 
-                process_alloc_memory(proc, pehentry->v_addr, aligned_size,
-                                    PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE | PAGE_PROTECTION_EXEC_ENABLE);
-                // Заполнить выделенную память нулями
-                vm_memset(proc->vmemory_table, pehentry->v_addr, 0, aligned_size);
-                // Копировать фрагмент программы в память
-                vm_memcpy(proc->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
-            }
-        }
-
-        if (sections_ptrs.tbss_ptr) {
-            // Есть секция TLS BSS
-            elf_section_header_entry_t* tbss_ptr = sections_ptrs.tbss_ptr;
-            proc->tls = kmalloc(tbss_ptr->size);
-            memset(proc->tls, 0, tbss_ptr->size);
-            proc->tls_size = tbss_ptr->size;
-        } 
-        else if (sections_ptrs.tdata_ptr) {
-            // Есть секция TLS DATA
-            elf_section_header_entry_t* tdata_ptr = sections_ptrs.tdata_ptr;
-            proc->tls = kmalloc(tdata_ptr->size);
-            memcpy(proc->tls, image + tdata_ptr->offset, tdata_ptr->size);
-            proc->tls_size = tdata_ptr->size;
-        }
-
+    if (rc != 0) {
+        // Ошибка загрузки
+        free_process(proc);
+        goto exit;
+    } else {
         if (info) {
             if (info->current_directory) {
                 // Указана рабочая директория
@@ -213,7 +174,6 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
         // Создание главного потока и передача выполнения
         struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, argc, argv, 0);
 	    scheduler_add_thread(thr);  
-        
     }
 
 exit:
@@ -222,16 +182,25 @@ exit:
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags)
 {
+    // Выравнивание
     uintptr_t start_aligned = align_down(start, PAGE_SIZE); // выравнивание в меньшую сторону
     uintptr_t size_aligned = align(size, PAGE_SIZE); //выравнивание в большую сторону
 
-    for (uintptr_t page_i = start_aligned; page_i < start_aligned + size_aligned; page_i += PAGE_SIZE) {
-        if (!vm_is_mapped(process->vmemory_table, page_i)) {
-            vm_table_map(process->vmemory_table, page_i, (physical_addr_t)pmm_alloc_page(), flags);
+    // Добавить диапазон
+    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    range->base = start_aligned;
+    range->length = size_aligned;
+    range->protection = flags;
+    process_add_mmap_region(process, range);
+
+    // Добавить страницы в таблицу
+    for (uintptr_t address = start_aligned; address < start_aligned + size_aligned; address += PAGE_SIZE) {
+        if (!vm_is_mapped(process->vmemory_table, address)) {
+            vm_table_map(process->vmemory_table, address, (physical_addr_t)pmm_alloc_page(), flags);
         }
 
-        if (page_i > process->brk)
-            process->brk = page_i + PAGE_SIZE;
+        if (address > process->brk)
+            process->brk = address + PAGE_SIZE;
     }
 
     return 0;

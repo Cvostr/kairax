@@ -27,6 +27,10 @@
 #define ELF_SEGMENT_TYPE_INTERP     3
 #define ELF_SEGMENT_TYPE_NOTE       4
 
+#define ELF_SEGMENT_FLAG_EXEC       1
+#define ELF_SEGMENT_FLAG_WRITE      2
+#define ELF_SEGMENT_FLAG_READ       4
+
 #define ELF_SECTION_TYPE_NULL       0
 #define ELF_SECTION_TYPE_PROGBITS   1
 #define ELF_SECTION_TYPE_SYMTAB     2
@@ -48,7 +52,7 @@
 #define ELF_SECTION_FLAG_ALLOC      0x2
 #define ELF_SECTION_FLAG_EXECINSRTR 0x4
 #define ELF_SECTION_FLAG_TLS        0x400
-#define ELF_SECTION_FLAG_MASKPROC   0xF0000000
+#define ELF_SECTION_FLAG_MASKPROC   0xF0000000       
 
 typedef struct PACKED {
     char        header[4];
@@ -105,6 +109,8 @@ typedef struct {
 	uint64_t	    size;
 } elf_symbol_t;
 
+struct process;
+
 #define ELF_DT_NEEDED       1
 #define ELF_DT_PLTGOT       3
 #define ELF_DT_STRTAB       5
@@ -140,5 +146,7 @@ typedef struct {
 } elf_sections_ptr_t;
 
 void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct);
+
+int elf_load_process(struct process* process, char* image);
 
 #endif
