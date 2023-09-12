@@ -23,6 +23,7 @@ struct process*  create_new_process(struct process* parent)
     atomic_inc(&process->vmemory_table->refs);
 
     process->brk = 0x0;
+    process->threads_stack_top = align_down(USERSPACE_MAX_ADDR, PAGE_SIZE);
     process->pid = last_pid++;
     process->parent = parent;
     // Создать список потоков
@@ -204,6 +205,27 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     }
 
     return 0;
+}
+
+void* process_alloc_stack_memory(struct process* process, size_t stack_size)
+{
+    // Добавляем защитную страницу после вершины стека
+    process->threads_stack_top -= PAGE_SIZE;
+    // Выравнивание размера стека
+    stack_size = align(stack_size, PAGE_SIZE);
+    // Начало памяти под стек
+    uint64_t mem_begin = process->threads_stack_top - stack_size;
+
+    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    range->base = mem_begin;
+    range->length = stack_size;
+    range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
+    process_add_mmap_region(process, range);
+
+    void* result = (void*)process->threads_stack_top;
+    process->threads_stack_top -= stack_size;
+
+    return result;
 }
 
 struct file* process_get_file(struct process* process, int fd)

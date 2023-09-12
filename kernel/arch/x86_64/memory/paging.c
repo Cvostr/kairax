@@ -24,11 +24,13 @@ void arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
 {
     uint64_t flags = PAGE_PRESENT;
 
-    if (prot & PAGE_PROTECTION_WRITE_ENABLE)
+    if (prot & PAGE_PROTECTION_WRITE_ENABLE) {
         flags |= PAGE_WRITABLE;
+    }
 
-    if (prot & PAGE_PROTECTION_USER)
+    if (prot & PAGE_PROTECTION_USER) {
         flags |= PAGE_USER_ACCESSIBLE;
+    }
 
     if ((prot & PAGE_PROTECTION_EXEC_ENABLE) == 0)
         flags |= PAGE_EXEC_DISABLE;
@@ -83,10 +85,6 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
     if(!(pt_table->entries[level1_index] & (PAGE_PRESENT))){
         pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
     }
-}
-
-void map_page(page_table_t* root, virtual_addr_t virtual_addr, uint64_t flags) {
-    map_page_mem(root, virtual_addr, (physical_addr_t)pmm_alloc_page(), flags);
 }
 
 void arch_vm_unmap(void* arch_table, uint64_t vaddr)

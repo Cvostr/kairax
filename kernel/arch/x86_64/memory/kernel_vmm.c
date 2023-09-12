@@ -81,7 +81,7 @@ page_table_t* create_kernel_vm_map()
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
 	root_pml4 = new_page_table_bt();
 
-    for (int i = 255; i < 512; i ++) {
+    for (int i = 256; i < 512; i ++) {
         void* pdp_table = new_page_table_bt();
         //Записать страницу в родительское дерево
         root_pml4->entries[i] = ((uint64_t)K2P(pdp_table) | pageFlags); 

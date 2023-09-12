@@ -89,17 +89,19 @@ struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* chi
     }
 
     struct list_node* current = parent->subdirs->head;
-    struct dentry* child = (struct dentry*)current->element;
+    struct dentry* child = NULL;
 
     for (size_t i = 0; i < parent->subdirs->size; i++) {
         
+        child = (struct dentry*)current->element;
+
         if (strcmp(child->name, child_name) == 0) {
             result = child;
             goto exit;
         }
 
+        // Переход на следующий элемент
         current = current->next;
-        child = (struct dentry*)current->element;
     }
 
 exit:

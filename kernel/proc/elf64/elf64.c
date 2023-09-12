@@ -78,8 +78,6 @@ int elf_load_process(struct process* process, char* image)
     // Считать таблицу секций
     elf_read_sections(image, &sections_ptrs);
 
-    process_alloc_memory(process, 0, 0x100, PAGE_PROTECTION_USER | PAGE_PROTECTION_EXEC_ENABLE | PAGE_PROTECTION_WRITE_ENABLE);
-
     for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
         elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
             printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i, flags %i\n",

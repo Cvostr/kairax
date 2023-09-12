@@ -5,6 +5,7 @@
 #include "memory/mem_layout.h"
 #include "cpu/gdt.h"
 #include "x64_context.h"
+#include "kstdlib.h"
 
 struct x64_uthread {
     struct x64_uthread* this;
@@ -52,7 +53,7 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
         return NULL;
     }
 
-    if (stack_size < 128) {
+    if (stack_size < STACK_SIZE) {
         stack_size = STACK_SIZE;
     }
 
@@ -61,7 +62,7 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
-    thread->stack_ptr = (void*)process_brk(process, process->brk + stack_size);
+    thread->stack_ptr = process_alloc_stack_memory(process, stack_size);
     thread->kernel_stack_ptr = P2V(pmm_alloc_page() + PAGE_SIZE);
 
     if (process->tls) {
