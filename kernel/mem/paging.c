@@ -30,13 +30,15 @@ void free_vm_table(struct vm_table* table)
     }
 }
 
-void vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection)
+int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection)
 {
     acquire_spinlock(&table->lock);
 
-    arch_vm_map(table->arch_table, virtual_addr, physical_addr, protection);
+    int rc = arch_vm_map(table->arch_table, virtual_addr, physical_addr, protection);
 
     release_spinlock(&table->lock);
+
+    return rc;
 }
 
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr)

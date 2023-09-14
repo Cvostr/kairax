@@ -80,27 +80,28 @@ int elf_load_process(struct process* process, char* image)
 
     for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
         elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
-            printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i, flags %i\n",
+            
+        size_t aligned_size = align(pehentry->p_memsz, pehentry->alignment);
+
+        /*printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i, flags %i\n",
                 pehentry->p_offset,
                 pehentry->p_filesz,
                 pehentry->v_addr,
                 pehentry->p_memsz,
                 pehentry->alignment,
                 pehentry->type,
-                pehentry->flags);
-
-        size_t aligned_size = align(pehentry->p_memsz, pehentry->alignment);
+                pehentry->flags);*/
 
         if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
             uint64_t protection = PAGE_PROTECTION_USER;
 
-            //if (pehentry->flags & ELF_SEGMENT_FLAG_EXEC) {
-            //    printf("EXEC ALLOWED");
+            if (pehentry->flags & ELF_SEGMENT_FLAG_EXEC) {
                 protection |= PAGE_PROTECTION_EXEC_ENABLE;
-            //}
+            }
 
-            //if (pehentry->flags & ELF_SEGMENT_FLAG_WRITE)
+            if (pehentry->flags & ELF_SEGMENT_FLAG_WRITE) {
                 protection |= PAGE_PROTECTION_WRITE_ENABLE;
+            }
 
             // Выделить память в виртуальной таблице процесса 
             process_alloc_memory(process, pehentry->v_addr, aligned_size, protection);

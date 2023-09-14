@@ -15,12 +15,12 @@
 #define PAGE_UNCACHED           0b10000
 #define PAGE_EXEC_DISABLE       (1ULL << 63)
 
+#define PAGE_BASE_FLAGS         PAGE_PRESENT | PAGE_USER_ACCESSIBLE | PAGE_WRITABLE
+
 #define PAGE_ENTRY_NBR  0x200
 #define INDEX_MASK      0x1FF
 
 #define MAX_PAGES_4     (1ULL << 36)
-
-#define ERR_NO_PAGE_PRESENT -1
 
 //получить из 48-битного виртуального адреса индекс записи в таблице 4-го уровня (0x27 = 39)
 #define GET_4_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x27) & INDEX_MASK) 
@@ -41,7 +41,7 @@ typedef struct PACKED {
 page_table_t* new_page_table();
 
 //Создать виртуальную страницу с указанным адресом и назначить ей указанный физический
-void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
+int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
 //Удалить виртуальную страницу
 int unmap_page(page_table_t* root, uintptr_t virtual_addr);
 //Получить физический адрес из виртуального для указанной корневой таблицы

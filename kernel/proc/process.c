@@ -196,11 +196,9 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
     // Добавить страницы в таблицу
     for (uintptr_t address = start_aligned; address < start_aligned + size_aligned; address += PAGE_SIZE) {
-        if (!vm_is_mapped(process->vmemory_table, address)) {
-            vm_table_map(process->vmemory_table, address, (physical_addr_t)pmm_alloc_page(), flags);
-        }
+        int rc = vm_table_map(process->vmemory_table, address, (physical_addr_t)pmm_alloc_page(), flags);
 
-        if (address > process->brk)
+        if (address + PAGE_SIZE > process->brk)
             process->brk = address + PAGE_SIZE;
     }
 

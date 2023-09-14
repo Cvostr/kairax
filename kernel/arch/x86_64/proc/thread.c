@@ -18,11 +18,9 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     }
     // Создать объект потока в памяти
     struct thread* thread = new_thread(process);
-    // Выделить место под стек в памяти процесса
-    thread->stack_ptr = (void*)process_brk(process, process->brk + STACK_SIZE);
-    //Переводим адрес стэка в глобальный адрес, доступный из всех таблиц
-    physical_addr_t stack_phys_addr = get_physical_address(process->vmemory_table->arch_table, (uintptr_t)thread->stack_ptr - PAGE_SIZE);
-    thread->stack_ptr = P2V(stack_phys_addr + PAGE_SIZE);
+    // Выделить место под стек
+    thread->stack_ptr = P2V(pmm_alloc_page() + PAGE_SIZE);
+    memset(thread->stack_ptr, 0, PAGE_SIZE);
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста

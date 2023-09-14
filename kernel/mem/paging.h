@@ -8,6 +8,9 @@
 #define PAGE_PROTECTION_EXEC_ENABLE     0b010
 #define PAGE_PROTECTION_USER            0b100
 
+#define PAGING_ERROR_ALREADY_MAPPED       0x10
+#define ERR_NO_PAGE_PRESENT               0x11
+
 struct vm_table {
     void*       arch_table;
     spinlock_t  lock;
@@ -20,7 +23,7 @@ struct vm_table* clone_kernel_vm_table();
 
 void free_vm_table(struct vm_table* table);
 
-void vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection);
+int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection);
 
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr);
 
@@ -38,7 +41,7 @@ void* arch_clone_kernel_vm_table();
 
 void arch_destroy_vm_table();
 
-void arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot);
+int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot);
 
 void arch_vm_unmap(void* arch_table, uint64_t vaddr);
 

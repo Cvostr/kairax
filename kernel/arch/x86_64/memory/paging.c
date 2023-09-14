@@ -20,7 +20,7 @@ void* arch_new_vm_table()
     return new_page_table();
 }
 
-void arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
+int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
 {
     uint64_t flags = PAGE_PRESENT;
 
@@ -35,10 +35,10 @@ void arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
     if ((prot & PAGE_PROTECTION_EXEC_ENABLE) == 0)
         flags |= PAGE_EXEC_DISABLE;
 
-    map_page_mem(arch_table, vaddr, physaddr, flags);
+    return map_page_mem(arch_table, vaddr, physaddr, flags);
 }
 
-void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
+int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
 {
     //Вычисление индексов страниц
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
@@ -56,7 +56,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
         //Выделить память под страницу
         pdp_table = new_page_table();
         //Записать страницу в родительское дерево
-        root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | flags);  
+        root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | PAGE_BASE_FLAGS);  
     }
 
     pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
@@ -66,7 +66,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
         //Выделить память под страницу
         pd_table = new_page_table();
         //Записать страницу в родительское дерево
-        pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | flags);  
+        pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | PAGE_BASE_FLAGS);  
     }
 
     pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
@@ -76,7 +76,7 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
         //Выделить память под страницу
         pt_table = new_page_table();
         //Записать страницу в родительское дерево
-        pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | flags);  
+        pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | PAGE_BASE_FLAGS);  
     }
 
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
@@ -84,7 +84,10 @@ void map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr
 
     if(!(pt_table->entries[level1_index] & (PAGE_PRESENT))){
         pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
+        return 0;
     }
+
+    return PAGING_ERROR_ALREADY_MAPPED;
 }
 
 void arch_vm_unmap(void* arch_table, uint64_t vaddr)

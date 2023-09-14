@@ -23,8 +23,11 @@ extern struct dentry* wd_dentry;
 
 void cd(const char* path) 
 {
-    if (!wd_inode && !wd_dentry) {
+    if (wd_inode) {
         inode_close(wd_inode);
+    }
+
+    if (wd_dentry) {
         dentry_close(wd_dentry);
     }
 
