@@ -6,8 +6,8 @@ all: libc_static libc errno
 errno: errno.o
 	ar rcs liberrno.a errno.o
 
-libc: math.o stdlib.o string.o sys_files.o process.o stdio.o
-	ld -melf_x86_64 -shared -o libc_dyn.so math.o stdlib.o string.o sys_files.o stdio.o process.o
+libc: math.o stdlib.o string.o sys_files.o process.o stdio.o ../sys/syscalls.o
+	ld -melf_x86_64 -shared -o libc_dyn.so math.o stdlib.o string.o sys_files.o stdio.o process.o ../sys/syscalls.o
 
 libc_static: math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o
 	ar rcs libc.a math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o

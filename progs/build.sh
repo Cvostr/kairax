@@ -13,9 +13,6 @@ cd ..
 gcc $ARGS echo.c -o echo.o
 ld -melf_x86_64 -o echo.a echo.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
 
-gcc $ARGS copy.c -o copy.o
-ld -melf_x86_64 -o copy.a copy.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
-
 gcc $ARGS mkdir.c -o mkdir.o
 ld -melf_x86_64 -o mkdir.a mkdir.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
 
@@ -28,5 +25,14 @@ ld -melf_x86_64 -o floattest.a floattest.o ../sdk/sys/syscalls.o ../sdk/crt/entr
 gcc $ARGS shared_test.c -o shared_test.o
 ld -melf_x86_64 -o shared_test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_dyn -lerrno
 
-gcc $ARGS chmod.c -o chmod.o
-ld -melf_x86_64 -o chmod.a chmod.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
+cd chmod
+make
+cd ..
+
+cd copy
+make
+cd ..
+
+cd dynloader
+make
+cd ..

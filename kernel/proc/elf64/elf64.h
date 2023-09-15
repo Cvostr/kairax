@@ -54,7 +54,7 @@
 #define ELF_SECTION_FLAG_TLS        0x400
 #define ELF_SECTION_FLAG_MASKPROC   0xF0000000       
 
-typedef struct PACKED {
+struct elf_header {
     char        header[4];
     uint8_t     bits;
     uint8_t     byte_order;
@@ -74,7 +74,7 @@ typedef struct PACKED {
     uint16_t    section_header_entry_size;
     uint16_t    section_header_entries_num;
     uint16_t    section_names_index;
-} elf_header_t;
+} PACKED;
 
 typedef struct PACKED {
     uint32_t    type;
@@ -127,25 +127,13 @@ typedef struct PACKED {
 
 } elf_dynamic_t;
 
-int elf_check_signature(elf_header_t* elf_header);
+int elf_check_signature(struct elf_header* elf_header);
 
 elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_index);
 
 elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_index);
 
 char* elf_get_string_at(char* image, uint32_t string_index);
-
-typedef struct {
-    elf_section_header_entry_t* dynamic_ptr;
-    elf_section_header_entry_t* dynsym_ptr;
-    elf_section_header_entry_t* dynstr_ptr;
-    elf_section_header_entry_t* rela_plt_ptr;
-    elf_section_header_entry_t* tbss_ptr;
-    elf_section_header_entry_t* tdata_ptr;
-    elf_section_header_entry_t* comment_ptr;
-} elf_sections_ptr_t;
-
-void elf_read_sections(char* image, elf_sections_ptr_t* sections_struct);
 
 int elf_load_process(struct process* process, char* image);
 

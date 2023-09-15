@@ -85,7 +85,7 @@ void free_process(struct process* process)
 int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info)
 {
     int rc = -1;
-    elf_header_t* elf_header = (elf_header_t*)image;
+    struct elf_header* elf_header = (struct elf_header*) image;
 
     int argc = 0;
     char** argv = NULL;
