@@ -3,6 +3,7 @@
 
 #include "fs/vfs/stat.h"
 #include "fs/vfs/dirent.h"
+#include "process.h"
 
 int sys_not_implemented();
 
@@ -43,5 +44,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags);
 int sys_mount(const char* device, const char* mount_dir, const char* fs);
 
 int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
+
+int sys_create_process(int dirfd, const char* filepath, struct process_create_info* info);
 
 #endif

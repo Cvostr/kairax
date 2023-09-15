@@ -66,13 +66,13 @@ uintptr_t        process_brk_flags(struct process* process, void* addr, uint64_t
 
 uintptr_t        process_brk(struct process* process, uint64_t addr);
 
-int process_create_process(struct process* process, const char* filepath, struct process_create_info* info);
-
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
 void* process_alloc_stack_memory(struct process* process, size_t stack_size);
 
 struct file* process_get_file(struct process* process, int fd);
+
+int process_add_file(struct process* process, struct file* file);
 
 void process_add_mmap_region(struct process* process, struct mmap_range* region);
 

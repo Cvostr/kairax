@@ -17,6 +17,8 @@
 
 #include "stdio.h"
 
+#include "proc/syscalls.h"
+
 extern char curdir[512];
 extern struct inode* wd_inode;
 extern struct dentry* wd_dentry;
@@ -43,7 +45,7 @@ void cd(const char* path)
     memset(curdir, 0, 512);
     vfs_dentry_get_absolute_path(wd_dentry, NULL, curdir);
                 
-    //process_set_working_dir(NULL, args[1]);    
+    sys_set_working_dir(curdir);
 }
 
 void bootshell_process_cmd(char* cmdline) 

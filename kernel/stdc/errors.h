@@ -9,6 +9,7 @@
 #define ERROR_NOT_A_DIRECTORY       20        
 #define ERROR_TOO_MANY_OPEN_FILES   24
 #define ERROR_FS_READONLY           30
+#define ERROR_RANGE                 34
 #define ERROR_WRONG_FUNCTION        38
 
 #endif

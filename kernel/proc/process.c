@@ -62,7 +62,9 @@ void free_process(struct process* process)
     // Закрыть незакрытые файловые дескрипторы
     for (i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] != NULL) {
-            file_close(process->fds[i]);
+            struct file* fil = process->fds[i];
+            //atomic_dec(&fil->refs);
+            file_close(fil);
         }
     }
 
@@ -241,6 +243,26 @@ exit:
     return result;
 }
 
+int process_add_file(struct process* process, struct file* file)
+{
+    int fd = -ERROR_TOO_MANY_OPEN_FILES;
+
+    acquire_spinlock(&process->fd_lock);
+
+    for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
+        if (process->fds[i] == NULL) {
+            //atomic_inc(&file->refs);
+            process->fds[i] = file;
+            fd = i;
+            goto exit;
+        }
+    }
+
+exit:
+    release_spinlock(&process->fd_lock);
+    return fd;
+}
+
 void process_add_mmap_region(struct process* process, struct mmap_range* region)
 {
     acquire_spinlock(&process->mmap_lock);
@@ -262,28 +284,6 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
     }
 
     return NULL;
-}
-
-int process_create_process(struct process* process, const char* filepath, struct process_create_info* info)
-{
-    struct file* proc_file = file_open(NULL, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
-    if (proc_file == NULL) {
-        return -1;
-    }
-
-    int size = proc_file->inode->size;
-    char* image_data = kmalloc(size);
-    file_read(proc_file, size, image_data);
-
-    int rc = create_new_process_from_image(process, image_data, info);
-
-exit:
-
-    // Закрыть inode, освободить память
-    file_close(proc_file);
-    kfree(image_data);
-
-    return rc;
 }
 
 int process_handle_page_fault(struct process* process, uint64_t address)

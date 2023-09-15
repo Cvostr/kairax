@@ -13,6 +13,11 @@ static inline void atomic_inc(atomic_t *v)
 	__sync_add_and_fetch(&v->counter, 1);
 }
 
+static inline void atomic_dec(atomic_t *v)
+{
+	__sync_sub_and_fetch(&v->counter, 1);
+}
+
 static inline int atomic_inc_and_test(atomic_t *v)
 {
 	return __sync_add_and_fetch(&v->counter, 1);

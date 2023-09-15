@@ -21,10 +21,13 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
 
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
+
     if (fd != 0) {
+        // Не получилось найти директорию с файлом
         return fd;
     }
 
+    // Открыть файл в ядре
     struct file* file = file_open(dir_dentry, path, flags, mode);
 
     if (file == NULL) {
@@ -44,39 +47,30 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
         return -ERROR_IS_DIRECTORY;
     }
 
-    // Найти свободный номер дескриптора для процесса
-    acquire_spinlock(&process->fd_lock);
+    // Добавить файл к процессу
+    fd = process_add_file(process, file);
 
-    for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
-        if (process->fds[i] == NULL) {
-            process->fds[i] = file;
-            fd = i;
-            goto exit;
-        }
+    if (fd < 0) {
+        // Не получилось привязать дескриптор к процессу, закрыть файл
+        file_close(file);
     }
 
-    fd = -ERROR_TOO_MANY_OPEN_FILES;
-
-    // Не получилось привязать дескриптор к процессу, закрыть файл
-    file_close(file);
-
-exit:
-    release_spinlock(&process->fd_lock);
     return fd;
 }
 
 
 int sys_close_file(int fd)
 {
-    int rc = -1;
+    int rc = 0;
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = process_get_file(process, fd);
 
-    acquire_spinlock(&process->fd_lock);
+    acquire_spinlock(&process->fd_lock);;
+
     if (file != NULL) {
+        //atomic_dec(&file->refs);
         file_close(file);
         process->fds[fd] = NULL;
-        rc = 0;
         goto exit;
     } else {
         rc = -ERROR_BAD_FD;
@@ -252,7 +246,11 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
 
     if (file == NULL) {
         // Не получилось открыть файл, выходим
-        return -ERROR_BAD_FD;
+        if (flags & DIRFD_IS_FD) {
+            return -ERROR_BAD_FD;
+        } else {
+            return -ERROR_NO_FILE;
+        }
     }
 
     struct inode* inode = file->inode;
@@ -315,19 +313,23 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 
 int sys_get_working_dir(char* buffer, size_t size)
 {
-    int rc = -1;
+    int rc = 0;
+    size_t reqd_size = 0;
     struct process* process = cpu_get_current_thread()->process;
 
     if (process->workdir) {
         
-        size_t reqd_size = 0;
+        // Вычисляем необходимый размер буфера
         vfs_dentry_get_absolute_path(process->workdir->dentry, &reqd_size, NULL);
+        
         if (reqd_size + 1 > size) {
+            // Размер буфера недостаточный
+            rc = -ERROR_RANGE;
             goto exit;
         }
 
+        // Записываем путь в буфер
         vfs_dentry_get_absolute_path(process->workdir->dentry, NULL, buffer);
-        rc = 0;
     }
 
 exit:
@@ -336,9 +338,10 @@ exit:
 
 int sys_set_working_dir(const char* buffer)
 {
-    int rc = -1;
+    int rc = 0;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* new_workdir = file_open(process->workdir->dentry, buffer, 0, 0);
+    struct dentry* workdir_dentry = process->workdir != NULL ? process->workdir->dentry : NULL;
+    struct file* new_workdir = file_open(workdir_dentry, buffer, 0, 0);
 
     if (new_workdir) {
         // файл открыт, убеждаемся что это директория 
@@ -350,11 +353,13 @@ int sys_set_working_dir(const char* buffer)
             }
 
             process->workdir = new_workdir;
-
-            rc = 0;
         } else {
+            // Это не директория
+            rc = -ERROR_NOT_A_DIRECTORY;
             file_close(new_workdir);
         }
+    } else {
+        rc = -ERROR_NO_FILE;
     }
 
     return rc;
@@ -440,4 +445,57 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
     }
 
     return vfs_mount_fs(mount_dir, partition, fs);
+}
+
+int sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    // Создать новый процесс
+    struct process* new_process = create_new_process(process);
+    struct dentry* dir_dentry = NULL;
+    int fd = -1;
+
+    // Получить dentry, относительно которой открыть файл
+    fd = process_get_relative_direntry(process, dirfd, filepath, &dir_dentry);
+
+    if (fd != 0) {
+        // Не получилось найти директорию с файлом
+        return fd;
+    }
+
+    // Открыть исполняемый файл
+    struct file* file = file_open(dir_dentry, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
+
+    if (file == NULL) {
+        // Файл не найден
+        return -ERROR_NO_FILE;
+    }
+
+    if ( (file->inode->mode & INODE_TYPE_DIRECTORY)) {
+        // Мы пытаемся открыть директорию - выходим
+        file_close(file);
+        return -ERROR_IS_DIRECTORY;
+    }
+
+    // Добавить файл к новому процессу
+    fd = process_add_file(new_process, file);
+
+    // Загрузка исполняемого файла
+    size_t size = file->inode->size;
+    char* image_data = kmalloc(size);
+    file_read(file, size, image_data);
+
+    // Попытаемся загрузить файл программы
+    int rc = elf_load_process(new_process, image_data);
+
+    // Файл не закрываем
+    //file_close(file);
+
+    if (rc != 0) {
+        // Ошибка загрузки
+        // TODO : IMPLEMENT
+    }
+
+    //struct file* loader_file = file_open(NULL, "linker.elf", FILE_OPEN_MODE_READ_ONLY, 0);
 }
