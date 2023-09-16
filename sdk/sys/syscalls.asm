@@ -17,6 +17,7 @@ global syscall_readdir
 global syscall_file_seek
 global syscall_set_file_mode
 global syscall_create_thread
+global syscall_create_process
 global syscall_mount
 global syscall_create_directory
 global syscall_process_map_memory
@@ -126,6 +127,12 @@ syscall_process_exit:
 
 syscall_create_thread:
     mov rax, 0x2FF
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_create_process:
+    mov rax, 0x300
     mov r10, rcx
     syscall
     ret

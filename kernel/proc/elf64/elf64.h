@@ -76,7 +76,7 @@ struct elf_header {
     uint16_t    section_names_index;
 } PACKED;
 
-typedef struct PACKED {
+struct elf_program_header_entry {
     uint32_t    type;
     uint32_t    flags;
     uint64_t    p_offset;   //Смещение до данных
@@ -85,9 +85,9 @@ typedef struct PACKED {
     uint64_t    p_filesz;   //Размер сегмента в файле
     uint64_t    p_memsz;    //Размер сегмента в памяти
     uint64_t    alignment;
-} elf_program_header_entry_t; 
+} PACKED; 
 
-typedef struct PACKED {
+struct elf_section_header_entry {
     uint32_t    name_offset;
     uint32_t    type;
     uint64_t    flags;
@@ -98,7 +98,7 @@ typedef struct PACKED {
     uint32_t    info;
     uint64_t    addralign;
     uint64_t    ent_size;
-} elf_section_header_entry_t;
+} PACKED;
 
 typedef struct {
 	uint32_t	    name;
@@ -129,12 +129,12 @@ typedef struct PACKED {
 
 int elf_check_signature(struct elf_header* elf_header);
 
-elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_index);
+struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
 
-elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_index);
+struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index);
 
 char* elf_get_string_at(char* image, uint32_t string_index);
 
-int elf_load_process(struct process* process, char* image);
+int elf_load_process(struct process* process, char* image, uint64_t offset);
 
 #endif

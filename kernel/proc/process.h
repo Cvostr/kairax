@@ -72,6 +72,8 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size);
 
 struct file* process_get_file(struct process* process, int fd);
 
+int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem);
+
 int process_add_file(struct process* process, struct file* file);
 
 void process_add_mmap_region(struct process* process, struct mmap_range* region);

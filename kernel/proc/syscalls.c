@@ -7,6 +7,7 @@
 #include "proc/thread_scheduler.h"
 #include "mem/pmm.h"
 #include "kstdlib.h"
+#include "elf64/elf64.h"
 
 int sys_not_implemented()
 {
@@ -455,6 +456,8 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     struct process* new_process = create_new_process(process);
     struct dentry* dir_dentry = NULL;
     int fd = -1;
+    char** argv = NULL;
+    int argc = 0;
 
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry(process, dirfd, filepath, &dir_dentry);
@@ -486,8 +489,13 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     char* image_data = kmalloc(size);
     file_read(file, size, image_data);
 
+    struct elf_header* elf_header = (struct elf_header*) image_data;
+    void* start_ip = (void*)elf_header->prog_entry_pos;
+
     // Попытаемся загрузить файл программы
-    int rc = elf_load_process(new_process, image_data);
+    int rc = elf_load_process(new_process, image_data, 0);
+
+    kfree(image_data);
 
     // Файл не закрываем
     //file_close(file);
@@ -495,7 +503,62 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     if (rc != 0) {
         // Ошибка загрузки
         // TODO : IMPLEMENT
+        return rc;
     }
 
-    //struct file* loader_file = file_open(NULL, "linker.elf", FILE_OPEN_MODE_READ_ONLY, 0);
+    // Этап загрузки динамического линковщика
+    struct file* loader_file = file_open(NULL, "/loader.elf", FILE_OPEN_MODE_READ_ONLY, 0);
+
+    size = loader_file->inode->size;
+    image_data = kmalloc(size);
+    file_read(loader_file, size, image_data);
+
+    rc = elf_load_process(new_process, image_data, new_process->brk);
+
+    if (rc != 0) {
+        // Ошибка загрузки
+        // TODO : IMPLEMENT
+        return rc;
+    }
+
+    if (info) {
+            
+        if (info->current_directory) {
+            // Указана рабочая директория
+            struct file* new_workdir = file_open(NULL, info->current_directory, 0, 0);
+
+            if (new_workdir) {
+                
+                // Проверить тип inode, убедиться что это директория
+                if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
+                    
+                    new_process->workdir = new_workdir;
+                } else {
+                    // Это не директория - закрываем файл
+                    file_close(new_workdir);
+                }
+            }
+        }
+
+        // Загрузить аргументы в адресное пространство процесса
+        argc = info->num_args;
+        rc = process_load_arguments(new_process, info->num_args, info->args, &argv);
+        if (rc != 0) {
+            goto exit;
+        }
+    }
+
+    // У процесса так и нет рабочей папки
+    // Используем папку родителя, если она есть
+    if (new_process->workdir == NULL && process->workdir != NULL) {
+
+        new_process->workdir = file_clone(process->workdir);
+    }
+
+    // Создание главного потока и передача выполнения
+    struct thread* thr = create_thread(new_process, start_ip, argc, argv, 0);
+	scheduler_add_thread(thr);  
+
+exit:
+    return rc;
 }

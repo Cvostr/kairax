@@ -1,6 +1,7 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H
 
+#define ERROR_ARGS_BUFFER_BIG       7
 #define ERROR_BAD_EXEC_FORMAT       8
 #define ERROR_BAD_FD                9
 #define ERROR_NO_FILE               2

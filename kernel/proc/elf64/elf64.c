@@ -9,17 +9,17 @@ int elf_check_signature(struct elf_header* elf_header)
     return elf_header->header[0] == 0x7F && !memcmp(&elf_header->header[1], "ELF", 3);
 }
 
-elf_section_header_entry_t* elf_get_section_entry(char* image, uint32_t section_index)
+struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index)
 {
     struct elf_header* elf_header = (struct elf_header*)image;
-    return (elf_section_header_entry_t*)
+    return (struct elf_section_header_entry*)
         (image + elf_header->section_header_table_pos + section_index * elf_header->section_header_entry_size);
 }
 
-elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_index)
+struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index)
 {
     struct elf_header* elf_header = (struct elf_header*)image;
-    return (elf_program_header_entry_t*)
+    return (struct elf_program_header_entry*)
         (image + elf_header->prog_header_table_pos + program_index * elf_header->prog_header_entry_size);
 
 }
@@ -27,11 +27,11 @@ elf_program_header_entry_t* elf_get_program_entry(char* image, uint32_t program_
 char* elf_get_string_at(char* image, uint32_t string_index)
 {
     struct elf_header* elf_header = (struct elf_header*)image;
-    elf_section_header_entry_t* string_section = elf_get_section_entry(image, elf_header->section_names_index);
+    struct elf_section_header_entry* string_section = elf_get_section_entry(image, elf_header->section_names_index);
     return image + string_section->offset + string_index;
 }
 
-int elf_load_process(struct process* process, char* image)
+int elf_load_process(struct process* process, char* image, uint64_t offset)
 {
     struct elf_header* elf_header = (struct elf_header*)image;
 
@@ -41,8 +41,9 @@ int elf_load_process(struct process* process, char* image)
 
     //Это ELF файл
     for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
-        elf_program_header_entry_t* pehentry = elf_get_program_entry(image, i);
+        struct elf_program_header_entry* pehentry = elf_get_program_entry(image, i);
             
+        uint64_t vaddr = pehentry->v_addr + offset;
         size_t aligned_size = align(pehentry->p_memsz, pehentry->alignment);
 
         /*printf("PE: foffset %i, fsize %i, vaddr %i, memsz %i, align %i, type %i, flags %i\n",
@@ -66,17 +67,17 @@ int elf_load_process(struct process* process, char* image)
             }
 
             // Выделить память в виртуальной таблице процесса 
-            process_alloc_memory(process, pehentry->v_addr, aligned_size, protection);
+            process_alloc_memory(process, vaddr, aligned_size, protection);
             // Заполнить выделенную память нулями
-            vm_memset(process->vmemory_table, pehentry->v_addr, 0, aligned_size);
+            vm_memset(process->vmemory_table, vaddr, 0, aligned_size);
             // Копировать фрагмент программы в память
-            vm_memcpy(process->vmemory_table, pehentry->v_addr, image + pehentry->p_offset, pehentry->p_filesz);   
+            vm_memcpy(process->vmemory_table, vaddr, image + pehentry->p_offset, pehentry->p_filesz);   
         }
     }
 
     for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
         // Получить описание секции
-        elf_section_header_entry_t* sehentry = elf_get_section_entry(image, i);
+        struct elf_section_header_entry* sehentry = elf_get_section_entry(image, i);
         // Получить название секции
         char* section_name = elf_get_string_at(image, sehentry->name_offset);
 

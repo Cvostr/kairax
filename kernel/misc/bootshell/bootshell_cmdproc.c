@@ -212,7 +212,15 @@ void bootshell_process_cmd(char* cmdline)
         file_close(ls_f);
     }
     if (strcmp(cmd, "exec") == 0) {
-        struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
+        struct process_create_info info;
+        info.current_directory = curdir;
+        info.num_args = argc - 1;
+        info.args = args + 1;
+        int rc = sys_create_process(-2, args[1], &info);
+        if (rc != 0) {
+            printf("Error creating process : %i\n", rc);
+        }
+        /*struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
 
         if(file == NULL){
             printf("Can't open file with path : ", args[1]);
@@ -229,17 +237,14 @@ void bootshell_process_cmd(char* cmdline)
         file_read(file, size, buffer);
 
         //Запуск
-        struct process_create_info info;
-        info.current_directory = curdir;
-        info.num_args = argc - 1;
-        info.args = args + 1;
+        
         int rc = create_new_process_from_image(NULL, buffer, &info); 
         if (rc != 0) {
             printf("Error creating process : %i\n", rc);
         }
 
         kfree(buffer);
-        file_close(file);
+        file_close(file);*/
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();

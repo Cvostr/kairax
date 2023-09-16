@@ -95,7 +95,7 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
     struct process* proc = create_new_process(parent);
 
     // Попытаемся загрузить файл программы
-    rc = elf_load_process(proc, image);
+    rc = elf_load_process(proc, image, 0);
 
     if (rc != 0) {
         // Ошибка загрузки
@@ -120,50 +120,10 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
                 }
             }
 
-            // Проверить количество аргументов
-            if (info->num_args > PROCESS_MAX_ARGS) {
-                // Слишком много аргументов, выйти с ошибкой
-                goto exit;
-            }
-
             argc = info->num_args;
-            
-            // Вычисляем память, необходимую под массив указателей + строки аргументов
-            size_t args_array_size = sizeof(char*) * info->num_args;
-            size_t reqd_size = args_array_size;
-
-            // Прибавляем длины строк аргументов
-            for (int i = 0; i < info->num_args; i ++) {
-                reqd_size += strlen(info->args[i]) + 1;
-            }
-
-            if (reqd_size > PROCESS_MAX_ARGS_SIZE) {
-                // Суммарный размер аргуменов большой, выйти с ошибкой
+            rc = process_load_arguments(proc, info->num_args, info->args, &argv);
+            if (rc != 0) {
                 goto exit;
-            }
-
-            // Выделить память процесса под аргументы
-            char* args_mem = (char*)process_brk(proc, proc->brk + reqd_size) - reqd_size;
-            argv = args_mem;
-
-            // Копировать аргументы
-            off_t pointers_offset = 0;
-            off_t args_offset = args_array_size;
-
-            for (int i = 0; i < argc; i ++) {
-                // Длина строки аргумента с терминатором
-                size_t arg_len = strlen(info->args[i]) + 1;
-
-                // Записать адрес
-                uint64_t addr = args_mem + args_offset;
-                vm_memcpy(proc->vmemory_table, args_mem + pointers_offset, &addr, sizeof(uint64_t));
-
-                // Записать строку аргумента
-                vm_memcpy(proc->vmemory_table, args_mem + args_offset, info->args[i], arg_len);
-
-                // Увеличить смещения
-                args_offset += arg_len;
-                pointers_offset += sizeof(char*);
             }
         }
 
@@ -179,6 +139,58 @@ int create_new_process_from_image(struct process* parent, char* image, struct pr
 	    scheduler_add_thread(thr);  
     }
 
+exit:
+    return rc;
+}
+
+int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem)
+{
+    int rc = -1;
+    // Проверить количество аргументов
+    if (argc > PROCESS_MAX_ARGS) {
+        // Слишком много аргументов, выйти с ошибкой
+        goto exit;
+    }
+            
+    // Вычисляем память, необходимую под массив указателей + строки аргументов
+    size_t args_array_size = sizeof(char*) * argc;
+    size_t reqd_size = args_array_size;
+
+    // Прибавляем длины строк аргументов
+    for (int i = 0; i < argc; i ++) {
+        reqd_size += strlen(argv[i]) + 1;
+    }
+
+    if (reqd_size > PROCESS_MAX_ARGS_SIZE) {
+        // Суммарный размер аргуменов большой, выйти с ошибкой
+        rc = -ERROR_ARGS_BUFFER_BIG;
+        goto exit;
+    }
+
+    // Выделить память процесса под аргументы
+    *args_mem = (char*)process_brk(process, process->brk + reqd_size) - reqd_size;
+
+    // Копировать аргументы
+    off_t pointers_offset = 0;
+    off_t args_offset = args_array_size;
+
+    for (int i = 0; i < argc; i ++) {
+        // Длина строки аргумента с терминатором
+        size_t arg_len = strlen(argv[i]) + 1;
+
+        // Записать адрес
+        uint64_t addr = *args_mem + args_offset;
+        vm_memcpy(process->vmemory_table, *args_mem + pointers_offset, &addr, sizeof(uint64_t));
+
+        // Записать строку аргумента
+        vm_memcpy(process->vmemory_table, *args_mem + args_offset, argv[i], arg_len);
+
+        // Увеличить смещения
+        args_offset += arg_len;
+        pointers_offset += sizeof(char*);
+    }
+
+    rc = 0;
 exit:
     return rc;
 }
