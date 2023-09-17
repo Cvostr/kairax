@@ -5,6 +5,7 @@ global _start
 extern link
 extern main
 extern aux_vector
+extern args_info
 
 linker_entry:
     pop rax
@@ -28,7 +29,8 @@ linker_entry:
     ;jmp rax
 
 _start:
-    ; Извлечение aux вектора
+    ; Этап извлечения aux вектора
+    ; Получение относительного адреса aux вектора
     lea rcx, [rel aux_vector]
 
 aux_loop:
@@ -43,5 +45,15 @@ aux_loop:
     jmp aux_loop
 
 enter:
+
+    ; Этап извлечения argc, argv
+    ; Получение относительного адреса args массива
+    lea rcx, [rel args_info]
+
+    pop rax
+    mov [rcx + 8], rax
+
+    pop rax
+    mov [rcx + 0], rax
 
     jmp main

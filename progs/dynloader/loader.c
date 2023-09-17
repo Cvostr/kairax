@@ -9,12 +9,14 @@ int cfd;
 
 extern void linker_entry();
 
-void main(int argc, char** argv) {
+void main() {
 
     cfd = syscall_open_file(-2, "/dev/console", 00000002, 0);
 
     int fd = aux_vector[AT_EXECFD];
     struct stat file_stat;
+    int argc = args_info[0];
+    char** argv = (char**) args_info[1];
 
     // Получение информации
     int rc = syscall_fdstat(fd, 0, &file_stat, 1);
@@ -41,7 +43,7 @@ void main(int argc, char** argv) {
             got->arg = got;
             got->linker_ip = linker_entry;
 
-            syscall_write(cfd, "w\3GOT", 4);
+            //syscall_write(cfd, "w\3GOT", 4);
         }
     }
 

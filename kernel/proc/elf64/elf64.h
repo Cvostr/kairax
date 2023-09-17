@@ -156,6 +156,6 @@ struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t pro
 
 char* elf_get_string_at(char* image, uint32_t string_index);
 
-int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip);
+int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip, char* interp_path);
 
 #endif

@@ -141,6 +141,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     // Выравнивание
     uintptr_t start_aligned = align_down(start, PAGE_SIZE); // выравнивание в меньшую сторону
     uintptr_t size_aligned = align(size, PAGE_SIZE); //выравнивание в большую сторону
+    uintptr_t end_addr = align(start + size, PAGE_SIZE);
 
     // Добавить диапазон
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
@@ -150,8 +151,8 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     process_add_mmap_region(process, range);
 
     // Добавить страницы в таблицу
-    for (uintptr_t address = start_aligned; address < start_aligned + size_aligned; address += PAGE_SIZE) {
-        int rc = vm_table_map(process->vmemory_table, address, (physical_addr_t)pmm_alloc_page(), flags);
+    for (uintptr_t address = start_aligned; address < end_addr; address += PAGE_SIZE) {
+        int rc = vm_table_map(process->vmemory_table, address, pmm_alloc_page(), flags);
 
         if (address + PAGE_SIZE > process->brk)
             process->brk = address + PAGE_SIZE;

@@ -440,6 +440,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     int fd = -1;
     char* argv = NULL;
     int argc = 0;
+    char interp_path[INTERP_PATH_MAX_LEN];
     void* program_start_ip = NULL;
     void* loader_start_ip = NULL;
 
@@ -477,7 +478,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     file_read(file, size, image_data);
 
     // Попытаемся загрузить файл программы
-    int rc = elf_load_process(new_process, image_data, 0, &program_start_ip);
+    int rc = elf_load_process(new_process, image_data, 0, &program_start_ip, interp_path);
     kfree(image_data);
 
     // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз
@@ -492,6 +493,8 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         return rc;
     }
 
+    //printf("LOADER %s\n", interp_path);
+
     // Этап загрузки динамического линковщика
     struct file* loader_file = file_open(NULL, "/loader.elf", FILE_OPEN_MODE_READ_ONLY, 0);
     if (loader_file == NULL) {
@@ -505,10 +508,10 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     file_read(loader_file, size, image_data);
     file_close(loader_file);
 
-    uint64_t loader_offset = new_process->brk;
+    uint64_t loader_offset = new_process->brk + PAGE_SIZE;
 
     // Добавить загрузчик к адресному пространству процесса
-    rc = elf_load_process(new_process, image_data, loader_offset, &loader_start_ip);
+    rc = elf_load_process(new_process, image_data, loader_offset, &loader_start_ip, NULL);
     kfree(image_data);
 
     if (rc != 0) {
@@ -568,7 +571,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     main_thr_info.argv = argv;
 
     // Создание главного потока и передача выполнения
-    struct thread* thr = create_thread(new_process, loader_start_ip, argc, argv, 0, &main_thr_info);
+    struct thread* thr = create_thread(new_process, loader_start_ip, 0, 0, 0, &main_thr_info);
 	scheduler_add_thread(thr);
 
     kfree(aux_v);

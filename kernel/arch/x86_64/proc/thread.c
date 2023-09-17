@@ -103,18 +103,24 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     thread->state = THREAD_CREATED;
 
     if (info) {
-        uint64_t* stack_aux_pos = (uint64_t*) (thread->stack_ptr);
+        uint64_t* stack_new_pos = (uint64_t*) (thread->stack_ptr);
+
+        stack_new_pos -= 1;
+        vm_memcpy(process->vmemory_table, stack_new_pos, &info->argc, sizeof(int));
+
+        stack_new_pos -= 1;
+        vm_memcpy(process->vmemory_table, stack_new_pos, &info->argv, sizeof(char*));
 
         for (size_t i = 0; i < info->aux_size; i ++) {
             struct aux_pair* aux_cur = &info->auxv[i];
-            stack_aux_pos -= 1;
-            vm_memcpy(process->vmemory_table, stack_aux_pos, &aux_cur->pval, sizeof(uint64_t));
-            stack_aux_pos -= 1;
-            vm_memcpy(process->vmemory_table, stack_aux_pos, &aux_cur->type, sizeof(uint64_t));
+            stack_new_pos -= 1;
+            vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->pval, sizeof(uint64_t));
+            stack_new_pos -= 1;
+            vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->type, sizeof(uint64_t));
         }
 
         //ctx->rbp = (uint64_t)stack_aux_pos;
-        ctx->rsp = (uint64_t)stack_aux_pos;
+        ctx->rsp = (uint64_t)stack_new_pos;
     }
 
     return thread;

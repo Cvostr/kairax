@@ -31,7 +31,7 @@ char* elf_get_string_at(char* image, uint32_t string_index)
     return image + string_section->offset + string_index;
 }
 
-int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip)
+int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip, char* interp_path)
 {
     struct elf_header* elf_header = (struct elf_header*)image;
 
@@ -41,6 +41,10 @@ int elf_load_process(struct process* process, char* image, uint64_t offset, void
 
     if (entry_ip) {
         *entry_ip = (void*)elf_header->prog_entry_pos + offset;
+    }
+
+    if (interp_path) {
+        interp_path[0] = '\0';
     }
 
     //Это ELF файл
@@ -77,6 +81,13 @@ int elf_load_process(struct process* process, char* image, uint64_t offset, void
             // Копировать фрагмент программы в память
             vm_memcpy(process->vmemory_table, vaddr, image + pehentry->p_offset, pehentry->p_filesz);   
         }
+
+        if (pehentry->type == ELF_SEGMENT_TYPE_INTERP && interp_path) {
+            size_t path_size = pehentry->p_filesz;
+            if (path_size > INTERP_PATH_MAX_LEN)
+                path_size = INTERP_PATH_MAX_LEN;
+            strncpy(interp_path, image + pehentry->p_offset, path_size);
+        }
     }
 
     for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
@@ -101,7 +112,7 @@ int elf_load_process(struct process* process, char* image, uint64_t offset, void
             process->tls = kmalloc(sehentry->size);
             memcpy(process->tls, image + sehentry->offset, sehentry->size);
             process->tls_size = sehentry->size;
-        } 
+        }
     }
 
     return 0;
