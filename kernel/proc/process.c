@@ -169,11 +169,16 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size)
     // Начало памяти под стек
     uint64_t mem_begin = process->threads_stack_top - stack_size;
 
+    // Добавить диапазон памяти к процессу
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     range->base = mem_begin;
     range->length = stack_size;
     range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
     process_add_mmap_region(process, range);
+
+    for (uintptr_t address = mem_begin; address < mem_begin + stack_size; address += PAGE_SIZE) {
+        vm_table_map(process->vmemory_table, address, pmm_alloc_page(), range->protection);
+    }
 
     void* result = (void*)process->threads_stack_top;
     process->threads_stack_top -= stack_size;

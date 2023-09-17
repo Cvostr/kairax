@@ -28,13 +28,20 @@ linker_entry:
     ;jmp rax
 
 _start:
+    ; Извлечение aux вектора
     lea rcx, [rel aux_vector]
-    pop rax
+
+aux_loop:
+    pop rax     ; Тип
+    pop rbx     ; Значение
+    
+    mov [rcx + 8 * rax], rbx
+    ; Если встретили AT_NULL, то выходим из цикла
     cmp rax, 0
     je enter
-    pop rbx
-    mov rbx, [rcx + 8 * rax]
-    jmp _start
+
+    jmp aux_loop
 
 enter:
+
     jmp main

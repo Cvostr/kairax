@@ -45,7 +45,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     return thread;
 }
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct aux_pair* auxv)
+struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct main_thread_create_info* info)
 {
     if (!process) {
         return NULL;
@@ -102,18 +102,18 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     //Состояние
     thread->state = THREAD_CREATED;
 
-    if (auxv) {
-        uint64_t* stack_aux_pos = (uint64_t*) thread->stack_ptr;
-        struct aux_pair* aux_cur = auxv;
-        while (aux_cur->type != AT_NULL) {
-            vm_memcpy(process->vmemory_table, stack_aux_pos, aux_cur->type, sizeof(uint64_t));
+    if (info) {
+        uint64_t* stack_aux_pos = (uint64_t*) (thread->stack_ptr);
+
+        for (size_t i = 0; i < info->aux_size; i ++) {
+            struct aux_pair* aux_cur = &info->auxv[i];
             stack_aux_pos -= 1;
-            vm_memcpy(process->vmemory_table, stack_aux_pos, aux_cur->pval, sizeof(uint64_t));
+            vm_memcpy(process->vmemory_table, stack_aux_pos, &aux_cur->pval, sizeof(uint64_t));
             stack_aux_pos -= 1;
-            aux_cur ++;
+            vm_memcpy(process->vmemory_table, stack_aux_pos, &aux_cur->type, sizeof(uint64_t));
         }
 
-        ctx->rbp = (uint64_t)stack_aux_pos;
+        //ctx->rbp = (uint64_t)stack_aux_pos;
         ctx->rsp = (uint64_t)stack_aux_pos;
     }
 

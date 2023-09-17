@@ -3,6 +3,7 @@
 #include "elf.h"
 #include "string.h"
 
+uint64_t args_info[2];
 uint64_t aux_vector[20];
 int cfd;
 
@@ -18,7 +19,8 @@ void main(int argc, char** argv) {
     // Получение информации
     int rc = syscall_fdstat(fd, 0, &file_stat, 1);
 
-    char* file_buffer = 0x10000000;
+    // Выделить память
+    char* file_buffer = 0x20000000;
     syscall_process_map_memory(file_buffer, file_stat.st_size, 1, 0);
     memset(file_buffer, 0, file_stat.st_size);
 
@@ -37,12 +39,12 @@ void main(int argc, char** argv) {
             // Есть секция GOT PLT
             struct got_plt* got = (struct got_plt*) sehentry->addr;
             got->arg = got;
-            //got->linker_ip = linker_entry;
+            got->linker_ip = linker_entry;
 
-            //syscall_write(cfd, "w\3GOT", 4);
+            syscall_write(cfd, "w\3GOT", 4);
         }
     }
 
-    void (*func)(int, char**) = (void*) elf_header->prog_entry_pos; //aux_vector[AT_ENTRY];
+    void (*func)(int, char**) = (void*) aux_vector[AT_ENTRY];
     func(argc, argv);
 }

@@ -438,8 +438,10 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     struct process* new_process = NULL;
     struct dentry* dir_dentry = NULL;
     int fd = -1;
-    char** argv = NULL;
+    char* argv = NULL;
     int argc = 0;
+    void* program_start_ip = NULL;
+    void* loader_start_ip = NULL;
 
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry(process, dirfd, filepath, &dir_dentry);
@@ -475,7 +477,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     file_read(file, size, image_data);
 
     // Попытаемся загрузить файл программы
-    int rc = elf_load_process(new_process, image_data, 0);
+    int rc = elf_load_process(new_process, image_data, 0, &program_start_ip);
     kfree(image_data);
 
     // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз
@@ -489,9 +491,6 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         free_process(new_process);
         return rc;
     }
-
-    struct elf_header* elf_header = (struct elf_header*) image_data;
-    void* start_ip = (void*)elf_header->prog_entry_pos;
 
     // Этап загрузки динамического линковщика
     struct file* loader_file = file_open(NULL, "/loader.elf", FILE_OPEN_MODE_READ_ONLY, 0);
@@ -509,7 +508,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     uint64_t loader_offset = new_process->brk;
 
     // Добавить загрузчик к адресному пространству процесса
-    rc = elf_load_process(new_process, image_data, new_process->brk);
+    rc = elf_load_process(new_process, image_data, loader_offset, &loader_start_ip);
     kfree(image_data);
 
     if (rc != 0) {
@@ -518,9 +517,6 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         free_process(new_process);
         return rc;
     }
-
-    elf_header = (struct elf_header*) image_data;
-    void* loader_start_ip = (void*) (loader_offset + elf_header->prog_entry_pos);
 
     if (info) {
             
@@ -559,15 +555,21 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
 
     // Формируем auxiliary вектор
     struct aux_pair* aux_v = kmalloc(sizeof(struct aux_pair) * 3);
-    aux_v[0].type = AT_EXECFD;
-    aux_v[0].ival = fd;
-    aux_v[1].type = AT_ENTRY;
-    aux_v[1].pval = start_ip;
-    aux_v[2].type = AT_NULL;
+    aux_v[1].type = AT_EXECFD;
+    aux_v[1].ival = fd;
+    aux_v[2].type = AT_ENTRY;
+    aux_v[2].pval = program_start_ip;
+    aux_v[0].type = AT_NULL;
+
+    struct main_thread_create_info main_thr_info;
+    main_thr_info.auxv = aux_v;
+    main_thr_info.aux_size = 3;
+    main_thr_info.argc = argc;
+    main_thr_info.argv = argv;
 
     // Создание главного потока и передача выполнения
-    struct thread* thr = create_thread(new_process, loader_start_ip, argc, argv, 0, aux_v);
-	scheduler_add_thread(thr);  
+    struct thread* thr = create_thread(new_process, loader_start_ip, argc, argv, 0, &main_thr_info);
+	scheduler_add_thread(thr);
 
     kfree(aux_v);
 

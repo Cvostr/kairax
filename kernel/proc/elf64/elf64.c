@@ -31,12 +31,16 @@ char* elf_get_string_at(char* image, uint32_t string_index)
     return image + string_section->offset + string_index;
 }
 
-int elf_load_process(struct process* process, char* image, uint64_t offset)
+int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip)
 {
     struct elf_header* elf_header = (struct elf_header*)image;
 
     if (!elf_check_signature(elf_header)) {
         return ERROR_BAD_EXEC_FORMAT;
+    }
+
+    if (entry_ip) {
+        *entry_ip = (void*)elf_header->prog_entry_pos + offset;
     }
 
     //Это ELF файл

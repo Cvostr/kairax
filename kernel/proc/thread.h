@@ -38,10 +38,17 @@ struct thread {
     int             is_userspace;
 };
 
+struct main_thread_create_info {
+    struct  aux_pair* auxv;
+    size_t  aux_size;
+    int argc;
+    char* argv;
+};
+
 struct thread* new_thread(struct process* process);
 
 struct thread* create_kthread(struct process* process, void (*function)(void));
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct aux_pair* auxv);
+struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct main_thread_create_info* info);
 
 #endif

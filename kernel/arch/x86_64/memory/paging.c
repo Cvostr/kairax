@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "mem_layout.h"
 #include "stddef.h"
+#include "kstdlib.h"
 
 extern void write_cr3(void*);
 
@@ -238,6 +239,9 @@ size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size)
         }
 
         phys_addr = P2V(phys_addr);
+
+        //printf("PHYS %s ", ulltoa(phys_addr, 16));
+
         *phys_addr = *((char*)src + i);
         copied ++;
     }
