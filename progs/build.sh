@@ -23,7 +23,7 @@ gcc $ARGS floattest.c -o floattest.o
 ld -melf_x86_64 -o floattest.a floattest.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
 
 gcc $ARGS shared_test.c -o shared_test.o
-ld -melf_x86_64 -o shared_test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_dyn -lerrno
+ld -melf_x86_64 -o shared-test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_dyn -lerrno
 
 cd chmod
 make

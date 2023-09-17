@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "process.h"
+#include "elf64/elf64.h"
 
 #define STACK_SIZE 4096
 
@@ -41,6 +42,6 @@ struct thread* new_thread(struct process* process);
 
 struct thread* create_kthread(struct process* process, void (*function)(void));
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2,  size_t stack_size);
+struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct aux_pair* auxv);
 
 #endif

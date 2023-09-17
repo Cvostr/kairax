@@ -62,24 +62,8 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
 
 int sys_close_file(int fd)
 {
-    int rc = 0;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = process_get_file(process, fd);
-
-    acquire_spinlock(&process->fd_lock);;
-
-    if (file != NULL) {
-        //atomic_dec(&file->refs);
-        file_close(file);
-        process->fds[fd] = NULL;
-        goto exit;
-    } else {
-        rc = -ERROR_BAD_FD;
-    }
-
-exit:
-    release_spinlock(&process->fd_lock);
-    return rc;
+    return process_close_file(process, fd);
 }
 
 int sys_mkdir(int dirfd, const char* path, int mode)
@@ -399,7 +383,7 @@ int sys_thread_sleep(uint64_t time)
 int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
-    struct thread* thread = create_thread(process, entry_ptr, arg, NULL, stack_size);
+    struct thread* thread = create_thread(process, entry_ptr, arg, NULL, stack_size, NULL);
 
     if (thread == NULL) {
         return -1;
@@ -451,9 +435,7 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
 int sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)
 {
     struct process* process = cpu_get_current_thread()->process;
-
-    // Создать новый процесс
-    struct process* new_process = create_new_process(process);
+    struct process* new_process = NULL;
     struct dentry* dir_dentry = NULL;
     int fd = -1;
     char** argv = NULL;
@@ -481,6 +463,9 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         return -ERROR_IS_DIRECTORY;
     }
 
+    // Создать новый процесс
+    new_process = create_new_process(process);
+
     // Добавить файл к новому процессу
     fd = process_add_file(new_process, file);
 
@@ -489,37 +474,53 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     char* image_data = kmalloc(size);
     file_read(file, size, image_data);
 
-    struct elf_header* elf_header = (struct elf_header*) image_data;
-    void* start_ip = (void*)elf_header->prog_entry_pos;
-
     // Попытаемся загрузить файл программы
     int rc = elf_load_process(new_process, image_data, 0);
-
     kfree(image_data);
 
+    // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз
+    file->pos = 0;
     // Файл не закрываем
     //file_close(file);
 
     if (rc != 0) {
         // Ошибка загрузки
         // TODO : IMPLEMENT
+        free_process(new_process);
         return rc;
     }
 
+    struct elf_header* elf_header = (struct elf_header*) image_data;
+    void* start_ip = (void*)elf_header->prog_entry_pos;
+
     // Этап загрузки динамического линковщика
     struct file* loader_file = file_open(NULL, "/loader.elf", FILE_OPEN_MODE_READ_ONLY, 0);
+    if (loader_file == NULL) {
+        // Загрузчик не найден
+        free_process(new_process);
+        return -ERROR_NO_FILE;
+    }
 
     size = loader_file->inode->size;
     image_data = kmalloc(size);
     file_read(loader_file, size, image_data);
+    file_close(loader_file);
 
+    uint64_t loader_offset = new_process->brk;
+
+    // Добавить загрузчик к адресному пространству процесса
     rc = elf_load_process(new_process, image_data, new_process->brk);
+    kfree(image_data);
 
     if (rc != 0) {
         // Ошибка загрузки
         // TODO : IMPLEMENT
+        free_process(new_process);
         return rc;
     }
+
+    elf_header = (struct elf_header*) image_data;
+    void* loader_start_ip = (void*) (loader_offset + elf_header->prog_entry_pos);
 
     if (info) {
             
@@ -544,6 +545,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         argc = info->num_args;
         rc = process_load_arguments(new_process, info->num_args, info->args, &argv);
         if (rc != 0) {
+            free_process(new_process);
             goto exit;
         }
     }
@@ -555,9 +557,19 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         new_process->workdir = file_clone(process->workdir);
     }
 
+    // Формируем auxiliary вектор
+    struct aux_pair* aux_v = kmalloc(sizeof(struct aux_pair) * 3);
+    aux_v[0].type = AT_EXECFD;
+    aux_v[0].ival = fd;
+    aux_v[1].type = AT_ENTRY;
+    aux_v[1].pval = start_ip;
+    aux_v[2].type = AT_NULL;
+
     // Создание главного потока и передача выполнения
-    struct thread* thr = create_thread(new_process, start_ip, argc, argv, 0);
+    struct thread* thr = create_thread(new_process, loader_start_ip, argc, argv, 0, aux_v);
 	scheduler_add_thread(thr);  
+
+    kfree(aux_v);
 
 exit:
     return rc;

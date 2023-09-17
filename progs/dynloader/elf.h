@@ -50,4 +50,25 @@ struct elf_section_header_entry {
     uint64_t    ent_size;
 } __attribute__((packed));
 
+struct got_plt {
+    void* unused;
+    void* arg;
+    void* linker_ip;
+} __attribute__((packed));
+
+#define AT_NULL         0               
+#define AT_IGNORE       1
+#define AT_EXECFD       2
+#define AT_PHDR         3
+#define AT_PHENT        4
+#define AT_PHNUM        5
+#define AT_PAGESZ       6
+#define AT_BASE         7
+#define AT_FLAGS        8
+#define AT_ENTRY        9
+
+char* elf_get_string_at(char* image, uint32_t string_index);
+
+struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
+
 #endif

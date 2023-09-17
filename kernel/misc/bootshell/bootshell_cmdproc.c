@@ -177,39 +177,27 @@ void bootshell_process_cmd(char* cmdline)
         file_close(file);
     }
     if (strcmp(cmd, "stress") == 0) {
-        struct file* sysn_f = file_open(wd_dentry, "/sysn.a", FILE_OPEN_MODE_READ_ONLY, 0);
-        struct file* sysc_f = file_open(wd_dentry, "/sysc.a", FILE_OPEN_MODE_READ_ONLY, 0);
-        struct file* ls_f = file_open(wd_dentry, "/ls.a", FILE_OPEN_MODE_READ_ONLY, 0);
-
-        int size = sysn_f->inode->size;
-        char* sysn_d = kmalloc(size);
-        file_read(sysn_f, size, sysn_d);
-
-        size = sysc_f->inode->size;
-        char* sysc_d = kmalloc(size);
-        file_read(sysc_f, size, sysc_d);
-
-        size = ls_f->inode->size;
-        char* ls_d = kmalloc(size);
-        file_read(ls_f, size, ls_d);
 
         struct process_create_info info;
         info.current_directory = curdir;
         info.num_args = argc;
         info.args = args;
         for (int i = 0; i < 30; i ++) {
-            int rc = create_new_process_from_image(NULL, sysn_d, &info); 
-            rc = create_new_process_from_image(NULL, sysc_d, &info); 
-            rc = create_new_process_from_image(NULL, ls_d, &info); 
+
+            int rc = sys_create_process(-2, "/sysn.a", &info);
+            if (rc != 0) {
+                printf("Error creating process sysn : %i\n", rc);
+            }
+            rc = sys_create_process(-2, "/sysc.a", &info);
+            if (rc != 0) {
+                printf("Error creating process sysc : %i\n", rc);
+            }
+            rc = sys_create_process(-2, "/ls.a", &info);
+            if (rc != 0) {
+                printf("Error creating process ls : %i\n", rc);
+            }
         }
 
-        kfree(sysn_d);
-        kfree(sysc_d);
-        kfree(ls_d);
-        
-        file_close(sysn_f);
-        file_close(sysc_f);
-        file_close(ls_f);
     }
     if (strcmp(cmd, "exec") == 0) {
         struct process_create_info info;
@@ -220,31 +208,6 @@ void bootshell_process_cmd(char* cmdline)
         if (rc != 0) {
             printf("Error creating process : %i\n", rc);
         }
-        /*struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
-
-        if(file == NULL){
-            printf("Can't open file with path : ", args[1]);
-            return;
-        }
-        int size = file->inode->size;
-        printf("\n");
-        char* buffer = kmalloc(size);
-        if(buffer == NULL) {
-            printf("Error allocating memory");
-            return;
-        }
-
-        file_read(file, size, buffer);
-
-        //Запуск
-        
-        int rc = create_new_process_from_image(NULL, buffer, &info); 
-        if (rc != 0) {
-            printf("Error creating process : %i\n", rc);
-        }
-
-        kfree(buffer);
-        file_close(file);*/
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();

@@ -127,6 +127,25 @@ typedef struct PACKED {
 
 } elf_dynamic_t;
 
+#define AT_NULL         0               
+#define AT_IGNORE       1
+#define AT_EXECFD       2
+#define AT_PHDR         3
+#define AT_PHENT        4
+#define AT_PHNUM        5
+#define AT_PAGESZ       6
+#define AT_BASE         7
+#define AT_FLAGS        8
+#define AT_ENTRY        9
+
+struct aux_pair {
+    int64_t type;
+    union {
+        int64_t ival;
+        void* pval;
+    };
+};
+
 int elf_check_signature(struct elf_header* elf_header);
 
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);

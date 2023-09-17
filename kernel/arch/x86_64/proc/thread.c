@@ -45,7 +45,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     return thread;
 }
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size)
+struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct aux_pair* auxv)
 {
     if (!process) {
         return NULL;
@@ -101,6 +101,21 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     ctx->cs = GDT_BASE_USER_CODE_SEG | 0b11;    // сегмент кода пользователя
     //Состояние
     thread->state = THREAD_CREATED;
+
+    if (auxv) {
+        uint64_t* stack_aux_pos = (uint64_t*) thread->stack_ptr;
+        struct aux_pair* aux_cur = auxv;
+        while (aux_cur->type != AT_NULL) {
+            vm_memcpy(process->vmemory_table, stack_aux_pos, aux_cur->type, sizeof(uint64_t));
+            stack_aux_pos -= 1;
+            vm_memcpy(process->vmemory_table, stack_aux_pos, aux_cur->pval, sizeof(uint64_t));
+            stack_aux_pos -= 1;
+            aux_cur ++;
+        }
+
+        ctx->rbp = (uint64_t)stack_aux_pos;
+        ctx->rsp = (uint64_t)stack_aux_pos;
+    }
 
     return thread;
 }

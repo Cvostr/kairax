@@ -59,8 +59,6 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
 
 void free_process(struct process* process);
 
-int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info);
-
 // Установить адрес конца памяти процесса
 uintptr_t        process_brk_flags(struct process* process, void* addr, uint64_t flags);
 
@@ -75,6 +73,8 @@ struct file* process_get_file(struct process* process, int fd);
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem);
 
 int process_add_file(struct process* process, struct file* file);
+
+int process_close_file(struct process* process, int fd);
 
 void process_add_mmap_region(struct process* process, struct mmap_range* region);
 

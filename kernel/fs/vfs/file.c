@@ -13,6 +13,7 @@ struct file* new_file()
 void file_close(struct file* file) 
 {
     if (atomic_dec_and_test(&file->refs)) {
+        
         acquire_spinlock(&file->lock);
         
         if (file->inode) {

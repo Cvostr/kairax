@@ -63,7 +63,6 @@ void free_process(struct process* process)
     for (i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] != NULL) {
             struct file* fil = process->fds[i];
-            //atomic_dec(&fil->refs);
             file_close(fil);
         }
     }
@@ -84,65 +83,6 @@ void free_process(struct process* process)
     kfree(process);
 }
 
-int create_new_process_from_image(struct process* parent, char* image, struct process_create_info* info)
-{
-    int rc = -1;
-    struct elf_header* elf_header = (struct elf_header*) image;
-
-    int argc = 0;
-    char** argv = NULL;
-
-    struct process* proc = create_new_process(parent);
-
-    // Попытаемся загрузить файл программы
-    rc = elf_load_process(proc, image, 0);
-
-    if (rc != 0) {
-        // Ошибка загрузки
-        free_process(proc);
-        goto exit;
-    } else {
-        if (info) {
-            if (info->current_directory) {
-                // Указана рабочая директория
-                struct file* new_workdir = file_open(NULL, info->current_directory, 0, 0);
-
-                if (new_workdir) {
-                    
-                    // Проверить тип inode, убедиться что это директория
-                    if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
-                    
-                        proc->workdir = new_workdir;
-                    } else {
-                        // Это не директория - закрываем файл
-                        file_close(new_workdir);
-                    }
-                }
-            }
-
-            argc = info->num_args;
-            rc = process_load_arguments(proc, info->num_args, info->args, &argv);
-            if (rc != 0) {
-                goto exit;
-            }
-        }
-
-        // У процесса так и нет рабочей папки
-        // Используем папку родителя, если она есть
-        if (proc->workdir == NULL && parent->workdir != NULL) {
-
-            proc->workdir = file_clone(parent->workdir);
-        }
-
-        // Создание главного потока и передача выполнения
-        struct thread* thr = create_thread(proc, (void*)elf_header->prog_entry_pos, argc, argv, 0);
-	    scheduler_add_thread(thr);  
-    }
-
-exit:
-    return rc;
-}
-
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem)
 {
     int rc = -1;
@@ -161,6 +101,7 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
         reqd_size += strlen(argv[i]) + 1;
     }
 
+    // Проверка суммарного размера аргументов в памяти
     if (reqd_size > PROCESS_MAX_ARGS_SIZE) {
         // Суммарный размер аргуменов большой, выйти с ошибкой
         rc = -ERROR_ARGS_BUFFER_BIG;
@@ -263,7 +204,6 @@ int process_add_file(struct process* process, struct file* file)
 
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
-            //atomic_inc(&file->refs);
             process->fds[i] = file;
             fd = i;
             goto exit;
@@ -273,6 +213,32 @@ int process_add_file(struct process* process, struct file* file)
 exit:
     release_spinlock(&process->fd_lock);
     return fd;
+}
+
+int process_close_file(struct process* process, int fd)
+{
+    int rc = 0;
+
+    if (fd < 0 || fd >= MAX_DESCRIPTORS) {
+        rc = -ERROR_BAD_FD;
+        goto exit;
+    }
+
+    acquire_spinlock(&process->fd_lock);
+
+    struct file* file = process->fds[fd];
+
+    if (file != NULL) {
+        file_close(file);
+        process->fds[fd] = NULL;
+        goto exit;
+    } else {
+        rc = -ERROR_BAD_FD;
+    }
+
+exit:
+    release_spinlock(&process->fd_lock);
+    return rc;
 }
 
 void process_add_mmap_region(struct process* process, struct mmap_range* region)
