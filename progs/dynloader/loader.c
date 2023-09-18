@@ -9,7 +9,7 @@ int cfd;
 
 extern void linker_entry();
 
-void main() {
+void loader() {
 
     cfd = syscall_open_file(-2, "/dev/console", 00000002, 0);
 
@@ -42,8 +42,6 @@ void main() {
             struct got_plt* got = (struct got_plt*) sehentry->addr;
             got->arg = got;
             got->linker_ip = linker_entry;
-
-            //syscall_write(cfd, "w\3GOT", 4);
         }
     }
 

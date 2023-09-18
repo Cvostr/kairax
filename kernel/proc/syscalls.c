@@ -8,6 +8,7 @@
 #include "mem/pmm.h"
 #include "kstdlib.h"
 #include "elf64/elf64.h"
+#include "string.h"
 
 int sys_not_implemented()
 {
@@ -488,19 +489,29 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
 
     if (rc != 0) {
         // Ошибка загрузки
-        // TODO : IMPLEMENT
+        // Файл будет закрыт при уничтожении объекта процесса
         free_process(new_process);
         return rc;
     }
 
-    //printf("LOADER %s\n", interp_path);
+    if (interp_path[0] == '\0') {
+        strcpy(interp_path, "/loader.elf");
+    }
 
     // Этап загрузки динамического линковщика
-    struct file* loader_file = file_open(NULL, "/loader.elf", FILE_OPEN_MODE_READ_ONLY, 0);
+    struct file* loader_file = file_open(NULL, interp_path, FILE_OPEN_MODE_READ_ONLY, 0);
     if (loader_file == NULL) {
         // Загрузчик не найден
         free_process(new_process);
         return -ERROR_NO_FILE;
+    }
+
+    // Проверим, не является ли файл загрузчика директорией?
+    if ( (loader_file->inode->mode & INODE_TYPE_DIRECTORY)) {
+        // Мы пытаемся открыть директорию - выходим
+        file_close(loader_file);
+        free_process(new_process);
+        return -ERROR_IS_DIRECTORY;
     }
 
     size = loader_file->inode->size;
@@ -508,6 +519,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     file_read(loader_file, size, image_data);
     file_close(loader_file);
 
+    // Смещение в адресном пространстве процесса, по которому будет помещен загрузчик
     uint64_t loader_offset = new_process->brk + PAGE_SIZE;
 
     // Добавить загрузчик к адресному пространству процесса
@@ -570,9 +582,10 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     main_thr_info.argc = argc;
     main_thr_info.argv = argv;
 
-    // Создание главного потока и передача выполнения
+    // Создание главного потока
     struct thread* thr = create_thread(new_process, loader_start_ip, 0, 0, 0, &main_thr_info);
-	scheduler_add_thread(thr);
+	// Добавление потока в планировщик
+    scheduler_add_thread(thr);
 
     kfree(aux_v);
 

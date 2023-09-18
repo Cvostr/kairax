@@ -1,4 +1,5 @@
 ARGS="-nostdlib -m64 -c -nostdinc -ffreestanding"
+LD_ARGS="-melf_x86_64 --dynamic-linker=/loader.elf"
 
 gcc $ARGS sysc.c -o sysc.o
 ld -melf_x86_64 -o sysc.a sysc.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
@@ -23,7 +24,7 @@ gcc $ARGS floattest.c -o floattest.o
 ld -melf_x86_64 -o floattest.a floattest.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc
 
 gcc $ARGS shared_test.c -o shared_test.o
-ld -melf_x86_64 -o shared-test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_dyn -lerrno
+ld $LD_ARGS -o shared-test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_dyn -lerrno
 
 cd chmod
 make

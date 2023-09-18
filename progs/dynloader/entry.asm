@@ -3,7 +3,7 @@ default rel
 global linker_entry
 global _start
 extern link
-extern main
+extern loader
 extern aux_vector
 extern args_info
 
@@ -50,10 +50,12 @@ enter:
     ; Получение относительного адреса args массива
     lea rcx, [rel args_info]
 
+    ; Извлечение argv
     pop rax
     mov [rcx + 8], rax
 
+    ; Извлечение argc
     pop rax
     mov [rcx + 0], rax
 
-    jmp main
+    jmp loader

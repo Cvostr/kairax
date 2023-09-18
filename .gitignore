@@ -11,3 +11,4 @@ kernel/bin
 /.vs
 /.vscode
 *.vhdx
+*.elf
