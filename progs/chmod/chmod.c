@@ -1,6 +1,6 @@
-#include "../sdk/libc/stdio.h"
-#include "../sdk/libc/sys_files.h"
-#include "../sdk/libc/errno.h"
+#include "../../sdk/libc/stdio.h"
+#include "../../sdk/libc/sys_files.h"
+#include "../../sdk/libc/errno.h"
 
 void fill_mode(int* mode, int value, int read, int write, int exec) {
     if (value & 0b001) *mode |= exec;

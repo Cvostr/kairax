@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
 
     printf("MMAPP TEST\n");
-    char* addr = 0x10000000;
+    char* addr = (char*) 0x10000000;
     mmap(addr, 4096, PROTECTION_WRITE_ENABLE, 0);
     addr[0] = 'H';
     addr[1] = 'e';
