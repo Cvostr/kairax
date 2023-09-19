@@ -1,6 +1,5 @@
-#include "../sdk/libc/stdio.h"
-#include "../sdk/libc/sys_files.h"
-#include "../sdk/sys/syscalls.h"
+#include "stdio.h"
+#include "sys_files.h"
 
 size_t _strlen (const char *__s)
 {

@@ -1,4 +1,4 @@
-#include "../sdk/libc/string.h"
+#include "string.h"
 
 char* test_buf[29];
 

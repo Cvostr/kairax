@@ -1,6 +1,6 @@
-#include "../sdk/libc/stdio.h"
-#include "../sdk/libc/sys_files.h"
-#include "../sdk/libc/process.h"
+#include "stdio.h"
+#include "sys_files.h"
+#include "process.h"
 
 #define BSS_LEN 10000
 

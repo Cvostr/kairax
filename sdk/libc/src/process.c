@@ -1,5 +1,5 @@
 #include "process.h"
-#include "../sys/syscalls.h"
+#include "syscalls.h"
 #include "errno.h"
 
 int create_thread(void* entry, void* arg, pid_t* pid)

@@ -1,37 +1,27 @@
-ARGS=-nostdlib -m64 -c -nostdinc -ffreestanding -fPIC
+CFLAGS=-nostdlib -m64 -c -nostdinc -ffreestanding -fPIC -I./include -I../sys
 COMPILER=gcc
+SRC_DIR=src
+OBJ_DIR=obj
+COMPILED_OBJS = obj/math.o \
+				obj/process.o \
+				obj/stdio.o \
+				obj/stdlib.o \
+				obj/string.o \
+				obj/sys_files.o
 
 all: libc_static libc errno
 
-errno: errno.o
-	ar rcs liberrno.a errno.o
+errno: obj/errno.o
+	ar rcs liberrno.a obj/errno.o
 
-libc: math.o stdlib.o string.o sys_files.o process.o stdio.o ../sys/syscalls.o
-	ld -melf_x86_64 -shared -o libc_dyn.so math.o stdlib.o string.o sys_files.o stdio.o process.o ../sys/syscalls.o
+libc: $(COMPILED_OBJS)
+	ld -melf_x86_64 -shared -o libc.so $(COMPILED_OBJS) ../sys/syscalls.o
 
-libc_static: math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o
-	ar rcs libc.a math.o stdlib.o string.o sys_files.o stdio.o process.o errno.o
+libc_static: $(COMPILED_OBJS) obj/errno.o
+	ar rcs libc_stat.a $(COMPILED_OBJS) obj/errno.o
 
 clean:
-	rm -rf *.o libc.so
+	rm -rf obj/*.o *.so *.a
 
-stdlib.o: stdlib.c
-	$(COMPILER) $(ARGS) stdlib.c -o stdlib.o
-
-string.o: string.c
-	$(COMPILER) $(ARGS) string.c -o string.o
-
-math.o: math.c
-	$(COMPILER) $(ARGS) math.c -o math.o
-
-stdio.o: stdio.c
-	$(COMPILER) $(ARGS) stdio.c -o stdio.o
-
-sys_files.o: sys_files.c
-	$(COMPILER) $(ARGS) sys_files.c -o sys_files.o
-
-process.o: process.c
-	$(COMPILER) $(ARGS) process.c -o process.o
-
-errno.o: errno.c
-	$(COMPILER) $(ARGS) errno.c -o errno.o
+obj/%.o: $(SRC_DIR)/%.c
+	$(COMPILER) $(CFLAGS) $< -o $@

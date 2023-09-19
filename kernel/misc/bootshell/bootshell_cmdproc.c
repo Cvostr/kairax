@@ -264,10 +264,10 @@ void bootshell_process_cmd(char* cmdline)
 	    }
     }
     else if(strcmp(cmd, "shutdown") == 0){
-        acpi_poweroff();
+        sys_poweroff(0x30);
     }
     else if(strcmp(cmd, "reboot") == 0){
-        acpi_reboot();
+        sys_poweroff(0x40);
     }
     if(strcmp(cmdline, "pci") == 0){
         printf("PCI devices %i \n", get_pci_devices_count());

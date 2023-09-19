@@ -1,8 +1,8 @@
-#include "../sdk/libc/stdio.h"
-#include "../sdk/libc/sys_files.h"
+#include "stdio.h"
+#include "sys_files.h"
 #include "../sdk/sys/syscalls.h"
-#include "../sdk/libc/errno.h"
-#include "../sdk/libc/process.h"
+#include "errno.h"
+#include "process.h"
 
 char buff[220];
 

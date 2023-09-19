@@ -9,6 +9,7 @@
 #include "kstdlib.h"
 #include "elf64/elf64.h"
 #include "string.h"
+#include "dev/acpi/acpi.h"
 
 int sys_not_implemented()
 {
@@ -349,6 +350,22 @@ int sys_set_working_dir(const char* buffer)
     }
 
     return rc;
+}
+
+int sys_poweroff(int cmd)
+{
+    switch (cmd) {
+        case 0x30:
+            acpi_poweroff();
+            break;
+        case 0x40:
+            acpi_reboot();
+            break;
+        default:
+            return -ERROR_INVALID_VALUE;
+    }
+
+    return -1;
 }
 
 void sys_exit_process(int code)

@@ -19,6 +19,7 @@ global syscall_set_file_mode
 global syscall_create_thread
 global syscall_create_process
 global syscall_mount
+global syscall_poweroff
 global syscall_create_directory
 global syscall_process_map_memory
 
@@ -118,6 +119,11 @@ syscall_set_file_mode:
 
 syscall_mount:
     mov rax, 0xA5
+    syscall
+    ret
+
+syscall_poweroff:
+    mov rax, 0xA9
     syscall
     ret
 

@@ -47,4 +47,6 @@ int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 
 int sys_create_process(int dirfd, const char* filepath, struct process_create_info* info);
 
+int sys_poweroff(int cmd);
+
 #endif
