@@ -426,6 +426,10 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 
     length = align(length, PAGE_SIZE);
 
+    if (address == NULL) {
+        address = process_get_free_addr(process, length);
+    }
+
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     range->base = address;
     range->length = length;
@@ -531,6 +535,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         return -ERROR_IS_DIRECTORY;
     }
 
+    // Выделение памяти и чтение линковщика
     size = loader_file->inode->size;
     image_data = kmalloc(size);
     file_read(loader_file, size, image_data);
@@ -539,13 +544,12 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     // Смещение в адресном пространстве процесса, по которому будет помещен загрузчик
     uint64_t loader_offset = new_process->brk + PAGE_SIZE;
 
-    // Добавить загрузчик к адресному пространству процесса
+    // Загрузить линковщик в адресное пространство процесса
     rc = elf_load_process(new_process, image_data, loader_offset, &loader_start_ip, NULL);
     kfree(image_data);
 
     if (rc != 0) {
         // Ошибка загрузки
-        // TODO : IMPLEMENT
         free_process(new_process);
         return rc;
     }

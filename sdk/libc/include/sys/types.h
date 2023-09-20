@@ -10,6 +10,12 @@ typedef unsigned int        uint32_t;
 typedef signed long int     int64_t;
 typedef unsigned long int   uint64_t;
 
+typedef unsigned char		u_char;
+typedef unsigned short		u_short;
+typedef unsigned short		ushort;
+typedef unsigned int		u_int;	
+typedef unsigned long 		u_long;
+
 typedef unsigned int        uid_t;
 typedef unsigned int        gid_t;
 typedef unsigned long int   ino_t;

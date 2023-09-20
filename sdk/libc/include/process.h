@@ -1,7 +1,7 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 
-#include "types.h"
+#include <sys/types.h>
 #include "stddef.h"
 
 #define PROTECTION_WRITE_ENABLE    0b1

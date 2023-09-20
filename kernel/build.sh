@@ -40,7 +40,6 @@ gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
 
-gcc $GCC_ARGS $x64_SRC/proc/process.c -o ./bin/process_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 

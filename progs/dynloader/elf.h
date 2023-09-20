@@ -1,8 +1,8 @@
 #ifndef _ELF_H
 #define _ELF_H
 
-#include "../../sdk/libc/types.h"
-#include "../../sdk/libc/stdint.h"
+#include <sys/types.h>
+#include <stdint.h>
 
 struct elf_header {
     char        header[4];

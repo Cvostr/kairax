@@ -151,7 +151,7 @@ beginning_memmap: ;Задает начальную конфигурацию дл
 enable_long_mode_paging: ;включение 64 битного режима процессора и страничной адресации
 	mov eax, V2P(p4_table)
 	mov cr3, eax
-	;Взведение флага PAE в регистре cr4
+	;Взведение флага PAE, PGE, UMIP в регистре cr4
 	mov eax, cr4
 	or eax, (1 << 5) | (1 << 7)
 	mov cr4, eax

@@ -187,6 +187,21 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size)
     return result;
 }
 
+uintptr_t process_brk(struct process* process, uint64_t addr)
+{
+    uint64_t flags = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
+    uintptr_t uaddr = (uintptr_t)addr;
+    //Выравнивание до размера страницы в большую сторону
+    uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
+    //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
+    while ((uint64_t)uaddr > process->brk) {
+        vm_table_map(process->vmemory_table, process->brk, (physical_addr_t)pmm_alloc_page(), flags);
+        process->brk += PAGE_SIZE;
+    }
+
+    return process->brk;
+}
+
 struct file* process_get_file(struct process* process, int fd)
 {
     struct file* result = NULL;
@@ -270,6 +285,47 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
     return NULL;
 }
 
+void* process_get_free_addr(struct process* process, size_t length)
+{
+    size_t mappings_count = list_size(process->mmap_ranges);
+    for (int i = 0; i < mappings_count + 1; i ++) {
+        uintptr_t base = 0;
+        int real_range_index = i - 1;
+        uintptr_t end = 0;
+
+        if (i == 0) 
+            base = process->brk + PAGE_SIZE;
+        else {
+            struct mmap_range* range = list_get(process->mmap_ranges, real_range_index);
+            base = range->base + PAGE_SIZE;
+        }
+
+        // Адрес конца
+        end = base + length;
+        
+        for (size_t j = 0; j < mappings_count; j ++) {
+
+            if (real_range_index == j)
+                continue;
+
+            struct mmap_range* range = list_get(process->mmap_ranges, j);
+            uintptr_t range_end = range->base + range->length;
+            
+            int base_inside = base >= range->base && base <= range_end;
+            int end_inside = end >= range->base && end <= range_end;
+
+            if (base_inside || end_inside) {
+                continue;
+            } else {
+                return (void*) base;
+            }
+        }
+        
+    }
+
+    return NULL;
+}
+
 int process_handle_page_fault(struct process* process, uint64_t address)
 {
     acquire_spinlock(&process->mmap_lock);
@@ -279,12 +335,8 @@ int process_handle_page_fault(struct process* process, uint64_t address)
         return 0;
     }
 
-    uint64_t aligned_base = align_down(range->base, PAGE_SIZE);
-    size_t pages_count = range->length / PAGE_SIZE;
-
-    for (size_t page_i = 0; page_i < pages_count; page_i ++) {
-        vm_table_map(process->vmemory_table, aligned_base + page_i * PAGE_SIZE, pmm_alloc_page(), range->protection);
-    }
+    uint64_t aligned_address = align_down(address, PAGE_SIZE);
+    vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
 
     release_spinlock(&process->mmap_lock);
     return 1;

@@ -1,5 +1,5 @@
 #include "../../sdk/sys/syscalls.h"
-#include "../../sdk/libc/stat.h"
+#include <sys/stat.h>
 #include "elf.h"
 #include "string.h"
 
@@ -42,6 +42,8 @@ void loader() {
             struct got_plt* got = (struct got_plt*) sehentry->addr;
             got->arg = got;
             got->linker_ip = linker_entry;
+        } else if (strcmp(section_name, ".dynamic") == 0) {
+            
         }
     }
 

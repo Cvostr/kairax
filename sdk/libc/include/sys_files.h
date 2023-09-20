@@ -1,9 +1,9 @@
 #ifndef _SYS_FILES_H
 #define _SYS_FILES_H
 
-#include "types.h"
+#include "sys/types.h"
 #include "stddef.h"
-#include "stat.h"
+#include "sys/stat.h"
 #include "dirent.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    00000001

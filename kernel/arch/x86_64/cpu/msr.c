@@ -14,14 +14,6 @@ void cpu_msr_set(uint32_t msr, uint64_t value)
     asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
 
-void cpu_enable_syscall_feature()
-{
-    uint64_t value;
-    cpu_msr_get(MSR_EFER, &value);
-    value |= 0x1;
-    cpu_msr_set(MSR_EFER, value);
-}
-
 void cpu_set_syscall_params(void* entry_ip, uint16_t star_32_47, uint16_t star_48_63, uint64_t sfmask)
 {
     cpu_msr_set(MSR_LSTAR, (uint64_t)entry_ip);

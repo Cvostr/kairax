@@ -7,7 +7,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio.o \
 				obj/stdlib.o \
 				obj/string.o \
-				obj/sys_files.o
+				obj/sys_files.o \
+				obj/bsdmalloc.o
 
 all: libc_static libc errno
 

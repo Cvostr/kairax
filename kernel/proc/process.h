@@ -20,7 +20,7 @@ struct process {
     char                name[30];
     // ID процесса
     pid_t               pid;
-    // Адрес конца адресного пространства процесса
+    // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     uint64_t            threads_stack_top;
 
@@ -60,8 +60,6 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
 void free_process(struct process* process);
 
 // Установить адрес конца памяти процесса
-uintptr_t        process_brk_flags(struct process* process, void* addr, uint64_t flags);
-
 uintptr_t        process_brk(struct process* process, uint64_t addr);
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
@@ -79,6 +77,8 @@ int process_close_file(struct process* process, int fd);
 void process_add_mmap_region(struct process* process, struct mmap_range* region);
 
 struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t addr);
+
+void* process_get_free_addr(struct process* process, size_t length);
 
 int process_handle_page_fault(struct process* process, uint64_t address);
 
