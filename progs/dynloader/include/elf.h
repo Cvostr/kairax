@@ -50,10 +50,50 @@ struct elf_section_header_entry {
     uint64_t    ent_size;
 } __attribute__((packed));
 
+//------DYNAMIC SECTION STUFF
+#define ELF_DT_NEEDED       1
+#define ELF_DT_PLTGOT       3
+#define ELF_DT_STRTAB       5
+#define ELF_DT_SYMTAB       6
+#define ELF_DT_RELA         7
+
+struct elf_dynamic {
+    int64_t tag;
+
+    union {
+        uint64_t val;
+        uint64_t addr;
+    } d_un;
+
+} __attribute__((packed));
+
+// -------SYMBOLS STUFF
+struct elf_symbol {
+	uint32_t	    name;
+	unsigned char	info;
+	unsigned char	other;
+	uint16_t	    shndx;
+	uint64_t	    value;
+	uint64_t	    size;
+}  __attribute__((packed));
+
+// GOT PLT
 struct got_plt {
     void* unused;
     void* arg;
     void* linker_ip;
+} __attribute__((packed));
+
+// ------RELOCATIONS ---------
+struct elf_rel {
+    void*       offset;
+    uint64_t    info;
+} __attribute__((packed));
+
+struct elf_rela {
+    void*       offset;
+    uint64_t    info;
+    int64_t     addend;
 } __attribute__((packed));
 
 #define AT_NULL         0               
@@ -70,5 +110,22 @@ struct got_plt {
 char* elf_get_string_at(char* image, uint32_t string_index);
 
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
+
+struct object_data {
+    void                *dynamic_section;
+    
+    void*               dynstr;
+    uint64_t            dynstr_size;
+
+    struct elf_symbol*  dynsym;
+    uint64_t            dynsym_size;
+
+    struct elf_rel*     rel;
+    uint64_t            rel_size;
+
+    struct elf_rela*    rela;
+    uint64_t            rela_size;
+
+} __attribute__((packed));
 
 #endif

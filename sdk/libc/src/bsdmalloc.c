@@ -166,6 +166,10 @@ botch(s)
 #define	ASSERT(p)
 #endif
 
+void* sbrk(int len) {
+    return NULL;
+}
+
 void *malloc(size_t nbytes)
 {
   	union overhead *op;

@@ -100,15 +100,6 @@ struct elf_section_header_entry {
     uint64_t    ent_size;
 } PACKED;
 
-typedef struct {
-	uint32_t	    name;
-	unsigned char	info;
-	unsigned char	other;
-	uint16_t	    shndx;
-	uint64_t	    value;
-	uint64_t	    size;
-} elf_symbol_t;
-
 struct process;
 
 #define ELF_DT_NEEDED       1
@@ -116,16 +107,6 @@ struct process;
 #define ELF_DT_STRTAB       5
 #define ELF_DT_SYMTAB       6
 #define ELF_DT_RELA         7
-
-typedef struct PACKED {
-    int64_t tag;
-
-    union {
-        uint64_t val;
-        uint64_t addr;
-    } d_un;
-
-} elf_dynamic_t;
 
 #define AT_NULL         0               
 #define AT_IGNORE       1

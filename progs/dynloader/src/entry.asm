@@ -15,11 +15,11 @@ linker_entry:
     push rsi
     push rcx
 
-    mov rax, rdi
-    mov rbx, rsi
+    mov rdi, rax
+    mov rsi, rbx
 
-    lea rcx, [rel link]
-    call rcx
+    lea rax, [rel link]
+    call rax
 
     pop rcx
     pop rsi

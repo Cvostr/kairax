@@ -193,6 +193,14 @@ uintptr_t process_brk(struct process* process, uint64_t addr)
     uintptr_t uaddr = (uintptr_t)addr;
     //Выравнивание до размера страницы в большую сторону
     uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
+
+    // Добавить диапазон памяти к процессу
+    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    range->base = process->brk;
+    range->length = uaddr - process->brk;
+    range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
+    process_add_mmap_region(process, range);
+
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
     while ((uint64_t)uaddr > process->brk) {
         vm_table_map(process->vmemory_table, process->brk, (physical_addr_t)pmm_alloc_page(), flags);
@@ -287,43 +295,61 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
 
 void* process_get_free_addr(struct process* process, size_t length)
 {
+    void* result = NULL;
+    acquire_spinlock(&process->mmap_lock);
     size_t mappings_count = list_size(process->mmap_ranges);
-    for (int i = 0; i < mappings_count + 1; i ++) {
+    for (int i = 0; i < mappings_count ; i ++) {
         uintptr_t base = 0;
-        int real_range_index = i - 1;
+        int real_range_index = i;
         uintptr_t end = 0;
 
-        if (i == 0) 
-            base = process->brk + PAGE_SIZE;
-        else {
-            struct mmap_range* range = list_get(process->mmap_ranges, real_range_index);
-            base = range->base + PAGE_SIZE;
-        }
+        struct mmap_range* range = list_get(process->mmap_ranges, real_range_index);
+        base = range->base + range->length + PAGE_SIZE;
 
         // Адрес конца
         end = base + length;
+
+        // Проверяем, что не вылазим за границы адресного пространства процесса
+        if (end >= USERSPACE_MAX_ADDR)
+            continue;
+
+        /*printf("REGION BEGIN: %s ", ulltoa(range->base, 16));
+        printf("END: %s \n", ulltoa(range->base + range->length, 16));*/
         
+        int suitable = 1;
+
         for (size_t j = 0; j < mappings_count; j ++) {
 
             if (real_range_index == j)
                 continue;
 
-            struct mmap_range* range = list_get(process->mmap_ranges, j);
-            uintptr_t range_end = range->base + range->length;
-            
-            int base_inside = base >= range->base && base <= range_end;
-            int end_inside = end >= range->base && end <= range_end;
+            struct mmap_range* mrange = list_get(process->mmap_ranges, j);
+            uintptr_t range_end = mrange->base + mrange->length;
 
-            if (base_inside || end_inside) {
-                continue;
-            } else {
-                return (void*) base;
+            /*printf("MATCHING REGION BEGIN: %s ", ulltoa(mrange->base, 16));
+            printf("END: %s", ulltoa(mrange->base + mrange->length, 16));*/
+            
+            int new_base_inside = base >= mrange->base && base <= range_end;
+            int new_end_inside = end >= mrange->base && end <= range_end;
+
+            if (new_base_inside || new_end_inside) {
+                suitable = 0;
+                //printf("COLLIDES\n");
+                break;
             }
+            //printf("\n");
+        }
+
+        if (suitable == 1) {
+            result = (void*) base;
+            goto exit;
         }
         
     }
 
-    return NULL;
+exit:
+    release_spinlock(&process->mmap_lock);
+    return result;
 }
 
 int process_handle_page_fault(struct process* process, uint64_t address)

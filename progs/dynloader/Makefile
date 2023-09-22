@@ -1,22 +1,19 @@
-CFLAGS=-nostdlib -m64 -c -nostdinc -ffreestanding -fPIC -I../../sdk/libc/include
+CFLAGS=-nostdlib -m64 -c -nostdinc -ffreestanding -fPIC -I./include -I./ -I../../sdk/libc/include -I../../sdk/sys/
 LDARGS=-melf_x86_64 -z noexecstack -pie
 CC=gcc
 ASM=nasm
+SRC_DIR=src
+COMPILED_OBJS = obj/entry.o \
+				obj/loader.o \
+				obj/linker.o \
+				obj/elf.o \
+				obj/string.o
 
-all: entry.o loader.o linker.o elf.o string.o
-	ld $(LDARGS) -o loader.elf entry.o elf.o string.o loader.o linker.o ../../sdk/sys/syscalls.o
+all: $(COMPILED_OBJS)
+	ld $(LDARGS) -o loader.elf $(COMPILED_OBJS) ../../sdk/sys/syscalls.o
 
-entry.o: entry.asm
-	$(ASM) -felf64 entry.asm -o entry.o
+obj/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $< -o $@
 
-elf.o: elf.c
-	$(CC) $(CFLAGS) elf.c -o elf.o
-
-string.o: string.c
-	$(CC) $(CFLAGS) string.c -o string.o
-
-loader.o: loader.c
-	$(CC) $(CFLAGS) loader.c -o loader.o
-
-linker.o: linker.c
-	$(CC) $(CFLAGS) linker.c -o linker.o
+obj/%.o: $(SRC_DIR)/%.asm
+	$(ASM) -felf64 $< -o $@

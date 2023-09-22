@@ -428,6 +428,9 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 
     if (address == NULL) {
         address = process_get_free_addr(process, length);
+        //printf("FOUND ADDR %s\n", ulltoa(address, 16));
+    } else {
+        address = align_down(address, PAGE_SIZE);
     }
 
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
@@ -440,7 +443,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     //NOT IMPLEMENTED
     //TODO: IMPLEMENT
 
-    return NULL;
+    return address;
 }
 
 int sys_mount(const char* device, const char* mount_dir, const char* fs)
