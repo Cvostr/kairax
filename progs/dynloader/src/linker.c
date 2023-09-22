@@ -7,9 +7,7 @@ extern int cfd;
 void* link(void* arg, int index) {
     struct got_plt* got = (struct got_plt*) arg;
     struct object_data* main_object_data = (struct object_data*) got->unused;
-    uint64_t* got_func_addr = (uint64_t*) (arg + 3 + index); 
-
-    syscall_write(cfd, "w\5ALIVE", 7);
+    uint64_t* got_func_addr = ((uint64_t*) arg) + 3 + index; 
 
     char ss[4];
     ss[0] = 'w';
@@ -18,12 +16,13 @@ void* link(void* arg, int index) {
     ss[3] = '\n';
     syscall_write(cfd, ss, 4);
 
+    struct elf_rela* relocation = main_object_data->rela;
+    relocation += index;
+
     struct elf_symbol* sym = main_object_data->dynsym;
-    sym += index;
+    sym += ELF64_R_SYM(relocation->info);
 
-    char* name = main_object_data->dynstr += sym->name;
-
-    syscall_write(cfd, "w\7LINKER ", 7);
+    char* name = main_object_data->dynstr + sym->name;
 
     char name_log[15];
     name_log[0] = 'w';

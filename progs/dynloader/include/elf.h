@@ -56,6 +56,8 @@ struct elf_section_header_entry {
 #define ELF_DT_STRTAB       5
 #define ELF_DT_SYMTAB       6
 #define ELF_DT_RELA         7
+#define ELF_DT_RELASZ       8
+#define ELF_DT_STRSZ        10
 
 struct elf_dynamic {
     int64_t tag;
@@ -95,6 +97,9 @@ struct elf_rela {
     uint64_t    info;
     int64_t     addend;
 } __attribute__((packed));
+
+#define ELF64_R_SYM(i)((i) >> 32)
+#define ELF64_R_TYPE(i)((i) & 0xffffffffL)
 
 #define AT_NULL         0               
 #define AT_IGNORE       1

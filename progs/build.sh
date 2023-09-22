@@ -14,8 +14,9 @@ cd ..
 gcc $ARGS echo.c -o echo.o
 ld -melf_x86_64 -o echo.a echo.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_stat
 
-gcc $ARGS mkdir.c -o mkdir.o
-ld -melf_x86_64 -o mkdir.a mkdir.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_stat
+cd mkdir
+make
+cd ..
 
 cd cat
 make 

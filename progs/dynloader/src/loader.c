@@ -29,6 +29,9 @@ void loader() {
     // Чтение файла
     rc = syscall_read(fd, file_buffer, file_stat.st_size);
 
+    // Закрыть файл
+    syscall_close(fd);
+
     struct elf_header* elf_header = (struct elf_header*) file_buffer;
     struct object_data* main_object_data = 
                         (struct object_data*) syscall_process_map_memory(NULL, sizeof(struct object_data), 1, 0);
@@ -39,14 +42,7 @@ void loader() {
         // Получить название секции
         char* section_name = elf_get_string_at(file_buffer, sehentry->name_offset);
 
-        if (strcmp(section_name, ".got.plt") == 0) {
-            // Есть секция GOT PLT
-            struct got_plt* got = (struct got_plt*) sehentry->addr;
-            got->arg = got;
-            got->linker_ip = linker_entry;
-            got->unused = main_object_data;
-
-        } else if (strcmp(section_name, ".dynamic") == 0) {
+        if (strcmp(section_name, ".dynamic") == 0) {
 
             main_object_data->dynamic_section = syscall_process_map_memory(NULL, sehentry->size, 1, 0);
             memcpy(main_object_data->dynamic_section, file_buffer + sehentry->offset, sehentry->size);
@@ -58,6 +54,13 @@ void loader() {
                     char* object_name = elf_get_string_at(file_buffer, dynamic->d_un.val);
                     syscall_write(cfd, temp, 12);
                 }*/
+                if (dynamic->tag == ELF_DT_PLTGOT) {
+                    // Есть секция GOT PLT
+                    struct got_plt* got = (struct got_plt*) dynamic->d_un.addr;
+                    got->arg = got;
+                    got->linker_ip = linker_entry;
+                    got->unused = main_object_data;
+                }
             }
         } else if (strcmp(section_name, ".dynsym") == 0) {
             
@@ -72,16 +75,14 @@ void loader() {
 
             main_object_data->dynstr_size = sehentry->size;
 
-        } else if (strcmp(section_name, ".rela") == 0) {
+        } else if (strcmp(section_name, ".rela.plt") == 0) {
             main_object_data->rela = (struct elf_rela*)syscall_process_map_memory(NULL, sehentry->size, 1, 0);
             memcpy(main_object_data->rela, file_buffer + sehentry->offset, sehentry->size);
 
             main_object_data->rela_size = sehentry->size;
         }
     }
-
-    syscall_write(cfd, "w\6LOADED", 8);
-
+    
     void (*func)(int, char**) = (void*) aux_vector[AT_ENTRY];
     func(argc, argv);
 }

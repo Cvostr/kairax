@@ -99,7 +99,6 @@ check_enable_sse:
     or ax, 0x3 << 0x9   
     mov cr4, eax
 
-    fxsave [V2P(float_mem)] ;Установка пространства float для MMX, SSE инструкций
 	ret
 no_sse:
 	mov esi, V2P(nosse_error)
@@ -187,7 +186,3 @@ section .rodata
 	nocpuid_error db 'No CPUID support', 0x0
 	nolongmode_error db 'No 64-bit support in CPU', 0x0
 	nosse_error db 'No SSE support in CPU', 0x0
-
-section .data
-	align 16 
-	float_mem: TIMES 512 db 0 ; SSE
