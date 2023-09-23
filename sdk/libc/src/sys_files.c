@@ -1,6 +1,7 @@
 #include "sys_files.h"
 #include "../sys/syscalls.h"
 #include "errno.h"
+#include "unistd.h"
 
 int open_file_at(int dirfd, const char* filepath, int flags, int mode)
 {

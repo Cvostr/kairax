@@ -10,7 +10,10 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys_files.o \
 				obj/bsdmalloc.o
 
-all: libc_static libc errno
+all: $(OBJ_DIR) libc_static libc errno
+
+$(OBJ_DIR):
+	mkdir -p $@
 
 errno: obj/errno.o
 	ar rcs liberrno.a obj/errno.o

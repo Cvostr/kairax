@@ -1,5 +1,6 @@
 #include "stdio.h"
 #include "sys_files.h"
+#include "unistd.h"
 #include "../sdk/sys/syscalls.h"
 #include "errno.h"
 #include "process.h"

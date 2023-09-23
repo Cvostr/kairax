@@ -1,4 +1,4 @@
-ARGS="-nostdlib -m64 -c -nostdinc -ffreestanding -I../sdk/libc/include"
+ARGS="-nostdlib -m64 -c -nostdinc -ffreestanding -I../sdk/libc/include -I../sdk/libkairax/include"
 LD_ARGS="-melf_x86_64 --dynamic-linker=/loader.elf -z noexecstack"
 
 gcc $ARGS sysc.c -o sysc.o
@@ -26,7 +26,7 @@ gcc $ARGS floattest.c -o floattest.o
 ld -melf_x86_64 -o floattest.a floattest.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc_stat
 
 gcc $ARGS shared_test.c -o shared_test.o
-ld $LD_ARGS -o shared-test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+ld $LD_ARGS -o shared-test.a shared_test.o ../sdk/sys/syscalls.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno -L../sdk/libkairax/ -lkairax
 
 cd chmod
 make

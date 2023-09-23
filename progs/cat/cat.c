@@ -1,6 +1,6 @@
-#include "../../sdk/libc/stdio.h"
-#include "../../sdk/libc/sys_files.h"
-#include "../../sdk/sys/syscalls.h"
+#include "stdio.h"
+#include "sys_files.h"
+#include "unistd.h"
 
 #define REGION_LEN 15
 char region[REGION_LEN];

@@ -3,14 +3,21 @@ LDARGS=-melf_x86_64 -z noexecstack -pie
 CC=gcc
 ASM=nasm
 SRC_DIR=src
+OBJ_DIR=obj
 COMPILED_OBJS = obj/entry.o \
 				obj/loader.o \
 				obj/linker.o \
 				obj/elf.o \
 				obj/string.o
 
-all: $(COMPILED_OBJS)
+all: $(OBJ_DIR) $(COMPILED_OBJS)
 	ld $(LDARGS) -o loader.elf $(COMPILED_OBJS) ../../sdk/sys/syscalls.o
+
+clean:
+	rm -rf obj/*.o *.a *.elf
+
+$(OBJ_DIR):
+	mkdir -p $@
 
 obj/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $< -o $@
