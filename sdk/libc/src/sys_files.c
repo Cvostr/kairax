@@ -53,7 +53,7 @@ int readdir(int fd, struct dirent* direntry)
     __set_errno(syscall_readdir(fd, direntry));
 }
 
-off_t file_seek(int fd, off_t offset, int whence)
+off_t lseek(int fd, off_t offset, int whence)
 {
     __set_errno(syscall_file_seek(fd, offset, whence));
 }

@@ -105,16 +105,21 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     if (info) {
         uint64_t* stack_new_pos = (uint64_t*) (thread->stack_ptr);
 
+        // Поместить в стек argc
         stack_new_pos -= 1;
         vm_memcpy(process->vmemory_table, stack_new_pos, &info->argc, sizeof(int));
 
+        // Поместить в стек argv
         stack_new_pos -= 1;
         vm_memcpy(process->vmemory_table, stack_new_pos, &info->argv, sizeof(char*));
 
+        // Поместить в стек aux вектор
         for (size_t i = 0; i < info->aux_size; i ++) {
             struct aux_pair* aux_cur = &info->auxv[i];
+            // ключ
             stack_new_pos -= 1;
             vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->pval, sizeof(uint64_t));
+            // значение
             stack_new_pos -= 1;
             vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->type, sizeof(uint64_t));
         }

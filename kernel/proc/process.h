@@ -57,6 +57,8 @@ struct process*  create_new_process(struct process* parent);
 
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result);
 
+int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end);
+
 void free_process(struct process* process);
 
 // Установить адрес конца памяти процесса

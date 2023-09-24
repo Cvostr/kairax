@@ -22,7 +22,7 @@ int main() {
     int counter = 0;
     printf("PID : %i\n", process_get_id());
     
-    syscall_get_working_dir(buff, 220);
+    getcwd(buff, 220);
     printf("CWD : %s\n", buff);
 
     int fd1 = open_file("/mydir/blabla", FILE_OPEN_MODE_READ_ONLY, 0);

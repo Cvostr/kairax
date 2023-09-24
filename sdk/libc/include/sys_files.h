@@ -15,12 +15,6 @@
 #define FILE_OPEN_FLAG_APPEND       00002000
 #define FILE_OPEN_FLAG_DIRECTORY    00200000
 
-#define lseek file_seek
-
-#define SEEK_SET    0
-#define SEEK_CUR    1
-#define SEEK_END    2
-
 #define FD_CWD		-2
 
 #define DIRFD_IS_FD  1
@@ -53,8 +47,6 @@ int stat(const char* filepath, struct stat* st);
 int stat_at(int dirfd, const char* filepath, struct stat* st);
 
 int readdir(int fd, struct dirent* direntry);
-
-off_t file_seek(int fd, off_t offset, int whence);
 
 int ioctl(int fd, uint64_t request, uint64_t arg);
 

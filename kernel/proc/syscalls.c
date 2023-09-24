@@ -146,44 +146,12 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     int rc = -1;
     int close_at_end = 0;
     struct process* process = cpu_get_current_thread()->process;
-
     struct file* file = NULL;
-    if (flags & DIRFD_IS_FD) {
-        // Дескриптор файла передан в dirfd
-        file = process_get_file(process, dirfd);
 
-    } else if (dirfd == FD_CWD && process->workdir->dentry) {
-        // Указан путь относительно рабочей директории
-        file = file_open(process->workdir->dentry, filepath, 0, 0);
-        close_at_end = 1;
-    } else {
-        // Открываем файл относительно dirfd
-        struct file* dirfile = process_get_file(process, dirfd);
-
-        if (dirfile) {
-
-            // проверить тип inode от dirfd
-            if ( (dirfile->inode->mode & INODE_TYPE_DIRECTORY) != INODE_TYPE_DIRECTORY) {
-                return -ERROR_NOT_A_DIRECTORY;
-            }
-
-        } else {
-            // Не найден дескриптор dirfd
-            return -ERROR_BAD_FD;
-        }
-
-        // Открыть файл
-        file = file_open(dirfile->dentry, filepath, 0, 0);
-        close_at_end = 1;
-    }
-
-    if (file == NULL) {
-        // Не получилось открыть файл, выходим
-        if (flags & DIRFD_IS_FD) {
-            return -ERROR_BAD_FD;
-        } else {
-            return -ERROR_NO_FILE;
-        }
+    // Открыть файл относительно папки и флагов
+    rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
+    if (rc != 0) {
+        return rc;
     }
 
     struct inode* inode = file->inode;
@@ -201,43 +169,12 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     int rc = -1;
     int close_at_end = 0;
     struct process* process = cpu_get_current_thread()->process;
-
     struct file* file = NULL;
-    if (flags & DIRFD_IS_FD) {
-        // Дескриптор файла передан в dirfd
-        file = process_get_file(process, dirfd);
-    } else if (dirfd == FD_CWD && process->workdir->dentry) {
-        // Указан путь относительно рабочей директории
-        file = file_open(process->workdir->dentry, filepath, 0, 0);
-        close_at_end = 1;
-    } else {
-        // Открываем файл относительно dirfd
-        struct file* dirfile = process_get_file(process, dirfd);
-
-        if (dirfile) {
-
-            // проверить тип inode от dirfd
-            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
-                return -ERROR_NOT_A_DIRECTORY;
-            }
-
-        } else {
-            // Не найден дескриптор dirfd
-            return -ERROR_BAD_FD;
-        }
-
-        // Открыть файл
-        file = file_open(dirfile->dentry, filepath, 0, 0);
-        close_at_end = 1;
-    }
-
-    if (file == NULL) {
-        // Не получилось открыть файл, выходим
-        if (flags & DIRFD_IS_FD) {
-            return -ERROR_BAD_FD;
-        } else {
-            return -ERROR_NO_FILE;
-        }
+    
+    // Открыть файл относительно папки и флагов
+    rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
+    if (rc != 0) {
+        return rc;
     }
 
     struct inode* inode = file->inode;

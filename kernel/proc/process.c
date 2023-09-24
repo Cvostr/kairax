@@ -395,3 +395,46 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
 
     return 0;
 }
+
+int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end)
+{
+    if (flags & DIRFD_IS_FD) {
+        // Дескриптор файла передан в dirfd
+        *file = process_get_file(process, dirfd);
+    } else if (dirfd == FD_CWD && process->workdir->dentry) {
+        // Указан путь относительно рабочей директории
+        *file = file_open(process->workdir->dentry, path, 0, 0);
+        *close_at_end = 1;
+    } else {
+        // Открываем файл относительно dirfd
+        struct file* dirfile = process_get_file(process, dirfd);
+
+        if (dirfile) {
+
+            // проверить тип inode от dirfd
+            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+                return -ERROR_NOT_A_DIRECTORY;
+            }
+
+        } else {
+            // Не найден дескриптор dirfd
+            return -ERROR_BAD_FD;
+        }
+
+        // Открыть файл
+        *file = file_open(dirfile->dentry, path, 0, 0);
+        *close_at_end = 1;
+    }
+
+    if (*file == NULL) {
+        // Не получилось открыть файл, выходим
+        *close_at_end = 0;
+        if (flags & DIRFD_IS_FD) {
+            return -ERROR_BAD_FD;
+        } else {
+            return -ERROR_NO_FILE;
+        }
+    }
+
+    return 0;
+}

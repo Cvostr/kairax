@@ -1,4 +1,4 @@
-CFLAGS=-nostdlib -m64 -c -nostdinc -ffreestanding -fPIC -I./include -I../sys
+CFLAGS=-nostdlib -nostdinc -ffreestanding -I./include -I../sys -mcmodel=large
 COMPILER=gcc
 SRC_DIR=src
 OBJ_DIR=obj
@@ -11,10 +11,10 @@ $(OBJ_DIR):
 	mkdir -p $@
 
 libkairax: $(COMPILED_OBJS)
-	ld -melf_x86_64 -shared -o libkairax.so $(COMPILED_OBJS) ../sys/syscalls.o
+	$(CC) -nostdlib -mcmodel=large -shared -o libkairax.so $(COMPILED_OBJS)
 
 clean:
 	rm -rf obj/*.o *.so *.a
 
 obj/%.o: $(SRC_DIR)/%.c
-	$(COMPILER) $(CFLAGS) $< -o $@
+	$(COMPILER) $(CFLAGS) -c $< -o $@

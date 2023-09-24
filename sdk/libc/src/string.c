@@ -3,7 +3,7 @@
 void *memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n)
 {
     char* temp_dst = __dest;
-    char* temp_src = __src;
+    char* temp_src = (char*) __src;
 
     while(__n--)
 		*(temp_dst++) = *(temp_src++);

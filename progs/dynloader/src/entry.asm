@@ -14,6 +14,7 @@ linker_entry:
     push rdi
     push rsi
     push rcx
+    push rdx
 
     mov rdi, rax
     mov rsi, rbx
@@ -21,6 +22,7 @@ linker_entry:
     lea rax, [rel link]
     call rax
 
+    pop rdx
     pop rcx
     pop rsi
     pop rdi
