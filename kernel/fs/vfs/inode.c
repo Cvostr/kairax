@@ -46,7 +46,7 @@ int inode_chmod(struct inode* node, uint32_t mode)
     acquire_spinlock(&node->spinlock);
 
     if(node->operations->chmod) {
-        rc =node->operations->chmod(node, mode);
+        rc = node->operations->chmod(node, mode);
         node->mode = (node->mode & 0xFFFFF000) | mode;
     }
 

@@ -18,11 +18,6 @@ int mkdir(const char* dirpath, int mode)
     __set_errno(syscall_create_directory(FD_CWD, dirpath, mode));
 }
 
-int close(int fd)
-{
-    __set_errno(syscall_close(fd));
-}
-
 ssize_t read(int fd, char* buffer, size_t size)
 {
     __set_errno(syscall_read(fd, buffer, size));
@@ -51,11 +46,6 @@ int stat_at(int dirfd, const char* filepath, struct stat* st)
 int readdir(int fd, struct dirent* direntry)
 {
     __set_errno(syscall_readdir(fd, direntry));
-}
-
-off_t lseek(int fd, off_t offset, int whence)
-{
-    __set_errno(syscall_file_seek(fd, offset, whence));
 }
 
 int chmod(const char* filepath, mode_t mode)

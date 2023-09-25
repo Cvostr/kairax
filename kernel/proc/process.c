@@ -298,46 +298,45 @@ void* process_get_free_addr(struct process* process, size_t length)
     void* result = NULL;
     acquire_spinlock(&process->mmap_lock);
     size_t mappings_count = list_size(process->mmap_ranges);
-    for (int i = 0; i < mappings_count ; i ++) {
-        uintptr_t base = 0;
-        int real_range_index = i;
-        uintptr_t end = 0;
+    
+    for (size_t i = 0; i < mappings_count; i ++) {
 
-        struct mmap_range* range = list_get(process->mmap_ranges, real_range_index);
-        base = range->base + range->length + PAGE_SIZE;
+        struct mmap_range* range = list_get(process->mmap_ranges, i);
+
+        // Адрес начала предполагаемого диапазона
+        uintptr_t base = range->base + range->length + PAGE_SIZE;
 
         // Адрес конца
-        end = base + length;
+        uintptr_t end = base + length;
 
         // Проверяем, что не вылазим за границы адресного пространства процесса
         if (end >= USERSPACE_MAX_ADDR)
             continue;
-
-        /*printf("REGION BEGIN: %s ", ulltoa(range->base, 16));
-        printf("END: %s \n", ulltoa(range->base + range->length, 16));*/
         
         int suitable = 1;
 
         for (size_t j = 0; j < mappings_count; j ++) {
 
-            if (real_range_index == j)
+            if (i == j)
                 continue;
 
             struct mmap_range* mrange = list_get(process->mmap_ranges, j);
             uintptr_t range_end = mrange->base + mrange->length;
-
-            /*printf("MATCHING REGION BEGIN: %s ", ulltoa(mrange->base, 16));
-            printf("END: %s", ulltoa(mrange->base + mrange->length, 16));*/
             
-            int new_base_inside = base >= mrange->base && base <= range_end;
-            int new_end_inside = end >= mrange->base && end <= range_end;
+            // Вычисляем адреса центров нового и имеющегося регионов
+            uint64_t new_range_mid = base + length / 2;
+            uint64_t cur_range_mid = mrange->base + mrange->length / 2;
 
-            if (new_base_inside || new_end_inside) {
+            // Расстояние между центрами двух регионов
+            uint64_t diff = new_range_mid > cur_range_mid ? new_range_mid - cur_range_mid : cur_range_mid - new_range_mid;
+
+            // Минимальное необходимое расстояние между регионами
+            uint64_t min_dist = (length + mrange->length) / 2;
+
+            if (diff <= min_dist) {
                 suitable = 0;
-                //printf("COLLIDES\n");
                 break;
             }
-            //printf("\n");
         }
 
         if (suitable == 1) {

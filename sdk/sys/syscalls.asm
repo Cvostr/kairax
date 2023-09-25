@@ -15,6 +15,7 @@ global syscall_close
 global syscall_fdstat
 global syscall_readdir
 global syscall_file_seek
+global syscall_create_pipe
 global syscall_set_file_mode
 global syscall_create_thread
 global syscall_create_process
@@ -22,6 +23,7 @@ global syscall_mount
 global syscall_poweroff
 global syscall_create_directory
 global syscall_process_map_memory
+global syscall_process_unmap_memory
 
 syscall_read:
     mov rax, 0x0
@@ -55,8 +57,19 @@ syscall_file_seek:
     syscall
     ret
 
+syscall_create_pipe:
+    mov rax, 0x16
+    syscall
+    ret
+
 syscall_process_map_memory:
     mov rax, 0x9
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_process_unmap_memory:
+    mov rax, 0xB
     mov r10, rcx
     syscall
     ret

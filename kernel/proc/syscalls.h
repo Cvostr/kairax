@@ -27,6 +27,8 @@ int sys_ioctl(int fd, uint64_t request, uint64_t arg);
 
 off_t sys_file_seek(int fd, off_t offset, int whence); 
 
+int sys_pipe(int* pipefd, int flags);
+
 int sys_get_working_dir(char* buffer, size_t size);
 
 int sys_set_working_dir(const char* buffer);
@@ -40,6 +42,8 @@ void sys_exit_process(int code);
 int sys_thread_sleep(uint64_t time);
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags);
+
+int sys_memory_unmap(void* address, uint64_t length);
 
 int sys_mount(const char* device, const char* mount_dir, const char* fs);
 

@@ -10,6 +10,7 @@
 #include "elf64/elf64.h"
 #include "string.h"
 #include "dev/acpi/acpi.h"
+#include "ipc/pipe.h"
 
 int sys_not_implemented()
 {
@@ -235,6 +236,22 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
     return result;
 }
 
+int sys_pipe(int* pipefd, int flags)
+{
+    struct process* process = cpu_get_current_thread()->process;
+    struct pipe* ppe = new_pipe();
+
+    struct file* pread_file = new_file();
+    struct file* pwrite_file = new_file();
+
+    pipe_create_files(ppe, flags, pread_file, pwrite_file);
+
+    pipefd[0] = process_add_file(process, pread_file);
+    pipefd[1] = process_add_file(process, pwrite_file);
+
+    return 0;
+}
+
 int sys_get_working_dir(char* buffer, size_t size)
 {
     int rc = 0;
@@ -371,16 +388,47 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     }
 
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
-    range->base = address;
+    range->base = (uint64_t) address;
     range->length = length;
     range->protection = protection | PAGE_PROTECTION_USER;
 
     process_add_mmap_region(process, range);
 
-    //NOT IMPLEMENTED
+    //NOT IMPLEMENTED FOR FILE MAP
     //TODO: IMPLEMENT
 
     return address;
+}
+
+int sys_memory_unmap(void* address, uint64_t length)
+{
+    // ONLY implemented unmapping by address
+    // TODO : implement splitting
+    struct process* process = cpu_get_current_thread()->process;
+    int rc = 0;
+
+    acquire_spinlock(&process->mmap_lock);
+    struct mmap_range* region = process_get_range_by_addr(process, address);
+    
+    // TODO: reimplement
+    length = region->length;
+
+    if (region == NULL) {
+        rc = -1; //Уточнить код ошибки
+        goto exit;
+    }
+
+    // Удалить регион из списка
+    list_remove(process->mmap_ranges, region);
+
+    // Освободить память
+    vm_unmap_region(process->vmemory_table, address, length);
+
+    kfree(region);
+
+exit:
+    release_spinlock(&process->mmap_lock);
+    return rc;
 }
 
 int sys_mount(const char* device, const char* mount_dir, const char* fs)

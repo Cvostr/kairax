@@ -1,6 +1,7 @@
 #include "paging.h"
 #include "kheap.h"
 #include "string.h"
+#include "pmm.h"
 
 struct vm_table* new_vm_table()
 {
@@ -39,6 +40,17 @@ int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physica
     release_spinlock(&table->lock);
 
     return rc;
+}
+
+void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length)
+{
+    acquire_spinlock(&table->lock);
+
+    for (uint64_t addr = virtual_addr; addr < virtual_addr + length; addr += PAGE_SIZE) {
+        arch_vm_unmap(table->arch_table, addr);
+    }
+
+    release_spinlock(&table->lock);
 }
 
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr)

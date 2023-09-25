@@ -43,7 +43,7 @@ page_table_t* new_page_table();
 //Создать виртуальную страницу с указанным адресом и назначить ей указанный физический
 int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
 //Удалить виртуальную страницу
-int unmap_page(page_table_t* root, uintptr_t virtual_addr);
+int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free);
 //Получить физический адрес из виртуального для указанной корневой таблицы
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
 

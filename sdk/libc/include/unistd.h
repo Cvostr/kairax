@@ -24,4 +24,8 @@ off_t lseek(int fd, off_t offset, int whence);
 
 char* getcwd(char* buf, size_t size);
 
+int chdir(const char* path);
+
+int pipe(int pipefd[2]);
+
 #endif

@@ -27,6 +27,8 @@ int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physica
 
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr);
 
+void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length);
+
 void vm_memset(struct vm_table* table, uint64_t addr, int val, size_t size);
 
 void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size);

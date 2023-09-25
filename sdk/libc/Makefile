@@ -8,6 +8,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib.o \
 				obj/string.o \
 				obj/unistd.o \
+				obj/fcntl.o \
 				obj/sys_files.o \
 				obj/bsdmalloc.o
 

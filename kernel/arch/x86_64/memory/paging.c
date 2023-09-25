@@ -93,10 +93,10 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
 
 void arch_vm_unmap(void* arch_table, uint64_t vaddr)
 {
-    unmap_page(arch_table, vaddr);
+    unmap_page(arch_table, vaddr, TRUE);
 }
 
-int unmap_page(page_table_t* root, uintptr_t virtual_addr)
+int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free)
 {
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
@@ -124,7 +124,10 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr)
     if (!(pt_table->entries[level1_index] & PAGE_PRESENT)) {
         return ERR_NO_PAGE_PRESENT;
     } else {
-        uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
+        if (free == TRUE) {
+            uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
+            pmm_free_page(phys_addr);
+        }
         pt_table->entries[level1_index] = 0;
     }
 
@@ -197,7 +200,7 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 {
     int rc = 0;
     physical_addr_t phys_addr = get_physical_address(root, virtual_addr);
-    unmap_page(root, virtual_addr);
+    unmap_page(root, virtual_addr, FALSE);
 	map_page_mem(root, virtual_addr, phys_addr, flags);
 
     return 0;
