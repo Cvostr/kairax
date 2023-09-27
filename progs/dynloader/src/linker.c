@@ -9,15 +9,16 @@ void* link(void* arg, int index) {
     struct object_data* main_object_data = (struct object_data*) got->unused;
     uint64_t* got_func_addr = ((uint64_t*) arg) + 3 + index; 
 
-    char ss[4];
-    ss[0] = 'w';
-    ss[1] = 2;
-    ss[2] = '0' + index;
-    ss[3] = '\n';
-    syscall_write(cfd, ss, 4);
-
     struct elf_rela* relocation = main_object_data->rela;
     relocation += index;
+
+    char ss[5];
+    ss[0] = 'w';
+    ss[1] = 3;
+    ss[2] = '0' + index;
+    ss[3] = '0' + relocation->addend;
+    ss[4] = '\n';
+    syscall_write(cfd, ss, 5);
 
     struct elf_symbol* sym = main_object_data->dynsym;
     sym += ELF64_R_SYM(relocation->info);

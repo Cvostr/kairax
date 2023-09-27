@@ -410,19 +410,19 @@ int sys_memory_unmap(void* address, uint64_t length)
     acquire_spinlock(&process->mmap_lock);
     struct mmap_range* region = process_get_range_by_addr(process, address);
     
-    // TODO: reimplement
-    length = region->length;
-
     if (region == NULL) {
         rc = -1; //Уточнить код ошибки
         goto exit;
     }
 
+    // TODO: reimplement
+    length = region->length;
+
     // Удалить регион из списка
     list_remove(process->mmap_ranges, region);
 
     // Освободить память
-    vm_unmap_region(process->vmemory_table, address, length);
+    vm_table_unmap_region(process->vmemory_table, address, length);
 
     kfree(region);
 

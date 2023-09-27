@@ -82,7 +82,34 @@ void loader() {
             main_object_data->rela_size = sehentry->size;
         }
     }
+
+    syscall_process_unmap_memory(file_buffer, file_stat.st_size);
     
     void (*func)(int, char**) = (void*) aux_vector[AT_ENTRY];
     func(argc, argv);
+}
+
+struct object_data* load_object_data(char* data);
+
+struct object_data* load_object_data_fd(int fd) {
+
+    struct stat file_stat;
+    int rc = syscall_fdstat(fd, 0, &file_stat, 1);
+
+    char* file_buffer = syscall_process_map_memory(NULL, file_stat.st_size, 1, 0);
+    memset(file_buffer, 0, file_stat.st_size);
+
+    // Чтение файла
+    rc = syscall_read(fd, file_buffer, file_stat.st_size);
+
+    return load_object_data(file_buffer);
+}
+
+struct object_data* load_object_data(char* data) {
+    struct object_data* obj_data = 
+                        (struct object_data*) syscall_process_map_memory(NULL, sizeof(struct object_data), 1, 0);
+
+    struct elf_header* elf_header = (struct elf_header*) data;
+
+    return obj_data;
 }

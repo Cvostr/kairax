@@ -4,6 +4,7 @@
 global syscall_process_get_id
 global syscall_thread_get_id
 global syscall_get_working_dir
+global syscall_set_working_dir
 global syscall_process_exit
 global syscall_sleep
 global syscall_scheduler_yield

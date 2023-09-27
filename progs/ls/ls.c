@@ -2,6 +2,7 @@
 #include "sys_files.h"
 #include "errno.h"
 #include "unistd.h"
+#include "fcntl.h"
 
 int main(int argc, char** argv) {
 
@@ -18,7 +19,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    int dirfd = open_file(path, FILE_OPEN_MODE_READ_ONLY, 0);
+    int dirfd = open(path, FILE_OPEN_MODE_READ_ONLY, 0);
 
     if (dirfd == -1) {
         printf("Can't open %s", path);

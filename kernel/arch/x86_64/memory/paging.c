@@ -107,7 +107,7 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free)
         return ERR_NO_PAGE_PRESENT;
     }
 
-    page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
+    page_table_t* pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2V(pdp_table);
     if (!(pdp_table->entries[level3_index] & PAGE_PRESENT)) {
         return ERR_NO_PAGE_PRESENT;  
@@ -242,8 +242,6 @@ size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size)
         }
 
         phys_addr = P2V(phys_addr);
-
-        //printf("PHYS %s ", ulltoa(phys_addr, 16));
 
         *phys_addr = *((char*)src + i);
         copied ++;

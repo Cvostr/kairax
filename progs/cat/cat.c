@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "sys_files.h"
 #include "unistd.h"
+#include "fcntl.h"
 
 #define REGION_LEN 15
 char region[REGION_LEN];
@@ -14,7 +15,7 @@ int main(int argc, char** argv) {
 
     char* src = argv[1];
 
-    int srcfd = open_file(src, FILE_OPEN_MODE_READ_ONLY, 0);
+    int srcfd = open(src, FILE_OPEN_MODE_READ_ONLY, 0);
 
     if (srcfd == -1) {
         printf("Can't open file %s", src);

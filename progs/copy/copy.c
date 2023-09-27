@@ -2,6 +2,7 @@
 #include "sys_files.h"
 #include "errno.h"
 #include "unistd.h"
+#include "fcntl.h"
 
 #define REGION_LEN 9000
 char region[REGION_LEN];
@@ -16,14 +17,14 @@ int main(int argc, char** argv) {
     char* src = argv[1];
     char* dest = argv[2];
 
-    int srcfd = open_file(src, FILE_OPEN_MODE_READ_ONLY, 0xFFF);
+    int srcfd = open(src, FILE_OPEN_MODE_READ_ONLY, 0xFFF);
 
     if (srcfd == -1) {
         printf("Can't open source file %s, code=%i\n", src, errno);
         return 2;
     }
 
-    int dstfd = open_file(dest, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0xFFF);
+    int dstfd = open(dest, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0xFFF);
 
     if (dstfd == -1) {
         printf("Can't open destination file %s, code=%i\n", dest, errno);
