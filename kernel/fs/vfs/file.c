@@ -3,6 +3,18 @@
 #include "string.h"
 #include "vfs.h"
 
+int file_allow_read(struct file* file)
+{
+    int masked_flags = file->flags & FILE_OPEN_MODE_MASK;
+    return masked_flags != FILE_OPEN_MODE_WRITE_ONLY;
+}
+
+int file_allow_write(struct file* file)
+{
+    int masked_flags = file->flags & FILE_OPEN_MODE_MASK;
+    return masked_flags != FILE_OPEN_MODE_READ_ONLY;
+}
+
 struct file* new_file()
 {
     struct file* file = kmalloc(sizeof(struct file));
@@ -137,7 +149,7 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
         goto exit;
     }
     
-    if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
+    if (file_allow_read(file)) {
         if (file->ops->read) {
             read = file->ops->read(file, buffer, size, file->pos);
         }
@@ -161,7 +173,7 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
         goto exit;
     }
 
-    if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) {
+    if (file_allow_write(file)) {
         if (file->ops->write) {
             written = file->ops->write(file, buffer, size, file->pos);
         }

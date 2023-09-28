@@ -116,15 +116,21 @@ char* elf_get_string_at(char* image, uint32_t string_index);
 
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
 
-#define OBJECT_NAME_LEN_MAX 100
+#define OBJECT_NAME_LEN_MAX 50
 #define OBJECT_DEPENDENCIES_MAX 30
 
 struct object_data {
-    char                name[OBJECT_NAME_LEN_MAX];
+    
+    uint64_t            base;
+    uint64_t            size;
 
+    char                name[OBJECT_NAME_LEN_MAX];
+    
     struct object_data* dependencies[OBJECT_DEPENDENCIES_MAX];
+    uint32_t            dependencies_count;
 
     void                *dynamic_section;
+    uint64_t            dynamic_sec_size;
     
     void*               dynstr;
     uint64_t            dynstr_size;
@@ -138,6 +144,6 @@ struct object_data {
     struct elf_rela*    rela;
     uint64_t            rela_size;
 
-} __attribute__((packed));
+};
 
 #endif

@@ -83,7 +83,7 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     pt_table = P2V(pt_table);
 
-    if(!(pt_table->entries[level1_index] & (PAGE_PRESENT))){
+    if((pt_table->entries[level1_index] & (PAGE_PRESENT)) == 0){
         pt_table->entries[level1_index] = ((uint64_t)physical_addr | flags);
         return 0;
     }

@@ -361,7 +361,7 @@ int process_handle_page_fault(struct process* process, uint64_t address)
     }
 
     uint64_t aligned_address = align_down(address, PAGE_SIZE);
-    vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
+    int rc = vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
 
     release_spinlock(&process->mmap_lock);
     return 1;

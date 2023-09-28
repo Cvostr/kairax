@@ -14,7 +14,7 @@ void *memset (void *__s, int __c, uint64_t __n)
 void *memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n)
 {
     char* temp_dst = __dest;
-    char* temp_src = __src;
+    char* temp_src = (char*)__src;
 
     while(__n--)
 		*(temp_dst++) = *(temp_src++);
@@ -55,4 +55,10 @@ size_t strlen (const char *__s)
 char *strcpy (char *__restrict __dest, const char *__restrict __src)
 {
     return memcpy (__dest, __src, strlen (__src) + 1);
+}
+
+char *strcat (char *__restrict __dest, const char *__restrict __src)
+{
+    strcpy(__dest + strlen (__dest), __src);
+    return __dest;
 }

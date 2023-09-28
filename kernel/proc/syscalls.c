@@ -40,12 +40,12 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     }
 
     if ( !(file->inode->mode & INODE_TYPE_DIRECTORY) && (flags & FILE_OPEN_FLAG_DIRECTORY)) {
-        // Мы пытаемся открыть обыйчный файл с флагом директории - выходим
+        // Мы пытаемся открыть обычный файл с флагом директории - выходим
         file_close(file);
         return -ERROR_NOT_A_DIRECTORY;
     }
 
-    if ((file->inode->mode & INODE_TYPE_DIRECTORY) && (flags & FILE_OPEN_MODE_WRITE_ONLY)) {
+    if ((file->inode->mode & INODE_TYPE_DIRECTORY) && file_allow_write(file)) {
         // Мы пытаемся открыть директорию с правами на запись
         file_close(file);
         return -ERROR_IS_DIRECTORY;

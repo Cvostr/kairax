@@ -15,4 +15,6 @@ char *strcpy (char *__restrict __dest, const char *__restrict __src);
 
 size_t strlen (const char *__s);
 
+char *strcat (char *__restrict __dest, const char *__restrict __src);
+
 #endif

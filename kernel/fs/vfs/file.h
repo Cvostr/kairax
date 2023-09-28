@@ -7,9 +7,10 @@
 #include "dentry.h"
 #include "errors.h"
 
-#define FILE_OPEN_MODE_READ_ONLY    00000001
-#define FILE_OPEN_MODE_WRITE_ONLY   00000002
-#define FILE_OPEN_MODE_READ_WRITE   00000003
+#define FILE_OPEN_MODE_READ_ONLY    00000000
+#define FILE_OPEN_MODE_WRITE_ONLY   00000001
+#define FILE_OPEN_MODE_READ_WRITE   00000002
+#define FILE_OPEN_MODE_MASK         0b11
 
 #define FILE_OPEN_FLAG_CREATE       00000100
 #define FILE_OPEN_FLAG_TRUNCATE     00001000
@@ -48,6 +49,10 @@ struct file {
     spinlock_t              lock;
     atomic_t                refs;
 };
+
+int file_allow_read(struct file* file);
+
+int file_allow_write(struct file* file);
 
 struct file* new_file();
 

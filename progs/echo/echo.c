@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int fd = open_file(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0xFFF);
+    int fd = open_file(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0777);
 
     if (fd == -1) {
         printf("Can't open file with path %s", path);
