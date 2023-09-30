@@ -5,6 +5,7 @@ bits 64
 global init_x64
 global lgdt_hh
 global write_cr3
+global read_cr3
 global gdt_update
 extern kernel_stack_top
 extern gdtptr_hh
@@ -36,6 +37,10 @@ init_x64:
 
 write_cr3:
     mov cr3, rdi
+    ret
+
+read_cr3:
+    mov rax, cr3
     ret
 
 gdt_update:

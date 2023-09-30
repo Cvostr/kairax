@@ -80,7 +80,7 @@ void process_add_mmap_region(struct process* process, struct mmap_range* region)
 
 struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t addr);
 
-void* process_get_free_addr(struct process* process, size_t length);
+void* process_get_free_addr(struct process* process, size_t length, uintptr_t hint);
 
 int process_handle_page_fault(struct process* process, uint64_t address);
 

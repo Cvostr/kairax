@@ -293,57 +293,95 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
     return NULL;
 }
 
-void* process_get_free_addr(struct process* process, size_t length)
+int is_regions_collide(struct mmap_range* region1, struct mmap_range* region2) {
+
+    // Вычисляем адреса центров двух регионов
+    uint64_t region1_mid = region1->base + region1->length / 2;
+    uint64_t region2_mid = region2->base + region2->length / 2;
+
+    // Расстояние между центрами двух регионов
+    uint64_t diff = region1_mid > region2_mid ? region1_mid - region2_mid : region2_mid - region1_mid;
+
+    // Минимальное необходимое расстояние между регионами
+    uint64_t min_dist = (region1->length + region2->length) / 2;
+
+    if (diff <= min_dist) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void* process_get_free_addr(struct process* process, size_t length, uintptr_t hint)
 {
     void* result = NULL;
+    int collides = FALSE;
     acquire_spinlock(&process->mmap_lock);
     size_t mappings_count = list_size(process->mmap_ranges);
-    
+
+    // Подготовим временную структуру для проверок
+    struct mmap_range new_range;
+    new_range.length = length;
+
+    if (hint > 0) {
+        // Есть указание разместить регион по адресу
+        new_range.base = hint;
+
+        for (size_t i = 0; i < mappings_count; i ++) {
+
+            struct mmap_range* region = list_get(process->mmap_ranges, i);
+
+            if (is_regions_collide(&new_range, region)) {
+                // Регионы пересекаются, выходим
+                collides = TRUE;
+                break;
+            }
+        }
+
+        if (collides == FALSE) {
+            result = (void*) hint;
+            goto exit;
+        }
+    }
+
+    // Ищем адрес после какого-либо другого региона
     for (size_t i = 0; i < mappings_count; i ++) {
 
         struct mmap_range* range = list_get(process->mmap_ranges, i);
 
         // Адрес начала предполагаемого диапазона
-        uintptr_t base = range->base + range->length + PAGE_SIZE;
+        // TODO:  Убрать PAGE_SIZE???
+        new_range.base = range->base + range->length + PAGE_SIZE;
 
-        // Адрес конца
-        uintptr_t end = base + length;
+        // Начало нового региона должно быть после hint
+        if (new_range.base < hint) {
+            continue;
+        }
 
         // Проверяем, что не вылазим за границы адресного пространства процесса
-        if (end >= USERSPACE_MAX_ADDR)
+        if (new_range.base + length >= USERSPACE_MAX_ADDR)
             continue;
-        
-        int suitable = 1;
+
+        collides = 0;
 
         for (size_t j = 0; j < mappings_count; j ++) {
 
             if (i == j)
                 continue;
 
-            struct mmap_range* mrange = list_get(process->mmap_ranges, j);
-            uintptr_t range_end = mrange->base + mrange->length;
+            struct mmap_range* region = list_get(process->mmap_ranges, j);
             
-            // Вычисляем адреса центров нового и имеющегося регионов
-            uint64_t new_range_mid = base + length / 2;
-            uint64_t cur_range_mid = mrange->base + mrange->length / 2;
-
-            // Расстояние между центрами двух регионов
-            uint64_t diff = new_range_mid > cur_range_mid ? new_range_mid - cur_range_mid : cur_range_mid - new_range_mid;
-
-            // Минимальное необходимое расстояние между регионами
-            uint64_t min_dist = (length + mrange->length) / 2;
-
-            if (diff <= min_dist) {
-                suitable = 0;
+            if (is_regions_collide(&new_range, region)) {
+                // Регионы пересекаются, выходим
+                collides = 1;
                 break;
             }
         }
 
-        if (suitable == 1) {
-            result = (void*) base;
+        if (collides == 0) {
+            result = (void*) new_range.base;
             goto exit;
         }
-        
     }
 
 exit:
@@ -360,6 +398,7 @@ int process_handle_page_fault(struct process* process, uint64_t address)
         return 0;
     }
 
+    // Выделить страницу
     uint64_t aligned_address = align_down(address, PAGE_SIZE);
     int rc = vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
 

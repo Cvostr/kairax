@@ -16,6 +16,23 @@ int cfd;
 
 extern void linker_entry();
 
+uint64_t align(uint64_t val, size_t alignment)
+{
+	if (val < alignment)
+		return alignment;
+
+	if (val % alignment != 0) {
+        val += (alignment - (val % alignment));
+    }
+
+	return val;
+}
+
+uint64_t align_down(uint64_t val, size_t alignment)
+{
+	return val - (val % alignment);
+}
+
 void loader() {
 
     cfd = syscall_open_file(-2, "/dev/console", 00000002, 0);
@@ -43,6 +60,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
         return NULL;
     }
 
+    // Выделить память под файл
     char* file_buffer = syscall_process_map_memory(NULL, file_stat.st_size, PROTECTION_WRITE_ENABLE, 0);
     memset(file_buffer, 0, file_stat.st_size);
 
@@ -53,7 +71,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     struct object_data* result = load_object_data(file_buffer, shared);   
 
     // Освобождение памяти
-    //syscall_process_unmap_memory(file_buffer, file_stat.st_size);
+    syscall_process_unmap_memory(file_buffer, file_stat.st_size);
 
     return result;
 }
@@ -67,12 +85,38 @@ struct object_data* load_object_data(char* data, int shared) {
                         (struct object_data*) syscall_process_map_memory(NULL, sizeof(struct object_data), 1, 0);
     memset(obj_data, 0, sizeof(struct object_data));
 
+    struct elf_header* elf_header = (struct elf_header*) data;
+
     if (shared) {
         // Сохранить адрес начала
         obj_data->base = shared_objects_brk;
+    
+        // Расположить код в памяти
+        for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
+            struct elf_program_header_entry* pehentry = elf_get_program_entry(data, i);
+                
+            if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
+                // Адрес, по которому будут загружены данные
+                uint64_t vaddr = pehentry->v_addr + obj_data->base;
+                uint64_t vaddr_aligned = align_down(vaddr, 0x1000); // выравнивание в меньшую сторону
+                uint64_t end_aligned = align(vaddr + pehentry->p_memsz, 0x1000);
+                uint64_t aligned_size = end_aligned - vaddr_aligned;
+
+                // Выделить память по адресу
+                //syscall_process_map_memory(vaddr, aligned_size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
+                // Заполнить выделенную память нулями
+                //memset((void*) vaddr, 0, pehentry->p_memsz);
+                // Копировать фрагмент программы в память
+                //memcpy((void*) vaddr, data + pehentry->p_offset, pehentry->p_filesz);  
+
+                if (pehentry->v_addr + aligned_size > obj_data->size) {
+                    obj_data->size = pehentry->v_addr + aligned_size;
+                } 
+            }
+        }
     }
 
-    struct elf_header* elf_header = (struct elf_header*) data;
+    shared_objects_brk += obj_data->size;
 
     for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
         // Получить описание секции
@@ -129,16 +173,18 @@ struct object_data* load_object_data(char* data, int shared) {
             // Название разделяемой библиотеки
             char* object_name = obj_data->dynstr + dynamic->d_un.val;  
 
+            // Найти и открыть файл
             int libfd = open_shared_object_file(object_name);
 
             if (libfd > 0) {
-                syscall_write(cfd, "w\4LIB\n", 6);  
+                // Загрузить библиотеку
                 struct object_data* dependency = load_object_data_fd(libfd, 1);
                 strcpy(dependency->name, object_name);
 
                 // Сохранить зависимость
                 obj_data->dependencies[obj_data->dependencies_count ++] = dependency;
 
+                // Закрыть файл библиотеки
                 syscall_close(libfd);
             }   
         }

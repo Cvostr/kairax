@@ -112,9 +112,17 @@ struct elf_rela {
 #define AT_FLAGS        8
 #define AT_ENTRY        9
 
+#define ELF_SEGMENT_TYPE_IGNORED    0
+#define ELF_SEGMENT_TYPE_LOAD       1
+#define ELF_SEGMENT_TYPE_DYNAMIC    2
+#define ELF_SEGMENT_TYPE_INTERP     3
+#define ELF_SEGMENT_TYPE_NOTE       4
+
 char* elf_get_string_at(char* image, uint32_t string_index);
 
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
+
+struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index);
 
 #define OBJECT_NAME_LEN_MAX 50
 #define OBJECT_DEPENDENCIES_MAX 30
@@ -143,7 +151,6 @@ struct object_data {
 
     struct elf_rela*    rela;
     uint64_t            rela_size;
-
 };
 
 #endif

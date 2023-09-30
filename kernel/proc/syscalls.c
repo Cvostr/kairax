@@ -372,6 +372,8 @@ int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 {
+    //printf("ADDR %s ", ulltoa(address, 16));
+    //printf("SZ %s\n", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
@@ -380,13 +382,10 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 
     length = align(length, PAGE_SIZE);
 
-    if (address == NULL) {
-        address = process_get_free_addr(process, length);
-        //printf("FOUND ADDR %s\n", ulltoa(address, 16));
-    } else {
-        address = align_down(address, PAGE_SIZE);
-    }
+    // Получить предпочитаемый адрес
+    address = process_get_free_addr(process, length, align_down(address, PAGE_SIZE));
 
+    // Сформировать регион
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     range->base = (uint64_t) address;
     range->length = length;
@@ -397,6 +396,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     //NOT IMPLEMENTED FOR FILE MAP
     //TODO: IMPLEMENT
 
+    //printf("FOUND ADDR %s\n", ulltoa(address, 16));
     return address;
 }
 
@@ -429,6 +429,11 @@ int sys_memory_unmap(void* address, uint64_t length)
 exit:
     release_spinlock(&process->mmap_lock);
     return rc;
+}
+
+int sys_memory_protect(void* address, uint64_t length, int protection)
+{
+    return -1;
 }
 
 int sys_mount(const char* device, const char* mount_dir, const char* fs)

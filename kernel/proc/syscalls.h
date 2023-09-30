@@ -43,6 +43,8 @@ int sys_thread_sleep(uint64_t time);
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags);
 
+int sys_memory_protect(void* address, uint64_t length, int protection);
+
 int sys_memory_unmap(void* address, uint64_t length);
 
 int sys_mount(const char* device, const char* mount_dir, const char* fs);
