@@ -76,9 +76,6 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     return result;
 }
 
-// TODO: should be synchronized
-uint64_t shared_objects_brk = 0x7fcc372d7000;
-
 struct object_data* load_object_data(char* data, int shared) {
 
     struct object_data* obj_data = 
@@ -88,13 +85,30 @@ struct object_data* load_object_data(char* data, int shared) {
     struct elf_header* elf_header = (struct elf_header*) data;
 
     if (shared) {
-        // Сохранить адрес начала
-        obj_data->base = shared_objects_brk;
-    
-        // Расположить код в памяти
+
+        // Подсчитать размер кода
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
             struct elf_program_header_entry* pehentry = elf_get_program_entry(data, i);
                 
+            // Получить размер и максимальный адрес
+            if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
+
+                uint64_t vaddr_aligned = align_down(pehentry->v_addr, 0x1000); // выравнивание в меньшую сторону
+                uint64_t end_aligned = align(pehentry->v_addr + pehentry->p_memsz, 0x1000);
+                uint64_t aligned_size = end_aligned - vaddr_aligned;
+
+                if (vaddr_aligned + aligned_size > obj_data->size) {
+                    obj_data->size = pehentry->v_addr + aligned_size;
+                }
+            }
+        }
+
+        // Выделить память под код
+        obj_data->base = syscall_process_map_memory(0x7fcc372d7000, obj_data->size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
+
+        // Расположить код в памяти
+        for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
+            struct elf_program_header_entry* pehentry = elf_get_program_entry(data, i);
             if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
                 // Адрес, по которому будут загружены данные
                 uint64_t vaddr = pehentry->v_addr + obj_data->base;
@@ -105,18 +119,12 @@ struct object_data* load_object_data(char* data, int shared) {
                 // Выделить память по адресу
                 //syscall_process_map_memory(vaddr, aligned_size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
                 // Заполнить выделенную память нулями
-                //memset((void*) vaddr, 0, pehentry->p_memsz);
+                memset((void*) vaddr, 0, pehentry->p_memsz);
                 // Копировать фрагмент программы в память
-                //memcpy((void*) vaddr, data + pehentry->p_offset, pehentry->p_filesz);  
-
-                if (pehentry->v_addr + aligned_size > obj_data->size) {
-                    obj_data->size = pehentry->v_addr + aligned_size;
-                } 
+                memcpy((void*) vaddr, data + pehentry->p_offset, pehentry->p_filesz);  
             }
         }
     }
-
-    shared_objects_brk += obj_data->size;
 
     for (uint32_t i = 0; i < elf_header->section_header_entries_num; i ++) {
         // Получить описание секции
@@ -135,14 +143,12 @@ struct object_data* load_object_data(char* data, int shared) {
             for (size_t dyn_i = 0; dyn_i < sehentry->size; dyn_i += sizeof(struct elf_dynamic)) {
                 struct elf_dynamic* dynamic = (struct elf_dynamic*) ( data + sehentry->offset + dyn_i );
 
-                if (shared == 0) {
                 if (dynamic->tag == ELF_DT_PLTGOT) {
                     // Есть секция GOT PLT
-                    struct got_plt* got = (struct got_plt*) dynamic->d_un.addr;
+                    struct got_plt* got = (struct got_plt*) (obj_data->base + dynamic->d_un.addr);
                     got->arg = got;
                     got->linker_ip = linker_entry;
                     got->unused = obj_data;
-                }
                 }
             }
         } else if (strcmp(section_name, ".dynsym") == 0) {

@@ -98,8 +98,8 @@ struct elf_rela {
     int64_t     addend;
 } __attribute__((packed));
 
-#define ELF64_R_SYM(i)((i) >> 32)
-#define ELF64_R_TYPE(i)((i) & 0xffffffffL)
+#define ELF64_R_SYM(i) ((i) >> 32)
+#define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
 
 #define AT_NULL         0               
 #define AT_IGNORE       1
@@ -117,6 +117,21 @@ struct elf_rela {
 #define ELF_SEGMENT_TYPE_DYNAMIC    2
 #define ELF_SEGMENT_TYPE_INTERP     3
 #define ELF_SEGMENT_TYPE_NOTE       4
+
+#define ELF64_SYM_BIND(i) ((i) >> 4)
+#define ELF64_SYM_TYPE(i) ((i) & 0xF)
+
+#define STB_LOCAL       0
+#define STB_GLOBAL      1
+#define STB_WEAK        2
+
+#define STT_NOTYPE      0
+#define STT_OBJECT      1
+#define STT_FUNC        2
+#define STT_SECTION     3
+#define STT_FILE        4
+
+#define SHN_UNDEF       0
 
 char* elf_get_string_at(char* image, uint32_t string_index);
 

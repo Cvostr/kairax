@@ -372,8 +372,8 @@ int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 {
-    //printf("ADDR %s ", ulltoa(address, 16));
-    //printf("SZ %s\n", ulltoa(length, 16));
+    printf("ADDR %s ", ulltoa(address, 16));
+    printf("SZ %s", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
@@ -396,7 +396,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     //NOT IMPLEMENTED FOR FILE MAP
     //TODO: IMPLEMENT
 
-    //printf("FOUND ADDR %s\n", ulltoa(address, 16));
+    printf(" FOUND ADDR %s\n", ulltoa(address, 16));
     return address;
 }
 
@@ -583,11 +583,13 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     }
 
     // Формируем auxiliary вектор
-    struct aux_pair* aux_v = kmalloc(sizeof(struct aux_pair) * 3);
+    struct aux_pair* aux_v = kmalloc(sizeof(struct aux_pair) * 4);
     aux_v[1].type = AT_EXECFD;
     aux_v[1].ival = fd;
     aux_v[2].type = AT_ENTRY;
     aux_v[2].pval = program_start_ip;
+    aux_v[3].type = AT_PAGESZ;
+    aux_v[3].ival = PAGE_SIZE;
     aux_v[0].type = AT_NULL;
 
     struct main_thread_create_info main_thr_info;

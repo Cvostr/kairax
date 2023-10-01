@@ -284,8 +284,8 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
     for (size_t i = 0; i < list_size(process->mmap_ranges); i ++) {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
         
-        uint64_t max_addr = range->base + range->length;
-        if (addr >= range->base && addr < max_addr) {
+        uint64_t max_addr = range->base + range->length - 1;
+        if (addr >= range->base && addr <= max_addr) {
             return range;
         }
     }
@@ -296,7 +296,7 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
 int is_regions_collide(struct mmap_range* region1, struct mmap_range* region2) {
 
     // Вычисляем адреса центров двух регионов
-    uint64_t region1_mid = region1->base + region1->length / 2;
+    /*uint64_t region1_mid = region1->base + region1->length / 2;
     uint64_t region2_mid = region2->base + region2->length / 2;
 
     // Расстояние между центрами двух регионов
@@ -309,7 +309,17 @@ int is_regions_collide(struct mmap_range* region1, struct mmap_range* region2) {
         return TRUE;
     }
 
-    return FALSE;
+    return FALSE;*/
+    uint64_t region1_end = region1->base + region1->length - 1; // 0 - 4095
+    uint64_t region2_end = region2->base + region2->length - 1; // 0 - 4095
+
+    int a = region1->base >= region2->base && region1->base <= region2_end; 
+    int b = region1_end >= region2->base && region1_end <= region2_end; 
+
+    int c = region2->base >= region1->base && region2->base <= region1_end; 
+    int d = region2_end >= region1->base && region2_end <= region1_end; 
+
+    return a || b || c || d;
 }
 
 void* process_get_free_addr(struct process* process, size_t length, uintptr_t hint)
@@ -350,17 +360,16 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
         struct mmap_range* range = list_get(process->mmap_ranges, i);
 
         // Адрес начала предполагаемого диапазона
-        // TODO:  Убрать PAGE_SIZE???
-        new_range.base = range->base + range->length + PAGE_SIZE;
+        new_range.base = range->base + range->length;
 
-        // Начало нового региона должно быть после hint
-        if (new_range.base < hint) {
+        // Начало нового региона должно быть после hint и brk
+        // Также конец не должен вылазить за границы адресного пространства процесса
+        if (new_range.base < hint || 
+            new_range.base < process->brk || 
+            new_range.base + length >= USERSPACE_MAX_ADDR) 
+        {
             continue;
         }
-
-        // Проверяем, что не вылазим за границы адресного пространства процесса
-        if (new_range.base + length >= USERSPACE_MAX_ADDR)
-            continue;
 
         collides = 0;
 
@@ -370,7 +379,7 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
                 continue;
 
             struct mmap_range* region = list_get(process->mmap_ranges, j);
-            
+        
             if (is_regions_collide(&new_range, region)) {
                 // Регионы пересекаются, выходим
                 collides = 1;
