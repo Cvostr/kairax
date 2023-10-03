@@ -1,18 +1,18 @@
 #include "stdio.h"
+
 #include "stdarg.h"
 #include "stdint.h"
 #include "string.h"
-#include "unistd.h"
-#include "sys_files.h"
+
+char temp[130];
+extern int cfd;
 
 static char destination[32] = {0};
-static char temp[130];
-static int console_fd = -1;
 
 char* itoa(long long number, int base){
 
  	int count = 0;
-  do {
+    do {
       	int digit = number % base;
       	destination[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
     	} while ((number /= base) != 0);
@@ -35,24 +35,14 @@ void write_to_console(const char* buffer, int size) {
 		temp[2 + i] = buffer[i];
 	}
 
-	if (console_fd == -1) {
-		console_fd = open_file("/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
-	}
-
-	write(console_fd, temp, 2 + size);
-}
-
-int putchar(int ic) {
-
-	
-	return ic;
+	syscall_write(cfd, temp, 2 + size);
 }
 
 static int print(const char* data, size_t length) {
 	const unsigned char* bytes = (const unsigned char*) data;
 	int len = 0;
 	for (size_t i = 0; i < length; i++)
-		if (putchar(bytes[i]) != EOF)
+		if (bytes[i] != EOF)
 			len ++;
 
 	write_to_console(data, len);

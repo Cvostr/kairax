@@ -1,4 +1,4 @@
-CFLAGS=-nostdlib -m64 -nostdinc -ffreestanding -std=c99 -fPIC -I./include -I../sys
+CFLAGS=-nostdlib -nostdinc -ffreestanding -fPIC -I./include -I../sys
 CC=gcc
 SRC_DIR=src
 OBJ_DIR=obj

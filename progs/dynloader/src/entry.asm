@@ -8,27 +8,26 @@ extern aux_vector
 extern args_info
 
 linker_entry:
-    pop rax
-    pop rbx
-
     push rdi
+    mov rdi, [rsp + 8]
     push rsi
+    mov rsi, [rsp + 24]
     push rcx
     push rdx
-
-    mov rdi, rax
-    mov rsi, rbx
+    push rbx
 
     lea rax, [rel link]
     call rax
 
+    pop rbx
     pop rdx
     pop rcx
     pop rsi
     pop rdi
 
-    ret
-    ;jmp rax
+    add rsp, 16
+
+    jmp rax
 
 _start:
     ; Этап извлечения aux вектора

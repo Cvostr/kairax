@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include "loader.h"
 #include "string.h"
+#include "stdio.h"
 
 uint64_t args_info[2];
 uint64_t aux_vector[20];
@@ -13,6 +14,9 @@ int cfd;
 
 #define PROTECTION_WRITE_ENABLE    0b1
 #define PROTECTION_EXEC_ENABLE     0b10
+
+#define SO_BASE                     (void*) 0x7fcc372d7000ULL
+#define PAGE_SIZE                   aux_vector[AT_PAGESZ]
 
 extern void linker_entry();
 
@@ -93,8 +97,8 @@ struct object_data* load_object_data(char* data, int shared) {
             // Получить размер и максимальный адрес
             if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
 
-                uint64_t vaddr_aligned = align_down(pehentry->v_addr, 0x1000); // выравнивание в меньшую сторону
-                uint64_t end_aligned = align(pehentry->v_addr + pehentry->p_memsz, 0x1000);
+                uint64_t vaddr_aligned = align_down(pehentry->v_addr, PAGE_SIZE); // выравнивание в меньшую сторону
+                uint64_t end_aligned = align(pehentry->v_addr + pehentry->p_memsz, PAGE_SIZE);
                 uint64_t aligned_size = end_aligned - vaddr_aligned;
 
                 if (vaddr_aligned + aligned_size > obj_data->size) {
@@ -104,7 +108,7 @@ struct object_data* load_object_data(char* data, int shared) {
         }
 
         // Выделить память под код
-        obj_data->base = syscall_process_map_memory(0x7fcc372d7000, obj_data->size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
+        obj_data->base = syscall_process_map_memory(SO_BASE, obj_data->size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
 
         // Расположить код в памяти
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
@@ -112,8 +116,8 @@ struct object_data* load_object_data(char* data, int shared) {
             if (pehentry->type == ELF_SEGMENT_TYPE_LOAD) {
                 // Адрес, по которому будут загружены данные
                 uint64_t vaddr = pehentry->v_addr + obj_data->base;
-                uint64_t vaddr_aligned = align_down(vaddr, 0x1000); // выравнивание в меньшую сторону
-                uint64_t end_aligned = align(vaddr + pehentry->p_memsz, 0x1000);
+                uint64_t vaddr_aligned = align_down(vaddr, PAGE_SIZE); // выравнивание в меньшую сторону
+                uint64_t end_aligned = align(vaddr + pehentry->p_memsz, PAGE_SIZE);
                 uint64_t aligned_size = end_aligned - vaddr_aligned;
 
                 // Выделить память по адресу
@@ -172,6 +176,17 @@ struct object_data* load_object_data(char* data, int shared) {
         }
     }
 
+    for (size_t i = 0; i < obj_data->rela_size / sizeof(struct elf_rela); i ++) {
+        struct elf_rela* rela = obj_data->rela + i;
+
+        uint64_t* value = (uint64_t*) (obj_data->base + rela->offset);
+        //printf("REL %i", value);
+        if (*value > 0)
+            *value += obj_data->base;
+        
+        rela->offset += obj_data->base;
+    }
+
     for (size_t i = 0; i < obj_data->dynamic_sec_size; i += sizeof(struct elf_dynamic)) {
         struct elf_dynamic* dynamic = (struct elf_dynamic*) (obj_data->dynamic_section + i);
         
@@ -204,12 +219,6 @@ int open_shared_object_file(const char* fname)
     char fpname[100];
     strcpy(fpname, "libs/");
     strcat(fpname, fname);
-
-    /*char name_log[15];
-            name_log[0] = 'w';
-            name_log[1] = strlen(fpname);
-            strcpy(name_log + 2, fpname);
-            syscall_write(cfd, name_log, 14);*/
 
     return syscall_open_file(FD_CWD, fpname, FILE_OPEN_MODE_READ_ONLY, 0);
 }

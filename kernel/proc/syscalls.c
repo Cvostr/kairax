@@ -594,7 +594,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
 
     struct main_thread_create_info main_thr_info;
     main_thr_info.auxv = aux_v;
-    main_thr_info.aux_size = 3;
+    main_thr_info.aux_size = 4;
     main_thr_info.argc = argc;
     main_thr_info.argv = argv;
 

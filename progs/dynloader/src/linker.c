@@ -2,51 +2,44 @@
 #include "include/elf.h"
 #include "linker.h"
 #include "string.h"
+#include "stdio.h"
 
 extern int cfd;
 
 void* link(void* arg, int index) {
-    struct got_plt* got = (struct got_plt*) arg;
 
+    struct got_plt* got = (struct got_plt*) arg;
     struct object_data* object_data = (struct object_data*) got->unused;
 
-    uint64_t* got_func_addr = ((uint64_t*) arg) + 3 + index; 
+    // Перемещение в текущем объекте
+    struct elf_rela* relocation = (struct elf_rela*)object_data->rela + index;
+    int reloc_type = ELF64_R_TYPE(relocation->info);
+    int reloc_sym_index = ELF64_R_SYM(relocation->info);
 
-    struct elf_rela* relocation = object_data->rela;
-    relocation += index;
-
-    /*char ss[5];
-    ss[0] = 'w';
-    ss[1] = 3;
-    ss[2] = '0' + index;
-    ss[3] = '0';
-    ss[4] = '\n';
-    syscall_write(cfd, ss, 5);*/
-
-    struct elf_symbol* sym = object_data->dynsym;
-    sym += ELF64_R_SYM(relocation->info);
-
+    // Внешний символ в текущем объекте
+    struct elf_symbol* sym = (struct elf_symbol*) object_data->dynsym + reloc_sym_index;
     char* name = object_data->dynstr + sym->name;
-
-    char name_log[15];
-    name_log[0] = 'w';
-    name_log[1] = strlen(name);
-    strcpy(name_log + 2, name);
-    syscall_write(cfd, name_log, 14);
     
+    // Зависимость и символ
     struct object_data* dep = NULL;
     struct elf_symbol* dep_symbol = look_for_symbol(object_data, name, &dep);
 
     if (dep_symbol == NULL || dep == NULL) {
+        printf("LINK FAILED %s\n", name);
         return 0;
     }
 
-    name_log[0] = 'w';
-    name_log[1] = strlen(dep->name);
-    strcpy(name_log + 2, dep->name);
-    syscall_write(cfd, name_log, 14);
+    printf("CL: %s F: %s L: %s \n", object_data->name, name, dep->name);
 
-    return 0;
+    // Вычисление адреса функции
+    void* func_address = (void*) (dep->base + dep_symbol->value);
+
+    // Сохранение адреса в GOT
+    uint64_t* got_rel_addr = (uint64_t*)relocation->offset;
+    *got_rel_addr = func_address;
+
+    // Перейти по адресу
+    return func_address;
 }
 
 struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* name, struct object_data** obj) {
@@ -59,14 +52,6 @@ struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* nam
         int sym_binding = ELF64_SYM_BIND(sym_ptr->info);
         int sym_type = ELF64_SYM_TYPE(sym_ptr->info);
         char* sym_name = root_obj->dynstr + sym_ptr->name;
-
-        /*char ss[5];
-            ss[0] = 'w';
-            ss[1] = 3;
-            ss[2] = '0' + sym_binding;
-            ss[3] = '0' + sym_type;
-            ss[4] = '\n';
-            syscall_write(cfd, ss, 5);*/
 
         if (strcmp(sym_name, name) == 0 && 
             sym_binding == STB_GLOBAL &&

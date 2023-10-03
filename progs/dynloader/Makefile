@@ -8,7 +8,8 @@ COMPILED_OBJS = obj/entry.o \
 				obj/loader.o \
 				obj/linker.o \
 				obj/elf.o \
-				obj/string.o
+				obj/string.o \
+				obj/stdio.o
 
 all: $(OBJ_DIR) $(COMPILED_OBJS)
 	ld $(LDARGS) -o loader.elf $(COMPILED_OBJS) ../../sdk/sys/syscalls.o

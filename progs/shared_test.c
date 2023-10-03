@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
     int rc = strcmp(test_str, "Hello");
 
-    strcat(test_str, " from libc.so");
+    //strcat(test_str, " from libc.so");
 
     printf("%s %i", test_str, 34);
 
