@@ -4,8 +4,9 @@
 #include "string.h"
 #include "stdio.h"
 
-uint64_t args_info[2];
-uint64_t aux_vector[20];
+uint64_t            args_info[2];
+uint64_t            aux_vector[20];
+struct object_data* root;
 int cfd;
 
 #define FD_CWD		-2
@@ -45,7 +46,7 @@ void loader() {
     int argc = args_info[0];
     char** argv = (char**) args_info[1];
 
-    struct object_data* main_obj = load_object_data_fd(fd, 0);
+    root = load_object_data_fd(fd, 0);
 
     // Закрыть файл
     syscall_close(fd);
@@ -108,7 +109,7 @@ struct object_data* load_object_data(char* data, int shared) {
         }
 
         // Выделить память под код
-        obj_data->base = syscall_process_map_memory(SO_BASE, obj_data->size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
+        obj_data->base = (uint64_t)syscall_process_map_memory(SO_BASE, obj_data->size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
 
         // Расположить код в памяти
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
@@ -197,6 +198,10 @@ struct object_data* load_object_data(char* data, int shared) {
             // Найти и открыть файл
             int libfd = open_shared_object_file(object_name);
 
+            if (libfd < 0) {
+                printf("Error locating shared library %s\n", object_name);
+            }
+
             if (libfd > 0) {
                 // Загрузить библиотеку
                 struct object_data* dependency = load_object_data_fd(libfd, 1);
@@ -216,9 +221,16 @@ struct object_data* load_object_data(char* data, int shared) {
 
 int open_shared_object_file(const char* fname)
 {
-    char fpname[100];
-    strcpy(fpname, "libs/");
-    strcat(fpname, fname);
+    // Открыть в рабочей папке
+    int fd = syscall_open_file(FD_CWD, fname, FILE_OPEN_MODE_READ_ONLY, 0);
+    
+    if (fd < 0) {
+        // Открыть в системной папке
+        char fpname[100];
+        strcpy(fpname, "/libs/");
+        strcat(fpname, fname);
+        fd = syscall_open_file(FD_CWD, fpname, FILE_OPEN_MODE_READ_ONLY, 0);
+    }
 
-    return syscall_open_file(FD_CWD, fpname, FILE_OPEN_MODE_READ_ONLY, 0);
+    return fd;
 }

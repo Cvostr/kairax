@@ -295,21 +295,6 @@ struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t a
 
 int is_regions_collide(struct mmap_range* region1, struct mmap_range* region2) {
 
-    // Вычисляем адреса центров двух регионов
-    /*uint64_t region1_mid = region1->base + region1->length / 2;
-    uint64_t region2_mid = region2->base + region2->length / 2;
-
-    // Расстояние между центрами двух регионов
-    uint64_t diff = region1_mid > region2_mid ? region1_mid - region2_mid : region2_mid - region1_mid;
-
-    // Минимальное необходимое расстояние между регионами
-    uint64_t min_dist = (region1->length + region2->length) / 2;
-
-    if (diff <= min_dist) {
-        return TRUE;
-    }
-
-    return FALSE;*/
     uint64_t region1_end = region1->base + region1->length - 1; // 0 - 4095
     uint64_t region2_end = region2->base + region2->length - 1; // 0 - 4095
 

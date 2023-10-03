@@ -5,6 +5,7 @@
 #include "stdio.h"
 
 extern int cfd;
+extern struct object_data*    root;
 
 void* link(void* arg, int index) {
 
@@ -25,21 +26,26 @@ void* link(void* arg, int index) {
     struct elf_symbol* dep_symbol = look_for_symbol(object_data, name, &dep);
 
     if (dep_symbol == NULL || dep == NULL) {
-        printf("LINK FAILED %s\n", name);
+        // Не нашли, ищем в корне
+        dep_symbol = look_for_symbol(root, name, &dep);
+    }
+
+    if (dep_symbol == NULL || dep == NULL) {
+        printf("Can't resolve symbol %s\n", name);
         return 0;
     }
 
-    printf("CL: %s F: %s L: %s \n", object_data->name, name, dep->name);
+    //printf("CL: %s F: %s L: %s \n", object_data->name, name, dep->name);
 
     // Вычисление адреса функции
-    void* func_address = (void*) (dep->base + dep_symbol->value);
+    uint64_t func_address = (uint64_t) (dep->base + dep_symbol->value);
 
     // Сохранение адреса в GOT
     uint64_t* got_rel_addr = (uint64_t*)relocation->offset;
     *got_rel_addr = func_address;
 
     // Перейти по адресу
-    return func_address;
+    return (void*) func_address;
 }
 
 struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* name, struct object_data** obj) {

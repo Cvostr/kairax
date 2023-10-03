@@ -372,8 +372,8 @@ int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 {
-    printf("ADDR %s ", ulltoa(address, 16));
-    printf("SZ %s", ulltoa(length, 16));
+    //printf("ADDR %s ", ulltoa(address, 16));
+    //printf("SZ %s", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
@@ -396,7 +396,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     //NOT IMPLEMENTED FOR FILE MAP
     //TODO: IMPLEMENT
 
-    printf(" FOUND ADDR %s\n", ulltoa(address, 16));
+    //printf(" FOUND ADDR %s\n", ulltoa(address, 16));
     return address;
 }
 
