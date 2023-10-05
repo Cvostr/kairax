@@ -12,11 +12,7 @@
 #include "cpu/msr.h"
 #include "cpu/cpu_local_x64.h"
 
-list_t* threads_list;
-int curr_thread = 0;
-
-spinlock_t threads_mutex = 0;
-
+extern spinlock_t threads_lock;
 int is_from_interrupt = 1;
 
 extern void scheduler_yield_entry();
@@ -45,32 +41,6 @@ void scheduler_from_killed()
     // Не должны сюда попасть
 }
 
-void scheduler_add_thread(struct thread* thread)
-{
-    acquire_mutex(&threads_mutex);
-    list_add(threads_list, thread);
-    release_spinlock(&threads_mutex);
-}
-
-void scheduler_remove_thread(struct thread* thread)
-{
-    acquire_mutex(&threads_mutex);
-    list_remove(threads_list, thread);
-    release_spinlock(&threads_mutex);
-}
-
-void scheduler_remove_process_threads(struct process* process)
-{
-    acquire_mutex(&threads_mutex);
-
-    for (unsigned int i = 0; i < list_size(process->threads); i ++) {
-        struct thread* thread = list_get(process->threads, i);
-        list_remove(threads_list, thread);
-    }
-
-    release_spinlock(&threads_mutex);
-}
-
 void scheduler_eoi()
 {
     if (is_from_interrupt) {
@@ -97,27 +67,11 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
     acquire_spinlock(lock);
 }
 
-void scheduler_wakeup(void* handle)
-{
-    acquire_mutex(&threads_mutex);
-
-    for (unsigned int i = 0; i < list_size(threads_list); i ++) {
-        struct thread* thread = list_get(threads_list, i);
-        
-        if (thread->state == THREAD_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle) {
-            thread->state = THREAD_RUNNING;
-            thread->wait_handle = NULL;
-        }
-    }
-
-    release_spinlock(&threads_mutex);
-}
-
 // frame может быть NULL
 // Если это так, то мы сюда попали из убитого потока
 void* scheduler_handler(thread_frame_t* frame)
 {
-    if (!__sync_bool_compare_and_swap(&threads_mutex, 0, 1))
+    if (!__sync_bool_compare_and_swap(&threads_lock, 0, 1))
 	{
         frame->rflags |= 0x200;
         scheduler_eoi();
@@ -139,20 +93,7 @@ void* scheduler_handler(thread_frame_t* frame)
         }
     }
 
-    struct thread* new_thread = NULL;
-    while (1) {
-        
-        curr_thread ++;
-        if(curr_thread >= threads_list->size)
-            curr_thread = 0;
-
-        new_thread = list_get(threads_list, curr_thread);
-        if (new_thread->state != THREAD_RUNNABLE) {
-            continue;
-        }
-
-        break;
-    }
+    struct thread* new_thread = scheduler_get_next_runnable_thread();
 
     // Получить данные процесса, с которым связан поток
     struct process* process = new_thread->process;
@@ -181,13 +122,8 @@ void* scheduler_handler(thread_frame_t* frame)
 
     scheduler_eoi();
 
-    release_spinlock(&threads_mutex);
+    release_spinlock(&threads_lock);
     return new_thread->context;
-}
-
-void init_scheduler()
-{
-    threads_list = create_list();
 }
 
 void scheduler_start()

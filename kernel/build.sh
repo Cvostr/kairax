@@ -41,7 +41,7 @@ gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
 
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
-gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler.o
+gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler_x64.o
 
 #raxlib
 gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o
@@ -78,6 +78,7 @@ gcc $GCC_ARGS fs/vfs/superblock.c -o ./bin/superblock.o
 #generic proc
 gcc $GCC_ARGS proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS proc/thread.c -o ./bin/thread.o
+gcc $GCC_ARGS proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS proc/syscalls.c -o ./bin/syscalls.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 

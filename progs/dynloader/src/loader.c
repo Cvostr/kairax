@@ -181,7 +181,7 @@ struct object_data* load_object_data(char* data, int shared) {
         struct elf_rela* rela = obj_data->rela + i;
 
         uint64_t* value = (uint64_t*) (obj_data->base + rela->offset);
-        //printf("REL %i", value);
+
         if (*value > 0)
             *value += obj_data->base;
         
