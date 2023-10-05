@@ -1,18 +1,32 @@
 #include "stdio.h"
 #include "sys_files.h"
 #include "process.h"
+#include "unistd.h"
+
+int fds[2];
+
+void thread(void* n) {
+    char val[2];
+    val[1] = 0;
+    while (1) {
+        read(fds[0], &val[0], 1);
+        printf("%s ", val);
+    }
+}
 
 int main(int argc, char** argv) {
 
-    printf("MMAPP TEST\n");
-    char* addr = (char*) 0x10000000;
-    mmap(addr, 4096, PROTECTION_WRITE_ENABLE, 0);
-    addr[0] = 'H';
-    addr[1] = 'e';
-    addr[2] = 'l';
-    addr[3] = '\0';
+    printf("Hello\n");
+    pipe(fds);
+    create_thread(thread, NULL, NULL);
 
-    printf("BEGIN %s\n", addr);
+    char val = 'A';
+    while (1) {
+        write(fds[1], &val, 1);
+        val += 1;
+    }
+
+    /*printf("BEGIN %s\n", addr);
     float fa = 12200.343f;
     double da = 12200.343;
 
@@ -24,7 +38,7 @@ int main(int argc, char** argv) {
         printf("CURR VALUE %i\n", (int)ra);
     }
 
-    printf("END");
+    printf("END");*/
 
     return 0;
 }

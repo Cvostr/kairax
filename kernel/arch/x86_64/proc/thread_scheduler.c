@@ -43,9 +43,6 @@ void scheduler_from_killed()
     scheduler_entry_from_killed();
 
     // Не должны сюда попасть
-    while (1) {
-        asm volatile ("nop");
-    }
 }
 
 void scheduler_add_thread(struct thread* thread)
@@ -83,6 +80,39 @@ void scheduler_eoi()
     }
 }
 
+void scheduler_sleep(void* handle, spinlock_t* lock)
+{
+    struct thread* thr = cpu_get_current_thread();
+
+    release_spinlock(lock);
+
+    // Изменяем состояние - блокируемся
+    thr->state = THREAD_INTERRUPTIBLE_SLEEP;
+    thr->wait_handle = handle;
+
+    // Передача управления другому процессу
+    scheduler_yield();
+
+    // Блокируем спинлок и выходим
+    acquire_spinlock(lock);
+}
+
+void scheduler_wakeup(void* handle)
+{
+    acquire_mutex(&threads_mutex);
+
+    for (unsigned int i = 0; i < list_size(threads_list); i ++) {
+        struct thread* thread = list_get(threads_list, i);
+        
+        if (thread->state == THREAD_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle) {
+            thread->state = THREAD_RUNNING;
+            thread->wait_handle = NULL;
+        }
+    }
+
+    release_spinlock(&threads_mutex);
+}
+
 // frame может быть NULL
 // Если это так, то мы сюда попали из убитого потока
 void* scheduler_handler(thread_frame_t* frame)
@@ -101,6 +131,7 @@ void* scheduler_handler(thread_frame_t* frame)
 
         // Сохранить указатель на контекст
         previous_thread->context = frame;
+        previous_thread->state = THREAD_RUNNABLE;
 
         if (previous_thread->is_userspace) {
             // Сохранить указатель на вершину стека пользователя
@@ -108,44 +139,49 @@ void* scheduler_handler(thread_frame_t* frame)
         }
     }
 
-    curr_thread ++;
-    if(curr_thread >= threads_list->size)
-        curr_thread = 0;
+    struct thread* new_thread = NULL;
+    while (1) {
+        
+        curr_thread ++;
+        if(curr_thread >= threads_list->size)
+            curr_thread = 0;
 
-    struct thread* new_thread = list_get(threads_list, curr_thread);
-    
-    if(new_thread != NULL) {
-        // Получить данные процесса, с которым связан поток
-        struct process* process = new_thread->process;
-        thread_frame_t* thread_frame = (thread_frame_t*)new_thread->context;
-
-        // Разрешить прерывания
-        thread_frame->rflags |= 0x200;
-        if (new_thread->is_userspace) {
-            // Обновить данные об указателях на стек
-            cpu_set_kernel_stack(new_thread->kernel_stack_ptr);
-            tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
-            set_user_stack_ptr(new_thread->stack_ptr);
-
-            if (new_thread->tls != NULL) {
-                // TLS, обязательно конец памяти
-                cpu_set_fs_base(new_thread->tls + process->tls_size);
-            }
+        new_thread = list_get(threads_list, curr_thread);
+        if (new_thread->state != THREAD_RUNNABLE) {
+            continue;
         }
 
-        // Сохранить указатель на новый поток в локальной структуре ядра
-        cpu_set_current_thread(new_thread);
-
-        // Заменить таблицу виртуальной памяти процесса
-        switch_pml4(V2P(process->vmemory_table->arch_table));
-    } else {
-        new_thread = cpu_get_current_thread();
+        break;
     }
+
+    // Получить данные процесса, с которым связан поток
+    struct process* process = new_thread->process;
+    thread_frame_t* thread_frame = (thread_frame_t*)new_thread->context;
+
+    // Разрешить прерывания
+    thread_frame->rflags |= 0x200;
+    if (new_thread->is_userspace) {
+        // Обновить данные об указателях на стек
+        cpu_set_kernel_stack(new_thread->kernel_stack_ptr);
+        tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
+        set_user_stack_ptr(new_thread->stack_ptr);
+
+        if (new_thread->tls != NULL) {
+            // TLS, обязательно конец памяти
+            cpu_set_fs_base(new_thread->tls + process->tls_size);
+        }
+    }
+
+    // Сохранить указатель на новый поток в локальной структуре ядра
+    cpu_set_current_thread(new_thread);
+
+    // Заменить таблицу виртуальной памяти процесса
+    switch_pml4(V2P(process->vmemory_table->arch_table));
+    new_thread->state = THREAD_RUNNING;
 
     scheduler_eoi();
 
     release_spinlock(&threads_mutex);
-
     return new_thread->context;
 }
 

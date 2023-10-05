@@ -8,15 +8,11 @@
 #define STACK_SIZE 4096
 
 enum thread_state {
-    THREAD_RUNNING          = 0,
-    THREAD_INTERRUPTIBLE    = 1,
-    THREAD_UNINTERRUPTIBLE  = 2,
-    THREAD_ZOMBIE           = 4,
-    THREAD_STOPPED          = 8,
-    THREAD_SWAPPING         = 16,
-    THREAD_EXCLUSIVE        = 32,
-    THREAD_CREATED          = 64,
-    THREAD_LOADING          = 128
+    THREAD_RUNNING                  = 0,    // Работает
+    THREAD_RUNNABLE                 = 1,
+    THREAD_INTERRUPTIBLE_SLEEP      = 2,    // В ожидании ресурса
+    THREAD_UNINTERRUPTIBLE_SLEEP    = 3,    // В ожидании ресурса внутри системного вызова
+    THREAD_ZOMBIE                   = 4     // Завершен, но не обработан родителем
 };
 
 struct thread {
@@ -30,12 +26,13 @@ struct thread {
     // Адрес локальной памяти потока (TLS)
     void*           tls;
     // Состояние
-    int             state;
+    enum thread_state     state;
     // Указатель на объект процесса
     struct process*      process;
     // Указатель на сохраненные данные контекста
     void*           context;
     int             is_userspace;
+    void*           wait_handle;
 };
 
 struct main_thread_create_info {

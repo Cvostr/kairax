@@ -16,15 +16,20 @@ struct mmap_range {
     int             protection;
 };
 
+enum process_state {
+    PROCESS_RUNNING          = 0,    // Работает/может работать
+    PROCESS_ZOMBIE           = 4     // Завершен, но не обработан родителем
+};
+
 struct process {
     char                name[30];
     // ID процесса
     pid_t               pid;
+    enum process_state  state;
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     uint64_t            threads_stack_top;
 
-    uint32_t            state;
     // Рабочая папка
     struct file*        workdir;
     // Таблица виртуальной памяти процесса

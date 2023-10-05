@@ -47,18 +47,19 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	pmm_params.kernel_base = kboot_info->load_base_addr;
 	// Проходимся по регионам grub
 	for (int i = 0; i < kboot_info->mmap_len; i ++) {
-		uintptr_t start, end;
+		uintptr_t start, length;
 		uint32_t type;
-		multiboot_get_memory_area(i, &start, &end, &type);
+		multiboot_get_memory_area(i, &start, &length, &type);
+		uintptr_t end = start + length;
 		
 		if (end > pmm_params.physical_mem_max_addr)
 			pmm_params.physical_mem_max_addr = end;
 		
 		//Считаем физическую память
-		pmm_params.physical_mem_total += (end - start);
+		pmm_params.physical_mem_total += length;
 
 		if (type != 1)
-			pmm_set_mem_region(start, end - start);
+			pmm_set_mem_region(start, length);
 
 		//printf("REGION : %i %i %i\n", start, end, type);
 	}
@@ -132,10 +133,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	
 	scheduler_add_thread(thr);
 	scheduler_start();
-
-	while(1){
-
-	}
+	scheduler_yield();
 
 	fatal_error:
 		printf("Fatal Error!\nKernel terminated!");

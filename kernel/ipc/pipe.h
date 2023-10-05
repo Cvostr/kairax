@@ -14,9 +14,11 @@ struct pipe {
     atomic_t    ref_count;
     spinlock_t  lock;
 
-    size_t      size;
     loff_t      write_pos;
     loff_t      read_pos;
+
+    int         nwritefds;
+    int         nreadfds;
 };
 
 struct pipe* new_pipe();

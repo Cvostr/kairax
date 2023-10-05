@@ -345,7 +345,7 @@ pid_t sys_get_thread_id()
 int sys_thread_sleep(uint64_t time)
 {
     struct thread* thread = cpu_get_current_thread();
-    thread->state = THREAD_UNINTERRUPTIBLE; // Ожидающий системный вызов
+    thread->state = THREAD_UNINTERRUPTIBLE_SLEEP; // Ожидающий системный вызов
     for (uint64_t i = 0; i < time; i ++) {
         scheduler_yield();
     }

@@ -23,9 +23,6 @@ errno: obj/errno.o
 libc: $(COMPILED_OBJS)
 	$(CC) -fPIC -nostdlib -shared -o libc.so $(COMPILED_OBJS) ../sys/syscalls.o
 
-libc_static: $(COMPILED_OBJS) obj/errno.o
-	ar rcs libc_stat.a $(COMPILED_OBJS) obj/errno.o
-
 clean:
 	rm -rf obj/*.o *.so *.a
 

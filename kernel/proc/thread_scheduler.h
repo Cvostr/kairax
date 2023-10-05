@@ -17,4 +17,8 @@ void scheduler_yield();
 
 void scheduler_from_killed();
 
+void scheduler_sleep(void* handle, spinlock_t* lock);
+
+void scheduler_wakeup(void* handle);
+
 #endif
