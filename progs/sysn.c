@@ -1,6 +1,7 @@
 #include "stdio.h"
-#include "sys_files.h"
+#include "fcntl.h"
 #include "unistd.h"
+#include "sys/stat.h"
 #include "errno.h"
 #include "process.h"
 
@@ -24,8 +25,8 @@ int main() {
     getcwd(buff, 220);
     printf("CWD : %s\n", buff);
 
-    int fd1 = open_file("/mydir/blabla", FILE_OPEN_MODE_READ_ONLY, 0);
-    int fd2 = open_file("/mydir", FILE_OPEN_MODE_READ_ONLY, 0);
+    int fd1 = open("/mydir/blabla", O_RDONLY, 0);
+    int fd2 = open("/mydir", O_RDONLY, 0);
     int rc1 = read(fd1, buff, 119);
     close(fd2);
 
@@ -33,7 +34,7 @@ int main() {
     printf(buff);
     close(fd1);
 
-    int fd = open_file("/bugaga.txt", FILE_OPEN_MODE_READ_ONLY, 0);
+    int fd = open("/bugaga.txt", O_RDONLY, 0);
     printf("BEFORE READ POS %i\n", lseek(fd, 0, SEEK_CUR));
     int rc = read(fd, buff, 119);
     printf("AFTER READ POS %i\n", lseek(fd, 0, SEEK_CUR));

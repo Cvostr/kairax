@@ -3,6 +3,28 @@
 
 #include "types.h"
 
+/* File types.  */
+#define	S_IFDIR	    0040000	/* Directory.  */
+#define	S_IFCHR	    0020000	/* Character device.  */
+#define	S_IFBLK	    0060000	/* Block device.  */
+#define	S_IFREG	    0100000	/* Regular file.  */
+#define	S_IFIFO	    0010000	/* FIFO.  */
+#define	S_IFLNK	    0120000	/* Symbolic link.  */
+#define	S_IFSOCK	0140000	/* Socket.  */
+
+#define S_IRWXU	    00700
+#define S_IRUSR	    00400	
+#define S_IWUSR	    00200	
+#define S_IXUSR	    00100
+#define S_IRWXG	    00070	
+#define S_IRGRP	    00040	
+#define S_IWGRP	    00020	
+#define S_IXGRP	    00010	
+#define S_IRWXO	    00007
+#define S_IROTH	    00004	
+#define S_IWOTH	    00002	
+#define S_IXOTH	    00001	
+
 struct stat {
    // dev_t      st_dev;      /* ID of device containing file */
     ino_t      st_ino;      /* Inode number */
@@ -23,5 +45,13 @@ struct stat {
     #define st_mtine  st_mtim.tv_sec
     #define st_ctime  st_ctim.tv_sec
 };
+
+int chmod(const char* filepath, mode_t mode);
+
+int stat(const char* filepath, struct stat* st);
+
+int fstat(int fd, struct stat* st);
+
+int mkdir(const char* dirpath, int mode);
 
 #endif

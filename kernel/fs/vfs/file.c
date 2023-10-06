@@ -25,7 +25,7 @@ struct file* new_file()
 void file_close(struct file* file) 
 {
     if (atomic_dec_and_test(&file->refs)) {
-        
+        //printf("CLOSING FILE %i - %i\n", file->inode->inode, file->refs);
         acquire_spinlock(&file->lock);
         
         if (file->inode) {
@@ -120,9 +120,7 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     if (file->ops->open) {
         file->ops->open(inode, file);
     }
-
-    atomic_inc(&file->refs);
-
+    
     return file;
 }
 

@@ -75,15 +75,22 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size);
 
 struct file* process_get_file(struct process* process, int fd);
 
+// Загружает аргументы командной строки в адресное пространство процесса
+// args_mem - указатель на данные аргументов в адресном пространстве процесса
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem);
 
+// Добавляет файл к процессу с первым свободным номером дескриптора
+// Повышает счетчик ссылок
+// Возвращает номер дескриптора добавленного файла в этом процессе
 int process_add_file(struct process* process, struct file* file);
 
+// Закрывает файл с указанным номером fd, удаляя его из процесса
+// Понижает счетчик ссылок файла
 int process_close_file(struct process* process, int fd);
 
 void process_add_mmap_region(struct process* process, struct mmap_range* region);
 
-struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t addr);
+struct mmap_range* process_get_region_by_addr(struct process* process, uint64_t addr);
 
 void* process_get_free_addr(struct process* process, size_t length, uintptr_t hint);
 

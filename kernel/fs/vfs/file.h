@@ -22,7 +22,7 @@
 #define SEEK_END 2
 
 #define FD_CWD		-2
-#define DIRFD_IS_FD  1  
+#define DIRFD_IS_FD  0x1000
 
 struct file;
 

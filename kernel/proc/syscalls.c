@@ -408,7 +408,7 @@ int sys_memory_unmap(void* address, uint64_t length)
     int rc = 0;
 
     acquire_spinlock(&process->mmap_lock);
-    struct mmap_range* region = process_get_range_by_addr(process, address);
+    struct mmap_range* region = process_get_region_by_addr(process, address);
     
     if (region == NULL) {
         rc = -1; //Уточнить код ошибки
@@ -433,6 +433,7 @@ exit:
 
 int sys_memory_protect(void* address, uint64_t length, int protection)
 {
+    // TODO: Реализовать
     return -1;
 }
 
@@ -499,7 +500,6 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз
     file->pos = 0;
     // Файл не закрываем
-    //file_close(file);
 
     if (rc != 0) {
         // Ошибка загрузки
@@ -552,6 +552,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
         if (info->current_directory) {
             // Указана рабочая директория
             struct file* new_workdir = file_open(NULL, info->current_directory, 0, 0);
+            atomic_inc(&new_workdir->refs);
 
             if (new_workdir) {
                 
@@ -559,6 +560,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
                 if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
                     
                     new_process->workdir = new_workdir;
+
                 } else {
                     // Это не директория - закрываем файл
                     file_close(new_workdir);
@@ -580,6 +582,8 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     if (new_process->workdir == NULL && process->workdir != NULL) {
 
         new_process->workdir = file_clone(process->workdir);
+        //new_process->workdir = process->workdir;
+        atomic_inc(&new_process->workdir->refs);
     }
 
     // Формируем auxiliary вектор

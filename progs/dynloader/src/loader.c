@@ -1,5 +1,6 @@
 #include <syscalls.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include "loader.h"
 #include "string.h"
 #include "stdio.h"
@@ -9,8 +10,7 @@ uint64_t            aux_vector[20];
 struct object_data* root;
 int cfd;
 
-#define FD_CWD		-2
-#define DIRFD_IS_FD  1
+#define DIRFD_IS_FD  0x1000
 #define FILE_OPEN_MODE_READ_ONLY    00000000
 
 #define PROTECTION_WRITE_ENABLE    0b1
@@ -62,6 +62,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     int rc = syscall_fdstat(fd, 0, &file_stat, DIRFD_IS_FD);
 
     if (rc != 0) {
+        printf("Error! can't stat object fd!\n");
         return NULL;
     }
 
@@ -222,14 +223,14 @@ struct object_data* load_object_data(char* data, int shared) {
 int open_shared_object_file(const char* fname)
 {
     // Открыть в рабочей папке
-    int fd = syscall_open_file(FD_CWD, fname, FILE_OPEN_MODE_READ_ONLY, 0);
+    int fd = syscall_open_file(AT_FDCWD, fname, FILE_OPEN_MODE_READ_ONLY, 0);
     
     if (fd < 0) {
         // Открыть в системной папке
         char fpname[100];
         strcpy(fpname, "/libs/");
         strcat(fpname, fname);
-        fd = syscall_open_file(FD_CWD, fpname, FILE_OPEN_MODE_READ_ONLY, 0);
+        fd = syscall_open_file(AT_FDCWD, fpname, FILE_OPEN_MODE_READ_ONLY, 0);
     }
 
     return fd;

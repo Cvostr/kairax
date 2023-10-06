@@ -1,5 +1,5 @@
 #include "stdio.h"
-#include "sys_files.h"
+#include "sys/stat.h"
 #include "errno.h"
 #include "unistd.h"
 
@@ -25,9 +25,9 @@ int main(int argc, char** argv) {
 
     int result_mode = 0;
 
-    fill_mode(&result_mode, user_mode, PERM_USER_READ, PERM_USER_WRITE, PERM_USER_EXEC);
-    fill_mode(&result_mode, group_mode, PERM_GROUP_READ, PERM_GROUP_WRITE, PERM_GROUP_EXEC);
-    fill_mode(&result_mode, others_mode, PERM_OTHERS_READ, PERM_OTHERS_WRITE, PERM_OTHERS_EXEC);
+    fill_mode(&result_mode, user_mode, S_IRUSR, S_IWUSR, S_IXUSR);
+    fill_mode(&result_mode, group_mode, S_IRGRP, S_IWGRP, S_IXGRP);
+    fill_mode(&result_mode, others_mode, S_IROTH, S_IWOTH, S_IXOTH);
 
     int rc = chmod(src, result_mode);
 

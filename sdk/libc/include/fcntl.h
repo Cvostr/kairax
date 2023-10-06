@@ -2,6 +2,7 @@
 #define _FCNTL_H
 
 #define AT_FDCWD		-2
+#define AT_EMPTY_PATH   0x1000
 
 #define O_RDONLY	     00
 #define O_WRONLY	     01

@@ -62,12 +62,13 @@ void free_process(struct process* process)
     // Закрыть незакрытые файловые дескрипторы
     for (i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] != NULL) {
+            //printf("CLOSING FD - %i\n", i);
             struct file* fil = process->fds[i];
             file_close(fil);
         }
     }
 
-    // Закрыть объекты рабочей папки
+    // Закрыть объект рабочей папки
     if (process->workdir) {
         file_close(process->workdir);
     }
@@ -234,6 +235,7 @@ int process_add_file(struct process* process, struct file* file)
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
             process->fds[i] = file;
+            atomic_inc(&file->refs);
             fd = i;
             goto exit;
         }
@@ -279,7 +281,7 @@ void process_add_mmap_region(struct process* process, struct mmap_range* region)
     release_spinlock(&process->mmap_lock);
 }
 
-struct mmap_range* process_get_range_by_addr(struct process* process, uint64_t addr)
+struct mmap_range* process_get_region_by_addr(struct process* process, uint64_t addr)
 {
     for (size_t i = 0; i < list_size(process->mmap_ranges); i ++) {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
@@ -387,7 +389,7 @@ int process_handle_page_fault(struct process* process, uint64_t address)
 {
     acquire_spinlock(&process->mmap_lock);
     
-    struct mmap_range* range = process_get_range_by_addr(process, address);
+    struct mmap_range* range = process_get_region_by_addr(process, address);
     if (range == NULL) {
         return 0;
     }
