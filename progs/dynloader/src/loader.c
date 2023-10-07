@@ -8,7 +8,6 @@
 uint64_t            args_info[2];
 uint64_t            aux_vector[20];
 struct object_data* root;
-int cfd;
 
 #define DIRFD_IS_FD  0x1000
 #define FILE_OPEN_MODE_READ_ONLY    00000000
@@ -39,8 +38,6 @@ uint64_t align_down(uint64_t val, size_t alignment)
 }
 
 void loader() {
-
-    cfd = syscall_open_file(-2, "/dev/console", 00000002, 0);
 
     int fd = aux_vector[AT_EXECFD];
     int argc = args_info[0];

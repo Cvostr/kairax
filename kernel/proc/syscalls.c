@@ -485,6 +485,12 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     // Создать новый процесс
     new_process = create_new_process(process);
 
+    // TEMPORARY
+    struct file* stdout = process_get_file(process, info->stdout);
+    if (stdout != NULL) {
+        process_add_file_at(new_process, stdout, 1);
+    }
+
     // Добавить файл к новому процессу
     fd = process_add_file(new_process, file);
 

@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "sys_files.h"
 #include "unistd.h"
+#include "fcntl.h"
 
 size_t _strlen (const char *__s)
 {
@@ -41,7 +42,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int fd = open_file(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0777);
+    int fd = open(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0777);
 
     if (fd == -1) {
         printf("Can't open file with path %s", path);

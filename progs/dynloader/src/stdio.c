@@ -1,11 +1,11 @@
 #include "stdio.h"
-
+#include <syscalls.h>
 #include "stdarg.h"
 #include "stdint.h"
 #include "string.h"
+#include "unistd.h"
 
 char temp[130];
-extern int cfd;
 
 static char destination[32] = {0};
 
@@ -35,7 +35,7 @@ void write_to_console(const char* buffer, int size) {
 		temp[2 + i] = buffer[i];
 	}
 
-	syscall_write(cfd, temp, 2 + size);
+	syscall_write(STDOUT_FILENO, temp, 2 + size);
 }
 
 static int print(const char* data, size_t length) {

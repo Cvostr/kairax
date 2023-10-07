@@ -32,3 +32,13 @@ off_t lseek(int fd, off_t offset, int whence)
 {
     __set_errno(syscall_file_seek(fd, offset, whence));
 }
+
+ssize_t read(int fd, char* buffer, size_t size)
+{
+    __set_errno(syscall_read(fd, buffer, size));
+}
+
+ssize_t write(int fd, const char* buffer, size_t size)
+{
+    __set_errno(syscall_write(fd, buffer, size));
+}

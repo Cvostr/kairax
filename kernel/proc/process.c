@@ -246,13 +246,34 @@ exit:
     return fd;
 }
 
+int process_add_file_at(struct process* process, struct file* file, int fd)
+{
+    if (fd < 0 || fd >= MAX_DESCRIPTORS) {
+        return -ERROR_BAD_FD;
+    }
+
+    acquire_spinlock(&process->fd_lock);
+
+    if (process->fds[fd] != NULL) {
+        // На этой позиции уже есть файл - закрываем
+        file_close(process->fds[fd]);
+    }
+
+    // Добавить файл и увеличить счетчик ссылок
+    process->fds[fd] = file;
+    atomic_inc(&file->refs);
+
+    release_spinlock(&process->fd_lock);
+
+    return 0;
+}
+
 int process_close_file(struct process* process, int fd)
 {
     int rc = 0;
 
     if (fd < 0 || fd >= MAX_DESCRIPTORS) {
-        rc = -ERROR_BAD_FD;
-        goto exit;
+        return -ERROR_BAD_FD;
     }
 
     acquire_spinlock(&process->fd_lock);

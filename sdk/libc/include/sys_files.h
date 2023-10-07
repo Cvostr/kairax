@@ -4,6 +4,7 @@
 #include "sys/types.h"
 #include "stddef.h"
 #include "sys/stat.h"
+#include <stdint.h>
 #include "dirent.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    00000000
@@ -16,8 +17,6 @@
 #define FILE_OPEN_FLAG_DIRECTORY    00200000
 
 #define FD_CWD		-2
-
-int open_file(const char* filepath, int flags, int mode);
 
 int stat_at(int dirfd, const char* filepath, struct stat* st);
 

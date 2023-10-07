@@ -3,6 +3,7 @@
 #include "bootshell_cmdproc.h"
 #include "stdio.h"
 #include "drivers/video/video.h"
+#include "proc/syscalls.h"
 
 char command[256];
 int cmd_len = 0;
@@ -24,13 +25,13 @@ void bootshell()
         char keycode = keyboard_get_key();
         char symbol = keyboard_get_key_ascii(keycode);
 
-        if(symbol != 0 && symbol != '\n'){
+        if (symbol != 0 && symbol != '\n') {
             printf("%c", symbol);
 
             command[cmd_len++] = symbol;
         }
 
-        if(symbol == '\n'){
+        if (symbol == '\n') {
             command[cmd_len++] = '\0';
             printf("%c", symbol);
             bootshell_process_cmd(command);
@@ -38,7 +39,7 @@ void bootshell()
             cmd_len = 0;
         }
 
-        if(keycode == 15 && cmd_len > 0){ //удаление символа
+        if (keycode == 15 && cmd_len > 0) { //удаление символа
             cmd_len--;
             console_remove_from_end(1);
         }

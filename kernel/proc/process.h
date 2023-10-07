@@ -55,6 +55,10 @@ struct process_create_info {
     char*   current_directory;
     int  num_args;
     char**  args;
+
+    int stdin;
+    int stdout;
+    int stderr;
 };
 
 //Создать новый пустой процесс
@@ -73,6 +77,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
 void* process_alloc_stack_memory(struct process* process, size_t stack_size);
 
+// Получает объект открытого файла по номеру дескриптора
 struct file* process_get_file(struct process* process, int fd);
 
 // Загружает аргументы командной строки в адресное пространство процесса
@@ -84,16 +89,23 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
 // Возвращает номер дескриптора добавленного файла в этом процессе
 int process_add_file(struct process* process, struct file* file);
 
+// Добавляет файл к процессу с указанным номером дескриптора
+// Если номер уже занят - производит замену с закрытием предыдущего файла
+// Повышает счетчик ссылок
+int process_add_file_at(struct process* process, struct file* file, int fd);
+
 // Закрывает файл с указанным номером fd, удаляя его из процесса
 // Понижает счетчик ссылок файла
 int process_close_file(struct process* process, int fd);
 
 void process_add_mmap_region(struct process* process, struct mmap_range* region);
 
+// Получить объект региона памяти по адресу
 struct mmap_range* process_get_region_by_addr(struct process* process, uint64_t addr);
 
 void* process_get_free_addr(struct process* process, size_t length, uintptr_t hint);
 
+// Обработать исключение Page Fault
 int process_handle_page_fault(struct process* process, uint64_t address);
 
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);

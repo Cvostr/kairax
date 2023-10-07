@@ -22,6 +22,7 @@
 extern char curdir[512];
 extern struct inode* wd_inode;
 extern struct dentry* wd_dentry;
+int console_fd = -1;
 
 void cd(const char* path) 
 {
@@ -154,28 +155,6 @@ void bootshell_process_cmd(char* cmdline)
 
         file_close(file); 
     }
-    if (strcmp(cmd, "cat") == 0) {
-        struct file* file = file_open(wd_dentry, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
-        
-        if (file == NULL) {
-            printf("Can't open directory with path : %s", args[1]);
-            goto exit;
-        }
-
-        int size = file->inode->size;
-        printf("%s: ", args[1]);
-        char* buffer = kmalloc(size);
-        
-        file_read(file, size, buffer);
-
-        for(int i = 0; i < size; i++){
-            printf("%c", buffer[i]);
-        }
-        printf("\n");
-        kfree(buffer);
-
-        file_close(file);
-    }
     if (strcmp(cmd, "stress") == 0) {
 
         struct process_create_info info;
@@ -200,10 +179,18 @@ void bootshell_process_cmd(char* cmdline)
 
     }
     if (strcmp(cmd, "exec") == 0) {
+
+        if (console_fd == -1) {
+            console_fd = sys_open_file(FD_CWD, "/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
+        }
+
         struct process_create_info info;
         info.current_directory = curdir;
         info.num_args = argc - 1;
         info.args = args + 1;
+        info.stdout = console_fd;
+        info.stdin = -1;
+        info.stderr = -1;
         int rc = sys_create_process(-2, args[1], &info);
         if (rc != 0) {
             printf("Error creating process : %i\n", rc);

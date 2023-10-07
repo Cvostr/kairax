@@ -3,11 +3,11 @@
 #include "stdint.h"
 #include "string.h"
 #include "unistd.h"
+#include "fcntl.h"
 #include "sys_files.h"
 
 static char destination[32] = {0};
 static char temp[130];
-static int console_fd = -1;
 
 char* itoa(long long number, int base){
 
@@ -35,11 +35,7 @@ void write_to_console(const char* buffer, int size) {
 		temp[2 + i] = buffer[i];
 	}
 
-	if (console_fd == -1) {
-		console_fd = open_file("/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
-	}
-
-	write(console_fd, temp, 2 + size);
+	write(STDOUT_FILENO, temp, 2 + size);
 }
 
 int putchar(int ic) {
@@ -56,8 +52,7 @@ static int print(const char* data, size_t length) {
 			len ++;
 
 	write_to_console(data, len);
-
-
+	
 	return 1;
 }
 

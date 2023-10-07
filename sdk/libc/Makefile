@@ -11,6 +11,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/fcntl.o \
 				obj/stat.o \
 				obj/ioctl.o \
+				obj/ctype.o \
 				obj/sys_files.o \
 				obj/bsdmalloc.o
 
