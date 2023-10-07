@@ -17,14 +17,14 @@ int main(int argc, char** argv) {
     char* src = argv[1];
     char* dest = argv[2];
 
-    int srcfd = open(src, FILE_OPEN_MODE_READ_ONLY, 0);
+    int srcfd = open(src, O_RDONLY, 0);
 
     if (srcfd == -1) {
         printf("Can't open source file %s, code=%i\n", src, errno);
         return 2;
     }
 
-    int dstfd = open(dest, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0777);
+    int dstfd = open(dest, O_CREAT | O_WRONLY, 0777);
 
     if (dstfd == -1) {
         printf("Can't open destination file %s, code=%i\n", dest, errno);

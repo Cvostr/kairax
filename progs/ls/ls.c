@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    int dirfd = open(path, FILE_OPEN_MODE_READ_ONLY, 0);
+    int dirfd = open(path, O_RDONLY, 0);
 
     if (dirfd == -1) {
         printf("Can't open %s", path);

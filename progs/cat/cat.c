@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
     char* src = argv[1];
 
-    int srcfd = open(src, FILE_OPEN_MODE_READ_ONLY, 0);
+    int srcfd = open(src, O_RDONLY, 0);
 
     if (srcfd == -1) {
         printf("Can't open file %s", src);

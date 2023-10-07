@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int fd = open(path, FILE_OPEN_FLAG_CREATE | FILE_OPEN_MODE_WRITE_ONLY, 0777);
+    int fd = open(path, O_CREAT | O_WRONLY, 0777);
 
     if (fd == -1) {
         printf("Can't open file with path %s", path);

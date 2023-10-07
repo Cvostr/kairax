@@ -312,7 +312,7 @@ void console_remove_from_end(int chars)
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset)
 {
-    acquire_mutex(&vga_console_lock);
+    //acquire_mutex(&vga_console_lock);
 
 	if (buffer[0] == B8_WR_CMD) {
         int len = buffer[1];
@@ -323,5 +323,5 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 		console_remove_from_end(buffer[1]);
 	}
 
-    release_spinlock(&vga_console_lock);
+    //release_spinlock(&vga_console_lock);
 }

@@ -160,7 +160,7 @@ void smp_init()
             // Установить IDT, включить прерывания
             load_idt();
             // Установка параметров для syscall
-            cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
+            cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0);
             // Запомнить данные ядра в KERNEL GS
             cpu_set_kernel_gs_base(curr_cpu_local);
             asm volatile("swapgs");

@@ -50,23 +50,6 @@ void scheduler_eoi()
     }
 }
 
-void scheduler_sleep(void* handle, spinlock_t* lock)
-{
-    struct thread* thr = cpu_get_current_thread();
-
-    release_spinlock(lock);
-
-    // Изменяем состояние - блокируемся
-    thr->state = THREAD_INTERRUPTIBLE_SLEEP;
-    thr->wait_handle = handle;
-
-    // Передача управления другому процессу
-    scheduler_yield();
-
-    // Блокируем спинлок и выходим
-    acquire_spinlock(lock);
-}
-
 // frame может быть NULL
 // Если это так, то мы сюда попали из убитого потока
 void* scheduler_handler(thread_frame_t* frame)
@@ -85,7 +68,10 @@ void* scheduler_handler(thread_frame_t* frame)
 
         // Сохранить указатель на контекст
         previous_thread->context = frame;
-        previous_thread->state = THREAD_RUNNABLE;
+
+        // Если процесс не блокировался - сменить состояние
+        if (previous_thread->state == THREAD_RUNNING)
+            previous_thread->state = THREAD_RUNNABLE;
 
         if (previous_thread->is_userspace) {
             // Сохранить указатель на вершину стека пользователя

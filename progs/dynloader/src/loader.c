@@ -43,6 +43,7 @@ void loader() {
     int argc = args_info[0];
     char** argv = (char**) args_info[1];
 
+    // Загрузить главный объект
     root = load_object_data_fd(fd, 0);
 
     // Закрыть файл
