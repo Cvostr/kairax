@@ -2,6 +2,7 @@
 #define _DIRENT_H
 
 #include <sys/types.h>
+#include "inttypes.h"
 
 #define MAX_DIRENT_NAME_LEN 260
 
@@ -16,10 +17,26 @@
 #define DT_WHT          14
 
 struct dirent {
-    uint64_t    inode;      // номер inode
+    ino_t       inode;      // номер inode
     uint64_t    offset;     // Номер в директории
     uint8_t     type;       // Тип
     char        name[MAX_DIRENT_NAME_LEN];     // Имя
 };
+
+struct __dirstream
+{
+	off_t tell;
+	int fd;
+	int buf_pos;
+	int buf_end;
+	volatile int lock[1];
+	/* Any changes to this struct must preserve the property:
+	 * offsetof(struct __dirent, buf) % sizeof(off_t) == 0 */
+	char buf[2048];
+};
+
+typedef struct __dirstream DIR;
+
+int readdir(int fd, struct dirent* direntry);
 
 #endif

@@ -104,10 +104,8 @@ char *strncat (char *__restrict __dest, const char *__restrict __src, size_t __n
 
 int strcmp (const char *__s1, const char *__s2)
 {
-    const unsigned char *s1 = (const unsigned char *) __s1;
-    const unsigned char *s2 = (const unsigned char *) __s2;
+    const unsigned char *s1 = (void*) __s1, *s2 = (void*) __s2;
     unsigned char c1, c2;
-    
     do
     {
         c1 = (unsigned char) *s1++;
@@ -122,7 +120,12 @@ int strcmp (const char *__s1, const char *__s2)
 
 int strncmp (const char *__s1, const char *__s2, size_t __n)
 {
+    const unsigned char *s1 =(void *)__s1, *s2=(void *)__s2;
+	if (!__n--) return 0;
 
+	for (; *s1 && *s2 && __n && *s1 == *s2 ; s1++, s2++, __n--);
+
+	return *s1 - *s2;
 }
 
 char *strdup (const char *__s)

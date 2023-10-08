@@ -27,15 +27,3 @@ void sleep(int time)
 {
     syscall_sleep(time);
 }
-
-void* mmap(void* addr, size_t length, int protection, int flags)
-{
-    void* result = syscall_process_map_memory(addr, length, protection, flags);
-    int64_t rc = (int64_t) result;
-    if (rc < 0) { 
-        errno = -rc; 
-        return (void*)-1;
-    }
-    
-    return result;
-}

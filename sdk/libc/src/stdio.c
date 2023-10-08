@@ -1,31 +1,13 @@
 #include "stdio.h"
 #include "stdarg.h"
 #include "stdint.h"
+#include "stdlib.h"
 #include "string.h"
 #include "unistd.h"
 #include "fcntl.h"
-#include "sys_files.h"
 
 static char destination[32] = {0};
 static char temp[130];
-
-char* itoa(long long number, int base){
-
- 	int count = 0;
-  do {
-      	int digit = number % base;
-      	destination[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
-    	} while ((number /= base) != 0);
-    	destination[count] = '\0';
-    	int i;
-    	for (i = 0; i < count / 2; ++i) {
-      	char symbol = destination[i];
-      	destination[i] = destination[count - i - 1];
-      	destination[count - i - 1] = symbol;
-    	}
-    	return destination;
-
-}
 
 void write_to_console(const char* buffer, int size) {
 	temp[0] = 'w';
@@ -52,7 +34,7 @@ static int print(const char* data, size_t length) {
 			len ++;
 
 	write_to_console(data, len);
-	
+
 	return 1;
 }
 
@@ -108,7 +90,7 @@ int printf(const char* restrict format, ...) {
 		} else if (*format == 'i') {
 			format++;
 			size_t integer = va_arg(parameters, size_t);
-			char* str = itoa(integer, 10);
+			char* str = itoa(integer, destination, 10);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				// TODO: Set errno to EOVERFLOW.

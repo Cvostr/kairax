@@ -12,8 +12,10 @@ struct object_data* root;
 #define DIRFD_IS_FD  0x1000
 #define FILE_OPEN_MODE_READ_ONLY    00000000
 
-#define PROTECTION_WRITE_ENABLE    0b1
-#define PROTECTION_EXEC_ENABLE     0b10
+#define PAGE_PROTECTION_READ_ENABLE     0x01
+#define PAGE_PROTECTION_WRITE_ENABLE    0x02
+#define PAGE_PROTECTION_EXEC_ENABLE     0x04
+#define PAGE_PROTECTION_USER            0x08
 
 #define SO_BASE                     (void*) 0x7fcc372d7000ULL
 #define PAGE_SIZE                   aux_vector[AT_PAGESZ]
@@ -65,7 +67,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     }
 
     // Выделить память под файл
-    char* file_buffer = syscall_process_map_memory(NULL, file_stat.st_size, PROTECTION_WRITE_ENABLE, 0);
+    char* file_buffer = syscall_process_map_memory(NULL, file_stat.st_size, PAGE_PROTECTION_WRITE_ENABLE, 0);
     memset(file_buffer, 0, file_stat.st_size);
 
     // Чтение файла
@@ -82,8 +84,12 @@ struct object_data* load_object_data_fd(int fd, int shared) {
 
 struct object_data* load_object_data(char* data, int shared) {
 
-    struct object_data* obj_data = 
-                        (struct object_data*) syscall_process_map_memory(NULL, sizeof(struct object_data), 1, 0);
+    struct object_data* obj_data = (struct object_data*) syscall_process_map_memory(
+                                            NULL,
+                                            sizeof(struct object_data),
+                                            PAGE_PROTECTION_WRITE_ENABLE,
+                                            0);
+
     memset(obj_data, 0, sizeof(struct object_data));
 
     struct elf_header* elf_header = (struct elf_header*) data;
@@ -108,7 +114,11 @@ struct object_data* load_object_data(char* data, int shared) {
         }
 
         // Выделить память под код
-        obj_data->base = (uint64_t)syscall_process_map_memory(SO_BASE, obj_data->size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
+        obj_data->base = (uint64_t)syscall_process_map_memory(
+            SO_BASE,
+            obj_data->size,
+            PAGE_PROTECTION_WRITE_ENABLE | PAGE_PROTECTION_EXEC_ENABLE,
+            0);
 
         // Расположить код в памяти
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
@@ -139,7 +149,7 @@ struct object_data* load_object_data(char* data, int shared) {
         if (strcmp(section_name, ".dynamic") == 0) {
 
             // Сохранить все данные секции
-            obj_data->dynamic_section = syscall_process_map_memory(NULL, sehentry->size, PROTECTION_WRITE_ENABLE, 0);
+            obj_data->dynamic_section = syscall_process_map_memory(NULL, sehentry->size, PAGE_PROTECTION_WRITE_ENABLE, 0);
             memcpy(obj_data->dynamic_section, data + sehentry->offset, sehentry->size);
             obj_data->dynamic_sec_size = sehentry->size;
 
@@ -157,19 +167,34 @@ struct object_data* load_object_data(char* data, int shared) {
             }
         } else if (strcmp(section_name, ".dynsym") == 0) {
             
-            obj_data->dynsym = (struct elf_symbol*)syscall_process_map_memory(NULL, sehentry->size, 1, 0);
+            obj_data->dynsym = (struct elf_symbol*)syscall_process_map_memory(
+                NULL,
+                sehentry->size,
+                PAGE_PROTECTION_WRITE_ENABLE,
+                0);
+
             memcpy(obj_data->dynsym, data + sehentry->offset, sehentry->size);
 
             obj_data->dynsym_size = sehentry->size;
 
         } else if (strcmp(section_name, ".dynstr") == 0) {
-            obj_data->dynstr = (struct elf_symbol*)syscall_process_map_memory(NULL, sehentry->size, 1, 0);
+            obj_data->dynstr = (struct elf_symbol*)syscall_process_map_memory(
+                NULL,
+                sehentry->size,
+                PAGE_PROTECTION_WRITE_ENABLE,
+                0);
+
             memcpy(obj_data->dynstr, data + sehentry->offset, sehentry->size);
 
             obj_data->dynstr_size = sehentry->size;
 
         } else if (strcmp(section_name, ".rela.plt") == 0) {
-            obj_data->rela = (struct elf_rela*)syscall_process_map_memory(NULL, sehentry->size, 1, 0);
+            obj_data->rela = (struct elf_rela*)syscall_process_map_memory(
+                NULL,
+                sehentry->size,
+                PAGE_PROTECTION_WRITE_ENABLE,
+                0);
+                
             memcpy(obj_data->rela, data + sehentry->offset, sehentry->size);
 
             obj_data->rela_size = sehentry->size;

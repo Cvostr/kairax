@@ -13,6 +13,8 @@
 #define O_DIRECTORY	    0200000
 #define O_TRUNC	        01000
 #define O_NONBLOCK	    04000
+#define O_EXCL		    0200
+#define O_CLOEXEC       02000000
 
 int openat(int dirfd, const char* filepath, int flags, int mode);
 

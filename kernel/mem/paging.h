@@ -4,9 +4,10 @@
 #include "sync/spinlock.h"
 #include "atomic.h"
 
-#define PAGE_PROTECTION_WRITE_ENABLE    0b001
-#define PAGE_PROTECTION_EXEC_ENABLE     0b010
-#define PAGE_PROTECTION_USER            0b100
+#define PAGE_PROTECTION_READ_ENABLE     0x01
+#define PAGE_PROTECTION_WRITE_ENABLE    0x02
+#define PAGE_PROTECTION_EXEC_ENABLE     0x04
+#define PAGE_PROTECTION_USER            0x08
 
 #define PAGING_ERROR_ALREADY_MAPPED       0x10
 #define ERR_NO_PAGE_PRESENT               0x11

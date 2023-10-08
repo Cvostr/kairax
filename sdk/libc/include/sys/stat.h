@@ -48,9 +48,15 @@ struct stat {
 
 int chmod(const char* filepath, mode_t mode);
 
+int fchmod(int fd, mode_t mode);
+
+int fchmodat(int dirfd, const char* filepath, mode_t mode, int flags);
+
 int stat(const char* filepath, struct stat* st);
 
 int fstat(int fd, struct stat* st);
+
+int fstatat(int dirfd, const char* filepath, struct stat* st, int flags);
 
 int mkdir(const char* dirpath, int mode);
 

@@ -1,10 +1,7 @@
 #include "stdio.h"
-#include "sys_files.h"
 #include "process.h"
-
-#define BSS_LEN 10000
-
-int big_array[BSS_LEN];
+#include "stdlib.h"
+#include "string.h"
 
 int main(int argc, char** argv) {
 
@@ -13,10 +10,13 @@ int main(int argc, char** argv) {
         printf("%i : %s \n", i, argv[i]);
     }
 
-    for(int i = 0; i < BSS_LEN; i ++)
-        big_array[i] = i;
-
-    //memset(big_array, 12, sizeof(int) * BSS_LEN);
+    char* testmem;
+    for (int i = 0; i < 10; i ++) {
+        testmem  = malloc(120);
+        memset(testmem, 0, 120);
+        strcpy(testmem, "String in malloced memory");
+        printf("%s %i \n", testmem, testmem);
+    }
 
     char str[3];
     str[0] = 'A';
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
     int iterations = 0;
 
-    for(iterations = 0; iterations < 10; iterations ++) {
+    for(iterations = 0; iterations < 5; iterations ++) {
 
         sleep(20);
 

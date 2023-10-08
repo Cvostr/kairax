@@ -1,23 +1,28 @@
-CFLAGS=-nostdlib -nostdinc -ffreestanding -fPIC -I./include -I../sys
+CFLAGS=-nostdlib -nostdinc -ffreestanding -std=c99 -fPIC -I./include -I../sys
 CC=gcc
 SRC_DIR=src
-OBJ_DIR=obj
+OBJ_DIRS =  obj \
+			obj/stdio
+
 COMPILED_OBJS = obj/math.o \
 				obj/process.o \
 				obj/stdio.o \
+				obj/stdio/fopen.o \
+				obj/stdio/fread.o \
 				obj/stdlib.o \
 				obj/string.o \
 				obj/unistd.o \
+				obj/mman.o \
 				obj/fcntl.o \
 				obj/stat.o \
 				obj/ioctl.o \
 				obj/ctype.o \
-				obj/sys_files.o \
+				obj/dirent.o \
 				obj/bsdmalloc.o
 
-all: $(OBJ_DIR) libc errno
+all: $(OBJ_DIRS) libc errno
 
-$(OBJ_DIR):
+$(OBJ_DIRS):
 	mkdir -p $@
 
 errno: obj/errno.o

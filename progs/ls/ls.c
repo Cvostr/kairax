@@ -1,8 +1,9 @@
 #include "stdio.h"
-#include "sys_files.h"
 #include "errno.h"
 #include "unistd.h"
 #include "fcntl.h"
+#include "dirent.h"
+#include "sys/stat.h"
 
 int main(int argc, char** argv) {
 
@@ -33,7 +34,7 @@ int main(int argc, char** argv) {
     while (readdir(dirfd, &dr) == 1) {
 
         if (all) {
-            rc = stat_at(dirfd, dr.name, &dirstat);
+            rc = fstatat(dirfd, dr.name, &dirstat, 0);
             if (rc == -1) {
                 printf("Error! Can't stat file %s, error=%i\n", dr.name, errno);
             }
