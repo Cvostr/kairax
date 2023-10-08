@@ -20,6 +20,7 @@ extern int syscall_mount(const char* device, const char* mount_dir, const char* 
 extern int syscall_create_directory(int dirfd, const char* pathname, int mode);
 extern void* syscall_process_map_memory(void* address, unsigned long long length, int protection, int flags);
 extern int syscall_process_unmap_memory(void* address, unsigned long long length);
+extern void syscall_process_exit(int status);
 extern int syscall_poweroff(int cmd);
 
 extern unsigned long int syscall_create_thread(void* entry, void* arg, unsigned long long* tid, unsigned long long stack_size);

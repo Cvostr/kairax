@@ -8,6 +8,7 @@ global syscall_set_working_dir
 global syscall_process_exit
 global syscall_sleep
 global syscall_scheduler_yield
+global syscall_process_exit
 global syscall_read
 global syscall_write
 global syscall_ioctl

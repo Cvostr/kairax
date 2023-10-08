@@ -1,5 +1,6 @@
 #include "stdlib.h"
 #include "ctype.h"
+#include "unistd.h"
 
 int atoi(const char *s)
 {
@@ -65,4 +66,9 @@ long int labs (long int i)
 long long int llabs (long long int i)
 {
     return i < 0 ? -i : i;
+}
+
+void exit(int status)
+{
+	_exit(status);
 }

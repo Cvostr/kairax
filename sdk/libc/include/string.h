@@ -1,6 +1,10 @@
 #ifndef _STRING_H
 #define _STRING_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "stddef.h"
 
 /* Copy N bytes of SRC to DEST.  */
@@ -51,5 +55,13 @@ extern char *strndup (const char *__string, size_t __n);
 
 /* Find the first occurrence of C in S.  */
 extern char *strchr (const char *__s, int __c);
+
+extern char *strrchr(const char* __s, int __c);
+
+extern char *strstr(const char* __s, const char* __n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -150,3 +150,34 @@ char *strchr (const char *__s, int __c)
 	}
 	return NULL;
 }
+
+char *strrchr(const char* __s, int __c)
+{
+	char* s = (char*) __s;
+	char* result = 0;
+
+  	do {
+    	if (*s == __c)
+      		result = (char*) s;
+
+  	} while (*s++);
+  	
+	return (result);
+}
+
+char *strstr(const char* __s, const char* __subs)
+{
+    unsigned char* str = (unsigned char*) __s;
+
+    size_t substrl = strlen(__subs);
+
+    while (*str) {
+        if (memcmp(str, __subs, substrl) == 0) {
+            return str;
+        }
+
+        str++;
+    }
+
+    return 0;
+}

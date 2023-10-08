@@ -170,6 +170,11 @@ void* sbrk(int len) {
     return mmap(NULL, len, PROT_READ | PROT_WRITE, 0);
 }
 
+void *calloc(size_t num, size_t size)
+{
+	return malloc(num * size);
+}
+
 void *malloc(size_t nbytes)
 {
   	union overhead *op;

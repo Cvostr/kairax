@@ -20,9 +20,6 @@
 #define INTPTR_MAX		(9223372036854775807L)
 #define UINTPTR_MAX		(18446744073709551615UL)
 
-#define INT_MIN INT32_MIN
-#define INT_MAX INT32_MAX
-
 typedef long int intptr_t;
 typedef unsigned long int uintptr_t;
 

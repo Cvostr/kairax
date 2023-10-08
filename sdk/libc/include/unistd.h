@@ -28,4 +28,6 @@ int chdir(const char* path);
 
 int pipe(int pipefd[2]);
 
+void _exit(int status);
+
 #endif
