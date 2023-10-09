@@ -8,11 +8,11 @@ OBJ_DIRS =  obj \
 
 COMPILED_OBJS = obj/math.o \
 				obj/process.o \
-				obj/stdio.o \
 				obj/stdio/stdfiles.o \
 				obj/stdio/fopen.o \
 				obj/stdio/fread.o \
 				obj/stdio/snprintf.o \
+				obj/stdio/printf_generic.o \
 				obj/stdlib.o \
 				obj/string.o \
 				obj/strings.o \

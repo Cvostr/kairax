@@ -6,7 +6,7 @@
 
 struct arg_printf {
     void *data;
-    int (*put)(const void*, size_t, void*);
+    int (*put)(void*, const void*, size_t);
 };
 
 struct str_data {

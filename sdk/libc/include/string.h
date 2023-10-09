@@ -60,6 +60,8 @@ extern char *strrchr(const char* __s, int __c);
 
 extern char *strstr(const char* __s, const char* __n);
 
+extern char* strrev(char *str);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,6 +1,7 @@
 #include "stdlib.h"
 #include "ctype.h"
 #include "unistd.h"
+#include "string.h"
 
 int atoi(const char *s)
 {
@@ -42,13 +43,37 @@ char* itoa(int number, char* str, int base)
     } while ((number /= base) != 0);
     
     str[count] = '\0';
-    int i;
+	strrev(str);
+
+    return str;
+}
+
+char* ltoa(long number, char* str, int base)
+{
+	int count = 0;
+
+    do {
+      	int digit = number % base;
+      	str[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
+    } while ((number /= base) != 0);
     
-    for (i = 0; i < count / 2; ++i) {
-      	char symbol = str[i];
-      	str[i] = str[count - i - 1];
-      	str[count - i - 1] = symbol;
-    }
+    str[count] = '\0';
+	strrev(str);
+
+    return str;
+}
+
+char* lltoa(long long number, char* str, int base)
+{
+	int count = 0;
+
+    do {
+      	int digit = number % base;
+      	str[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
+    } while ((number /= base) != 0);
+    
+    str[count] = '\0';
+	strrev(str);
 
     return str;
 }
