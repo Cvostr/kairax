@@ -5,6 +5,7 @@
 #include "string.h"
 #include "unistd.h"
 #include "fcntl.h"
+#include "limits.h"
 
 static char destination[32] = {0};
 static char temp[130];

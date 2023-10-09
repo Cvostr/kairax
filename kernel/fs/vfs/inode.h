@@ -42,8 +42,9 @@ struct inode {
     uint64_t    inode;      // Номер узла в драйвере файловой системы
     uint64_t    size;       // Размер файла (байт)
     uint32_t    hard_links; // количество ссылок
+    dev_t       device;
 
-    struct superblock* sb;
+    struct      superblock* sb;
 
     atomic_t    reference_count;
 

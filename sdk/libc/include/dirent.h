@@ -17,10 +17,10 @@
 #define DT_WHT          14
 
 struct dirent {
-    ino_t       inode;      // номер inode
-    uint64_t    offset;     // Номер в директории
-    uint8_t     type;       // Тип
-    char        name[MAX_DIRENT_NAME_LEN];     // Имя
+    ino_t       d_ino;      // номер inode
+    uint64_t    d_off;     // Номер в директории
+    uint8_t     d_type;       // Тип
+    char        d_name[MAX_DIRENT_NAME_LEN];     // Имя
 };
 
 struct __dirstream

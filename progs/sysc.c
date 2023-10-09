@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
 
     char* testmem;
     for (int i = 0; i < 10; i ++) {
-        testmem  = malloc(120);
+        testmem = malloc(120);
         memset(testmem, 0, 120);
         strcpy(testmem, "String in malloced memory");
         printf("%s %i \n", testmem, testmem);

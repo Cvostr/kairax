@@ -12,7 +12,7 @@ COMPILED_OBJS = obj/entry.o \
 				obj/stdio.o
 
 all: $(OBJ_DIR) $(COMPILED_OBJS)
-	ld $(LDARGS) -o loader.elf $(COMPILED_OBJS) ../../sdk/sys/syscalls.o
+	ld $(LDARGS) -o loader.elf $(COMPILED_OBJS) ../../sdk/libc/obj/x64/syscalls.o
 
 clean:
 	rm -rf obj/*.o *.a *.elf

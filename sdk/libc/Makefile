@@ -1,8 +1,10 @@
 CFLAGS=-nostdlib -nostdinc -ffreestanding -std=c99 -fPIC -I./include -I../sys
 CC=gcc
+ASM=nasm
 SRC_DIR=src
 OBJ_DIRS =  obj \
-			obj/stdio
+			obj/stdio \
+			obj/x64
 
 COMPILED_OBJS = obj/math.o \
 				obj/process.o \
@@ -21,7 +23,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/ioctl.o \
 				obj/ctype.o \
 				obj/dirent.o \
-				obj/bsdmalloc.o
+				obj/bsdmalloc.o \
+				obj/x64/syscalls.o
 
 all: $(OBJ_DIRS) libc errno
 
@@ -32,10 +35,13 @@ errno: obj/errno.o
 	ar rcs liberrno.a obj/errno.o
 
 libc: $(COMPILED_OBJS)
-	$(CC) -fPIC -nostdlib -shared -o libc.so $(COMPILED_OBJS) ../sys/syscalls.o
+	$(CC) -fPIC -nostdlib -shared -o libc.so $(COMPILED_OBJS)
 
 clean:
 	rm -rf obj/*.o *.so *.a
 
 obj/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+obj/%.o: $(SRC_DIR)/%.asm
+	$(ASM) -felf64 $< -o $@

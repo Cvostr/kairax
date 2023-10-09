@@ -113,6 +113,7 @@ int inode_stat(struct inode* node, struct stat* sstat)
     sstat->st_mode = node->mode;
     sstat->st_uid = node->uid;
     sstat->st_gid = node->gid;
+    sstat->st_dev = node->device;
     sstat->st_atime = node->access_time;
     sstat->st_ctime = node->create_time;
     sstat->st_mtime = node->modify_time;

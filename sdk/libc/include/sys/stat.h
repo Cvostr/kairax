@@ -26,7 +26,7 @@
 #define S_IXOTH	    00001	
 
 struct stat {
-   // dev_t      st_dev;      /* ID of device containing file */
+    dev_t      st_dev;      /* ID of device containing file */
     ino_t      st_ino;      /* Inode number */
     mode_t     st_mode;     /* File type and mode */
     nlink_t    st_nlink;    /* Number of hard links */

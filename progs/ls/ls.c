@@ -34,13 +34,13 @@ int main(int argc, char** argv) {
     while (readdir(dirfd, &dr) == 1) {
 
         if (all) {
-            rc = fstatat(dirfd, dr.name, &dirstat, 0);
+            rc = fstatat(dirfd, dr.d_name, &dirstat, 0);
             if (rc == -1) {
-                printf("Error! Can't stat file %s, error=%i\n", dr.name, errno);
+                printf("Error! Can't stat file %s, error=%i\n", dr.d_name, errno);
             }
-            printf("TYPE %s, NAME %s, SIZE %i\n", (dr.type == DT_REG) ? "FILE" : "DIR", dr.name, dirstat.st_size);
+            printf("TYPE %s, NAME %s, SIZE %i\n", (dr.d_type == DT_REG) ? "FILE" : "DIR", dr.d_name, dirstat.st_size);
         } else {
-            printf("TYPE %s, NAME %s\n", (dr.type == DT_REG) ? "FILE" : "DIR", dr.name);
+            printf("TYPE %s, NAME %s\n", (dr.d_type == DT_REG) ? "FILE" : "DIR", dr.d_name);
         }
     }    
 

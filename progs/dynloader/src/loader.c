@@ -206,6 +206,7 @@ struct object_data* load_object_data(char* data, int shared) {
 
         uint64_t* value = (uint64_t*) (obj_data->base + rela->offset);
 
+        // Сдвинуть relocation
         if (*value > 0)
             *value += obj_data->base;
         
@@ -250,7 +251,7 @@ int open_shared_object_file(const char* fname)
     
     if (fd < 0) {
         // Открыть в системной папке
-        char fpname[100];
+        char fpname[300];
         strcpy(fpname, "/libs/");
         strcat(fpname, fname);
         fd = syscall_open_file(AT_FDCWD, fpname, FILE_OPEN_MODE_READ_ONLY, 0);

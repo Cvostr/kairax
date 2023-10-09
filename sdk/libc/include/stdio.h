@@ -35,6 +35,15 @@ extern int vfprintf(FILE *stream, const char *format, va_list ap);
 extern int snprintf(char *str, size_t size, const char *format, ...);
 extern int vsnprintf(char* str, size_t size, const char *format, va_list arg_ptr);
 
+extern int fclose(FILE *stream);
+extern int fflush(FILE *stream);
+
+int remove(const char *pathname);
+int rename(const char *oldpath, const char *newpath);
+
+int fseek(FILE *stream, long offset, int whence);
+long ftell(FILE *stream);
+
 int printf(const char* __restrict, ...);
 int putchar(int);
 int puts(const char*);

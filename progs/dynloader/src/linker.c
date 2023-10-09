@@ -1,4 +1,4 @@
-#include "../../sdk/sys/syscalls.h"
+#include <syscalls.h>
 #include "include/elf.h"
 #include "linker.h"
 #include "string.h"
