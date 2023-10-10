@@ -26,6 +26,7 @@ void *realloc(void *cp, size_t nbytes);
 void *calloc(size_t num, size_t size);
 
 extern void exit(int status);
+extern int system(const char *command);
 
 #ifdef __cplusplus
 }

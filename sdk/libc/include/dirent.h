@@ -1,6 +1,10 @@
 #ifndef _DIRENT_H
 #define _DIRENT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 #include "inttypes.h"
 
@@ -38,5 +42,9 @@ struct __dirstream
 typedef struct __dirstream DIR;
 
 int readdir(int fd, struct dirent* direntry);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

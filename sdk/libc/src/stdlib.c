@@ -97,3 +97,9 @@ void exit(int status)
 {
 	_exit(status);
 }
+
+int system(const char *command)
+{
+	// not implemented
+	return -1;
+}

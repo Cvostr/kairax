@@ -2,8 +2,7 @@
 #include "stdio_impl.h"
 #include "unistd.h"
 #include "string.h"
-
-char temp[130];
+#include "inttypes.h"
 
 static int strwrite(void* arg, const void *ptr, size_t size) {
 
@@ -30,7 +29,7 @@ static int strwrite(void* arg, const void *ptr, size_t size) {
 }
 
 static int fdwrite(void* arg, const void *ptr, size_t size) {
-
+    char temp[130];
     int fd = (int) (long) arg;
     temp[0] = 'w';
     temp[1] = size;
@@ -113,4 +112,19 @@ int vfdprintf(int fd, const char *format, va_list arg_ptr)
 {
     struct arg_printf ap = {(void*) (long) fd, fdwrite};
     return printf_generic(&ap, format, arg_ptr);
+}
+
+int sprintf(char *str, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int n = vsprintf(str, format, args);
+    va_end (args);
+
+    return n;
+}
+
+int vsprintf(char *str, const char *format, va_list args)
+{
+    return vsnprintf(str, (size_t)-1 - (uintptr_t)str, format, args);
 }

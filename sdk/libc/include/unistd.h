@@ -1,6 +1,10 @@
 #ifndef _UNISTD_H
 #define _UNISTD_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "sys/types.h"
 #include "stddef.h"
 
@@ -29,5 +33,9 @@ int chdir(const char* path);
 int pipe(int pipefd[2]);
 
 void _exit(int status);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

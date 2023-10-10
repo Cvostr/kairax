@@ -1,5 +1,5 @@
 #include "dirent.h"
-#include "../sys/syscalls.h"
+#include "syscalls.h"
 #include "errno.h"
 #include "unistd.h"
 

@@ -1,5 +1,5 @@
 #include "sys/stat.h"
-#include "../sys/syscalls.h"
+#include "syscalls.h"
 #include "errno.h"
 #include "fcntl.h"
 #include "stddef.h"

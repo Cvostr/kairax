@@ -19,6 +19,7 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
     int sign = 0; // число со знаком
     int base; // система счисления
     int longnum = 0;
+    int uppercase = 0;
     char buf[128];
     long long llvalue;
 
@@ -40,19 +41,27 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
                     str = va_arg(arg_ptr, char*);
                     fn->put(fn->data, str, strlen(str));
                     break;
+                case 'z':
                 case 'l':
                     longnum++;
                     continue;
                 case 'b':
                     base = 2;
+                    goto printf_numeric;
+                case 'X':
+                    uppercase = 1;
                 case 'x':
                     base = 16;
+                    goto printf_numeric;
+                case 'o':
+                    base = 8;
+                    goto printf_numeric;
                 case 'd':
                 case 'i':
                     sign = 1;
                 case 'u':
                     base = 10;
-
+printf_numeric:
                     if (longnum > 1) {
                         llvalue = va_arg(arg_ptr, long long);
                     } else if (longnum == 1) {
@@ -71,8 +80,11 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
                         ltoa(llvalue, buf, base);
                     }
 
+                    // Записать
                     fn->put(fn->data, buf, strlen(buf));
+
                     sign = 0;
+                    uppercase = 0;
                     break;
             }
         }

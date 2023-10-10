@@ -1,6 +1,10 @@
 #ifndef _FCNTL_H
 #define _FCNTL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define AT_FDCWD		-2
 #define AT_EMPTY_PATH   0x1000
 
@@ -19,5 +23,9 @@
 int openat(int dirfd, const char* filepath, int flags, int mode);
 
 int open(const char* filepath, int flags, int mode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

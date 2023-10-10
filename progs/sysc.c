@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
         testmem = malloc(120);
         memset(testmem, 0, 120);
         strcpy(testmem, "String in malloced memory");
-        printf("%s %i \n", testmem, testmem);
+        printf("%s 0x%x \n", testmem, testmem);
     }
 
     char str[3];
