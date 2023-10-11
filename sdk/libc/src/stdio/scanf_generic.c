@@ -7,6 +7,7 @@ int scanf_generic(struct arg_scanf* fn, const char *format, va_list args)
     int spos = 1;
     char ch = 0;
     char sch = 0;
+    int base;
 
     // получить символ
     sch = fn->getch(fn->data);
@@ -43,7 +44,7 @@ int scanf_generic(struct arg_scanf* fn, const char *format, va_list args)
                     case 's':
                         // считываем строку
                         char* dstr = (char *) va_arg(args, char*);
-                        while(!isspace(sch)) {
+                        while(isspace(sch)) {
                             sch = fn->getch(fn->data);
                             spos++;
                         }
@@ -61,6 +62,22 @@ int scanf_generic(struct arg_scanf* fn, const char *format, va_list args)
                         char* dchr = (char *) va_arg(args, char*);
                         *dchr = sch;
                         break;
+                    case 'i':
+                    case 'd':
+                        base = 10;
+                        goto scan_number;
+                    case 'x':
+                    case 'X':
+                        base = 16;
+                        goto scan_number;
+                    case 'o':
+                        base = 8;
+                        goto scan_number;
+                    case 'b':
+                        base = 2;
+
+scan_number:
+
                 }
                 break;
             }

@@ -22,5 +22,6 @@ struct str_data {
 };
 
 int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr);
+int scanf_generic(struct arg_scanf* fn, const char *format, va_list args);
 
 #endif

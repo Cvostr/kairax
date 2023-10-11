@@ -53,7 +53,7 @@ int snprintf(char *str, size_t size, const char *format, ...)
 
 int vsnprintf(char* str, size_t size, const char *format, va_list arg_ptr)
 {
-    struct str_data sd = { str, 0, size ? size - 1 : 0 };
+    struct str_data sd = { str, 0, size };
     struct arg_printf ap = { &sd, strwrite };
 
     int n = printf_generic(&ap, format, arg_ptr);

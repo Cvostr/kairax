@@ -14,9 +14,14 @@ int main(int argc, char** argv) {
     for (int i = 0; i < 10; i ++) {
         testmem = malloc(120);
         memset(testmem, 0, 120);
-        strcpy(testmem, "String in malloced memory");
+        sprintf(testmem, "String in malloced memory %i %c", 12, 'a');
         printf("%s 0x%x \n", testmem, testmem);
     }
+
+    char a[10];
+    char b[10];
+    sscanf("123 456", "%s %s", a, b);
+    printf("%s %s\n", a, b);
 
     char str[3];
     str[0] = 'A';
