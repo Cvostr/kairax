@@ -11,8 +11,10 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/stdfiles.o \
 				obj/stdio/fopen.o \
 				obj/stdio/fread.o \
-				obj/stdio/snprintf.o \
+				obj/stdio/printf.o \
 				obj/stdio/printf_generic.o \
+				obj/stdio/scanf.o \
+				obj/stdio/scanf_generic.o \
 				obj/stdlib.o \
 				obj/string.o \
 				obj/strings.o \

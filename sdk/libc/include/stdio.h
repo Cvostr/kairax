@@ -53,6 +53,9 @@ int vfprintf(FILE *stream, const char *format, va_list args);
 int sprintf(char *str, const char *format, ...);
 int vsprintf(char *str, const char *format, va_list args);
 
+int sscanf(const char *str, const char *format, ...);
+int vsscanf(const char *str, const char *format, va_list args);
+
 int putchar(int);
 int puts(const char*);
 

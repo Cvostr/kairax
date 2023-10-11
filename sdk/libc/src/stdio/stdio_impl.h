@@ -9,6 +9,12 @@ struct arg_printf {
     int (*put)(void*, const void*, size_t);
 };
 
+struct arg_scanf {
+    void *data;
+    int (*getch)(void*);
+    int (*putch)(int, void*);
+};
+
 struct str_data {
     char* str;
     size_t len;

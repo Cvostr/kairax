@@ -11,17 +11,44 @@ size_t skip_to_percent(const char* format) {
     return n;
 }
 
+void printf_write_padding(struct arg_printf* fn, char chr, int len) 
+{
+    if (len <= 0)
+        return;
+
+    for (size_t i = 0; i < len; i ++) {
+        fn->put(fn->data, &chr, 1);
+    }
+}
+
+void write_padded(struct arg_printf* fn, int pad_left, const char* str, char ch, int len) 
+{   
+    size_t strl = strlen(str);
+    if (pad_left && len > strl) {
+        printf_write_padding(fn, ch, len - strl);
+    }
+
+    fn->put(fn->data, str, strl);
+    
+    if (!pad_left && len > strl) {
+        printf_write_padding(fn, ch, len - strl);
+    }
+}
+
 int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
 {
     size_t len;
     char ch;
     char* str;
-    int sign = 0; // число со знаком
+    int sign; // число со знаком
     int base; // система счисления
-    int longnum = 0;
+    int longnum;
     int uppercase = 0;
     char buf[128];
     long long llvalue;
+    int pad_left = 0;
+    int width = 0;
+    char pad_char = ' ';
 
     while (*format) {
 
@@ -31,6 +58,15 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
 
         if (*format == '%') {
             format++;
+
+            longnum = 0;
+            sign = 0;
+            uppercase = 0;
+            pad_left = 0;
+            width = 0;
+            pad_char = ' ';
+
+printf_nextchar:
             switch (ch = *(format++)) {
                 case 'c':
                     ch = (char) va_arg(arg_ptr, int);
@@ -39,12 +75,32 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
                     break;
                 case 's':
                     str = va_arg(arg_ptr, char*);
-                    fn->put(fn->data, str, strlen(str));
+                    write_padded(fn, pad_left, str, pad_char, width);
                     break;
                 case 'z':
                 case 'l':
                     longnum++;
-                    continue;
+                    goto printf_nextchar;
+                case '-':
+                    pad_left = 1;
+                    goto printf_nextchar;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    if (width == 0 && ch == '0') {
+                        pad_char = '0';
+                    } else {
+                        width = width * 10 + (ch - '0');
+                    }
+                    goto printf_nextchar;
+
                 case 'b':
                     base = 2;
                     goto printf_numeric;
@@ -81,10 +137,7 @@ printf_numeric:
                     }
 
                     // Записать
-                    fn->put(fn->data, buf, strlen(buf));
-
-                    sign = 0;
-                    uppercase = 0;
+                    write_padded(fn, pad_left, buf, pad_char, width);
                     break;
             }
         }

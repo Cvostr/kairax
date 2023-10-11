@@ -39,9 +39,9 @@ int main(int argc, char** argv) {
             if (rc == -1) {
                 printf("Error! Can't stat file %s, error=%i\n", dr.d_name, errno);
             }
-            printf("%s %o %s %i\n", (dr.d_type == DT_REG) ? "FILE" : "DIR ", perm, dr.d_name, dirstat.st_size);
+            printf("%4s %-03o %-09i %s\n", (dr.d_type == DT_REG) ? "FILE" : "DIR", perm, dirstat.st_size, dr.d_name);
         } else {
-            printf("%s %s\n", (dr.d_type == DT_REG) ? "FILE" : "DIR ", dr.d_name);
+            printf("%4s %s\n", (dr.d_type == DT_REG) ? "FILE" : "DIR", dr.d_name);
         }
     }    
 
