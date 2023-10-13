@@ -118,14 +118,15 @@ printf_nextchar:
                 case 'x':
                     base = 16;
                     goto printf_numeric;
-                case 'o':
-                    base = 8;
-                    goto printf_numeric;
+                
                 case 'd':
                 case 'i':
                     sign = 1;
                 case 'u':
                     base = 10;
+                    goto printf_numeric;
+                case 'o':
+                    base = 8;
 printf_numeric:
                     if (longnum > 1) {
                         llvalue = va_arg(arg_ptr, long long);

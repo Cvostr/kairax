@@ -33,6 +33,11 @@ long atol(const char *s)
 	return neg ? n : -n;
 }
 
+double atof(const char *nptr)
+{
+	return strtod(nptr, NULL);
+}
+
 char* itoa(int number, char* str, int base)
 {
     int count = 0;
@@ -76,21 +81,6 @@ char* lltoa(long long number, char* str, int base)
 	strrev(str);
 
     return str;
-}
-
-int abs (int i)
-{
-    return i < 0 ? -i : i;
-}
-
-long int labs (long int i)
-{
-    return i < 0 ? -i : i;
-}
-
-long long int llabs (long long int i)
-{
-    return i < 0 ? -i : i;
 }
 
 void exit(int status)

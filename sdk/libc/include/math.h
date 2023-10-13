@@ -43,4 +43,6 @@
 # define M_SQRT2l	1.414213562373095048801688724209698079L /* sqrt(2) */
 # define M_SQRT1_2l	0.707106781186547524400844362104849039L /* 1/sqrt(2) */
 
+extern double fabs(double x);
+
 #endif

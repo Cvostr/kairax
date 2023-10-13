@@ -20,8 +20,11 @@ int main(int argc, char** argv) {
 
     char a[10];
     char b[10];
-    sscanf("123 456", "%s %s", a, b);
-    printf("%s %s\n", a, b);
+    int nv;
+    int xv;
+    int neg;
+    sscanf("123abab 456asas 7891011 FFFF -234", "%s %s %i %x %i", a, b, &nv, &xv, &neg);
+    printf("1: %s 2: %s 3 NUM: %i 4: %i 5: %i\n", a, b, nv, xv, neg);
 
     char str[3];
     str[0] = 'A';

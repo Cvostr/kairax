@@ -5,12 +5,23 @@
 extern "C" {
 #endif
 
-
 #include <sys/types.h>
 #include "stddef.h"
 
+float strtof(const char *nptr, char **endptr);
+double strtod(const char *nptr, char **endptr);
+long double strtold(const char *nptr, char **endptr);
+long int strtol(const char *nptr, char **endptr, int base);
+unsigned long int strtoul(const char *nptr, char **endptr, int base);
+
+// Из расширений, поддерживаются по умолчанию
+long long int strtoll(const char *nptr, char **endptr, int base);
+unsigned long long int strtoull(const char *nptr, char **endptr, int base);
+//
+
 extern int atoi (const char *);
 extern long atol (const char *);
+extern double atof(const char *nptr);
 
 extern char* itoa(int number, char* str, int base);
 extern char* ltoa(long number, char* str, int base);

@@ -4,6 +4,7 @@ ASM=nasm
 SRC_DIR=src
 OBJ_DIRS =  obj \
 			obj/stdio \
+			obj/stdlib \
 			obj/x64
 
 COMPILED_OBJS = obj/math.o \
@@ -15,7 +16,10 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/printf_generic.o \
 				obj/stdio/scanf.o \
 				obj/stdio/scanf_generic.o \
-				obj/stdlib.o \
+				obj/stdlib/bsdmalloc.o \
+				obj/stdlib/stdlib.o \
+				obj/stdlib/abs.o \
+				obj/stdlib/strtod.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \
@@ -25,7 +29,6 @@ COMPILED_OBJS = obj/math.o \
 				obj/ioctl.o \
 				obj/ctype.o \
 				obj/dirent.o \
-				obj/bsdmalloc.o \
 				obj/x64/syscalls.o
 
 all: $(OBJ_DIRS) libc errno
