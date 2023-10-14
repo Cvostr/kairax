@@ -45,4 +45,7 @@
 
 extern double fabs(double x);
 
+extern int isnan(double d);
+extern int isinf(double d);
+
 #endif

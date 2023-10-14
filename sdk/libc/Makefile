@@ -20,6 +20,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/stdlib.o \
 				obj/stdlib/abs.o \
 				obj/stdlib/strtod.o \
+				obj/stdlib/strtol.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \

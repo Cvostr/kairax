@@ -41,12 +41,13 @@ int write_padded(struct arg_printf* fn, int pad_left, const char* str, char ch, 
     return written;
 }
 
-int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
+int printf_generic(struct arg_printf* fn, const char *format, va_list args)
 {
     size_t len;
     int written = 0;
     char ch;
     char* str;
+    double dval;
     int sign; // число со знаком
     int base; // система счисления
     int longnum;
@@ -77,13 +78,13 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list arg_ptr)
 printf_nextchar:
             switch (ch = *(format++)) {
                 case 'c':
-                    ch = (char) va_arg(arg_ptr, int);
+                    ch = (char) va_arg(args, int);
                 case '%':
                     fn->put(fn->data, &ch, 1);
                     written ++;
                     break;
                 case 's':
-                    str = va_arg(arg_ptr, char*);
+                    str = va_arg(args, char*);
                     written += write_padded(fn, pad_left, str, pad_char, width);
                     break;
                 case 'z':
@@ -129,11 +130,11 @@ printf_nextchar:
                     base = 8;
 printf_numeric:
                     if (longnum > 1) {
-                        llvalue = va_arg(arg_ptr, long long);
+                        llvalue = va_arg(args, long long);
                     } else if (longnum == 1) {
-                        llvalue = va_arg(arg_ptr, long);
+                        llvalue = va_arg(args, long);
                     } else {
-                        llvalue = va_arg(arg_ptr, int);
+                        llvalue = va_arg(args, int);
 
                         if (sizeof(int) != sizeof(long) && sign == 0) {
                             llvalue &= ((unsigned int)-1);
@@ -148,6 +149,12 @@ printf_numeric:
 
                     // Записать
                     written += write_padded(fn, pad_left, buf, pad_char, width);
+                    break;
+                case 'f':
+                case 'F':
+                case 'g':
+                case 'G':
+                    dval = va_arg(args, double);
                     break;
             }
         }

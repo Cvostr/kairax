@@ -3,7 +3,7 @@
 
 long int strtol(const char *nptr, char **endptr, int base)
 {
-    char *curpos = nptr;
+    char *curpos = (char*) nptr;
     int neg = 0;
 
     while (isspace(*curpos))
@@ -24,7 +24,7 @@ long int strtol(const char *nptr, char **endptr, int base)
 unsigned long int strtoul(const char *nptr, char **endptr, int base)
 {
     unsigned long int val = 0;
-    char *curpos = nptr;
+    char *curpos = (char*) nptr;
 
     while (isspace(*curpos))
         curpos++;

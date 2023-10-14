@@ -6,8 +6,8 @@
 int scanf_generic(struct arg_scanf* fn, const char *format, va_list args)
 {
     int spos = 0;
-    char ch = 0;
-    char sch = 0;
+    char ch = 0; // Текущий символ строки форматирования
+    char sch = 0;   // Текущий символ строки 
     int base;
     unsigned long long numval;
     // Флаги чтения чисел
@@ -20,6 +20,7 @@ int scanf_generic(struct arg_scanf* fn, const char *format, va_list args)
         long *lv;
         short *sv;
         int *iv;
+        unsigned *uiv;
         char *cv;
     } nv;
     int sign;
@@ -181,14 +182,26 @@ scan_number:
                             nv.iv = (int *) va_arg(args, int*);
                             *nv.iv = numval;
                         } else {
-                            nv.iv = (int *) va_arg(args, int*);
-                            *nv.iv = numval;
+                            nv.uiv = (unsigned *) va_arg(args, unsigned*);
+                            *nv.uiv = numval;
                         }
                     }
 
                 }
                 break;
             }
+
+            default:
+                // Проверка совпадения символов
+                //printf("Y %c = %c\n", ch, sch);
+                if (ch != sch) {
+                    // todo: error
+                }
+
+                // Считать следующий символ
+                sch = fn->getch(fn->data);
+                spos++;
+                break;
         }
     }
 }

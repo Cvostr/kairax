@@ -18,18 +18,19 @@ int main(int argc, char** argv) {
         printf("%s 0x%x \n", testmem, testmem);
     }
 
-    char a[10];
+    char* a = malloc(10);
     char b[10];
     int nv;
     int xv;
     int neg;
-    sscanf("123abab 456asas 7891011 FFFF -234", "%s %s %i %x %i", a, b, &nv, &xv, &neg);
-    printf("1: %s 2: %s 3 NUM: %i 4: %i 5: %i\n", a, b, nv, xv, neg);
+    int oct;
+    sscanf("123abab 456asas 7891011 FFFF -234 12", "%s %s %i %x %i %o", a, b, &nv, &xv, &neg, &oct);
+    printf("1: %s 2: %s 3 NUM: %i 4: %i 5: %i 6: %i\n", a, b, nv, xv, neg, oct);
 
-    char str[3];
-    str[0] = 'A';
-    str[1] = '\n';
-    str[2] = 0;
+    sscanf("   0xFFF, 0xDE - test 77", "   0x%x, 0x%x - test %o", &nv, &xv, &oct);
+    printf("1: %i 2: %x 3: %o\n", nv, xv, oct);
+
+    char sym = 'A';
 
     printf("PID : %i", process_get_id());
 
@@ -39,9 +40,9 @@ int main(int argc, char** argv) {
 
         sleep(20);
 
-        str[0]++;
+        sym++;
 
-        printf("Hello from program: %s", str);
+        printf("Hello from program: %c", sym);
     }
 
     return 0;
