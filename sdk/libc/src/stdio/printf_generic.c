@@ -57,6 +57,7 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list args)
     int pad_left = 0;
     int width = 0;
     char pad_char = ' ';
+    int capitalize = 0;
 
     while (*format) {
 
@@ -74,6 +75,7 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list args)
             pad_left = 0;
             width = 0;
             pad_char = ' ';
+            capitalize = 0;
 
 printf_nextchar:
             switch (ch = *(format++)) {
@@ -150,11 +152,16 @@ printf_numeric:
                     // Записать
                     written += write_padded(fn, pad_left, buf, pad_char, width);
                     break;
+                case 'G':
+                    capitalize = 1;
                 case 'f':
                 case 'F':
                 case 'g':
-                case 'G':
                     dval = va_arg(args, double);
+                    __dtostr(dval, buf, sizeof(buf), width, 6, capitalize ? 0x02 : 0);
+                    fn->put(fn->data, buf, strlen(buf));
+                    written += strlen(buf);
+
                     break;
             }
         }

@@ -19,6 +19,8 @@ long long int strtoll(const char *nptr, char **endptr, int base);
 unsigned long long int strtoull(const char *nptr, char **endptr, int base);
 //
 
+int __dtostr(double d, char *buf, unsigned int maxlen, unsigned int prec, unsigned int prec2, int flags);
+
 extern int atoi (const char *);
 extern long atol (const char *);
 extern double atof(const char *nptr);

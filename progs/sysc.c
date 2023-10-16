@@ -18,6 +18,9 @@ int main(int argc, char** argv) {
         printf("%s 0x%x \n", testmem, testmem);
     }
 
+    char bf[100];
+    __dtostr(1.5, bf, 100, 10, 6, 0);
+
     char* a = malloc(10);
     char b[10];
     int nv;
@@ -28,7 +31,7 @@ int main(int argc, char** argv) {
     printf("1: %s 2: %s 3 NUM: %i 4: %i 5: %i 6: %i\n", a, b, nv, xv, neg, oct);
 
     sscanf("   0xFFF, 0xDE - test 77", "   0x%x, 0x%x - test %o", &nv, &xv, &oct);
-    printf("1: %i 2: %x 3: %o\n", nv, xv, oct);
+    printf("1: %i 2: %x 3: %o 4: %f 5: %G\n", nv, xv, oct, 123.123456, 232.90921);
 
     char sym = 'A';
 
