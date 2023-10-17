@@ -5,6 +5,7 @@
 #include "fs/vfs/file.h"
 #include "fs/vfs/stat.h"
 #include "mem/paging.h"
+#include "process_list.h"
 
 #define MAX_DESCRIPTORS         64
 #define PROCESS_MAX_ARGS        65535
@@ -25,7 +26,10 @@ struct process {
     char                name[30];
     // ID процесса
     pid_t               pid;
+    // Состояние
     enum process_state  state;
+    // Код выхода
+    int code;
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     uint64_t            threads_stack_top;
@@ -67,6 +71,8 @@ struct process*  create_new_process(struct process* parent);
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result);
 
 int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end);
+
+void process_become_zombie(struct process* process);
 
 void free_process(struct process* process);
 

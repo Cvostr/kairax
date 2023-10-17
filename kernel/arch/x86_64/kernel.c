@@ -127,6 +127,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	// Первоначальный процесс bootshell
 	struct process* proc = create_new_process(NULL);
+	// Добавить в список и назначить pid
+    process_add_to_list(proc);
 	struct thread* thr = create_kthread(proc, bootshell);
 	
 	init_scheduler();

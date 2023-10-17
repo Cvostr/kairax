@@ -22,7 +22,7 @@ typedef signed long 		suseconds_t;
 typedef signed long 		useconds_t;
 
 typedef long int            time_t;
-typedef unsigned long long  pid_t;
+typedef long long  			pid_t;
 typedef unsigned long 		ssize_t;
 
 struct timespec

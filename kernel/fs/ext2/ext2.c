@@ -784,7 +784,7 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     result->create_time = inode->ctime;
     result->modify_time = inode->mtime;
     result->hard_links = inode->hard_links;
-    result->device = inst;
+    result->device = (dev_t) inst;
 
     if ((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_FILE) {
         

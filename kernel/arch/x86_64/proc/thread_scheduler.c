@@ -89,8 +89,8 @@ void* scheduler_handler(thread_frame_t* frame)
     thread_frame->rflags |= 0x200;
     if (new_thread->is_userspace) {
         // Обновить данные об указателях на стек
-        cpu_set_kernel_stack(new_thread->kernel_stack_ptr);
-        tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr);
+        cpu_set_kernel_stack(new_thread->kernel_stack_ptr + PAGE_SIZE);
+        tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr + PAGE_SIZE);
         set_user_stack_ptr(new_thread->stack_ptr);
 
         if (new_thread->tls != NULL) {

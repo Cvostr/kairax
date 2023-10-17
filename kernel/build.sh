@@ -77,6 +77,7 @@ gcc $GCC_ARGS fs/vfs/superblock.c -o ./bin/superblock.o
 
 #generic proc
 gcc $GCC_ARGS proc/process.c -o ./bin/process.o
+gcc $GCC_ARGS proc/process_list.c -o ./bin/process_list.o
 gcc $GCC_ARGS proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS proc/syscalls.c -o ./bin/syscalls.o

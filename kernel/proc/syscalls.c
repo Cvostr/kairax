@@ -322,14 +322,6 @@ int sys_poweroff(int cmd)
     return -1;
 }
 
-void sys_exit_process(int code)
-{
-    struct process* process = cpu_get_current_thread()->process;
-    scheduler_remove_process_threads(process);
-    free_process(process);
-    scheduler_from_killed();
-}
-
 pid_t sys_get_process_id()
 {
     struct process* process = cpu_get_current_thread()->process;
@@ -346,27 +338,23 @@ int sys_thread_sleep(uint64_t time)
 {
     struct thread* thread = cpu_get_current_thread();
 
-    for (uint64_t i = 0; i < time; i ++) {
+    for (uint64_t i = 0; i < time * 10000; i ++) {
         scheduler_yield();
     }
 }
 
-int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size)
+pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
-    struct thread* thread = create_thread(process, entry_ptr, arg, NULL, stack_size, NULL);
+    struct thread* thread = create_thread(process, entry_ptr, arg, stack_size, NULL);
 
     if (thread == NULL) {
         return -1;
     }
 
-    if (tid != NULL) {
-        *tid = thread->id;
-    }
-
     scheduler_add_thread(thread);
 
-    return 0;
+    return thread->id;
 }
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
@@ -447,7 +435,38 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
     return vfs_mount_fs(mount_dir, partition, fs);
 }
 
-int sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)
+void sys_exit_process(int code)
+{
+    struct process* process = cpu_get_current_thread()->process;
+    // Удалить потоки процесса из планировщика
+    scheduler_remove_process_threads(process);
+    // Сохранить код возврата
+    process->code = code;
+    // Очистить процесс, сделать его зомби
+    process_become_zombie(process);
+    // Разбудить потоки, ждущие pid
+    scheduler_wakeup(process);
+
+    scheduler_from_killed();
+}
+
+int sys_wait(int mode, pid_t id)
+{
+    spinlock_t lock;
+    struct process* proc = process_get_by_id(id);
+    scheduler_sleep(proc, &lock);
+    // Процесс завершен
+    // Сохранить код вовзрата
+    int code = proc->code;
+    // Удалить процесс из списка
+    process_remove_from_list(proc);
+    // Уничтожить объект процесса
+    free_process(proc);
+    
+    return code;
+}
+
+pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)
 {
     struct process* process = cpu_get_current_thread()->process;
     struct process* new_process = NULL;
@@ -483,6 +502,8 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
 
     // Создать новый процесс
     new_process = create_new_process(process);
+    // Добавить в список и назначить pid
+    process_add_to_list(new_process);
 
     // TEMPORARY
     struct file* stdout = process_get_file(process, info->stdout);
@@ -499,7 +520,7 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     file_read(file, size, image_data);
 
     // Попытаемся загрузить файл программы
-    int rc = elf_load_process(new_process, image_data, 0, &program_start_ip, interp_path);
+    pid_t rc = elf_load_process(new_process, image_data, 0, &program_start_ip, interp_path);
     kfree(image_data);
 
     // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз
@@ -608,11 +629,15 @@ int sys_create_process(int dirfd, const char* filepath, struct process_create_in
     main_thr_info.argv = argv;
 
     // Создание главного потока
-    struct thread* thr = create_thread(new_process, loader_start_ip, 0, 0, 0, &main_thr_info);
+    struct thread* thr = create_thread(new_process, loader_start_ip, 0, 0, &main_thr_info);
 	// Добавление потока в планировщик
     scheduler_add_thread(thr);
 
+    // Освободить память под aux
     kfree(aux_v);
+
+    // Возвращаем pid процесса
+    rc = new_process->pid;
 
 exit:
     return rc;

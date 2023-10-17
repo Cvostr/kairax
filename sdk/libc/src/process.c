@@ -3,14 +3,14 @@
 #include <stdint.h>
 #include "errno.h"
 
-int create_thread(void* entry, void* arg, pid_t* pid)
+pid_t create_thread(void* entry, void* arg)
 {
-    __set_errno(syscall_create_thread(entry, arg, pid, 0));
+    __set_errno(syscall_create_thread(entry, arg, 0));
 }
 
-int create_thread_ex(void* entry, void* arg, pid_t* pid, size_t stack_size)
+pid_t create_thread_ex(void* entry, void* arg, size_t stack_size)
 {
-    __set_errno(syscall_create_thread(entry, arg, pid, stack_size));
+    __set_errno(syscall_create_thread(entry, arg, stack_size));
 }
 
 pid_t process_get_id()

@@ -23,6 +23,6 @@ extern int syscall_process_unmap_memory(void* address, unsigned long long length
 extern void syscall_process_exit(int status);
 extern int syscall_poweroff(int cmd);
 
-extern unsigned long int syscall_create_thread(void* entry, void* arg, unsigned long long* tid, unsigned long long stack_size);
+extern long int syscall_create_thread(void* entry, void* arg, unsigned long long stack_size);
 
 #endif

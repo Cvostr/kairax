@@ -16,23 +16,23 @@ enum thread_state {
 };
 
 struct thread {
-    char            name[32];
+    char                name[32];
     // ID потока
-    uint64_t        id;
+    pid_t               id;
     // Адрес вершины стека пользователя
-    void*           stack_ptr;
+    void*               stack_ptr;
     // Адрес вершины стека ядра
-    void*           kernel_stack_ptr;
+    void*               kernel_stack_ptr;
     // Адрес локальной памяти потока (TLS)
-    void*           tls;
+    void*               tls;
     // Состояние
-    enum thread_state     state;
+    enum thread_state   state;
     // Указатель на объект процесса
-    struct process*      process;
+    struct process*     process;
     // Указатель на сохраненные данные контекста
-    void*           context;
-    int             is_userspace;
-    void*           wait_handle;
+    void*               context;
+    int                 is_userspace;
+    void*               wait_handle;
 };
 
 struct main_thread_create_info {
@@ -46,6 +46,6 @@ struct thread* new_thread(struct process* process);
 
 struct thread* create_kthread(struct process* process, void (*function)(void));
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct main_thread_create_info* info);
+struct thread* create_thread(struct process* process, void* entry, void* arg1, size_t stack_size, struct main_thread_create_info* info);
 
 #endif

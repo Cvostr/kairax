@@ -11,7 +11,7 @@ void thread_func(int * arg) {
     printf("ARG : %i\n", *arg);
 
     while(1) {
-		sleep(40);
+		sleep(10);
 
         printf("TID %i \t", thread_get_id());
     }
@@ -54,12 +54,13 @@ int main() {
     printf("ERRNO = %i", errno);
 
     int send = 343;
-    create_thread(thread_func, &send, NULL);
+    pid_t tpi = create_thread(thread_func, &send);
+    printf("TID %i \t", tpi);
 
     int iterations = 0;
 
     while(1) {
-		sleep(20);
+		sleep(10);
 
         printf(" %i", counter++);
     }

@@ -45,7 +45,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     return thread;
 }
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, void* arg2, size_t stack_size, struct main_thread_create_info* info)
+struct thread* create_thread(struct process* process, void* entry, void* arg1, size_t stack_size, struct main_thread_create_info* info)
 {
     if (!process) {
         return NULL;
@@ -61,7 +61,7 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = process_alloc_stack_memory(process, stack_size);
-    thread->kernel_stack_ptr = P2V(pmm_alloc_page() + PAGE_SIZE);
+    thread->kernel_stack_ptr = P2V(pmm_alloc_page());
 
     if (process->tls) {
         // TLS должно также включать в себя
@@ -81,7 +81,8 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста
-    thread_frame_t* ctx = ((thread_frame_t*)thread->kernel_stack_ptr) - 1;
+    void* kernel_stack_top = thread->kernel_stack_ptr + PAGE_SIZE;
+    thread_frame_t* ctx = ((thread_frame_t*)kernel_stack_top) - 1;
     thread->context = ctx;
     //Установить адрес функции
     ctx->rip = (uint64_t)entry;
@@ -89,9 +90,8 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, v
     //Установить стек для потока
     ctx->rbp = (uint64_t)thread->stack_ptr;
     ctx->rsp = (uint64_t)thread->stack_ptr;
-    // Установка аргументов
+    // Установка аргумента
     ctx->rdi = (uint64_t)arg1;
-    ctx->rsi = (uint64_t)arg2;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных пользователя
     ctx->ds = (selector);

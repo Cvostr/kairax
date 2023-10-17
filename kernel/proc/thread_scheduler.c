@@ -50,6 +50,7 @@ void scheduler_remove_thread(struct thread* thread)
 
 void scheduler_remove_process_threads(struct process* process)
 {
+    // TODO: Ожидание выхода всех потоков из системных вызовов
     for (size_t i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
         scheduler_remove_thread(thread);
@@ -78,7 +79,6 @@ void scheduler_wakeup(void* handle)
     acquire_mutex(&threads_lock);
 
     for (pid_t tid = 0; tid <= max_tid; tid ++) {
-        //printf("THR %i STATE %i \n", tid,  sched_threads[tid]->state);
 
         struct thread* thread = sched_threads[tid];
 

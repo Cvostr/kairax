@@ -163,16 +163,16 @@ void bootshell_process_cmd(char* cmdline)
         info.args = args;
         for (int i = 0; i < 30; i ++) {
 
-            int rc = sys_create_process(-2, "/sysn.a", &info);
-            if (rc != 0) {
+            pid_t rc = sys_create_process(-2, "/sysn.a", &info);
+            if (rc < 0) {
                 printf("Error creating process sysn : %i\n", rc);
             }
             rc = sys_create_process(-2, "/sysc.a", &info);
-            if (rc != 0) {
+            if (rc < 0) {
                 printf("Error creating process sysc : %i\n", rc);
             }
             rc = sys_create_process(-2, "/ls.a", &info);
-            if (rc != 0) {
+            if (rc < 0) {
                 printf("Error creating process ls : %i\n", rc);
             }
         }
@@ -191,10 +191,12 @@ void bootshell_process_cmd(char* cmdline)
         info.stdout = console_fd;
         info.stdin = -1;
         info.stderr = -1;
-        int rc = sys_create_process(-2, args[1], &info);
-        if (rc != 0) {
+        pid_t rc = sys_create_process(FD_CWD, args[1], &info);
+        if (rc < 0) {
             printf("Error creating process : %i\n", rc);
         }
+
+        sys_wait(0, rc);
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();

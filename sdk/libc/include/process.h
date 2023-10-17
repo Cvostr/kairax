@@ -4,9 +4,9 @@
 #include <sys/types.h>
 #include "stddef.h"
 
-int create_thread(void* entry, void* arg, pid_t* pid);
+pid_t create_thread(void* entry, void* arg);
 
-int create_thread_ex(void* entry, void* arg, pid_t* pid, size_t stack_size);
+pid_t create_thread_ex(void* entry, void* arg, size_t stack_size);
 
 pid_t thread_get_id();
 

@@ -49,10 +49,12 @@ int sys_memory_unmap(void* address, uint64_t length);
 
 int sys_mount(const char* device, const char* mount_dir, const char* fs);
 
-int sys_create_thread(void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
+pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size);
 
-int sys_create_process(int dirfd, const char* filepath, struct process_create_info* info);
+pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info);
 
 int sys_poweroff(int cmd);
+
+int sys_wait(int mode, pid_t id);
 
 #endif

@@ -29,8 +29,8 @@ int main(int argc, char** argv) {
 
     printf("Hello\n");
     pipe(fds);
-    create_thread(thread, NULL, NULL);
-    create_thread(thread2, NULL, NULL);
+    create_thread(thread, NULL);
+    create_thread(thread2, NULL);
 
     char val = 'A';
     while (1) {

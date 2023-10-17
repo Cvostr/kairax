@@ -9,8 +9,7 @@
 #include "errors.h"
 #include "kstdlib.h"
 #include "proc/elf64/elf64.h"
-
-int last_pid = 0;
+#include "process_list.h"
 
 struct process*  create_new_process(struct process* parent)
 {
@@ -24,7 +23,6 @@ struct process*  create_new_process(struct process* parent)
 
     process->brk = 0x0;
     process->threads_stack_top = align_down(USERSPACE_MAX_ADDR, PAGE_SIZE);
-    process->pid = last_pid++;
     process->parent = parent;
     // Создать список потоков
     process->threads = create_list();
@@ -37,12 +35,28 @@ struct process*  create_new_process(struct process* parent)
 
 void free_process(struct process* process)
 {
-    size_t i = 0;
+    // Если процесс не зомби - сделать его зомби
+    if (process->state != PROCESS_ZOMBIE)
+        process_become_zombie(process);
 
-    for (i = 0; i < list_size(process->threads); i ++) {
+    // Удалить информацию о потоках и освободить страницу с стеком ядра
+    for (size_t i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
+        // освободить страницу с стеком ядра
+        pmm_free_page(V2P(thread->kernel_stack_ptr));
         kfree(thread);
     }
+
+    // Освободить память под список потоков
+    free_list(process->threads);
+
+    // Освободить структуру
+    kfree(process);
+}
+
+void process_become_zombie(struct process* process)
+{
+    size_t i = 0;
 
     for (i = 0; i < list_size(process->mmap_ranges); i ++) {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
@@ -55,14 +69,12 @@ void free_process(struct process* process)
     }
 
     // Освободить память списков
-    free_list(process->threads);
     free_list(process->children);
     free_list(process->mmap_ranges);
 
     // Закрыть незакрытые файловые дескрипторы
     for (i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] != NULL) {
-            //printf("CLOSING FD - %i\n", i);
             struct file* fil = process->fds[i];
             file_close(fil);
         }
@@ -80,8 +92,8 @@ void free_process(struct process* process)
     // и освобождение занятых таблиц физической
     free_vm_table(process->vmemory_table);
 
-    // Освободить структуру
-    kfree(process);
+    // Установить состояние zombie
+    process->state = PROCESS_ZOMBIE;
 }
 
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem)
@@ -334,6 +346,7 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
 {
     void* result = NULL;
     int collides = FALSE;
+    size_t i;
     acquire_spinlock(&process->mmap_lock);
     size_t mappings_count = list_size(process->mmap_ranges);
 
@@ -345,7 +358,7 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
         // Есть указание разместить регион по адресу
         new_range.base = hint;
 
-        for (size_t i = 0; i < mappings_count; i ++) {
+        for (i = 0; i < mappings_count; i ++) {
 
             struct mmap_range* region = list_get(process->mmap_ranges, i);
 
@@ -363,7 +376,7 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
     }
 
     // Ищем адрес после какого-либо другого региона
-    for (size_t i = 0; i < mappings_count; i ++) {
+    for (i = 0; i < mappings_count; i ++) {
 
         struct mmap_range* range = list_get(process->mmap_ranges, i);
 
