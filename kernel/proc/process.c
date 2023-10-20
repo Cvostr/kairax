@@ -23,12 +23,17 @@ struct process*  create_new_process(struct process* parent)
 
     process->brk = 0x0;
     process->threads_stack_top = align_down(USERSPACE_MAX_ADDR, PAGE_SIZE);
-    process->parent = parent;
+    
     // Создать список потоков
     process->threads = create_list();
     process->children = create_list();
 
     process->mmap_ranges = create_list();
+
+    if (parent) {
+        process->parent = parent;
+        list_add(parent->children, process);
+    }
 
     return process;
 }
@@ -36,7 +41,7 @@ struct process*  create_new_process(struct process* parent)
 void free_process(struct process* process)
 {
     // Если процесс не зомби - сделать его зомби
-    if (process->state != PROCESS_ZOMBIE)
+    if (process->state != STATE_ZOMBIE)
         process_become_zombie(process);
 
     // Удалить информацию о потоках и освободить страницу с стеком ядра
@@ -93,7 +98,7 @@ void process_become_zombie(struct process* process)
     free_vm_table(process->vmemory_table);
 
     // Установить состояние zombie
-    process->state = PROCESS_ZOMBIE;
+    process->state = STATE_ZOMBIE;
 }
 
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem)
@@ -221,6 +226,31 @@ uintptr_t process_brk(struct process* process, uint64_t addr)
     }
 
     return process->brk;
+}
+
+struct process* process_get_child_by_id(struct process* process, pid_t id)
+{
+    struct process* result = NULL;
+    acquire_spinlock(&process->children_lock);
+    
+    for (size_t i = 0; i < list_size(process->children); i ++) {
+        struct process* child = list_get(process->children, i);
+        if (child->pid == id) {
+            result = child;
+            goto exit;
+        }
+    }
+
+exit:
+    release_spinlock(&process->children_lock);
+    return result;
+}
+
+void  process_remove_child(struct process* process, struct process* child)
+{
+    acquire_spinlock(&process->children_lock);
+    list_remove(process->children, child);
+    release_spinlock(&process->children_lock);
 }
 
 struct file* process_get_file(struct process* process, int fd)

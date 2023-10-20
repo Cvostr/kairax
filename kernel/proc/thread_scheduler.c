@@ -64,7 +64,7 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
     release_spinlock(lock);
 
     // Изменяем состояние - блокируемся
-    thr->state = THREAD_INTERRUPTIBLE_SLEEP;
+    thr->state = STATE_INTERRUPTIBLE_SLEEP;
     thr->wait_handle = handle;
 
     // Передача управления другому процессу
@@ -83,8 +83,8 @@ void scheduler_wakeup(void* handle)
         struct thread* thread = sched_threads[tid];
 
         if (thread != NULL) {
-            if (thread->state == THREAD_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle) {
-                thread->state = THREAD_RUNNABLE;
+            if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle) {
+                thread->state = STATE_RUNNABLE;
                 thread->wait_handle = NULL;
             }
         }
@@ -108,7 +108,7 @@ struct thread* scheduler_get_next_runnable_thread()
             continue;
         }
 
-        if (new_thread->state != THREAD_RUNNABLE) {
+        if (new_thread->state != STATE_RUNNABLE) {
             continue;
         }
 

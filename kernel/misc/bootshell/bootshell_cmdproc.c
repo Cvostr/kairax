@@ -139,21 +139,20 @@ void bootshell_process_cmd(char* cmdline)
         
     }
     if(strcmp(cmd, "ls") == 0) {
-        struct file* file = file_open(wd_dentry, argc > 1 ? args[1] : NULL, FILE_OPEN_MODE_READ_ONLY, 0);
+        int fd = sys_open_file(FD_CWD, argc > 1 ? args[1] : NULL, FILE_OPEN_MODE_READ_ONLY, 0);
 
-        if(file == NULL){
-            printf("Can't open directory with path : ", args);
+        if (fd < 0) {
+            printf("Can't open directory with path : %s, rc = %i", args, -fd);
             goto exit;
         }
 
         struct dirent child;
         int rc = 0;
-        while((rc = file_readdir(file, &child)) != 0){
-
+        while ((rc = sys_readdir(fd, &child)) != 0){
             printf("TYPE %s,   NAME %s   INODE %i\n", (child.type == DT_REG) ? "FILE" : "DIR", child.name, child.inode);
         }
 
-        file_close(file); 
+        sys_close_file(fd); 
     }
     if (strcmp(cmd, "stress") == 0) {
 
@@ -196,7 +195,8 @@ void bootshell_process_cmd(char* cmdline)
             printf("Error creating process : %i\n", rc);
         }
 
-        sys_wait(0, rc);
+        int status = 0;
+        sys_wait(0, rc, &status, 0);
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();

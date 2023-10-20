@@ -17,42 +17,46 @@ struct mmap_range {
     int             protection;
 };
 
-enum process_state {
-    PROCESS_RUNNING          = 0,    // Работает/может работать
-    PROCESS_ZOMBIE           = 4     // Завершен, но не обработан родителем
-};
+#define STATE_RUNNING                  0    // Работает
+#define STATE_RUNNABLE                 1
+#define STATE_INTERRUPTIBLE_SLEEP      2    // В ожидании ресурса
+#define STATE_UNINTERRUPTIBLE_SLEEP    3    // В ожидании ресурса внутри системного вызова
+#define STATE_ZOMBIE                   4    // Завершен, но не обработан родителем
 
 struct process {
-    char                name[30];
     // ID процесса
     pid_t               pid;
     // Состояние
-    enum process_state  state;
+    int                 state;
+    // Название
+    char                name[30];
     // Код выхода
-    int code;
+    int                 code;
+    // Процесс - родитель
+    struct process*     parent;
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     uint64_t            threads_stack_top;
-
     // Рабочая папка
     struct file*        workdir;
     // Таблица виртуальной памяти процесса
     struct vm_table*    vmemory_table;  
-    // Процесс - родитель
-    struct process*     parent;
     // Связный список потоков
     list_t*             threads;  
     // Связный список потомков
     list_t*             children;
+    spinlock_t          children_lock;
     // Указатели на открытые файловые дескрипторы
     struct file*        fds[MAX_DESCRIPTORS];
     spinlock_t          fd_lock;
     // начальные данные для TLS
     char*               tls;
     size_t              tls_size;
-
+    // Карта адресного пространства
     list_t*             mmap_ranges;
     spinlock_t          mmap_lock;
+    // Для ожиданий
+    spinlock_t          wait_lock;
 };
 
 struct process_create_info {
@@ -71,6 +75,10 @@ struct process*  create_new_process(struct process* parent);
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result);
 
 int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end);
+
+struct process* process_get_child_by_id(struct process* process, pid_t id);
+
+void  process_remove_child(struct process* process, struct process* child);
 
 void process_become_zombie(struct process* process);
 

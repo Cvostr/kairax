@@ -70,8 +70,8 @@ void* scheduler_handler(thread_frame_t* frame)
         previous_thread->context = frame;
 
         // Если процесс не блокировался - сменить состояние
-        if (previous_thread->state == THREAD_RUNNING)
-            previous_thread->state = THREAD_RUNNABLE;
+        if (previous_thread->state == STATE_RUNNING)
+            previous_thread->state = STATE_RUNNABLE;
 
         if (previous_thread->is_userspace) {
             // Сохранить указатель на вершину стека пользователя
@@ -104,7 +104,7 @@ void* scheduler_handler(thread_frame_t* frame)
 
     // Заменить таблицу виртуальной памяти процесса
     switch_pml4(V2P(process->vmemory_table->arch_table));
-    new_thread->state = THREAD_RUNNING;
+    new_thread->state = STATE_RUNNING;
 
     scheduler_eoi();
 

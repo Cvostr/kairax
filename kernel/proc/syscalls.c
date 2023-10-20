@@ -450,20 +450,56 @@ void sys_exit_process(int code)
     scheduler_from_killed();
 }
 
-int sys_wait(int mode, pid_t id)
+pid_t sys_wait(int mode, pid_t id, int* status, int options)
 {
-    spinlock_t lock;
-    struct process* proc = process_get_by_id(id);
-    scheduler_sleep(proc, &lock);
-    // Процесс завершен
-    // Сохранить код вовзрата
-    int code = proc->code;
-    // Удалить процесс из списка
-    process_remove_from_list(proc);
-    // Уничтожить объект процесса
-    free_process(proc);
-    
-    return code;
+    pid_t       result = -1;
+    struct process* process = cpu_get_current_thread()->process;
+
+    acquire_spinlock(&process->wait_lock);
+    if (mode == 0) {
+
+        struct process* child = NULL;
+        
+        if (id > 0) {
+
+            // pid указан, ищем процесс
+            for (;;) {
+
+                child = process_get_child_by_id(process, id);
+
+                if (!child) 
+                    goto exit;
+
+                if (child->state == STATE_ZOMBIE)
+                    break;
+
+                scheduler_sleep(child, &process->wait_lock);
+            }
+        } else if (id == -1) {
+            // Завершить любой дочерний процесс, который зомби
+            // TODO
+            
+        } else {
+            goto exit;
+        }
+
+        // Процесс завершен
+        // Сохранить код вовзрата
+        int code = child->code;
+        // Удалить процесс из списка
+        process_remove_from_list(child);
+        // Удалить процесс из списка потомков
+        process_remove_child(process, child);
+        // Уничтожить объект процесса
+        free_process(child);
+        
+        *status = code;
+        result = id;
+    }
+
+exit:
+    release_spinlock(&process->wait_lock);
+    return result;
 }
 
 pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)

@@ -26,6 +26,7 @@ global syscall_poweroff
 global syscall_create_directory
 global syscall_process_map_memory
 global syscall_process_unmap_memory
+global syscall_wait
 
 syscall_read:
     mov rax, 0x0
@@ -148,6 +149,12 @@ syscall_process_exit:
 
 syscall_create_thread:
     mov rax, 0x2FF
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_wait:
+    mov rax, 0x7
     mov r10, rcx
     syscall
     ret

@@ -2,6 +2,16 @@
 #include "syscalls.h"
 #include "errno.h"
 
+pid_t getpid()
+{
+    return syscall_process_get_id();
+}
+
+pid_t gettid()
+{
+    return syscall_thread_get_id();
+}
+
 char* getcwd(char* buf, size_t size)
 {
     int rc = syscall_get_working_dir(buf, size);

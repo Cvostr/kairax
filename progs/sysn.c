@@ -13,14 +13,14 @@ void thread_func(int * arg) {
     while(1) {
 		sleep(10);
 
-        printf("TID %i \t", thread_get_id());
+        printf("TID %i \t", gettid());
     }
 }
 
 int main() {
 
     int counter = 0;
-    printf("PID : %i\n", process_get_id());
+    printf("PID : %i\n", getpid());
     
     getcwd(buff, 220);
     printf("CWD : %s\n", buff);

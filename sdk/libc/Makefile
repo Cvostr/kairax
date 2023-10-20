@@ -5,6 +5,7 @@ SRC_DIR=src
 OBJ_DIRS =  obj \
 			obj/stdio \
 			obj/stdlib \
+			obj/sys \
 			obj/x64
 
 COMPILED_OBJS = obj/math.o \
@@ -27,8 +28,9 @@ COMPILED_OBJS = obj/math.o \
 				obj/unistd.o \
 				obj/mman.o \
 				obj/fcntl.o \
-				obj/stat.o \
-				obj/ioctl.o \
+				obj/sys/stat.o \
+				obj/sys/ioctl.o \
+				obj/sys/wait.o \
 				obj/ctype.o \
 				obj/dirent.o \
 				obj/x64/syscalls.o

@@ -40,7 +40,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     //поток в пространстве ядра
     ctx->cs = GDT_BASE_KERNEL_CODE_SEG;
     //Состояние
-    thread->state = THREAD_RUNNABLE;
+    thread->state = STATE_RUNNABLE;
 
     return thread;
 }
@@ -100,7 +100,7 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
     //поток в пространстве ядра
     ctx->cs = GDT_BASE_USER_CODE_SEG | 0b11;    // сегмент кода пользователя
     //Состояние
-    thread->state = THREAD_RUNNABLE;
+    thread->state = STATE_RUNNABLE;
 
     if (info) {
         uint64_t* stack_new_pos = (uint64_t*) (thread->stack_ptr);
@@ -124,7 +124,6 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
             vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->type, sizeof(uint64_t));
         }
 
-        //ctx->rbp = (uint64_t)stack_aux_pos;
         ctx->rsp = (uint64_t)stack_new_pos;
     }
 

@@ -13,6 +13,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x2, sys_open_file),
     DEFINE_SYSCALL(0x3, sys_close_file),
     DEFINE_SYSCALL(0x5, sys_stat),
+    DEFINE_SYSCALL(0x7, sys_wait),
     DEFINE_SYSCALL(0x8, sys_file_seek),
     DEFINE_SYSCALL(0x9, sys_memory_map),
     DEFINE_SYSCALL(0xA, sys_memory_protect),

@@ -7,26 +7,21 @@
 
 #define STACK_SIZE 4096
 
-enum thread_state {
-    THREAD_RUNNING                  = 0,    // Работает
-    THREAD_RUNNABLE                 = 1,
-    THREAD_INTERRUPTIBLE_SLEEP      = 2,    // В ожидании ресурса
-    THREAD_UNINTERRUPTIBLE_SLEEP    = 3,    // В ожидании ресурса внутри системного вызова
-    THREAD_ZOMBIE                   = 4     // Завершен, но не обработан родителем
-};
-
 struct thread {
-    char                name[32];
     // ID потока
     pid_t               id;
+    // Состояние
+    int                 state;
+    // Имя потока
+    char                name[30];
+    // Код выхода
+    int                 code;
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     // Адрес вершины стека ядра
     void*               kernel_stack_ptr;
     // Адрес локальной памяти потока (TLS)
     void*               tls;
-    // Состояние
-    enum thread_state   state;
     // Указатель на объект процесса
     struct process*     process;
     // Указатель на сохраненные данные контекста

@@ -18,6 +18,10 @@ extern "C" {
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
+pid_t getpid();
+
+pid_t gettid();
+
 ssize_t read(int fd, char* buffer, size_t size);
 
 ssize_t write(int fd, const char* buffer, size_t size);

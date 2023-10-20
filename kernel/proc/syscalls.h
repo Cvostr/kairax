@@ -55,6 +55,6 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
 int sys_poweroff(int cmd);
 
-int sys_wait(int mode, pid_t id);
+pid_t sys_wait(int mode, pid_t id, int* status, int options);
 
 #endif

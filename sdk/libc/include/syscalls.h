@@ -7,8 +7,8 @@ extern long long syscall_read(int fd, char* buffer, unsigned long long size);
 extern long long syscall_write(int fd, const char* buffer, unsigned long long size);
 extern int syscall_ioctl(int fd, unsigned long long request, unsigned long long arg);
 extern int syscall_readdir(int fd, void* buffer);
-extern unsigned long syscall_process_get_id();
-extern unsigned long int syscall_thread_get_id();
+extern long syscall_process_get_id();
+extern long syscall_thread_get_id();
 extern void syscall_sleep(unsigned long long times);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
 extern int syscall_set_working_dir(const char* path);
@@ -22,6 +22,7 @@ extern void* syscall_process_map_memory(void* address, unsigned long long length
 extern int syscall_process_unmap_memory(void* address, unsigned long long length);
 extern void syscall_process_exit(int status);
 extern int syscall_poweroff(int cmd);
+extern long int syscall_wait(int mode, long int pid, int* status, int options);
 
 extern long int syscall_create_thread(void* entry, void* arg, unsigned long long stack_size);
 
