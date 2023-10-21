@@ -27,3 +27,18 @@ int vsscanf(const char *str, const char *format, va_list args)
 
     return scanf_generic(&farg, format, args);
 }
+
+int scanf(const char *format, ...)
+{
+    va_list arg_ptr;
+    va_start(arg_ptr, format);
+    int n = vfscanf(stdin, format, arg_ptr);
+    va_end (arg_ptr);
+    return n;
+}
+
+int vfscanf(FILE *stream, const char *format, va_list ap)
+{
+    // todo : implement
+    return 0;
+}

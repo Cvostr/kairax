@@ -17,6 +17,7 @@
 struct dirent {
     uint64_t    inode;      // номер inode
     uint64_t    offset;     // Номер в директории
+    uint16_t	reclen;
     uint8_t     type;       // Тип
     char        name[MAX_DIRENT_NAME_LEN];     // Имя
 };

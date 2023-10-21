@@ -22,7 +22,8 @@ extern "C" {
 
 struct dirent {
     ino_t       d_ino;      // номер inode
-    uint64_t    d_off;     // Номер в директории
+    off_t    	d_off;     // Номер в директории
+	uint16_t	d_reclen;
     uint8_t     d_type;       // Тип
     char        d_name[MAX_DIRENT_NAME_LEN];     // Имя
 };

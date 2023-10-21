@@ -14,6 +14,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/fopen.o \
 				obj/stdio/fread.o \
 				obj/stdio/printf.o \
+				obj/stdio/sprintf.o \
+				obj/stdio/fdprintf.o \
 				obj/stdio/printf_generic.o \
 				obj/stdio/scanf.o \
 				obj/stdio/scanf_generic.o \
@@ -31,6 +33,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys/stat.o \
 				obj/sys/ioctl.o \
 				obj/sys/wait.o \
+				obj/sys/reboot.o \
 				obj/ctype.o \
 				obj/dirent.o \
 				obj/x64/syscalls.o

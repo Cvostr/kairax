@@ -29,3 +29,9 @@ int fseek(FILE *stream, long offset, int whence)
 {
     return lseek(stream->_fileno, offset, whence);
 }
+
+int fflush(FILE *stream)
+{
+	// not in kernel
+	return 0;
+}

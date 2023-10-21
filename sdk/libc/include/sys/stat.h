@@ -1,5 +1,5 @@
-#ifndef _STAT_H
-#define _STAT_H
+#ifndef _SYS_STAT_H
+#define _SYS_STAT_H
 
 #include "types.h"
 
