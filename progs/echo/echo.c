@@ -1,18 +1,7 @@
 #include "stdio.h"
 #include "unistd.h"
 #include "fcntl.h"
-
-size_t _strlen (const char *__s)
-{
-    size_t size = 0;
-
-    while(*__s++)
-    {
-		size++;
-    }
-
-	return size;
-}
+#include "string.h"
 
 int main(int argc, char** argv) {
 
@@ -41,13 +30,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int fd = open(path, O_CREAT | O_WRONLY, 0777);
+    int fd = creat(path, 0777);
 
     if (fd == -1) {
         printf("Can't open file with path %s", path);
     }
 
-    write(fd, content, _strlen(content));
+    write(fd, content, strlen(content));
 
     close(fd);
 

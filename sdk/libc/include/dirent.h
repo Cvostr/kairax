@@ -35,14 +35,15 @@ struct __dirstream
 	int buf_pos;
 	int buf_end;
 	volatile int lock[1];
-	/* Any changes to this struct must preserve the property:
-	 * offsetof(struct __dirent, buf) % sizeof(off_t) == 0 */
-	char buf[2048];
+	struct dirent drent;
 };
 
 typedef struct __dirstream DIR;
 
-int readdir(int fd, struct dirent* direntry);
+DIR *opendir (const char *name);
+DIR *fdopendir(int fd);
+int closedir (DIR *dir);
+struct dirent *readdir(DIR *dir);
 
 #ifdef __cplusplus
 }

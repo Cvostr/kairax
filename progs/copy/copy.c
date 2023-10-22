@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    int dstfd = open(dest, O_CREAT | O_WRONLY, 0777);
+    // Создаем файл
+    int dstfd = creat(dest, 0777);
 
     if (dstfd == -1) {
         printf("Can't open destination file %s, code=%i\n", dest, errno);

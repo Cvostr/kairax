@@ -37,8 +37,9 @@ int scanf(const char *format, ...)
     return n;
 }
 
-int vfscanf(FILE *stream, const char *format, va_list ap)
+int vfscanf(FILE *stream, const char *format, va_list args)
 {
-    // todo : implement
+    //struct arg_scanf farg = { (void*)stream, (int(*)(void*))fgetc, (int(*)(int,void*))ungetc };
+    //return scanf_generic(&farg, format, args);
     return 0;
 }

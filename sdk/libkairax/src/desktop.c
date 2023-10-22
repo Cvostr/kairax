@@ -1,5 +1,4 @@
 #include "desktop.h"
-#include "syscalls.h"
 
 int foo() {
     return 1;
