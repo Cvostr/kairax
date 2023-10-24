@@ -1,7 +1,7 @@
-#ifndef _SYS_TIME_H_
-#define _SYS_TIME_H_
+#ifndef _TIME_H
+#define _TIME_H
 
-#include "sys/types.h"
+#include "types.h"
 
 struct tm {
     int tm_sec;			
@@ -18,11 +18,6 @@ struct tm {
     const char *tm_zone;
 };
 
-struct timespec {
-	time_t tv_sec;
-  	long int tv_nsec;
-};
-
 struct timeval {
     time_t tv_sec;	/* секунды */
     suseconds_t tv_usec;	/* микросекунды */
@@ -33,6 +28,8 @@ struct timezone {
     int tz_dsttime;
 };
 
-int gettimeofday(struct timeval *tv, struct timezone *tz);
+int isleap(int year);
+
+time_t tm_to_epoch(struct tm *tm);
 
 #endif

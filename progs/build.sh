@@ -23,6 +23,10 @@ cd cat
 make 
 cd ..
 
+cd date
+make
+cd ..
+
 gcc $ARGS floattest.c -o floattest.o
 ld -melf_x86_64 $LD_ARGS -o floattest.a floattest.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 

@@ -27,14 +27,14 @@ int write_padded(struct arg_printf* fn, int pad_left, const char* str, char ch, 
 {   
     size_t strl = strlen(str);
     int written = 0;
-    if (pad_left && len > strl) {
+    if (!pad_left && len > strl) {
         written += printf_write_padding(fn, ch, len - strl);
     }
 
     fn->put(fn->data, str, strl);
     written += strl;
     
-    if (!pad_left && len > strl) {
+    if (pad_left && len > strl) {
         written += printf_write_padding(fn, ch, len - strl);
     }
 

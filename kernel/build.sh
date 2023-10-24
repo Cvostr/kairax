@@ -52,6 +52,7 @@ gcc $GCC_ARGS $STDC_PATH/string.c -o ./bin/stdc_string.o
 gcc $GCC_ARGS $STDC_PATH/stdlib.c -o ./bin/stdc_stdlib.o
 gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
 gcc $GCC_ARGS $STDC_PATH/stdio.c -o ./bin/stdc_stdio.o
+gcc $GCC_ARGS $STDC_PATH/time.c -o ./bin/time.o
 
 #generic bus
 gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o

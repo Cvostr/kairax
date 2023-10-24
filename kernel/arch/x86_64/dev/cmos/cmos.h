@@ -2,6 +2,7 @@
 #define _CMOS_H
 
 #include "types.h"
+#include "time.h"
 
 #define CMOS_ADDRESS 0x70
 #define CMOS_DATA 0x71
@@ -14,19 +15,26 @@
 #define CMOS_REG_RTC_MONTHDAY   0x07
 #define CMOS_REG_RTC_MONTH	    0x08
 #define CMOS_REG_RTC_YEAR	    0x09
+#define CMOS_REG_RTC_CENTURY    0x32
 
 #define CMOS_STATUS_A           0x0A
 
-typedef struct {
-    uint16_t     year;
-    uint8_t     month;
-    uint8_t     day;
+struct cmos_datetime {
+    int    year;
+    int     month;
+    int     day;
 
-    uint8_t     hour;
-    uint8_t     minute;
-    uint8_t     second;
-} cmos_datetime_t;
+    int     hour;
+    int     minute;
+    int     second;
+};
 
-cmos_datetime_t cmos_rtc_get_datetime();
+unsigned long read_tsc();
+
+void cmos_rtc_get_datetime(struct cmos_datetime *time);
+
+void cmos_rtc_get_datetime_tm(struct tm* time);
+
+void arch_sys_get_time_epoch(struct timeval *tv);
 
 #endif

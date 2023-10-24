@@ -38,6 +38,10 @@ void free(void *cp);
 void *realloc(void *cp, size_t nbytes);
 void *calloc(size_t num, size_t size);
 
+extern int rand(void);
+extern int rand_r(unsigned int *seed);
+extern void srand(unsigned int seed);
+
 extern void exit(int status);
 extern int system(const char *command);
 

@@ -25,10 +25,4 @@ typedef long int            time_t;
 typedef long long  			pid_t;
 typedef unsigned long 		ssize_t;
 
-struct timespec
-{
-	time_t tv_sec;
-  	long int tv_nsec;
-};
-
 #endif

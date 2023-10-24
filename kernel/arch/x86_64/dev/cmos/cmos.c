@@ -1,12 +1,12 @@
 #include "cmos.h"
 #include "io.h"
 
-static uint8_t from_binary_coded_decimal(uint8_t value)
+static unsigned short from_bcd(unsigned short value)
 {
     return (value / 16) * 10 + (value & 0xf);
 }
 
-uint8_t cmos_read(uint32_t cmos_reg)
+unsigned short cmos_read(unsigned cmos_reg)
 {
     outb(CMOS_ADDRESS, cmos_reg);
     return inb(CMOS_DATA);
@@ -17,16 +17,40 @@ int cmos_is_update()
     return cmos_read(CMOS_STATUS_A) & 0x80;
 }
 
-cmos_datetime_t cmos_rtc_get_datetime()
+unsigned long read_tsc() {
+	unsigned lo, hi;
+	asm volatile ( "rdtsc" : "=a"(lo), "=d"(hi) );
+	return ((unsigned long)hi << 32UL) | (unsigned long)lo;
+}
+
+void cmos_rtc_get_datetime_tm(struct tm* time)
 {
-    cmos_datetime_t datetime;
+    int century = from_bcd(cmos_read(CMOS_REG_RTC_CENTURY));
+    int year_offset = century * 100 - 1900;
 
-    datetime.second = from_binary_coded_decimal(cmos_read(CMOS_REG_RTC_SEC));
-    datetime.minute = from_binary_coded_decimal(cmos_read(CMOS_REG_RTC_MIN));
-    datetime.hour = from_binary_coded_decimal(cmos_read(CMOS_REG_RTC_HOUR));
-    datetime.day = from_binary_coded_decimal(cmos_read(CMOS_REG_RTC_MONTHDAY));
-    datetime.month = from_binary_coded_decimal(cmos_read(CMOS_REG_RTC_MONTH));
-    datetime.year = (uint16_t)from_binary_coded_decimal(cmos_read(CMOS_REG_RTC_YEAR)) + 2000;
+    time->tm_sec = from_bcd(cmos_read(CMOS_REG_RTC_SEC));
+    time->tm_min = from_bcd(cmos_read(CMOS_REG_RTC_MIN));
+    time->tm_hour = from_bcd(cmos_read(CMOS_REG_RTC_HOUR));
+    time->tm_mday = from_bcd(cmos_read(CMOS_REG_RTC_MONTHDAY));
+    time->tm_mon = from_bcd(cmos_read(CMOS_REG_RTC_MONTH));
 
-    return datetime;
+    time->tm_year = from_bcd(cmos_read(CMOS_REG_RTC_YEAR));
+    time->tm_year += year_offset;
+}
+
+void cmos_rtc_get_datetime(struct cmos_datetime *time)
+{
+    time->second = from_bcd(cmos_read(CMOS_REG_RTC_SEC));
+    time->minute = from_bcd(cmos_read(CMOS_REG_RTC_MIN));
+    time->hour = from_bcd(cmos_read(CMOS_REG_RTC_HOUR));
+    time->day = from_bcd(cmos_read(CMOS_REG_RTC_MONTHDAY));
+    time->month = from_bcd(cmos_read(CMOS_REG_RTC_MONTH));
+    time->year = from_bcd(cmos_read(CMOS_REG_RTC_YEAR));
+}
+
+void arch_sys_get_time_epoch(struct timeval *tv)
+{
+    struct tm datetime;
+	cmos_rtc_get_datetime_tm(&datetime);
+    tv->tv_sec = tm_to_epoch(&datetime);
 }

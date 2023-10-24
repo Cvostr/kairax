@@ -25,6 +25,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/strtod.o \
 				obj/stdlib/strtol.o \
 				obj/stdlib/dtostr.o \
+				obj/stdlib/rand.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \
@@ -34,6 +35,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys/ioctl.o \
 				obj/sys/wait.o \
 				obj/sys/reboot.o \
+				obj/time.o \
 				obj/ctype.o \
 				obj/dirent.o \
 				obj/x64/syscalls.o

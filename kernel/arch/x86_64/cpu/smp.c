@@ -12,6 +12,7 @@
 #include "interrupts/apic.h"
 #include "interrupts/idt.h"
 #include "cpuid.h"
+#include "dev/cmos/cmos.h"
 
 extern char ap_trampoline[];
 extern char ap_trampoline_end[];
@@ -27,12 +28,6 @@ struct cpu_local_x64* curr_cpu_local;
 extern void syscall_entry_x64();
 
 #define TRAMPOLINE_PAGE 1
-
-static inline uint64_t read_tsc(void) {
-	uint32_t lo, hi;
-	asm volatile ( "rdtsc" : "=a"(lo), "=d"(hi) );
-	return ((uint64_t)hi << 32) | (uint64_t)lo;
-}
 
 static void short_delay(unsigned long amount) {
 	uint64_t clock = read_tsc();

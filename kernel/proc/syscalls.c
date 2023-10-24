@@ -11,6 +11,7 @@
 #include "string.h"
 #include "dev/acpi/acpi.h"
 #include "ipc/pipe.h"
+#include "time.h"
 
 int sys_not_implemented()
 {
@@ -370,7 +371,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     length = align(length, PAGE_SIZE);
 
     // Получить предпочитаемый адрес
-    address = process_get_free_addr(process, length, align_down(address, PAGE_SIZE));
+    address = process_get_free_addr(process, length, align_down((uint64_t) address, PAGE_SIZE));
 
     // Сформировать регион
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
@@ -500,6 +501,12 @@ pid_t sys_wait(int mode, pid_t id, int* status, int options)
 exit:
     release_spinlock(&process->wait_lock);
     return result;
+}
+
+int sys_get_time_epoch(struct timeval *tv)
+{
+    arch_sys_get_time_epoch(tv);
+    return 0;
 }
 
 pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)

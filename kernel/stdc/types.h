@@ -38,6 +38,9 @@ typedef unsigned long 		dev_t;
 
 typedef long int time_t;
 
+typedef signed long 		suseconds_t;
+typedef signed long 		useconds_t;
+
 typedef struct {
 	int counter;
 } atomic_t;

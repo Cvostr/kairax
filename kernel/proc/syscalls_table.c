@@ -30,6 +30,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x53, sys_mkdir),
     DEFINE_SYSCALL(0x59, sys_readdir),
     DEFINE_SYSCALL(0x5A, sys_set_mode),
+    DEFINE_SYSCALL(0x60, sys_get_time_epoch),
     DEFINE_SYSCALL(0xA5, sys_mount),
     DEFINE_SYSCALL(0xA9, sys_poweroff),
 

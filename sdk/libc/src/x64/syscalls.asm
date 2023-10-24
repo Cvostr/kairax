@@ -27,6 +27,7 @@ global syscall_create_directory
 global syscall_process_map_memory
 global syscall_process_unmap_memory
 global syscall_wait
+global syscall_get_time_epoch
 
 syscall_read:
     mov rax, 0x0
@@ -155,6 +156,12 @@ syscall_create_thread:
 
 syscall_wait:
     mov rax, 0x7
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_get_time_epoch:
+    mov rax, 0x60
     mov r10, rcx
     syscall
     ret

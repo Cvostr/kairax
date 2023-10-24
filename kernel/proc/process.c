@@ -142,7 +142,7 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
         vm_memcpy(process->vmemory_table, *args_mem + pointers_offset, &addr, sizeof(uint64_t));
 
         // Записать строку аргумента
-        vm_memcpy(process->vmemory_table, *args_mem + args_offset, argv[i], arg_len);
+        vm_memcpy(process->vmemory_table, (uint64_t) (*args_mem + args_offset), argv[i], arg_len);
 
         // Увеличить смещения
         args_offset += arg_len;
@@ -170,7 +170,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
     // Добавить страницы в таблицу
     for (uintptr_t address = start_aligned; address < end_addr; address += PAGE_SIZE) {
-        int rc = vm_table_map(process->vmemory_table, address, pmm_alloc_page(), flags);
+        int rc = vm_table_map(process->vmemory_table, address, (uint64_t) pmm_alloc_page(), flags);
 
         if (address + PAGE_SIZE > process->brk)
             process->brk = address + PAGE_SIZE;

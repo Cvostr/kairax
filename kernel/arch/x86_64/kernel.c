@@ -107,8 +107,14 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	printf("Reading PCI devices\n");
 	load_pci_devices_list();	
 
-	cmos_datetime_t datetime = cmos_rtc_get_datetime();
-	printf("%i:%i:%i   %i:%i:%i\n", datetime.hour, datetime.minute, datetime.second, datetime.day, datetime.month, datetime.year);
+	struct tm datetime;
+	cmos_rtc_get_datetime_tm(&datetime);
+	printf("%i:%i:%i   %i:%i:%i\n", datetime.tm_hour, 
+									datetime.tm_min,
+									datetime.tm_sec,
+									datetime.tm_mday,
+									datetime.tm_mon,
+									datetime.tm_year + 1900);
 
 	vfs_init();
 	ext2_init();
