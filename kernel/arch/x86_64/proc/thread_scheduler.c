@@ -12,7 +12,7 @@
 #include "cpu/msr.h"
 #include "cpu/cpu_local_x64.h"
 
-extern spinlock_t threads_lock;
+spinlock_t scheduler_lock;
 int is_from_interrupt = 1;
 
 extern void scheduler_yield_entry();
@@ -54,7 +54,7 @@ void scheduler_eoi()
 // Если это так, то мы сюда попали из убитого потока
 void* scheduler_handler(thread_frame_t* frame)
 {
-    if (!__sync_bool_compare_and_swap(&threads_lock, 0, 1))
+    if (!__sync_bool_compare_and_swap(&scheduler_lock, 0, 1))
 	{
         frame->rflags |= 0x200;
         scheduler_eoi();
@@ -108,7 +108,8 @@ void* scheduler_handler(thread_frame_t* frame)
 
     scheduler_eoi();
 
-    release_spinlock(&threads_lock);
+    release_spinlock(&scheduler_lock);
+    //scheduler_exit(new_thread->context);
     return new_thread->context;
 }
 

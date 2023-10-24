@@ -10,24 +10,22 @@ global idt_descriptors ;таблица дескрипторов прерыван
 idt_descriptors:
 	resb 4096
 
-
 extern int_handler ;Обработчик прерываний
 extern kernel_stack_top
 extern scheduler_entry
+extern timer_handler
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
 
 section .text
+
 isr_entry:
     _swapgs 24
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
-    mov ax, ds
-    push ax
-    mov ax, es
-    push ax
+    pushsg
     ; Переключение на сегмент ядра
     mov ax, KERNEL_DATA_SEG
     mov ds, ax
@@ -37,11 +35,8 @@ isr_entry:
     cld
     call int_handler
 
-    ; Извлечь значения сегментных регистров fs, es, ds
-    pop ax
-    mov es, ax
-    pop ax
-    mov ds, ax
+    ; Извлечь значения сегментных регистров es, ds
+    popsg
     ; Извлечь 64 битные регистры из стека
     popaq
 

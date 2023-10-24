@@ -5,15 +5,15 @@
 #include "stdio.h"
 #include "kstdlib.h"
 
-void* local_apic_addr = NULL;
+void* local_apic_addr = NULL;   // Общий адрес для всех ядер
 
 int apic_init()
 {
     local_apic_addr = P2V(acpi_get_madt()->local_apic_address);
 
-    uint64_t vv;
-    cpu_msr_get(MSR_APIC_BASE, &vv);
-    cpu_msr_set(MSR_APIC_BASE, vv);
+    //uint64_t vv;
+    //cpu_msr_get(MSR_APIC_BASE, &vv);
+    //cpu_msr_set(MSR_APIC_BASE, vv);
     //printf("APIC = %s \n", ulltoa(vv, 16));
 
     // Инициализация таймера PIT
@@ -42,6 +42,12 @@ void lapic_write(uint32_t reg, uint32_t val)
 uint32_t lapic_read(uint32_t reg)
 {
 	return *((volatile uint32_t*)(local_apic_addr + reg));
+}
+
+void lapic_timer_stop()
+{
+    lapic_write(LAPIC_REG_TIMER_INITCNT, 0);
+    lapic_write(LAPIC_REG_LVT_TIMER, 1 << 16);
 }
 
 void lapic_send_ipi(uint32_t lapic_id, uint32_t value)

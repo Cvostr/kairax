@@ -40,6 +40,8 @@ pid_t sys_get_thread_id();
 
 void sys_exit_process(int code);
 
+void sys_exit_thread(int code);
+
 int sys_thread_sleep(uint64_t time);
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags);

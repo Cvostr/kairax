@@ -8,7 +8,7 @@ acpi_madt_t* acpi_madt_table;
 uint32_t            cpus_apic_count = 0;
 apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 
-apic_io_t*          apic_global;
+apic_io_t*          ioapic_global;
 
 uint32_t acpi_get_cpus_apic_count()
 {
@@ -22,7 +22,7 @@ apic_local_cpu_t** acpi_get_cpus_apic()
 
 apic_io_t*  acpi_get_global_apic()
 {
-    return apic_global;
+    return ioapic_global;
 }
 
 acpi_madt_t* acpi_get_madt()
@@ -44,7 +44,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt)
         switch (type)
         {
         case 0:
-            //Это контроллер для одного из ядер процессора
+            //Это локальный контроллер для одного из ядер процессора
             apic_local_cpu_t* cpu_apic = (apic_local_cpu_t*)p;
 
             if (cpu_apic->flags & 1) {
@@ -53,9 +53,14 @@ void acpi_parse_apic_madt(acpi_madt_t* madt)
 
             break;
         case 1:
-            // Это глобальный APIC
-            apic_global = (apic_io_t*)p;
+            // Это глобальный IOAPIC
+            ioapic_global = (apic_io_t*)p;
             break;
+        case 5:
+            // Если такая структура есть - надо использовать адрес lapic из неё
+            printf("64 bit APIC override");
+            apic_override_t* ovstruct = (apic_override_t*)p;
+            madt->local_apic_address = ovstruct->addr;
         
         default:
             break;

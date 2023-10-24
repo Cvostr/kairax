@@ -451,6 +451,13 @@ void sys_exit_process(int code)
     scheduler_from_killed();
 }
 
+void sys_exit_thread(int code)
+{
+    struct thread* thr = cpu_get_current_thread();
+    thr->code = code;
+    // TODO : implement
+}
+
 pid_t sys_wait(int mode, pid_t id, int* status, int options)
 {
     pid_t       result = -1;

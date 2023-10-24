@@ -16,10 +16,7 @@ scheduler_entry:
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
-    mov ax, ds
-    push ax
-    mov ax, es
-    push ax
+    pushsg
     ; переключение на сегмент ядра
     mov ax, KERNEL_DATA_SEG
     mov ds, ax
@@ -33,15 +30,24 @@ scheduler_entry_from_killed:
     mov rsp, rax
 
     ; Извлечь значения сегментных регистров es, ds
-    pop ax
-    mov es, ax
-    pop ax
-    mov ds, ax
+    popsg
     ; Извлечь значения основных регистров
     popaq
 
     _swapgs 8
 
+    iretq
+
+global scheduler_exit
+scheduler_exit:
+    mov rsp, rdi
+    ; Извлечь значения сегментных регистров es, ds
+    popsg
+    ; Извлечь значения основных регистров
+    popaq
+    ; 
+    _swapgs 8
+    ; Переход на другую задачу
     iretq
     
 global scheduler_yield_entry

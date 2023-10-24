@@ -21,6 +21,8 @@ void lapic_write(uint32_t reg, uint32_t val);
 
 uint32_t lapic_read(uint32_t reg);
 
+void lapic_timer_stop();
+
 void lapic_send_ipi(uint32_t lapic_id, uint32_t value);
 
 void lapic_eoi();

@@ -156,23 +156,28 @@ void bootshell_process_cmd(char* cmdline)
     }
     if (strcmp(cmd, "stress") == 0) {
 
+        if (console_fd == -1) {
+            console_fd = sys_open_file(FD_CWD, "/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
+        }
+
         struct process_create_info info;
         info.current_directory = curdir;
         info.num_args = argc;
         info.args = args;
+        //info.stdout = console_fd;
         for (int i = 0; i < 30; i ++) {
 
             pid_t rc = sys_create_process(-2, "/sysn.a", &info);
             if (rc < 0) {
-                printf("Error creating process sysn : %i\n", rc);
+                printf("Error creating process sysn : %i\n", -rc);
             }
             rc = sys_create_process(-2, "/sysc.a", &info);
             if (rc < 0) {
-                printf("Error creating process sysc : %i\n", rc);
+                printf("Error creating process sysc : %i\n", -rc);
             }
             rc = sys_create_process(-2, "/ls.a", &info);
             if (rc < 0) {
-                printf("Error creating process ls : %i\n", rc);
+                printf("Error creating process ls : %i\n", -rc);
             }
         }
 

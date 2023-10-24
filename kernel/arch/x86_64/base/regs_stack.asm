@@ -16,6 +16,14 @@
     push r14
     push r15
 %endmacro
+
+%macro pushsg 0
+    mov ax, ds
+    push ax
+    mov ax, es
+    push ax
+%endmacro
+
 %macro popaq 0
     pop r15
     pop r14
@@ -32,4 +40,11 @@
     pop rdx
     pop rcx
     pop rax
+%endmacro
+
+%macro popsg 0
+    pop ax
+    mov es, ax
+    pop ax
+    mov ds, ax
 %endmacro

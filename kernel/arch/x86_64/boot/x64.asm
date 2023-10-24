@@ -11,7 +11,6 @@ extern kernel_stack_top
 extern gdtptr_hh
 extern kmain
 extern x64_ltr
-extern bind_kernel_stack
 
 [section .text] 
 
@@ -76,8 +75,4 @@ enable_interrupts:
 global disable_interrupts 
 disable_interrupts:
     cli
-    ret
-
-bind_kernel_stack:
-    mov rsp, kernel_stack_top
     ret

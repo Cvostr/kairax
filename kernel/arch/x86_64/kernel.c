@@ -34,6 +34,7 @@
 #include "cpu/smp.h"
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
+#include "time/timer.h"
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);
@@ -102,6 +103,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	apic_init();
 	smp_init();
+	timer_init();
 
 	init_interrupts_handler(); 
 	printf("Reading PCI devices\n");

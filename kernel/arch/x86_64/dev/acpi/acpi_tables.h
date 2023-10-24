@@ -49,6 +49,13 @@ typedef struct PACKED
     uint32_t global_sys_interrupt_base;
 } apic_io_t;
 
+typedef struct PACKED
+{
+    apic_header_t   header;
+    short           reserved;
+    void*           addr;
+} apic_override_t;
+
 //FADT
 
 typedef struct PACKED
