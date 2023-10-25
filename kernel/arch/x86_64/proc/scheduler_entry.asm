@@ -5,7 +5,6 @@
 [SECTION .text]
 
 extern scheduler_handler
-extern scheduler_entry_from_killed
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
@@ -24,19 +23,7 @@ scheduler_entry:
 
     ; Переход в код планировщика
     mov rdi, rsp
-scheduler_entry_from_killed:
-    cld
     call scheduler_handler
-    mov rsp, rax
-
-    ; Извлечь значения сегментных регистров es, ds
-    popsg
-    ; Извлечь значения основных регистров
-    popaq
-
-    _swapgs 8
-
-    iretq
 
 global scheduler_exit
 scheduler_exit:
@@ -45,11 +32,12 @@ scheduler_exit:
     popsg
     ; Извлечь значения основных регистров
     popaq
-    ; 
+    ; swapgs если необходимо сменить кольцо
     _swapgs 8
     ; Переход на другую задачу
     iretq
     
+
 global scheduler_yield_entry
 scheduler_yield_entry:
     pop rdi ; rip

@@ -12,18 +12,14 @@
 #include "cpu/msr.h"
 #include "cpu/cpu_local_x64.h"
 
-spinlock_t scheduler_lock;
-int is_from_interrupt = 1;
-
 extern void scheduler_yield_entry();
-extern void scheduler_entry_from_killed();
+extern void scheduler_exit(thread_frame_t* ctx);
 
 void scheduler_yield()
 {
     // Выключение прерываний
     disable_interrupts();
 
-    is_from_interrupt = 0;
     scheduler_yield_entry();
 }
 
@@ -33,34 +29,17 @@ void scheduler_from_killed()
     disable_interrupts();
 
     cpu_set_current_thread(NULL);
-    is_from_interrupt = 0;
 
     // Переход в планировщик
-    scheduler_entry_from_killed();
+    scheduler_handler(NULL);
 
     // Не должны сюда попасть
 }
 
-void scheduler_eoi()
-{
-    if (is_from_interrupt) {
-	    pic_eoi(0);
-    } else {
-        is_from_interrupt = 1;
-    }
-}
-
 // frame может быть NULL
 // Если это так, то мы сюда попали из убитого потока
-void* scheduler_handler(thread_frame_t* frame)
+void scheduler_handler(thread_frame_t* frame)
 {
-    if (!__sync_bool_compare_and_swap(&scheduler_lock, 0, 1))
-	{
-        frame->rflags |= 0x200;
-        scheduler_eoi();
-        return frame;
-	}
-
     struct thread* previous_thread = cpu_get_current_thread();
 
     // Сохранить состояние 
@@ -106,11 +85,7 @@ void* scheduler_handler(thread_frame_t* frame)
     switch_pml4(V2P(process->vmemory_table->arch_table));
     new_thread->state = STATE_RUNNING;
 
-    scheduler_eoi();
-
-    release_spinlock(&scheduler_lock);
-    //scheduler_exit(new_thread->context);
-    return new_thread->context;
+    scheduler_exit(new_thread->context);
 }
 
 void scheduler_start()

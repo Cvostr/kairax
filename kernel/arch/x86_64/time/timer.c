@@ -3,13 +3,13 @@
 #include "proc/x64_context.h"
 #include "proc/thread_scheduler.h"
 
-extern void* scheduler_handler(thread_frame_t* frame);
+extern void scheduler_handler(thread_frame_t* frame);
 
 void timer_int_handler(thread_frame_t* context) 
 {
     pic_eoi(0);
     
-    void* ctx = scheduler_handler(context);
+    scheduler_handler(context);
 }
 
 void timer_init()

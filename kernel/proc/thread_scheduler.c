@@ -96,6 +96,7 @@ void scheduler_wakeup(void* handle)
 struct thread* scheduler_get_next_runnable_thread()
 {
     struct thread* new_thread = NULL;
+
     while (1) {
         
         current_thread ++;

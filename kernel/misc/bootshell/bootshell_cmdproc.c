@@ -167,7 +167,7 @@ void bootshell_process_cmd(char* cmdline)
         //info.stdout = console_fd;
         for (int i = 0; i < 30; i ++) {
 
-            pid_t rc = sys_create_process(-2, "/sysn.a", &info);
+            pid_t rc = sys_create_process(-2, "/date.a", &info);
             if (rc < 0) {
                 printf("Error creating process sysn : %i\n", -rc);
             }

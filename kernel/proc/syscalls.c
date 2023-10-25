@@ -439,14 +439,15 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
 void sys_exit_process(int code)
 {
     struct process* process = cpu_get_current_thread()->process;
-    // Удалить потоки процесса из планировщика
-    scheduler_remove_process_threads(process);
     // Сохранить код возврата
     process->code = code;
     // Очистить процесс, сделать его зомби
     process_become_zombie(process);
     // Разбудить потоки, ждущие pid
     scheduler_wakeup(process);
+
+    // Удалить потоки процесса из планировщика
+    scheduler_remove_process_threads(process);
 
     scheduler_from_killed();
 }

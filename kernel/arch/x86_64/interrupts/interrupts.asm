@@ -11,9 +11,7 @@ idt_descriptors:
 	resb 4096
 
 extern int_handler ;Обработчик прерываний
-extern kernel_stack_top
-extern scheduler_entry
-extern timer_handler
+extern timer_int_handler
 
 ;Сегмент данных ядра
 %define KERNEL_DATA_SEG 0x10
@@ -62,7 +60,28 @@ isr_%1:
 
 isr_32:
     cli ; Выключить прерывания
-    jmp scheduler_entry
+    _swapgs 8
+    ; Поместить все 64-битные регистры в стек
+    pushaq
+    ; Поместить сегментные регистры в стек
+    pushsg
+    ; Переключение на сегмент ядра
+    mov ax, KERNEL_DATA_SEG
+    mov ds, ax
+    mov es, ax
+    ; Перейти к обработчику
+    mov rdi, rsp
+    cld
+    call timer_int_handler
+    ; Переключение задачи не произошло - возвращаемся назад
+    ; Извлечь значения сегментных регистров es, ds
+    popsg
+    ; Извлечь 64 битные регистры из стека
+    popaq
+
+    _swapgs 8
+    
+    iretq
 
 
 %assign i 0
