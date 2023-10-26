@@ -14,6 +14,7 @@
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
+int scheduler_enabled = 0;
 
 void scheduler_yield()
 {
@@ -40,10 +41,14 @@ void scheduler_from_killed()
 // Если это так, то мы сюда попали из убитого потока
 void scheduler_handler(thread_frame_t* frame)
 {
+    if (!scheduler_enabled) {
+        return;
+    }
+
     struct thread* previous_thread = cpu_get_current_thread();
 
     // Сохранить состояние 
-    if(previous_thread != NULL && frame) {
+    if (previous_thread != NULL && frame) {
 
         // Сохранить указатель на контекст
         previous_thread->context = frame;
@@ -58,7 +63,9 @@ void scheduler_handler(thread_frame_t* frame)
         }
     }
 
+    // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
+    new_thread->state = STATE_RUNNING;
 
     // Получить данные процесса, с которым связан поток
     struct process* process = new_thread->process;
@@ -83,12 +90,11 @@ void scheduler_handler(thread_frame_t* frame)
 
     // Заменить таблицу виртуальной памяти процесса
     switch_pml4(V2P(process->vmemory_table->arch_table));
-    new_thread->state = STATE_RUNNING;
 
     scheduler_exit(new_thread->context);
 }
 
 void scheduler_start()
 {
-    pic_unmask(0x20);
+    scheduler_enabled = 1;
 }

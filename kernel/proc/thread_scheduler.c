@@ -61,7 +61,8 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
 {
     struct thread* thr = cpu_get_current_thread();
 
-    release_spinlock(lock);
+    if (lock != NULL)
+        release_spinlock(lock);
 
     // Изменяем состояние - блокируемся
     thr->state = STATE_INTERRUPTIBLE_SLEEP;
@@ -70,8 +71,9 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
     // Передача управления другому процессу
     scheduler_yield();
 
-    // Блокируем спинлок и выходим
-    acquire_spinlock(lock);
+    if (lock != NULL)
+        // Блокируем спинлок
+        acquire_spinlock(lock);
 }
 
 void scheduler_wakeup(void* handle)

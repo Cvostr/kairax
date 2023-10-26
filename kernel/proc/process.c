@@ -63,6 +63,9 @@ void process_become_zombie(struct process* process)
 {
     size_t i = 0;
 
+    // Установить состояние zombie
+    process->state = STATE_ZOMBIE;
+
     for (i = 0; i < list_size(process->mmap_ranges); i ++) {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
         kfree(range);
@@ -96,9 +99,6 @@ void process_become_zombie(struct process* process)
     // Уничтожение таблицы виртуальной памяти процесса
     // и освобождение занятых таблиц физической
     free_vm_table(process->vmemory_table);
-
-    // Установить состояние zombie
-    process->state = STATE_ZOMBIE;
 }
 
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem)

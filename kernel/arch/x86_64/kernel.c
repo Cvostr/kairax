@@ -102,6 +102,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	apic_init();
+
+	printf("SMP: Initialization\n");
 	smp_init();
 	timer_init();
 

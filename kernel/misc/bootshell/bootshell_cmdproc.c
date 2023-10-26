@@ -165,7 +165,7 @@ void bootshell_process_cmd(char* cmdline)
         info.num_args = argc;
         info.args = args;
         //info.stdout = console_fd;
-        for (int i = 0; i < 30; i ++) {
+        for (int i = 0; i < 20; i ++) {
 
             pid_t rc = sys_create_process(-2, "/date.a", &info);
             if (rc < 0) {

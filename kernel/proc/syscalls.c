@@ -337,11 +337,11 @@ pid_t sys_get_thread_id()
 
 int sys_thread_sleep(uint64_t time)
 {
-    struct thread* thread = cpu_get_current_thread();
+    /*struct thread* thread = cpu_get_current_thread();
 
     for (uint64_t i = 0; i < time * 10000; i ++) {
         scheduler_yield();
-    }
+    }*/
 }
 
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
@@ -439,13 +439,14 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
 void sys_exit_process(int code)
 {
     struct process* process = cpu_get_current_thread()->process;
+    // Данная операция должна выполниться атомарно
+    disable_interrupts();
     // Сохранить код возврата
     process->code = code;
     // Очистить процесс, сделать его зомби
     process_become_zombie(process);
     // Разбудить потоки, ждущие pid
     scheduler_wakeup(process);
-
     // Удалить потоки процесса из планировщика
     scheduler_remove_process_threads(process);
 

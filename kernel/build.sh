@@ -47,6 +47,7 @@ gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler_x64.o
 
 #raxlib
 gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o
+gcc $GCC_ARGS $STDC_PATH/vector/vector.c -o ./bin/vector.o
 gcc $GCC_ARGS $STDC_PATH/guid/guid.c -o ./bin/guid.o
 
 #generic stdc
