@@ -52,7 +52,7 @@ libc: $(COMPILED_OBJS)
 	$(CC) -fPIC -nostdlib -shared -o libc.so $(COMPILED_OBJS)
 
 clean:
-	rm -rf obj/*.o *.so *.a
+	find . -name "*.o" -type f -delete
 
 obj/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

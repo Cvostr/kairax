@@ -16,25 +16,19 @@ extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
 int scheduler_enabled = 0;
 
-void scheduler_yield()
+void scheduler_yield(int save_context)
 {
     // Выключение прерываний
     disable_interrupts();
 
-    scheduler_yield_entry();
-}
+    if (save_context) {
+        scheduler_yield_entry();
+    } else {
+        cpu_set_current_thread(NULL);
 
-void scheduler_from_killed()
-{
-    // Выключение прерываний
-    disable_interrupts();
-
-    cpu_set_current_thread(NULL);
-
-    // Переход в планировщик
-    scheduler_handler(NULL);
-
-    // Не должны сюда попасть
+        // Переход в планировщик
+        scheduler_handler(NULL);    
+    }   
 }
 
 // frame может быть NULL

@@ -24,7 +24,7 @@ struct timespec {
 };
 
 struct timeval {
-    time_t tv_sec;	/* секунды */
+    time_t tv_sec;	        /* секунды */
     suseconds_t tv_usec;	/* микросекунды */
 };
 

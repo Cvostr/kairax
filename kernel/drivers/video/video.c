@@ -181,11 +181,11 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _height = height;
     _depth = depth;
 
-/*
+
     int size = width * height * depth;
     double_buffer = pmm_alloc_pages(size / PAGE_SIZE + 1);
     double_buffer = P2V(double_buffer);
-    memset(double_buffer, 0, size);*/
+    memset(double_buffer, 0, size);
 }
 
 void vga_init_dev()
@@ -197,15 +197,17 @@ void vga_init_dev()
 void vga_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) 
 {
     int pixwidth = _depth / 8;
+    // Запись в экранный буфер
     char* fb_addr = _addr + y * _pitch + x * pixwidth;
     fb_addr[0] = b;
     fb_addr[1] = g;
     fb_addr[2] = r;
 
-    //fb_addr = double_buffer + y * _pitch + x * pixwidth;
-    //fb_addr[0] = b;
-    //fb_addr[1] = g;
-    //fb_addr[2] = r;
+    // Запись в double buffer
+    fb_addr = double_buffer + y * _pitch + x * pixwidth;
+    fb_addr[0] = b;
+    fb_addr[1] = g;
+    fb_addr[2] = r;
 }
 
 void vga_draw_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b) 
@@ -242,7 +244,7 @@ void vga_draw_char(char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t
 void vga_clear() 
 {
     memset(_addr, 0, _pitch * _height);
-    //memset(double_buffer, 0, _pitch * _height);
+    memset(double_buffer, 0, _pitch * _height);
 }
 
 void console_scroll()
@@ -254,14 +256,14 @@ void console_scroll()
         // Перенести строки фреймбуффера вверх
         int pixel_lines = (YOFFSET + LINE_SIZE) * _pitch;
         int to_copy = (_height - YOFFSET - LINE_SIZE) * _pitch;
-        memcpy(_addr + YOFFSET * _pitch, _addr + pixel_lines, to_copy);
-        //memcpy(double_buffer + YOFFSET * _pitch, double_buffer + pixel_lines, to_copy);
+        memcpy(_addr + YOFFSET * _pitch, double_buffer + pixel_lines, to_copy);
+        memcpy(double_buffer + YOFFSET * _pitch, double_buffer + pixel_lines, to_copy);
 
         // Очистить последнюю строку
         pixel_lines = LINE_SIZE * _pitch;
         int offset = (YOFFSET + (BUFFER_LINES - 1) * LINE_SIZE) * _pitch;
         memset(_addr + offset, 0, pixel_lines);
-        //memset(double_buffer + offset, 0, pixel_lines);
+        memset(double_buffer + offset, 0, pixel_lines);
 	}
 }
 
@@ -312,7 +314,7 @@ void console_remove_from_end(int chars)
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset)
 {
-    //acquire_mutex(&vga_console_lock);
+    acquire_mutex(&vga_console_lock);
 
 	if (buffer[0] == B8_WR_CMD) {
         int len = buffer[1];
@@ -323,5 +325,5 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 		console_remove_from_end(buffer[1]);
 	}
 
-    //release_spinlock(&vga_console_lock);
+    release_spinlock(&vga_console_lock);
 }

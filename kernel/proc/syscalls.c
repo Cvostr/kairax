@@ -11,7 +11,7 @@
 #include "string.h"
 #include "dev/acpi/acpi.h"
 #include "ipc/pipe.h"
-#include "time.h"
+#include "timer.h"
 
 int sys_not_implemented()
 {
@@ -337,11 +337,14 @@ pid_t sys_get_thread_id()
 
 int sys_thread_sleep(uint64_t time)
 {
-    /*struct thread* thread = cpu_get_current_thread();
+    struct thread* thread = cpu_get_current_thread();
 
-    for (uint64_t i = 0; i < time * 10000; i ++) {
-        scheduler_yield();
-    }*/
+    for (uint64_t i = 0; i < time * 10; i ++) {
+        scheduler_yield(TRUE);
+    }
+    /*struct timespec duration = {};
+    struct event_timer* timer = register_event_timer(duration);
+    scheduler_sleep(timer, NULL);*/
 }
 
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
@@ -450,7 +453,7 @@ void sys_exit_process(int code)
     // Удалить потоки процесса из планировщика
     scheduler_remove_process_threads(process);
 
-    scheduler_from_killed();
+    scheduler_yield(FALSE);
 }
 
 void sys_exit_thread(int code)

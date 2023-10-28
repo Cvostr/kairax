@@ -17,9 +17,7 @@ struct thread* scheduler_get_thread_by_tid(pid_t tid);
 
 struct thread* scheduler_get_next_runnable_thread();
 
-void scheduler_yield();
-
-void scheduler_from_killed();
+void scheduler_yield(int save_context);
 
 void scheduler_sleep(void* handle, spinlock_t* lock);
 

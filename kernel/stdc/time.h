@@ -3,6 +3,9 @@
 
 #include "types.h"
 
+#define NSEC_MAX_VALUE 999999999U
+#define NSESC_IN_SEC   1000000000U
+
 struct tm {
     int tm_sec;			
     int tm_min;			
@@ -19,8 +22,13 @@ struct tm {
 };
 
 struct timeval {
-    time_t tv_sec;	/* секунды */
+    time_t tv_sec;	        /* секунды */
     suseconds_t tv_usec;	/* микросекунды */
+};
+
+struct timespec {
+	time_t tv_sec;
+  	long int tv_nsec;
 };
 
 struct timezone {
@@ -31,5 +39,7 @@ struct timezone {
 int isleap(int year);
 
 time_t tm_to_epoch(struct tm *tm);
+
+void timespec_add(struct timespec* t1, struct timespec* t2);
 
 #endif

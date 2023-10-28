@@ -28,7 +28,7 @@ gcc $GCC_ARGS $x64_SRC/cpu/cpuid.c -o ./bin/cpuid.o
 gcc $GCC_ARGS $x64_SRC/kernel.c -o ./bin/kernel.o
 gcc $GCC_ARGS $x64_SRC/interrupts/idt.c -o ./bin/idt.o
 gcc $GCC_ARGS $x64_SRC/time/pit.c -o ./bin/pit.o
-gcc $GCC_ARGS $x64_SRC/time/timer.c -o ./bin/timer.o
+gcc $GCC_ARGS $x64_SRC/time/timer.c -o ./bin/timer_x64.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/handler.c -o ./bin/ints_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exceptions_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
@@ -86,6 +86,7 @@ gcc $GCC_ARGS proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS proc/syscalls.c -o ./bin/syscalls.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
+gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 
 #generic ipc
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o

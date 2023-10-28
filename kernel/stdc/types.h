@@ -54,10 +54,4 @@ typedef struct {
 #define UINT32_MAX 		0xFFFFFFFF
 #define UINT64_MAX		(18446744073709551615ULL)
 
-struct timespec
-{
-	time_t tv_sec;
-  	long int tv_nsec;
-};
-
 #endif

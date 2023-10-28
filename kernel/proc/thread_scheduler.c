@@ -65,11 +65,11 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
         release_spinlock(lock);
 
     // Изменяем состояние - блокируемся
-    thr->state = STATE_INTERRUPTIBLE_SLEEP;
     thr->wait_handle = handle;
+    thr->state = STATE_INTERRUPTIBLE_SLEEP;
 
     // Передача управления другому процессу
-    scheduler_yield();
+    scheduler_yield(TRUE);
 
     if (lock != NULL)
         // Блокируем спинлок

@@ -22,6 +22,17 @@ int isleap(int year)
     return (!(year % 4) && ((year % 100) || !(year % 400)));
 }
 
+void timespec_add(struct timespec* t1, struct timespec* t2)
+{
+    int64_t sum = t1->tv_nsec + t2->tv_nsec;
+    if (sum > NSEC_MAX_VALUE) {
+        sum -= NSESC_IN_SEC;
+        t1->tv_sec++;
+    }
+
+    t1->tv_sec += t2->tv_sec;
+}
+
 time_t tm_to_epoch(struct tm *tm)
 {
     time_t day;

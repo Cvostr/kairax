@@ -1,7 +1,7 @@
 #include "pit.h"
 #include "io.h"
 
-#define PIT_DIVIDEND ((uint64_t)1193182)
+#define PIT_DIVIDEND 1193182ULL
 
 uint32_t pit_get_count()
 {

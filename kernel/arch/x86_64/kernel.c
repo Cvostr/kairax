@@ -145,7 +145,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	
 	scheduler_add_thread(thr);
 	scheduler_start();
-	scheduler_yield();
+	scheduler_yield(FALSE);
 
 	fatal_error:
 		printf("Fatal Error!\nKernel terminated!");
