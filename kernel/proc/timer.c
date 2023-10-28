@@ -26,9 +26,6 @@ void timer_handle()
 
     timespec_add(&current_counted_time, &offset);
 
-    //if (current_counted_time.tv_nsec < 1000)
-    //    printf("%i %i\n", current_counted_time.tv_sec, current_counted_time.tv_nsec);
-
     if (try_acquire_spinlock(&timers_lock)) {
 
         for (size_t i = 0; i < list_size(timers_list); i ++) {
@@ -39,6 +36,7 @@ void timer_handle()
             }
 
             timespec_sub(&ev_timer->when, &offset);
+
             if (timespec_is_zero(&ev_timer->when)) {
                 scheduler_wakeup(ev_timer);
                 ev_timer->alarmed = 1;
@@ -58,11 +56,8 @@ struct event_timer* new_event_timer()
 
 struct event_timer* register_event_timer(struct timespec duration)
 {
-    struct timespec when = current_counted_time;
-
     struct event_timer* timer = new_event_timer();
-    timer->when = current_counted_time;
-    timespec_add(&when, &duration);
+    timer->when = duration;
 
     acquire_spinlock(&timers_lock);
     list_add(timers_list, timer);

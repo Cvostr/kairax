@@ -14,6 +14,7 @@
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
+int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
 void scheduler_yield(int save_context)
@@ -33,10 +34,10 @@ void scheduler_yield(int save_context)
 
 // frame может быть NULL
 // Если это так, то мы сюда попали из убитого потока
-void scheduler_handler(thread_frame_t* frame)
+int scheduler_handler(thread_frame_t* frame)
 {
     if (!scheduler_enabled) {
-        return;
+        return 0;
     }
 
     struct thread* previous_thread = cpu_get_current_thread();
@@ -59,10 +60,6 @@ void scheduler_handler(thread_frame_t* frame)
 
     // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
-    if (new_thread == NULL) {
-        return;
-    }
-
     new_thread->state = STATE_RUNNING;
 
     // Получить данные процесса, с которым связан поток

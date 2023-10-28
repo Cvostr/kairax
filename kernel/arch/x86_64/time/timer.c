@@ -5,7 +5,7 @@
 #include "interrupts/pic.h"
 #include "proc/timer.h"
 
-extern void scheduler_handler(thread_frame_t* frame);
+extern int scheduler_handler(thread_frame_t* frame);
 
 void timer_int_handler(thread_frame_t* context) 
 {

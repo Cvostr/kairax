@@ -1,6 +1,7 @@
 #include "time.h"
 #include "stddef.h"
 #include "syscalls.h"
+#include "errno.h"
 
 #define SPD (24ULL * 60 * 60)
 
@@ -44,6 +45,12 @@ time_t time(time_t *t)
     }
 
     return tv.tv_sec;
+}
+
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    int rc = syscall_sleep(req->tv_sec, req->tv_nsec);
+    __set_errno(rc);
 }
 
 struct tm* gmtime(const time_t* time)

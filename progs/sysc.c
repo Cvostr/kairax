@@ -38,13 +38,9 @@ int main(int argc, char** argv) {
 
     printf("PID : %i", getpid());
 
-    int iterations = 0;
+    for(int iterations = 0; iterations < 5; iterations ++) {
 
-    sleep(5);
-
-    for(iterations = 0; iterations < 5; iterations ++) {
-
-        sleep(3);
+        sleep(5);
 
         sym++;
 

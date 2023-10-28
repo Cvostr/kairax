@@ -39,6 +39,7 @@ void timespec_sub(struct timespec* t1, struct timespec* t2)
 {
     if (t2->tv_nsec > t1->tv_nsec) {
         // Наносекунды вычитаемого больше чем у уменьшаемого
+
         if (t1->tv_sec == 0) {
             // Количество секунд уменьшаемого = 0
             // Зануляем результат
@@ -48,7 +49,7 @@ void timespec_sub(struct timespec* t1, struct timespec* t2)
         }
 
         long int diff = t2->tv_nsec - t1->tv_nsec;
-        t2->tv_nsec = 999999999U - diff;
+        t1->tv_nsec = 999999999U - diff;
         t1->tv_sec --;
     } else {
         // Вычитаем наносекунды
@@ -56,6 +57,12 @@ void timespec_sub(struct timespec* t1, struct timespec* t2)
     }
 
     // Вычитаем секунды
+    if (t2->tv_sec > t1->tv_sec) {
+        t1->tv_sec = 0;
+        t1->tv_nsec = 0;
+        return;
+    }
+
     t1->tv_sec -= t2->tv_sec;
 }
 
