@@ -11,8 +11,10 @@ struct event_timer {
     int alarmed;
 };
 
+void timer_init();
 void timer_handle(); // Главная функция-обработчик прерывания таймера
 struct event_timer* new_event_timer();
 struct event_timer* register_event_timer(struct timespec duration);
+void unregister_event_timer(struct event_timer* timer);
 
 #endif

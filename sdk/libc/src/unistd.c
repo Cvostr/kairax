@@ -12,6 +12,12 @@ pid_t gettid()
     return syscall_thread_get_id();
 }
 
+unsigned int sleep(unsigned int seconds)
+{
+    int rc = syscall_sleep(seconds, 0);
+    return 0;
+}
+
 char* getcwd(char* buf, size_t size)
 {
     int rc = syscall_get_working_dir(buf, size);

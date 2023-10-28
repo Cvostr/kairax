@@ -154,6 +154,9 @@ void bootshell_process_cmd(char* cmdline)
 
         sys_close_file(fd); 
     }
+    if(strcmp(cmd, "sleep") == 0) {
+        sys_thread_sleep(3, 0);
+    }
     if (strcmp(cmd, "stress") == 0) {
 
         if (console_fd == -1) {

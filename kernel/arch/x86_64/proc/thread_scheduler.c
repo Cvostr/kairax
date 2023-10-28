@@ -59,6 +59,10 @@ void scheduler_handler(thread_frame_t* frame)
 
     // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
+    if (new_thread == NULL) {
+        return;
+    }
+
     new_thread->state = STATE_RUNNING;
 
     // Получить данные процесса, с которым связан поток

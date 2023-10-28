@@ -26,11 +26,42 @@ void timespec_add(struct timespec* t1, struct timespec* t2)
 {
     int64_t sum = t1->tv_nsec + t2->tv_nsec;
     if (sum > NSEC_MAX_VALUE) {
-        sum -= NSESC_IN_SEC;
+        t1->tv_nsec = sum - NSESC_IN_SEC;
         t1->tv_sec++;
+    } else {
+        t1->tv_nsec = sum;
     }
 
     t1->tv_sec += t2->tv_sec;
+}
+
+void timespec_sub(struct timespec* t1, struct timespec* t2)
+{
+    if (t2->tv_nsec > t1->tv_nsec) {
+        // Наносекунды вычитаемого больше чем у уменьшаемого
+        if (t1->tv_sec == 0) {
+            // Количество секунд уменьшаемого = 0
+            // Зануляем результат
+            t1->tv_sec = 0;
+            t1->tv_nsec = 0;
+            return;            
+        }
+
+        long int diff = t2->tv_nsec - t1->tv_nsec;
+        t2->tv_nsec = 999999999U - diff;
+        t1->tv_sec --;
+    } else {
+        // Вычитаем наносекунды
+        t1->tv_nsec -= t2->tv_nsec;
+    }
+
+    // Вычитаем секунды
+    t1->tv_sec -= t2->tv_sec;
+}
+
+int timespec_is_zero(struct timespec* t1)
+{
+    return (t1->tv_sec == 0 && t1->tv_nsec == 0);
 }
 
 time_t tm_to_epoch(struct tm *tm)

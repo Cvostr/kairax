@@ -41,5 +41,7 @@ int isleap(int year);
 time_t tm_to_epoch(struct tm *tm);
 
 void timespec_add(struct timespec* t1, struct timespec* t2);
+void timespec_sub(struct timespec* t1, struct timespec* t2);
+int timespec_is_zero(struct timespec* t1);
 
 #endif

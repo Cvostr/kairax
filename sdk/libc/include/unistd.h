@@ -28,6 +28,8 @@ ssize_t write(int fd, const char* buffer, size_t size);
 
 int close(int fd);
 
+unsigned int sleep(unsigned int seconds);
+
 off_t lseek(int fd, off_t offset, int whence);
 
 char* getcwd(char* buf, size_t size);

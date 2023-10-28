@@ -12,8 +12,3 @@ pid_t create_thread_ex(void* entry, void* arg, size_t stack_size)
 {
     __set_errno(syscall_create_thread(entry, arg, stack_size));
 }
-
-void sleep(int time)
-{
-    syscall_sleep(time);
-}

@@ -40,13 +40,15 @@ int main(int argc, char** argv) {
 
     int iterations = 0;
 
+    sleep(5);
+
     for(iterations = 0; iterations < 5; iterations ++) {
 
-        sleep(20);
+        sleep(3);
 
         sym++;
 
-        printf("Hello from program: %c", sym);
+        printf("From prog: %c", sym);
     }
 
     return 0;

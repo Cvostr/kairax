@@ -11,7 +11,7 @@ void thread_func(int * arg) {
     printf("ARG : %i\n", *arg);
 
     while(1) {
-		sleep(10);
+		sleep(4);
 
         printf("TID %i \t", gettid());
     }
@@ -60,7 +60,7 @@ int main() {
     int iterations = 0;
 
     while(1) {
-		sleep(10);
+		sleep(2);
 
         printf(" %i", counter++);
     }

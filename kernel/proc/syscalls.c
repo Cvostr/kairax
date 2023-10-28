@@ -335,16 +335,30 @@ pid_t sys_get_thread_id()
     return current_thread->id;
 }
 
-int sys_thread_sleep(uint64_t time)
+int sys_thread_sleep(time_t sec, long int nsec)
 {
-    struct thread* thread = cpu_get_current_thread();
+    int rc = 0;
 
-    for (uint64_t i = 0; i < time * 10; i ++) {
-        scheduler_yield(TRUE);
+    if (sec == 0 && nsec == 0) {
+        goto exit;
     }
-    /*struct timespec duration = {};
+
+    if (sec < 0 || nsec < 0) {
+        rc = -ERROR_INVALID_VALUE;
+        goto exit;
+    }
+
+    struct thread* thread = cpu_get_current_thread();
+    struct timespec duration = {.tv_sec = sec, .tv_nsec = nsec};
     struct event_timer* timer = register_event_timer(duration);
-    scheduler_sleep(timer, NULL);*/
+    
+    scheduler_sleep(timer, NULL);
+
+    unregister_event_timer(timer);
+    kfree(timer);
+
+exit:
+    return rc;
 }
 
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)

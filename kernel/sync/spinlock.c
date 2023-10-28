@@ -8,6 +8,11 @@ void acquire_spinlock(spinlock_t* spinlock){
 	}
 }
 
+int try_acquire_spinlock(spinlock_t* spinlock)
+{
+	return __sync_bool_compare_and_swap(spinlock, 0, 1);
+}
+
 void acquire_mutex(spinlock_t* spinlock)
 {
 	while(!__sync_bool_compare_and_swap(spinlock, 0, 1))

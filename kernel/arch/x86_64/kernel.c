@@ -34,7 +34,7 @@
 #include "cpu/smp.h"
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
-#include "time/timer.h"
+#include "proc/timer.h"
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);

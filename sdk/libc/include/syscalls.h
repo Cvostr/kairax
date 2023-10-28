@@ -9,7 +9,7 @@ extern int syscall_ioctl(int fd, unsigned long long request, unsigned long long 
 extern int syscall_readdir(int fd, void* buffer);
 extern long syscall_process_get_id();
 extern long syscall_thread_get_id();
-extern void syscall_sleep(unsigned long long times);
+extern int syscall_sleep(long long sec, long long nsec);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
 extern int syscall_set_working_dir(const char* path);
 extern int syscall_fdstat(int dirfd, const char* filepath, void* stat_buffer, int flags);
