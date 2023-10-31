@@ -12,3 +12,8 @@ pid_t create_thread_ex(void* entry, void* arg, size_t stack_size)
 {
     __set_errno(syscall_create_thread(entry, arg, stack_size));
 }
+
+void thread_exit(int code)
+{
+    syscall_thread_exit(code);
+}

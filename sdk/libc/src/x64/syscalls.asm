@@ -28,6 +28,7 @@ global syscall_process_map_memory
 global syscall_process_unmap_memory
 global syscall_wait
 global syscall_get_time_epoch
+global syscall_thread_exit
 
 syscall_read:
     mov rax, 0x0
@@ -150,6 +151,12 @@ syscall_process_exit:
 
 syscall_create_thread:
     mov rax, 0x2FF
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_thread_exit:
+    mov rax, 0x301
     mov r10, rcx
     syscall
     ret

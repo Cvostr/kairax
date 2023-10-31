@@ -3,6 +3,18 @@
 #include "stdlib.h"
 #include "string.h"
 #include "unistd.h"
+#include "sys/wait.h"
+
+void thr1() {
+    for (int i = 0; i < 3; i ++) {
+        printf(" THR ");
+        sleep(1);
+    }
+
+    printf(" END ");
+    thread_exit(125);
+    printf(" END ");
+}
 
 int main(int argc, char** argv) {
 
@@ -37,10 +49,15 @@ int main(int argc, char** argv) {
     char sym = 'A';
 
     printf("PID : %i", getpid());
+    pid_t tpi = create_thread(thr1, NULL);
+
+    int status = 0;
+    waitpid(tpi, &status, 0);
+    printf("THREAD FINISHED WITH CODE %i\n", status);
 
     for(int iterations = 0; iterations < 5; iterations ++) {
 
-        sleep(5);
+        sleep(3);
 
         sym++;
 

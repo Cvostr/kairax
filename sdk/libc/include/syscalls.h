@@ -26,5 +26,6 @@ extern long int syscall_wait(int mode, long int pid, int* status, int options);
 extern int syscall_get_time_epoch(void *tv);
 
 extern long int syscall_create_thread(void* entry, void* arg, unsigned long long stack_size);
+extern void syscall_thread_exit(int code);
 
 #endif

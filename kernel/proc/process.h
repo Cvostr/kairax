@@ -28,10 +28,10 @@ struct process {
     pid_t               pid;
     // Состояние
     int                 state;
-    // Название
-    char                name[30];
     // Код выхода
     int                 code;
+    // Название
+    char                name[30];
     // Процесс - родитель
     struct process*     parent;
     // Адрес, после которого загружен код программы и линковщика

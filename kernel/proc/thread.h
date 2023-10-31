@@ -12,10 +12,10 @@ struct thread {
     pid_t               id;
     // Состояние
     int                 state;
-    // Имя потока
-    char                name[30];
     // Код выхода
     int                 code;
+    // Имя потока
+    char                name[30];
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     // Адрес вершины стека ядра

@@ -35,8 +35,8 @@ struct stat {
     gid_t      st_gid;      /* Group ID of owner */
     //dev_t      st_rdev;     /* Device ID (if special file) */
     off_t      st_size;     /* Total size, in bytes */
-    //blksize_t  st_blksize;  /* Block size for filesystem I/O */
-    //blkcnt_t   st_blocks;   /* Number of 512 B blocks allocated */
+    blksize_t  st_blksize;  /* Block size for filesystem I/O */
+    blkcnt_t   st_blocks;   /* Number of 512 B blocks allocated */
 
     struct timespec  st_atim;  
     struct timespec  st_mtim;

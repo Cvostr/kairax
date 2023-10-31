@@ -186,9 +186,18 @@ void sys_exit_process(int code)
 
 void sys_exit_thread(int code)
 {
+    // Данная операция должна выполниться атомарно
+    disable_interrupts();
+    // Получить объект потока
     struct thread* thr = cpu_get_current_thread();
     thr->code = code;
-    // TODO : implement
+    thr->state = STATE_ZOMBIE;
+    // Разбудить потоки, ждущие pid
+    scheduler_wakeup(thr);
+    // Убрать поток из списка планировщика
+    scheduler_remove_thread(thr);
+    // Выйти
+    scheduler_yield(FALSE);
 }
 
 pid_t sys_wait(int mode, pid_t id, int* status, int options)
