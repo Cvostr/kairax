@@ -23,4 +23,6 @@ void scheduler_sleep(void* handle, spinlock_t* lock);
 
 void scheduler_wakeup(void* handle);
 
+void scheduler_unblock(struct thread* thread);
+
 #endif

@@ -28,6 +28,8 @@ struct thread {
     void*               context;
     int                 is_userspace;
     void*               wait_handle;
+    // Следующий поток при блокировке на семафоре
+    struct thread*      next_blocked_thread;
 };
 
 struct main_thread_create_info {

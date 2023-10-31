@@ -114,7 +114,7 @@ struct dirent* devfs_readdir(struct file* dir, uint32_t index)
     if (index >= devfs_devices->size)
         return NULL;
 
-    acquire_mutex(&devfs_lock);
+    acquire_spinlock(&devfs_lock);
 
     struct devfs_device* device = (struct devfs_device*)(list_get(devfs_devices, index));
 
@@ -135,7 +135,7 @@ struct inode* devfs_read_node(struct superblock* sb, uint64_t ino_num)
     if (ino_num == DEVFS_ROOT_INODE)
         return devfs_root_inode;
 
-    acquire_mutex(&devfs_lock);
+    acquire_spinlock(&devfs_lock);
 
     struct list_node* current = devfs_devices->head;
     struct devfs_device* device = (struct devfs_device*)current->element;
@@ -163,7 +163,7 @@ uint64 devfs_find_dentry(struct superblock* sb, uint64_t parent_inode_index, con
     }
 
     uint64_t inode = 0;
-    acquire_mutex(&devfs_lock);
+    acquire_spinlock(&devfs_lock);
 
     struct list_node* current = devfs_devices->head;
     struct devfs_device* device = (struct devfs_device*)current->element;

@@ -7,8 +7,6 @@ void acquire_spinlock(spinlock_t* spinlock);
 
 int try_acquire_spinlock(spinlock_t* spinlock);
 
-void acquire_mutex(spinlock_t* spinlock);
-
 void release_spinlock(spinlock_t* spinlock);
 
 #endif

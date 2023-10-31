@@ -84,7 +84,9 @@ gcc $GCC_ARGS proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS proc/process_list.c -o ./bin/process_list.o
 gcc $GCC_ARGS proc/thread.c -o ./bin/thread.o
 gcc $GCC_ARGS proc/thread_scheduler.c -o ./bin/thread_scheduler.o
-gcc $GCC_ARGS proc/syscalls.c -o ./bin/syscalls.o
+gcc $GCC_ARGS proc/syscalls/syscalls.c -o ./bin/syscalls.o
+gcc $GCC_ARGS proc/syscalls/syscalls_memory.c -o ./bin/syscalls_memory.o
+gcc $GCC_ARGS proc/syscalls/syscalls_files.c -o ./bin/syscalls_files.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 
@@ -92,6 +94,7 @@ gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o
 
 #generic sync
+gcc $GCC_ARGS sync/semaphore.c -o ./bin/semaphore.o
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 
 #generic memory

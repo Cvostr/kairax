@@ -80,7 +80,7 @@ kheap_item_t* get_suitable_item(uint64_t size)
 
 void* kmalloc(uint64_t size) 
 {
-    acquire_mutex(&kheap_lock);
+    acquire_spinlock(&kheap_lock);
 
     size = align(size, 8);
 
@@ -154,7 +154,7 @@ void combine_forward(kheap_item_t* item)
 
 void kfree(void* mem)
 {
-    acquire_mutex(&kheap_lock);
+    acquire_spinlock(&kheap_lock);
     kheap_item_t* item = (kheap_item_t*)mem - 1;
 
     if(item->free == 0) {

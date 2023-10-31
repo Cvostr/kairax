@@ -36,6 +36,9 @@ typedef unsigned int 		mode_t;
 typedef unsigned long int 	nlink_t;
 typedef unsigned long 		dev_t;
 
+typedef unsigned long int 	blkcnt_t;
+typedef unsigned long int 	blksize_t;  
+
 typedef long int time_t;
 
 typedef signed long 		suseconds_t;

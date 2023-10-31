@@ -20,7 +20,7 @@ struct thread* scheduler_get_thread_by_tid(pid_t tid)
 
 void scheduler_add_thread(struct thread* thread)
 {
-    acquire_mutex(&threads_lock);
+    acquire_spinlock(&threads_lock);
 
     for (pid_t tid = 0; tid < MAX_THREADS; tid ++) {
         if (sched_threads[tid] == NULL) {
@@ -39,7 +39,7 @@ void scheduler_add_thread(struct thread* thread)
 
 void scheduler_remove_thread(struct thread* thread)
 {
-    acquire_mutex(&threads_lock);
+    acquire_spinlock(&threads_lock);
     
     if (sched_threads[thread->id] == thread) {
         sched_threads[thread->id] = NULL;
@@ -78,7 +78,7 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
 
 void scheduler_wakeup(void* handle)
 {
-    acquire_mutex(&threads_lock);
+    acquire_spinlock(&threads_lock);
 
     for (pid_t tid = 0; tid <= max_tid; tid ++) {
 
@@ -86,13 +86,18 @@ void scheduler_wakeup(void* handle)
 
         if (thread != NULL) {
             if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle) {
-                thread->state = STATE_RUNNABLE;
-                thread->wait_handle = NULL;
+                scheduler_unblock(thread);
             }
         }
     }
 
     release_spinlock(&threads_lock);
+}
+
+void scheduler_unblock(struct thread* thread)
+{
+    thread->state = STATE_RUNNABLE;
+    thread->wait_handle = NULL;
 }
 
 struct thread* scheduler_get_next_runnable_thread()
