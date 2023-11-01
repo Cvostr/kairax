@@ -16,6 +16,7 @@ struct process*  create_new_process(struct process* parent)
     struct process* process = (struct process*)kmalloc(sizeof(struct process));
     memset(process, 0, sizeof(struct process));
 
+    process->type = OBJECT_TYPE_PROCESS;
     process->name[0] = '\0';
     // Склонировать таблицу виртуальной памяти ядра
     process->vmemory_table = clone_kernel_vm_table();
@@ -40,16 +41,17 @@ struct process*  create_new_process(struct process* parent)
 
 void free_process(struct process* process)
 {
-    // Если процесс не зомби - сделать его зомби
+    // Данную функцию можно вызывать только для процессов - зомби
     if (process->state != STATE_ZOMBIE)
-        process_become_zombie(process);
+        return;
 
     // Удалить информацию о потоках и освободить страницу с стеком ядра
     for (size_t i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
-        // освободить страницу с стеком ядра
-        pmm_free_page(V2P(thread->kernel_stack_ptr));
-        kfree(thread);
+        //printf("THR REM %i\n", thread->id);
+        process_remove_from_list(thread);
+        // Уничтожить объект потока
+        thread_destroy(thread);
     }
 
     // Освободить память под список потоков
@@ -246,11 +248,36 @@ exit:
     return result;
 }
 
+struct thread* process_get_thread_by_id(struct process* process, pid_t id)
+{
+    struct thread* result = NULL;
+    acquire_spinlock(&process->threads_lock);
+    
+    for (size_t i = 0; i < list_size(process->threads); i ++) {
+        struct thread* child = list_get(process->threads, i);
+        if (child->id == id) {
+            result = child;
+            goto exit;
+        }
+    }
+
+exit:
+    release_spinlock(&process->threads_lock);
+    return result;
+}
+
 void  process_remove_child(struct process* process, struct process* child)
 {
     acquire_spinlock(&process->children_lock);
     list_remove(process->children, child);
     release_spinlock(&process->children_lock);
+}
+
+void  process_remove_thread(struct process* process, struct thread* thread)
+{
+    acquire_spinlock(&process->threads_lock);
+    list_remove(process->threads, thread);
+    release_spinlock(&process->threads_lock);
 }
 
 struct file* process_get_file(struct process* process, int fd)

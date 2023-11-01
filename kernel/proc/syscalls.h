@@ -58,7 +58,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
 int sys_poweroff(int cmd);
 
-pid_t sys_wait(int mode, pid_t id, int* status, int options);
+pid_t sys_wait(pid_t id, int* status, int options);
 
 int sys_get_time_epoch(struct timeval *tv);
 

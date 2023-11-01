@@ -4,6 +4,7 @@
 #include "string.h"
 #include "unistd.h"
 #include "sys/wait.h"
+#include "errno.h"
 
 void thr1() {
     for (int i = 0; i < 3; i ++) {
@@ -50,10 +51,11 @@ int main(int argc, char** argv) {
 
     printf("PID : %i", getpid());
     pid_t tpi = create_thread(thr1, NULL);
+    printf("CREATED THREAD %i, errno = %i\n", tpi, errno);
 
     int status = 0;
-    waitpid(tpi, &status, 0);
-    printf("THREAD FINISHED WITH CODE %i\n", status);
+    int rc = waitpid(tpi, &status, 0);
+    printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
 
     for(int iterations = 0; iterations < 5; iterations ++) {
 

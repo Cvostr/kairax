@@ -146,6 +146,8 @@ pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
     struct thread* thread = create_thread(process, entry_ptr, arg, stack_size, NULL);
+    // Добавить в список и назначить pid
+    process_add_to_list(thread);
 
     if (thread == NULL) {
         return -1;
@@ -191,65 +193,13 @@ void sys_exit_thread(int code)
     // Получить объект потока
     struct thread* thr = cpu_get_current_thread();
     thr->code = code;
-    thr->state = STATE_ZOMBIE;
+    thread_become_zombie(thr);
     // Разбудить потоки, ждущие pid
     scheduler_wakeup(thr);
     // Убрать поток из списка планировщика
     scheduler_remove_thread(thr);
     // Выйти
     scheduler_yield(FALSE);
-}
-
-pid_t sys_wait(int mode, pid_t id, int* status, int options)
-{
-    pid_t       result = -1;
-    struct process* process = cpu_get_current_thread()->process;
-
-    acquire_spinlock(&process->wait_lock);
-    if (mode == 0) {
-
-        struct process* child = NULL;
-        
-        if (id > 0) {
-
-            // pid указан, ищем процесс
-            for (;;) {
-
-                child = process_get_child_by_id(process, id);
-
-                if (!child) 
-                    goto exit;
-
-                if (child->state == STATE_ZOMBIE)
-                    break;
-
-                scheduler_sleep(child, &process->wait_lock);
-            }
-        } else if (id == -1) {
-            // Завершить любой дочерний процесс, который зомби
-            // TODO
-            
-        } else {
-            goto exit;
-        }
-
-        // Процесс завершен
-        // Сохранить код вовзрата
-        int code = child->code;
-        // Удалить процесс из списка
-        process_remove_from_list(child);
-        // Удалить процесс из списка потомков
-        process_remove_child(process, child);
-        // Уничтожить объект процесса
-        free_process(child);
-        
-        *status = code;
-        result = id;
-    }
-
-exit:
-    release_spinlock(&process->wait_lock);
-    return result;
 }
 
 int sys_get_time_epoch(struct timeval *tv)
@@ -424,6 +374,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     struct thread* thr = create_thread(new_process, loader_start_ip, 0, 0, &main_thr_info);
 	// Добавление потока в планировщик
     scheduler_add_thread(thr);
+    process_add_to_list(thr);
 
     // Освободить память под aux
     kfree(aux_v);

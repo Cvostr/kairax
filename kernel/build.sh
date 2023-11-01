@@ -87,6 +87,7 @@ gcc $GCC_ARGS proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS proc/syscalls/syscalls.c -o ./bin/syscalls.o
 gcc $GCC_ARGS proc/syscalls/syscalls_memory.c -o ./bin/syscalls_memory.o
 gcc $GCC_ARGS proc/syscalls/syscalls_files.c -o ./bin/syscalls_files.o
+gcc $GCC_ARGS proc/syscalls/syscall_wait.c -o ./bin/syscall_wait.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 

@@ -182,7 +182,7 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _depth = depth;
 
 
-    int size = width * height * depth;
+    int size = (width * height * depth / 8);
     double_buffer = pmm_alloc_pages(size / PAGE_SIZE + 1);
     double_buffer = P2V(double_buffer);
     memset(double_buffer, 0, size);

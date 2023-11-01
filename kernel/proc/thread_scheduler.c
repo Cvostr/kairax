@@ -13,11 +13,6 @@ void init_scheduler()
    
 }
 
-struct thread* scheduler_get_thread_by_tid(pid_t tid)
-{
-    return sched_threads[tid];
-}
-
 void scheduler_add_thread(struct thread* thread)
 {
     acquire_spinlock(&threads_lock);
@@ -25,7 +20,6 @@ void scheduler_add_thread(struct thread* thread)
     for (pid_t tid = 0; tid < MAX_THREADS; tid ++) {
         if (sched_threads[tid] == NULL) {
             sched_threads[tid] = thread;
-            thread->id = tid;
             if (max_tid < tid) {
                 max_tid = tid;
             }
@@ -41,8 +35,10 @@ void scheduler_remove_thread(struct thread* thread)
 {
     acquire_spinlock(&threads_lock);
     
-    if (sched_threads[thread->id] == thread) {
-        sched_threads[thread->id] = NULL;
+    for (uint64 i = 0; i < MAX_THREADS; i ++) {
+        if (sched_threads[i] == thread) {
+            sched_threads[i] = NULL;
+        }
     }
 
     release_spinlock(&threads_lock);

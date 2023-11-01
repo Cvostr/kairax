@@ -8,6 +8,8 @@
 #define STACK_SIZE 4096
 
 struct thread {
+    // Тип объекта
+    int                 type;
     // ID потока
     pid_t               id;
     // Состояние
@@ -15,7 +17,7 @@ struct thread {
     // Код выхода
     int                 code;
     // Имя потока
-    char                name[30];
+    //char                name[30];
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     // Адрес вершины стека ядра
@@ -42,7 +44,9 @@ struct main_thread_create_info {
 struct thread* new_thread(struct process* process);
 
 struct thread* create_kthread(struct process* process, void (*function)(void));
-
 struct thread* create_thread(struct process* process, void* entry, void* arg1, size_t stack_size, struct main_thread_create_info* info);
+
+void thread_become_zombie(struct thread* thread);
+void thread_destroy(struct thread* thread);
 
 #endif

@@ -73,7 +73,7 @@ int scheduler_handler(thread_frame_t* frame)
         cpu_set_kernel_stack(new_thread->kernel_stack_ptr + PAGE_SIZE);
         tss_set_rsp0((uintptr_t)new_thread->kernel_stack_ptr + PAGE_SIZE);
         set_user_stack_ptr(new_thread->stack_ptr);
-
+    
         if (new_thread->tls != NULL) {
             // TLS, обязательно конец памяти
             cpu_set_fs_base(new_thread->tls + process->tls_size);

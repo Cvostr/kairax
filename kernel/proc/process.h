@@ -23,7 +23,12 @@ struct mmap_range {
 #define STATE_UNINTERRUPTIBLE_SLEEP    3    // В ожидании ресурса внутри системного вызова
 #define STATE_ZOMBIE                   4    // Завершен, но не обработан родителем
 
+#define OBJECT_TYPE_PROCESS   1
+#define OBJECT_TYPE_THREAD    2
+
 struct process {
+    // Тип объекта
+    int                 type;
     // ID процесса
     pid_t               pid;
     // Состояние
@@ -43,6 +48,7 @@ struct process {
     struct vm_table*    vmemory_table;  
     // Связный список потоков
     list_t*             threads;  
+    spinlock_t          threads_lock;
     // Связный список потомков
     list_t*             children;
     spinlock_t          children_lock;
@@ -78,7 +84,11 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
 
 struct process* process_get_child_by_id(struct process* process, pid_t id);
 
+struct thread* process_get_thread_by_id(struct process* process, pid_t id);
+
 void  process_remove_child(struct process* process, struct process* child);
+
+void  process_remove_thread(struct process* process, struct thread* thread);
 
 void process_become_zombie(struct process* process);
 
@@ -117,6 +127,7 @@ void process_add_mmap_region(struct process* process, struct mmap_range* region)
 // Получить объект региона памяти по адресу
 struct mmap_range* process_get_region_by_addr(struct process* process, uint64_t addr);
 
+// Получить адрес начала свободного региона памяти адресного пространства процесса
 void* process_get_free_addr(struct process* process, size_t length, uintptr_t hint);
 
 // Обработать исключение Page Fault

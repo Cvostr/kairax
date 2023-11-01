@@ -204,7 +204,7 @@ void bootshell_process_cmd(char* cmdline)
         }
 
         int status = 0;
-        sys_wait(0, rc, &status, 0);
+        sys_wait(rc, &status, 0);
     }
     if (strcmp(cmd, "exec") == 0) {
 

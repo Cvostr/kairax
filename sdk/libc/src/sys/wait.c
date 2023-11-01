@@ -9,5 +9,5 @@ pid_t wait(int *status)
 
 pid_t waitpid(pid_t pid, int *status, int options)
 {
-    __set_errno(syscall_wait(0, pid, status, options));
+    __set_errno(syscall_wait(pid, status, options));
 }
