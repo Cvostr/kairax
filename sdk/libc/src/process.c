@@ -17,3 +17,8 @@ void thread_exit(int code)
 {
     syscall_thread_exit(code);
 }
+
+pid_t create_process(int dirfd, const char* filepath, struct process_create_info* info)
+{
+    __set_errno(syscall_create_process(dirfd, filepath, info));
+}

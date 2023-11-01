@@ -7,3 +7,4 @@ sudo cp ./cat/cat.a /mnt/kxvol
 sudo cp ./echo/echo.a /mnt/kxvol
 sudo cp ./mkdir/mkdir.a /mnt/kxvol
 sudo cp ./date/date.a /mnt/kxvol
+sudo cp ./pwd/pwd.a /mnt/kxvol

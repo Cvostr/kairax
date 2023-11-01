@@ -38,6 +38,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/time.o \
 				obj/ctype.o \
 				obj/dirent.o \
+				obj/spawn.o \
 				obj/x64/syscalls.o
 
 all: $(OBJ_DIRS) libc errno

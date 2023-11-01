@@ -5,6 +5,7 @@
 #include "unistd.h"
 #include "sys/wait.h"
 #include "errno.h"
+#include "spawn.h"
 
 void thr1() {
     for (int i = 0; i < 3; i ++) {
@@ -47,22 +48,31 @@ int main(int argc, char** argv) {
     sscanf("   0xFFF, 0xDE - test 77", "   0x%x, 0x%x - test %o", &nv, &xv, &oct);
     printf("1: %i 2: %x 3: %o 4: %f 5: %G\n", nv, xv, oct, 123.123456, 232.90921);
 
-    char sym = 'A';
+    printf("PID : %i\n", getpid());
 
-    printf("PID : %i", getpid());
+    int status = 0;
+
+    char* args[3];
+    args[0] = "ls.a";
+    args[1] = "-a";
+    args[2] = NULL;
+    pid_t pid = 0;
+    posix_spawn(&pid, "/bin/ls.a", args);
+    printf("CREATED PROCESS %i, errno = %i\n", pid, errno);
+    pid_t rc = waitpid(pid, &status, 0);
+    printf("PROCESS FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
+
     pid_t tpi = create_thread(thr1, NULL);
     printf("CREATED THREAD %i, errno = %i\n", tpi, errno);
 
-    int status = 0;
-    int rc = waitpid(tpi, &status, 0);
+    rc = waitpid(tpi, &status, 0);
     printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
 
+    char sym = 'A';
     for(int iterations = 0; iterations < 5; iterations ++) {
 
         sleep(3);
-
         sym++;
-
         printf("From prog: %c", sym);
     }
 
