@@ -172,7 +172,12 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
     // Добавить страницы в таблицу
     for (uintptr_t address = start_aligned; address < end_addr; address += PAGE_SIZE) {
-        int rc = vm_table_map(process->vmemory_table, address, (uint64_t) pmm_alloc_page(), flags);
+        // Выделение страницы физической памяти
+        void* page_addr = pmm_alloc_page();
+        // Предварительное зануление
+        memset(P2V(page_addr), 0, PAGE_SIZE);
+        // Добавление страницы в адресное пространство процесса
+        int rc = vm_table_map(process->vmemory_table, address, (uint64_t) page_addr, flags);
 
         if (address + PAGE_SIZE > process->brk)
             process->brk = address + PAGE_SIZE;

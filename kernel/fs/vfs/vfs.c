@@ -159,6 +159,7 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
     }
 
     if (path[0] == '\0') {
+        // Пустая строка пути - возвращаем родителя
         return parent;
     }
 
@@ -177,15 +178,21 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
 void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
 {
     if (p_dentry == root_dentry) {
+        // Это корневая dentry - пишем / и выходим
         if (p_required_size) {
             *p_required_size = 1;
         }
 
         if (p_result) {
-            strcat(p_result, "/");
+            strcpy(p_result, "/");
         }
 
         return;
+    }
+
+    if (p_result) {
+        // Обнуление длины строки, так как функция dentry_get_absolute_path записывает конкатенацией
+        p_result[0] = '\0';
     }
 
     dentry_get_absolute_path(p_dentry, p_required_size, p_result);
