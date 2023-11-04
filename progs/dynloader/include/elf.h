@@ -101,6 +101,10 @@ struct elf_rela {
 #define ELF64_R_SYM(i) ((i) >> 32)
 #define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
 
+#define R_X86_64_COPY       5
+#define R_X86_64_JUMP_SLOT  7
+#define R_X86_64_RELATIVE   8
+
 #define AT_NULL         0               
 #define AT_IGNORE       1
 #define AT_EXECFD       2
@@ -138,34 +142,5 @@ char* elf_get_string_at(char* image, uint32_t string_index);
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
 
 struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index);
-
-#define OBJECT_NAME_LEN_MAX 50
-#define OBJECT_DEPENDENCIES_MAX 30
-
-struct object_data {
-    
-    uint64_t            base;
-    uint64_t            size;
-
-    char                name[OBJECT_NAME_LEN_MAX];
-    
-    struct object_data* dependencies[OBJECT_DEPENDENCIES_MAX];
-    uint32_t            dependencies_count;
-
-    void                *dynamic_section;
-    uint64_t            dynamic_sec_size;
-    
-    void*               dynstr;
-    uint64_t            dynstr_size;
-
-    struct elf_symbol*  dynsym;
-    uint64_t            dynsym_size;
-
-    struct elf_rel*     rel;
-    uint64_t            rel_size;
-
-    struct elf_rela*    rela;
-    uint64_t            rela_size;
-};
 
 #endif

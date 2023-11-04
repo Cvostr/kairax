@@ -7,8 +7,10 @@ OBJ_DIR=obj
 COMPILED_OBJS = obj/entry.o \
 				obj/loader.o \
 				obj/linker.o \
+				obj/object_data.o \
 				obj/elf.o \
 				obj/string.o \
+				obj/align.o \
 				obj/stdio.o
 
 all: $(OBJ_DIR) $(COMPILED_OBJS)

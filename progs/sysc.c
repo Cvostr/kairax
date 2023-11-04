@@ -8,6 +8,8 @@
 #include "spawn.h"
 
 void thr1() {
+    printf("VALUE IS %i", stdout);
+    fprintf(stdout, "to stdout");
     for (int i = 0; i < 3; i ++) {
         printf(" THR ");
         sleep(1);

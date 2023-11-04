@@ -23,7 +23,9 @@ struct _IO_FILE {
 
 typedef struct _IO_FILE FILE;
 
-extern FILE *stdin, *stdout, *stderr;
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
 
 FILE *fopen(const char *restrict filename, const char *restrict mode);
 FILE *fdopen(int fd, const char* restrict mode);

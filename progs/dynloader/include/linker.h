@@ -1,8 +1,9 @@
 #ifndef _LINKER_H
 #define _LINKER_H
 
-void* link(void* arg, int index);
+#include "object_data.h"
+#include "stdbool.h"
 
-struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* name, struct object_data** obj);
+void* link(void* arg, int index);
 
 #endif

@@ -4,6 +4,9 @@
 #include "loader.h"
 #include "string.h"
 #include "stdio.h"
+#include "object_data.h"
+#include "align.h"
+#include "linker.h"
 
 uint64_t            args_info[2];
 uint64_t            aux_vector[20];
@@ -21,23 +24,6 @@ struct object_data* root;
 #define PAGE_SIZE                   aux_vector[AT_PAGESZ]
 
 extern void linker_entry();
-
-uint64_t align(uint64_t val, size_t alignment)
-{
-	if (val < alignment)
-		return alignment;
-
-	if (val % alignment != 0) {
-        val += (alignment - (val % alignment));
-    }
-
-	return val;
-}
-
-uint64_t align_down(uint64_t val, size_t alignment)
-{
-	return val - (val % alignment);
-}
 
 void loader() {
 
@@ -157,12 +143,14 @@ struct object_data* load_object_data(char* data, int shared) {
             for (size_t dyn_i = 0; dyn_i < sehentry->size; dyn_i += sizeof(struct elf_dynamic)) {
                 struct elf_dynamic* dynamic = (struct elf_dynamic*) ( data + sehentry->offset + dyn_i );
 
-                if (dynamic->tag == ELF_DT_PLTGOT) {
-                    // Есть секция GOT PLT
-                    struct got_plt* got = (struct got_plt*) (obj_data->base + dynamic->d_un.addr);
-                    got->arg = got;
-                    got->linker_ip = linker_entry;
-                    got->unused = obj_data;
+                switch (dynamic->tag) {
+                    case ELF_DT_PLTGOT:
+                        // Есть секция GOT PLT
+                        struct got_plt* got = (struct got_plt*) (obj_data->base + dynamic->d_un.addr);
+                        got->arg = got;
+                        got->linker_ip = linker_entry;
+                        got->unused = obj_data;
+                        break;
                 }
             }
         } else if (strcmp(section_name, ".dynsym") == 0) {
@@ -189,21 +177,34 @@ struct object_data* load_object_data(char* data, int shared) {
             obj_data->dynstr_size = sehentry->size;
 
         } else if (strcmp(section_name, ".rela.plt") == 0) {
-            obj_data->rela = (struct elf_rela*)syscall_process_map_memory(
+            obj_data->plt_rela = (struct elf_rela*)syscall_process_map_memory(
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
                 0);
                 
-            memcpy(obj_data->rela, data + sehentry->offset, sehentry->size);
+            memcpy(obj_data->plt_rela, data + sehentry->offset, sehentry->size);
 
+            obj_data->plt_rela_size = sehentry->size;
+        } else if (strcmp(section_name, ".rela.dyn") == 0) {
+            obj_data->rela = (struct elf_rela*) syscall_process_map_memory(
+                NULL,
+                sehentry->size,
+                PAGE_PROTECTION_WRITE_ENABLE,
+                0);
+
+            memcpy(obj_data->rela, data + sehentry->offset, sehentry->size);
             obj_data->rela_size = sehentry->size;
         }
     }
 
-    for (size_t i = 0; i < obj_data->rela_size / sizeof(struct elf_rela); i ++) {
-        struct elf_rela* rela = obj_data->rela + i;
+    // Первоначальная обработка перемещений PLT
+    for (size_t i = 0; i < obj_data->plt_rela_size / sizeof(struct elf_rela); i ++) {
+        // Указатель на перемещение
+        struct elf_rela* rela = obj_data->plt_rela + i;
 
+        // Тип перемещения - прыжок на PLT.
+        // Если у нас разделяемая библиотека - код GOT с адресами по умолчанию будет перенесен 
         uint64_t* value = (uint64_t*) (obj_data->base + rela->offset);
 
         // Сдвинуть relocation
@@ -213,6 +214,7 @@ struct object_data* load_object_data(char* data, int shared) {
         rela->offset += obj_data->base;
     }
 
+    // Загрузка зависимостей объекта
     for (size_t i = 0; i < obj_data->dynamic_sec_size; i += sizeof(struct elf_dynamic)) {
         struct elf_dynamic* dynamic = (struct elf_dynamic*) (obj_data->dynamic_section + i);
         
@@ -238,6 +240,43 @@ struct object_data* load_object_data(char* data, int shared) {
                 // Закрыть файл библиотеки
                 syscall_close(libfd);
             }   
+        }
+    }
+
+    // Обработка перемещений
+    for (size_t i = 0; i < obj_data->rela_size / sizeof(struct elf_rela); i ++) {
+        // Указатель на перемещение
+        struct elf_rela* rela = obj_data->rela + i;
+        int relocation_type = ELF64_R_TYPE(rela->info);
+        int relocation_sym_index = ELF64_R_SYM(rela->info);
+        uint64_t* value = (uint64_t*) (obj_data->base + rela->offset);
+        //printf("type %i, off %i, num %i\n", relocation_type, rela->offset, relocation_sym_index);
+
+        switch (relocation_type) {
+            case R_X86_64_RELATIVE:
+                // Прибавить смещение
+                *value += obj_data->base;
+                break;
+            case R_X86_64_COPY:
+                // Скопировать содержимое символа
+                struct elf_symbol* sym = (struct elf_symbol*) obj_data->dynsym + relocation_sym_index;
+                char* name = obj_data->dynstr + sym->name;
+                //printf("COPYING SYM %s\n", name);
+                // Ищем символ в текущем объекте
+                /*struct elf_symbol* symbol = look_for_symbol(obj_data, name, NULL);
+                // Ищем символ в зависимостях
+                struct object_data* dep = NULL;
+                struct elf_symbol* dep_symbol = look_for_symbol(obj_data, name, &dep);
+
+                if (dep_symbol == NULL) {
+                    printf("Can't find symbol %s\n", name);
+                    // todo : error
+                }
+
+                // Копировать
+                memcpy(obj_data->base + sym->value, dep->base + dep_symbol->value, dep_symbol->size);
+*/
+                break;
         }
     }
 

@@ -88,7 +88,7 @@ void exception_handler(interrupt_frame_t* frame)
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
     for (int i = 0; i < 20; i ++) {
         uintptr_t value = *(stack_ptr++);
-        if(value > KERNEL_TEXT_OFFSET)
+        //if(value > KERNEL_TEXT_OFFSET)
             printf("%s, ", ulltoa(value, 16));
     }
 
