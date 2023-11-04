@@ -252,6 +252,9 @@ struct object_data* load_object_data(char* data, int shared) {
         uint64_t* value = (uint64_t*) (obj_data->base + rela->offset);
         //printf("type %i, off %i, num %i\n", relocation_type, rela->offset, relocation_sym_index);
 
+        struct elf_symbol* sym = (struct elf_symbol*) obj_data->dynsym + relocation_sym_index;
+        char* name = NULL;
+
         switch (relocation_type) {
             case R_X86_64_RELATIVE:
                 // Прибавить смещение
@@ -259,11 +262,7 @@ struct object_data* load_object_data(char* data, int shared) {
                 break;
             case R_X86_64_COPY:
                 // Скопировать содержимое символа
-                struct elf_symbol* sym = (struct elf_symbol*) obj_data->dynsym + relocation_sym_index;
-                char* name = obj_data->dynstr + sym->name;
-                //printf("COPYING SYM %s\n", name);
-                // Ищем символ в текущем объекте
-                struct elf_symbol* symbol = look_for_symbol(obj_data, name, NULL, MODE_LOOK_IN_CURRENT);
+                name = obj_data->dynstr + sym->name;
                 // Ищем символ в зависимостях
                 struct object_data* dep = NULL;
                 struct elf_symbol* dep_symbol = look_for_symbol(obj_data, name, &dep, MODE_LOOK_IN_DEPS);
@@ -276,6 +275,12 @@ struct object_data* load_object_data(char* data, int shared) {
                 // Копировать
                 memcpy(obj_data->base + sym->value, dep->base + dep_symbol->value, dep_symbol->size);
 
+                break;
+            case R_X86_64_GLOB_DAT:
+                // Записать адрес на символ в GOT
+                name = obj_data->dynstr + sym->name;
+
+                *value = obj_data->base + sym->value;
                 break;
         }
     }

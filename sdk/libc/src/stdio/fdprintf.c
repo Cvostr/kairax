@@ -30,8 +30,3 @@ int vfdprintf(int fd, const char *format, va_list arg_ptr)
     return printf_generic(&ap, format, arg_ptr);
 }
 
-int vfprintf(FILE *stream, const char *format, va_list args)
-{
-    struct arg_printf ap = {(void*) (long) stream->_fileno, fdwrite};
-    return printf_generic(&ap, format, args);
-}

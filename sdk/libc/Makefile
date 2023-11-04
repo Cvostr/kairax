@@ -16,6 +16,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/printf.o \
 				obj/stdio/sprintf.o \
 				obj/stdio/fdprintf.o \
+				obj/stdio/fprintf.o \
 				obj/stdio/printf_generic.o \
 				obj/stdio/scanf.o \
 				obj/stdio/scanf_generic.o \

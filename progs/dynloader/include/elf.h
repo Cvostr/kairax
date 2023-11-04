@@ -104,6 +104,7 @@ struct elf_rela {
 #define R_X86_64_COPY       5
 #define R_X86_64_JUMP_SLOT  7
 #define R_X86_64_RELATIVE   8
+#define R_X86_64_GLOB_DAT   6
 
 #define AT_NULL         0               
 #define AT_IGNORE       1

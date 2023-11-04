@@ -8,7 +8,7 @@ int printf(const char* restrict format, ...) {
 
     va_list arg_ptr;
     va_start(arg_ptr, format);
-    int n = vfdprintf(STDOUT_FILENO, format, arg_ptr);
+    int n = vfprintf(stdout, format, arg_ptr);
     va_end(arg_ptr);
 
     return n;
