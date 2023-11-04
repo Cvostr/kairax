@@ -6,6 +6,9 @@
 #define OBJECT_NAME_LEN_MAX 50
 #define OBJECT_DEPENDENCIES_MAX 30
 
+#define MODE_LOOK_IN_CURRENT    1
+#define MODE_LOOK_IN_DEPS       0b10
+
 struct object_data {
     
     uint64_t            base;
@@ -33,6 +36,6 @@ struct object_data {
     uint64_t            plt_rela_size;
 };
 
-struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* name, struct object_data** obj);
+struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* name, struct object_data** obj, int mode);
 
 #endif

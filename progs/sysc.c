@@ -8,7 +8,6 @@
 #include "spawn.h"
 
 void thr1() {
-    printf("VALUE IS %i", stdout);
     fprintf(stdout, "to stdout");
     for (int i = 0; i < 3; i ++) {
         printf(" THR ");
@@ -17,7 +16,6 @@ void thr1() {
 
     printf(" END ");
     thread_exit(125);
-    printf(" END ");
 }
 
 int main(int argc, char** argv) {

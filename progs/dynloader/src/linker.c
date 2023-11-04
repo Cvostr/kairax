@@ -23,11 +23,11 @@ void* link(void* arg, int index) {
     
     // Зависимость и символ
     struct object_data* dep = NULL;
-    struct elf_symbol* dep_symbol = look_for_symbol(object_data, name, &dep);
+    struct elf_symbol* dep_symbol = look_for_symbol(object_data, name, &dep, MODE_LOOK_IN_DEPS | MODE_LOOK_IN_CURRENT);
 
     if (dep_symbol == NULL || dep == NULL) {
         // Не нашли, ищем в корне
-        dep_symbol = look_for_symbol(root, name, &dep);
+        dep_symbol = look_for_symbol(root, name, &dep, MODE_LOOK_IN_DEPS | MODE_LOOK_IN_CURRENT);
     }
 
     if (dep_symbol == NULL || dep == NULL) {

@@ -263,10 +263,10 @@ struct object_data* load_object_data(char* data, int shared) {
                 char* name = obj_data->dynstr + sym->name;
                 //printf("COPYING SYM %s\n", name);
                 // Ищем символ в текущем объекте
-                /*struct elf_symbol* symbol = look_for_symbol(obj_data, name, NULL);
+                struct elf_symbol* symbol = look_for_symbol(obj_data, name, NULL, MODE_LOOK_IN_CURRENT);
                 // Ищем символ в зависимостях
                 struct object_data* dep = NULL;
-                struct elf_symbol* dep_symbol = look_for_symbol(obj_data, name, &dep);
+                struct elf_symbol* dep_symbol = look_for_symbol(obj_data, name, &dep, MODE_LOOK_IN_DEPS);
 
                 if (dep_symbol == NULL) {
                     printf("Can't find symbol %s\n", name);
@@ -275,7 +275,7 @@ struct object_data* load_object_data(char* data, int shared) {
 
                 // Копировать
                 memcpy(obj_data->base + sym->value, dep->base + dep_symbol->value, dep_symbol->size);
-*/
+
                 break;
         }
     }

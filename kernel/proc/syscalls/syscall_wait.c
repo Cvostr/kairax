@@ -44,6 +44,7 @@ pid_t sys_wait(pid_t id, int* status, int options)
     } else if (id == -1) {
         // Завершить любой дочерний процесс, который зомби
         // TODO
+        goto exit;
         
     } else {
         goto exit;
