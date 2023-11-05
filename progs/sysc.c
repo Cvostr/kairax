@@ -68,6 +68,16 @@ int main(int argc, char** argv) {
     rc = waitpid(tpi, &status, 0);
     printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
 
+    FILE* tsf = fopen("bugaga.txt", "r");
+    char* buffer = malloc(20);
+    int readed = 0;
+    while ((readed = fread(buffer, 1, 20, tsf)) > 0) {
+        printf("read %i\n", readed);
+        for (int i = 0; i < readed; i ++) {
+            putchar(buffer[i]);
+        }
+    }
+
     char sym = 'A';
     for(int iterations = 0; iterations < 5; iterations ++) {
 

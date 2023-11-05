@@ -4,12 +4,8 @@
 #include "unistd.h"
 
 static int fdwrite(void* arg, const void *ptr, size_t size) {
-    char temp[130];
     int fd = (int) (long) arg;
-    temp[0] = 'w';
-    temp[1] = size;
-    memcpy(temp + 2, ptr, size);
-    write(fd, temp, size);
+    write(fd, ptr, size);
 
     return size;
 }

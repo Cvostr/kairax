@@ -1,6 +1,7 @@
 #include "unistd.h"
 #include "syscalls.h"
 #include "errno.h"
+#include "time.h"
 
 pid_t getpid()
 {
@@ -16,6 +17,14 @@ unsigned int sleep(unsigned int seconds)
 {
     int rc = syscall_sleep(seconds, 0);
     return 0;
+}
+
+int usleep(unsigned long useconds)
+{
+    struct timespec tmscp;
+    tmscp.tv_sec = useconds / 1000000;
+    tmscp.tv_nsec = (useconds % 1000000) * 1000;
+    return nanosleep(&tmscp, &tmscp);
 }
 
 char* getcwd(char* buf, size_t size)

@@ -15,13 +15,9 @@ extern "C" {
 #define SEEK_CUR    1
 #define SEEK_END    2
 
-struct _IO_FILE {
-    int     _flags;
-    int     _fileno;
-    off_t   _off;
-};
+struct IO_FILE;
 
-typedef struct _IO_FILE FILE;
+typedef struct IO_FILE FILE;
 
 extern FILE *stdin;
 extern FILE *stdout;
@@ -30,11 +26,14 @@ extern FILE *stderr;
 FILE *fopen(const char *restrict filename, const char *restrict mode);
 FILE *fdopen(int fd, const char* restrict mode);
 
-size_t fwrite(const void *restrict src, size_t size, size_t nmemb, FILE *restrict f);
-size_t fread(void *restrict destv, size_t size, size_t nmemb, FILE *restrict f);
+size_t fwrite(const void *src, size_t size, size_t count, FILE *f);
+size_t fread(void *destv, size_t size, size_t count, FILE *f);
 
 int fputc(int c, FILE *stream);
 int fputs(const char *s, FILE *stream);
+
+int putchar(int);
+int puts(const char*);
 
 int fflush(FILE *stream);
 
@@ -71,10 +70,8 @@ int vfscanf(FILE *stream, const char *format, va_list args);
 int sscanf(const char *str, const char *format, ...);
 int vsscanf(const char *str, const char *format, va_list args);
 
-// -----
+int fgetc(FILE *f);
 
-int putchar(int);
-int puts(const char*);
 
 #ifdef __cplusplus
 }

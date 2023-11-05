@@ -29,14 +29,7 @@ char* itoa(long long number, int base){
 }
 
 void write_to_console(const char* buffer, int size) {
-	temp[0] = 'w';
-	temp[1] = size;
-
-	for (int i = 0; i < size; i ++) {
-		temp[2 + i] = buffer[i];
-	}
-
-	syscall_write(STDOUT_FILENO, temp, 2 + size);
+	syscall_write(STDOUT_FILENO, buffer, size);
 }
 
 static int print(const char* data, size_t length) {

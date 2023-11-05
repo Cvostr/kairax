@@ -13,6 +13,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/stdfiles.o \
 				obj/stdio/fopen.o \
 				obj/stdio/fread.o \
+				obj/stdio/fwrite.o \
+				obj/stdio/fops.o \
 				obj/stdio/printf.o \
 				obj/stdio/sprintf.o \
 				obj/stdio/fdprintf.o \
@@ -20,6 +22,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/printf_generic.o \
 				obj/stdio/scanf.o \
 				obj/stdio/scanf_generic.o \
+				obj/stdio/put.o \
+				obj/stdio/get.o \
 				obj/stdlib/bsdmalloc.o \
 				obj/stdlib/stdlib.o \
 				obj/stdlib/abs.o \

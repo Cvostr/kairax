@@ -1,37 +1,28 @@
 #include "stdio.h"
 #include "unistd.h"
 #include "stdlib.h"
+#include "stdio_impl.h"
 
-size_t fread(void *restrict destv, size_t size, size_t nmemb, FILE *restrict f)
+size_t fread(void *buffer, size_t size, size_t count, FILE *f)
 {
-    size_t len = size * nmemb;
-    return read(f->_fileno, destv, len);
-}
+    size_t len = size * count;
+    size_t read = 0;
+    int rb = 0;
 
-size_t fwrite(const void *restrict src, size_t size, size_t nmemb, FILE *restrict f)
-{
-    size_t len = size * nmemb;
-    return write(f->_fileno, src, len);
-}
+    if ((f->_flags & FSTREAM_CANREAD) == 0) {
+        f->_flags |= FSTREAM_ERROR;
+        return 0;
+    }
 
-int fclose(FILE *stream)
-{
-    close(stream->_fileno);
-    free(stream);
-}
+    for (read = 0; read < len; read ++) {
+        rb = fgetc(f);
 
-long ftell(FILE *stream)
-{
-    return lseek(stream->_fileno, 0, SEEK_CUR);
-}
+        if (rb == EOF) {
+            return read / size;
+        } else {
+            ((unsigned char*) buffer) [read] = rb;
+        }
+    }
 
-int fseek(FILE *stream, long offset, int whence)
-{
-    return lseek(stream->_fileno, offset, whence);
-}
-
-int fflush(FILE *stream)
-{
-	// not in kernel
-	return 0;
+    return count;
 }

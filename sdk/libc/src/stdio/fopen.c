@@ -3,6 +3,7 @@
 #include "fcntl.h"
 #include "stdlib.h"
 #include "unistd.h"
+#include "stdio_impl.h"
 
 int compute_flags(const char *restrict mode) 
 {
@@ -57,10 +58,23 @@ FILE *fopen(const char *restrict filename, const char *restrict mode)
 
 FILE *fdopen(int fd, const char* restrict mode)
 {
-    FILE* fil = malloc(sizeof(FILE));
-    memset(fil, 0, sizeof(FILE));
+    int uflags = compute_flags(mode);
+    FILE* fil = malloc(sizeof(struct IO_FILE));
+    memset(fil, 0, sizeof(struct IO_FILE));
 
     fil->_fileno = fd;
+    fil->_buffer = malloc(STDIO_BUFFER_LENGTH);
+    fil->_buf_len = STDIO_BUFFER_LENGTH;
+
+    switch (uflags) {
+        case O_RDWR:
+            fil->_flags |= FSTREAM_CANWRITE;
+        case O_RDONLY:
+            fil->_flags |= FSTREAM_CANREAD;
+            break;
+        case O_WRONLY:
+            fil->_flags |= FSTREAM_CANWRITE;
+    }
 
     return fil;
 }

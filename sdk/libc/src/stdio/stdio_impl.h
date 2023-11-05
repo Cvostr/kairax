@@ -3,6 +3,26 @@
 
 #include "stddef.h"
 #include "stdarg.h"
+#include "stdint.h"
+
+#define STDIO_BUFFER_LENGTH 2048
+
+#define NOBUF 16
+#define FSTREAM_CANREAD 128
+#define FSTREAM_CANWRITE 256
+
+#define FSTREAM_ERROR 1
+#define FSTREAM_EOF 2
+
+struct IO_FILE {
+    int         _flags;
+    int         _fileno;
+    off_t       _off;
+    char*       _buffer;
+    uint32_t    _buf_pos;   // Позиция в буфере
+    uint32_t    _buf_size;  // Количество байт в буфере
+    uint32_t    _buf_len;   // Размер выделенного буфера
+};
 
 struct arg_printf {
     void *data;

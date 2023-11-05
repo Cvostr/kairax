@@ -316,14 +316,8 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 {
     acquire_spinlock(&vga_console_lock);
 
-	if (buffer[0] == B8_WR_CMD) {
-        int len = buffer[1];
-        for (int i = 0; i < len; i ++)
-		    console_print_char(buffer[2 + i]);
-	}
-	if (buffer[0] == B8_RM_CMD) {
-		console_remove_from_end(buffer[1]);
-	}
+    for (int i = 0; i < count; i ++)
+		console_print_char(buffer[i]);
 
     release_spinlock(&vga_console_lock);
 }

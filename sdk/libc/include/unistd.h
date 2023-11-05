@@ -28,6 +28,7 @@ ssize_t write(int fd, const char* buffer, size_t size);
 
 int close(int fd);
 
+int usleep(unsigned long useconds);
 unsigned int sleep(unsigned int seconds);
 
 off_t lseek(int fd, off_t offset, int whence);
