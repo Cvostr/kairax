@@ -14,12 +14,17 @@ linker_entry:
     mov rsi, [rsp + 24]
     push rcx
     push rdx
-    push rbx
+    push r8
+    push r9
+    push rax    ; rax необходимо сохранить для случаев с переменным количеством аргументов
 
     lea rax, [rel link]
     call rax
+    mov rbx, rax
 
-    pop rbx
+    pop rax
+    pop r9
+    pop r8
     pop rdx
     pop rcx
     pop rsi
@@ -27,7 +32,7 @@ linker_entry:
 
     add rsp, 16
 
-    jmp rax
+    jmp rbx
 
 _start:
     ; Этап извлечения aux вектора

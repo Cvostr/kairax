@@ -5,7 +5,7 @@ static char stdout_buffer[STDIO_BUFFER_LENGTH];
 static char stdin_buffer[STDIO_BUFFER_LENGTH];
 
 static FILE __stderr = {
-    ._flags = NOBUF | FSTREAM_CANWRITE,
+    ._flags = FSTREAM_UNBUFFERED | FSTREAM_CANWRITE,
     ._fileno = 2,
     ._buffer = NULL
 };
