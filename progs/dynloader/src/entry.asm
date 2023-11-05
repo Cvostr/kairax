@@ -20,7 +20,7 @@ linker_entry:
 
     lea rax, [rel link]
     call rax
-    mov rbx, rax
+    mov r11, rax
 
     pop rax
     pop r9
@@ -32,7 +32,7 @@ linker_entry:
 
     add rsp, 16
 
-    jmp rbx
+    jmp r11
 
 _start:
     ; Этап извлечения aux вектора
