@@ -25,5 +25,41 @@ int fputs(const char *s, FILE* stream)
 
 int fputc(int c, FILE *stream)
 {
-    return fwrite(&c, 1, 1, stream);
+    if ((stream->_flags & FSTREAM_CANWRITE) == 0) {
+        stream->_flags |= FSTREAM_ERROR;
+        return EOF;
+    }
+
+    if (stream->_buf_pos >= stream->_buf_len - 1) {
+        // Буфер полон - сбрасываем
+        if(fflush(stream) != 0) {
+            stream->_flags |= FSTREAM_ERROR;
+            return EOF;
+        }
+    }
+
+    char val = c;
+
+    if ((stream->_flags & FSTREAM_UNBUFFERED) == FSTREAM_UNBUFFERED) {
+        // Поток не буферный - просто пишем в файл
+        if (write(stream->_fileno, &val, 1) != 1) {
+            stream->_flags |= FSTREAM_ERROR;
+            return EOF;
+        }
+
+        return c;
+    }
+
+    // Запись в буфер
+    stream->_buffer[stream->_buf_pos ++] = val;
+
+    if (c == '\n') {
+        // Встретили перенос строки - сбрасвыаем кэш
+        if(fflush(stream) != 0) {
+            stream->_flags |= FSTREAM_ERROR;
+            return EOF;
+        }
+    }
+
+    return c;
 }

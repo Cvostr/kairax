@@ -5,6 +5,7 @@
 
 int fclose(FILE *stream)
 {
+    fflush(stream);
     close(stream->_fileno);
     if (stream->_buffer) {
         free(stream->_buffer);
@@ -24,19 +25,28 @@ int fseek(FILE *stream, long offset, int whence)
     return lseek(stream->_fileno, offset, whence);
 }
 
-int fflush(FILE *stream)
+int fileno(FILE *stream)
 {
-    ssize_t res;
+    return stream->_fileno;
+}
 
-	if (stream->_buf_pos > 0) {
-        res = write(stream->_fileno, stream->_buffer, stream->_buf_pos);
-        if (res == -1 || res != stream->_buf_pos) {
-            stream->_flags = FSTREAM_ERROR;
-            return EOF;
-        }
+int feof(FILE *stream)
+{
+    return (stream->_flags & FSTREAM_EOF) == FSTREAM_EOF;
+}
 
-        stream->_buf_pos = 0;
-    }
-    
-	return 0;
+int ferror(FILE *stream)
+{
+    return (stream->_flags & FSTREAM_ERROR) == FSTREAM_ERROR;
+}
+
+int remove(const char* filename) {
+    // todo : implement
+    return 0;
+}
+
+int rename(const char *oldpath, const char *newpath)
+{
+    // todo : implement
+    return 0;
 }

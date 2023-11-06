@@ -320,4 +320,5 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 		console_print_char(buffer[i]);
 
     release_spinlock(&vga_console_lock);
+    return count;
 }

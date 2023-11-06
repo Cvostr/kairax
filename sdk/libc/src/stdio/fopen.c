@@ -5,30 +5,36 @@
 #include "unistd.h"
 #include "stdio_impl.h"
 
-int compute_flags(const char *restrict mode) 
+int compute_flags(const char *mode) 
 {
     int flags = 0;
 
-    if (strchr(mode, '+')) {
-        flags = O_RDWR;
-    } else if (*mode == 'r') {
-        flags = O_RDONLY;
-    } else 
-        flags = O_WRONLY;
+    while (1) {
+        
+        switch (*mode) {
+            case 'r': 
+                flags |= O_RDONLY;
+                break;
+            case 'a':
+                flags |= (O_WRONLY | O_CREAT | O_APPEND);
+                break;
+            case 'w':
+                flags |= (O_WRONLY | O_CREAT | O_TRUNC); 
+                break;
+            case 'x':
+                flags |= O_EXCL;
+                break;
+            case '+':
+                flags |= (flags & (~O_WRONLY)) | O_RDWR;
+                break;
+            case '\0':
+                return flags;
+        }
 
-	if (strchr(mode, 'x')) {
-        flags |= O_EXCL;
+        mode++;
     }
 
-	if (strchr(mode, 'e')) {
-        flags |= O_CLOEXEC;
-    }
-
-	if (*mode != 'r') flags |= O_CREAT;
-	if (*mode == 'w') flags |= O_TRUNC;
-	if (*mode == 'a') flags |= O_APPEND;
-
-    return flags;
+    return 0;
 }
 
 FILE *fopen(const char *restrict filename, const char *restrict mode)
@@ -66,7 +72,7 @@ FILE *fdopen(int fd, const char* restrict mode)
     fil->_buffer = malloc(STDIO_BUFFER_LENGTH);
     fil->_buf_len = STDIO_BUFFER_LENGTH;
 
-    switch (uflags) {
+    switch (uflags & 3) {
         case O_RDWR:
             fil->_flags |= FSTREAM_CANWRITE;
         case O_RDONLY:

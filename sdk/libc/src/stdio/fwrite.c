@@ -35,10 +35,16 @@ size_t fwrite(const void *src, size_t size, size_t count, FILE *f)
         }
     }
 */
-    //for (i = 0; i < len; i ++) {
+    for (i = 0; i < len; i ++) {
+        unsigned char c = ((unsigned char*) src) [i];
+        if (fputc(c, f) == EOF) {
+            res = i;
+            goto exit;
+        }
 
-    //}
+        res = len;
+    }
 
-    res = write(f->_fileno, src, len);
+exit:
     return res / size;
 }

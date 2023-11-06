@@ -54,8 +54,6 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     return fd;
 }
 
-
-
 int sys_close_file(int fd)
 {
     struct process* process = cpu_get_current_thread()->process;

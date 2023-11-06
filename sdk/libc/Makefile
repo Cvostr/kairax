@@ -15,6 +15,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/fread.o \
 				obj/stdio/fwrite.o \
 				obj/stdio/fops.o \
+				obj/stdio/fflush.o \
 				obj/stdio/printf.o \
 				obj/stdio/sprintf.o \
 				obj/stdio/fdprintf.o \

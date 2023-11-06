@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     while ((readed = read(srcfd, region, REGION_LEN)) > 0) {
 
         for (int i = 0; i < readed; i ++) {
-            printf("%c", region[i]);
+            putchar(region[i]);
         }
     }
 

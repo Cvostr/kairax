@@ -173,6 +173,9 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
 
     if (file_allow_write(file)) {
         if (file->ops->write) {
+            if ((file->flags & FILE_OPEN_FLAG_APPEND) == FILE_OPEN_FLAG_APPEND) {
+                file->pos = file->inode->size;
+            }
             written = file->ops->write(file, buffer, size, file->pos);
         }
     } else {

@@ -3,7 +3,6 @@
 #include "string.h"
 
 static int _fwrite(void* arg, const void *ptr, size_t size) {
-    int fd = (int) (long) arg;
     fwrite(ptr, 1, size, (FILE*) arg);
 
     return size;

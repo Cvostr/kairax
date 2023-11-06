@@ -51,6 +51,9 @@ int rename(const char *oldpath, const char *newpath);
 
 int fseek(FILE *stream, long offset, int whence);
 long ftell(FILE *stream);
+int fileno(FILE *stream);
+int feof(FILE *stream);
+int ferror(FILE *stream);
 
 // ---- printf ------
 
