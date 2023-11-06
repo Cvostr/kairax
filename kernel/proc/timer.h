@@ -16,5 +16,6 @@ void timer_handle(); // Главная функция-обработчик пр�
 struct event_timer* new_event_timer();
 struct event_timer* register_event_timer(struct timespec duration);
 void unregister_event_timer(struct event_timer* timer);
+void timer_get_ticks(struct timespec* ticks);
 
 #endif

@@ -38,4 +38,5 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x2FF, sys_create_thread),
     DEFINE_SYSCALL(0x300, sys_create_process),
     DEFINE_SYSCALL(0x301, sys_exit_thread),
+    DEFINE_SYSCALL(0x302, sys_get_tick_count)
 };

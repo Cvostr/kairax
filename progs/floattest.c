@@ -27,8 +27,15 @@ void thread2(void* n) {
 
 int main(int argc, char** argv) {
 
-    printf("Hello\n");
-    pipe(fds);
+    //printf("Hello\n");
+    double sd;
+    while (1) {
+        sd = sd * 2 + 2;
+        int f = sd / 10;
+
+        sd = sd * 35 * f;
+    }
+    /*pipe(fds);
     create_thread(thread, NULL);
     create_thread(thread2, NULL);
 
@@ -38,7 +45,7 @@ int main(int argc, char** argv) {
         val += 1;
         if (val == 'I')
             val = 'A';
-    }
+    }*/
 
     /*printf("BEGIN %s\n", addr);
     float fa = 12200.343f;

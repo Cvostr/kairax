@@ -96,6 +96,10 @@ printf_nextchar:
                 case '-':
                     pad_left = 1;
                     goto printf_nextchar;
+                case '.':
+                    // todo : добавить точность
+                    pad_char = '0';
+                    goto printf_nextchar;
                 case '0':
                 case '1':
                 case '2':

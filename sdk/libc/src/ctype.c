@@ -22,8 +22,15 @@ int isalnum(int c)
 
 int toupper(int c) 
 {
-	if ( (unsigned int) (c - 'a') < 26u )
+	if ('a' <= c && c <= 'z')
     	c += 'A' - 'a';
+  	return c;
+}
+
+int tolower(int c)
+{
+	if ('A' <= c && c <= 'Z')
+    	c += 'a' - 'A';
   	return c;
 }
 

@@ -168,8 +168,11 @@ uint32_t console_col = 0;
 char* double_buffer = NULL;
 
 ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t offset);
+ssize_t vga_display_write (struct file* file, const char* buffer, size_t count, loff_t offset);
 
 struct file_operations vga_fops;
+struct file_operations vga_disp_fops;
+
 
 spinlock_t vga_console_lock = 0;
 
@@ -192,6 +195,9 @@ void vga_init_dev()
 {
     vga_fops.write = vga_f_write;
 	devfs_add_char_device("console", &vga_fops);
+
+    vga_disp_fops.write = vga_display_write;
+	devfs_add_char_device("display", &vga_disp_fops);
 }
 
 void vga_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) 
@@ -320,5 +326,22 @@ ssize_t vga_f_write (struct file* file, const char* buffer, size_t count, loff_t
 		console_print_char(buffer[i]);
 
     release_spinlock(&vga_console_lock);
+    return count;
+}
+
+ssize_t vga_display_write (struct file* file, const char* buffer, size_t count, loff_t offset)
+{
+    int width = *((int*) buffer);
+    buffer += 4;
+    int height = *((int*) buffer);
+    buffer += 4;
+
+    for (int i = 0; i < width; i ++) {
+        for (int j = 0; j < height; j ++) {
+            vga_draw_pixel(j, i, buffer[2], buffer[1], buffer[0]);
+            buffer += 4;
+        }
+    }
+
     return count;
 }

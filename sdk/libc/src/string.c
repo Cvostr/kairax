@@ -1,4 +1,5 @@
 #include "string.h"
+#include "stdlib.h"
 
 void *memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n)
 {
@@ -49,6 +50,10 @@ int memcmp (const void *__s1, const void *__s2, size_t __n)
 size_t strlen (const char *__s)
 {
     size_t size = 0;
+
+    if (__s == NULL) {
+        return 0;
+    }
 
     while(*__s++)
     {
@@ -130,12 +135,27 @@ int strncmp (const char *__s1, const char *__s2, size_t __n)
 
 char *strdup (const char *__s)
 {
+    size_t strsize = strlen(__s);
+    char* str = malloc(strsize + 1);
+    str[strsize] = '\0';
 
+    if (str == NULL) {
+        return NULL;
+    }
+
+    return memcpy(str, __s, strsize);
 }
 
 char *strndup (const char *__string, size_t __n)
 {
+    char* str = malloc(__n + 1);
+    str[__n] = '\0';
 
+    if (str == NULL) {
+        return NULL;
+    }
+
+    return memcpy(str, __string, __n);
 }
 
 char *strchr (const char *__s, int __c)

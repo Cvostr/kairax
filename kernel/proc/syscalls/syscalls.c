@@ -208,6 +208,14 @@ int sys_get_time_epoch(struct timeval *tv)
     return 0;
 }
 
+uint64_t sys_get_tick_count()
+{
+    struct timespec ticks;
+    timer_get_ticks(&ticks);
+    uint64_t t = ticks.tv_sec * 1000 + ticks.tv_nsec / 1000000;
+    return t;
+}
+
 pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)
 {
     struct process* process = cpu_get_current_thread()->process;

@@ -5,7 +5,7 @@
 #include "list/list.h"
 #include "thread_scheduler.h"
 
-struct timespec current_counted_time = {0, 0}; // Время, вычисляемое обработчиком прерывания таймера
+struct timespec current_ticks = {0, 0}; // Время, вычисляемое обработчиком прерывания таймера
 spinlock_t timers_lock = 0;
 list_t* timers_list = NULL;
 
@@ -17,6 +17,12 @@ void timer_init()
     arch_timer_init();
 }
 
+void timer_get_ticks(struct timespec* ticks)
+{
+    ticks->tv_sec = current_ticks.tv_sec;
+    ticks->tv_nsec = current_ticks.tv_nsec;
+}
+
 void timer_handle()
 {
     struct timespec offset = {
@@ -24,7 +30,7 @@ void timer_handle()
         .tv_nsec = 1000000000 / TIMER_FREQUENCY
     };
 
-    timespec_add(&current_counted_time, &offset);
+    timespec_add(&current_ticks, &offset);
 
     if (try_acquire_spinlock(&timers_lock)) {
 
