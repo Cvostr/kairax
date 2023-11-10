@@ -7,6 +7,7 @@
 #include "stdio.h"
 
 struct process *kterm_process = NULL;
+int master, slave;
 
 void kterm_process_start()
 {
@@ -21,7 +22,6 @@ void kterm_process_start()
 
 void kterm_main()
 {
-    int master, slave;
     sys_create_pty(&master, &slave);
 	struct file *slave_file = process_get_file(kterm_process, slave);
 
@@ -44,10 +44,10 @@ void kterm_main()
 			console_print_char(buff[i]);
 		}
 
-		/*char keycode = keyboard_get_key();
+		char keycode = keyboard_get_key();
 		if (keycode > 0) {
-        char symbol = keyboard_get_key_ascii(keycode);
-		sys_write_file(0, &symbol, 1);
-		}*/
+        	char symbol = keyboard_get_key_ascii(keycode);
+			sys_write_file(master, &symbol, 1);
+		}
 	}
 }

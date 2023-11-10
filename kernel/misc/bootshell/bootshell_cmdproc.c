@@ -180,7 +180,7 @@ void bootshell_process_cmd(char* cmdline)
         }
 
     }
-    if (strcmp(cmd, "execw") == 0) {
+    if (strcmp(cmd, "exec") == 0) {
 
         struct process_create_info info;
         info.current_directory = curdir;
@@ -196,20 +196,6 @@ void bootshell_process_cmd(char* cmdline)
 
         int status = 0;
         sys_wait(rc, &status, 0);
-    }
-    if (strcmp(cmd, "exec") == 0) {
-
-        struct process_create_info info;
-        info.current_directory = curdir;
-        info.num_args = argc - 1;
-        info.args = args + 1;
-        info.stdout = 1;
-        info.stdin = 0;
-        info.stderr = 2;
-        pid_t rc = sys_create_process(FD_CWD, args[1], &info);
-        if (rc < 0) {
-            printf_stdout("Error creating process : %i\n", -rc);
-        }
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock** mounts = vfs_get_mounts();

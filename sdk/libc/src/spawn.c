@@ -22,8 +22,8 @@ int posix_spawn(pid_t* pid_ptr,
     info.num_args = argc;
     info.args = argv;
     info._stdout = 1;
-    info._stdin = -1;
-    info._stderr = -1;
+    info._stdin = 0;
+    info._stderr = 2;
     pid_t rc = create_process(AT_FDCWD, path, &info);
 
     if (pid_ptr) {

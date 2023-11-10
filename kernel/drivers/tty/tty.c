@@ -64,16 +64,14 @@ int tty_create(struct file **master, struct file **slave)
 ssize_t master_file_write (struct file* file, const char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    // Эхо
-    pipe_write(p_pty->slave_to_master, buffer, count);
-
-    return pipe_write(p_pty->master_to_slave, buffer, count);
+    tty_line_discipline_mw(p_pty, buffer, count);
+    return count;
 }
 
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    return pipe_read(p_pty->slave_to_master, buffer, count);
+    return pipe_read(p_pty->slave_to_master, buffer, count, 1);
 }
 
 ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
@@ -85,5 +83,27 @@ ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, lo
 ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    return pipe_read(p_pty->master_to_slave, buffer, count);
+    return pipe_read(p_pty->master_to_slave, buffer, count, 0);
+}
+
+void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
+{
+    size_t i = 0;
+    pipe_write(p_pty->master_to_slave, buffer, count);
+    while (i < count) {
+        char first_char = buffer[i];
+
+        /*switch (first_char) {
+            case '\n':
+                // CR + LF
+                pipe_write(p_pty->slave_to_master, &first_char, 1);
+        }*/
+
+        if (first_char >= 32 || first_char == '\n') {
+            // Эхо
+            pipe_write(p_pty->slave_to_master, &first_char, 1);
+        }
+
+        i++;
+    }
 }

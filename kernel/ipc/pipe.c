@@ -50,12 +50,16 @@ void free_pipe(struct pipe* pipe)
     release_spinlock(&pipe->lock);
 }
 
-ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count)
+ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 {
     size_t i;
     acquire_spinlock(&pipe->lock);
 
     while (pipe->read_pos == pipe->write_pos) {
+        if (nonblock == 1) {
+            i = 0;
+            goto exit;
+        }
         // Нечего читать - засыпаем
         scheduler_sleep(&pipe->nreadfds, &pipe->lock);
     }
@@ -71,6 +75,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count)
     // Пробуждаем записывающих
     scheduler_wakeup(&pipe->nwritefds);
 
+exit:
     release_spinlock(&pipe->lock);
     return i;
 }
@@ -101,7 +106,7 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
 ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pipe* p = (struct pipe*) file->private_data;
-    return pipe_read(p, buffer, count);
+    return pipe_read(p, buffer, count, 0);
 }
 
 ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)

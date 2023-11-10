@@ -139,9 +139,15 @@ struct file* file_clone(struct file* original)
     file->inode = original->inode;
     file->dentry = original->dentry;
     file->ops = original->ops;
+    file->private_data = original->private_data;
 
-    inode_open(file->inode, 0);
-    dentry_open(file->dentry);
+    if (file->inode) {
+        inode_open(file->inode, 0);
+    }
+
+    if (file->dentry) {
+        dentry_open(file->dentry);
+    }
     
     return file;
 }
