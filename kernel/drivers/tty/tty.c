@@ -9,6 +9,7 @@ struct file_operations tty_slave_fops;
 
 struct pty {
     int pty_id;
+    int lflags;
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
 };
@@ -63,15 +64,16 @@ int tty_create(struct file **master, struct file **slave)
 ssize_t master_file_write (struct file* file, const char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
+    // Эхо
+    pipe_write(p_pty->slave_to_master, buffer, count);
+
     return pipe_write(p_pty->master_to_slave, buffer, count);
 }
 
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    ssize_t r = pipe_read(p_pty->slave_to_master, buffer, count);
-    //printf("Dd %i", r);
-    return r;
+    return pipe_read(p_pty->slave_to_master, buffer, count);
 }
 
 ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)

@@ -43,5 +43,11 @@ void kterm_main()
 		for (int i = 0; i < n; i ++) {
 			console_print_char(buff[i]);
 		}
+
+		/*char keycode = keyboard_get_key();
+		if (keycode > 0) {
+        char symbol = keyboard_get_key_ascii(keycode);
+		sys_write_file(0, &symbol, 1);
+		}*/
 	}
 }

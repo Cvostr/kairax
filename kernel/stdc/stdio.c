@@ -1,8 +1,15 @@
 #include "stdio.h"
-#include "stdarg.h"
 #include "string.h"
 #include "kstdlib.h"
 #include "drivers/video/video.h"
+#include "proc/syscalls.h"
+
+int getch()
+{
+	char ch;
+	sys_read_file(0, &ch, 1);
+	return ch;
+}
 
 static int print(const char* data, size_t length) {
 	const unsigned char* bytes = (const unsigned char*) data;
@@ -11,10 +18,35 @@ static int print(const char* data, size_t length) {
 	return 1;
 }
 
+static int print_stdout(const char* data, size_t length) {
+
+	sys_write_file(1, data, length);
+	return 1;
+}
+
 int printf(const char* restrict format, ...) {
 	va_list parameters;
 	va_start(parameters, format);
  
+	int written = printf_generic(print, format, parameters);
+ 
+	va_end(parameters);
+	return written;
+}
+
+int printf_stdout(const char* format, ...)
+{
+	va_list parameters;
+	va_start(parameters, format);
+ 
+	int written = printf_generic(print_stdout, format, parameters);
+ 
+	va_end(parameters);
+	return written;
+}
+
+int printf_generic(int (*f) (char* str, size_t len), const char* format, va_list args)
+{
 	int written = 0;
  
 	while (*format != '\0') {
@@ -30,7 +62,7 @@ int printf(const char* restrict format, ...) {
 				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
-			if (!print(format, amount))
+			if (!f(format, amount))
 				return -1;
 			format += amount;
 			written += amount;
@@ -41,51 +73,49 @@ int printf(const char* restrict format, ...) {
  
 		if (*format == 'c') {
 			format++;
-			char c = (char) va_arg(parameters, int /* char promotes to int */);
+			char c = (char) va_arg(args, int);
 			if (!maxrem) {
 				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
-			if (!print(&c, sizeof(c)))
+			if (!f(&c, sizeof(c)))
 				return -1;
 			written++;
 		} else if (*format == 's') {
 			format++;
-			const char* str = va_arg(parameters, const char*);
+			const char* str = va_arg(args, const char*);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
-			if (!print(str, len))
+			if (!f(str, len))
 				return -1;
 			written += len;
 		} else if (*format == 'i') {
 			format++;
-			size_t integer = va_arg(parameters, size_t);
+			size_t integer = va_arg(args, size_t);
 			char* str = itoa(integer, 10);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
-			if (!print(str, len))
+			if (!f(str, len))
 				return -1;
 			written += len;
 		} else {
 			format = format_begun_at;
 			size_t len = strlen(format);
 			if (maxrem < len) {
-				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
-			if (!print(format, len))
+			if (!f(format, len))
 				return -1;
 			written += len;
 			format += len;
 		}
 	}
- 
-	va_end(parameters);
+
 	return written;
 }

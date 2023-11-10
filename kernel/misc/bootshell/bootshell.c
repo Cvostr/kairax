@@ -14,7 +14,7 @@ struct dentry* wd_dentry = NULL;
 
 void bootshell_print_sign()
 {
-    printf("KAIRAX:%s# ", curdir);
+    printf_stdout("KAIRAX:%s# ", curdir);
 }
 
 void bootshell()
@@ -26,14 +26,14 @@ void bootshell()
         char symbol = keyboard_get_key_ascii(keycode);
 
         if (symbol != 0 && symbol != '\n') {
-            printf("%c", symbol);
+            printf_stdout("%c", symbol);
 
             command[cmd_len++] = symbol;
         }
 
         if (symbol == '\n') {
             command[cmd_len++] = '\0';
-            printf("%c", symbol);
+            printf_stdout("%c", symbol);
             bootshell_process_cmd(command);
             bootshell_print_sign();
             cmd_len = 0;

@@ -2,11 +2,11 @@
 #define _STDIO_H
 
 #include "types.h"
+#include "stdarg.h"
 
-#define EOF (-1)
-
+int printf_stdout(const char* __restrict, ...);
 int printf(const char* __restrict, ...);
-int putchar(int);
-int puts(const char*);
+int printf_generic(int (*f) (char* str, size_t len), const char* __restrict, va_list args);
+int getch();
 
 #endif
