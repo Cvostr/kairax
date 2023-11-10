@@ -208,17 +208,13 @@ void bootshell_process_cmd(char* cmdline)
     }
     if (strcmp(cmd, "exec") == 0) {
 
-        if (console_fd == -1) {
-            console_fd = sys_open_file(FD_CWD, "/dev/console", FILE_OPEN_MODE_WRITE_ONLY, 0);
-        }
-
         struct process_create_info info;
         info.current_directory = curdir;
         info.num_args = argc - 1;
         info.args = args + 1;
-        info.stdout = console_fd;
-        info.stdin = -1;
-        info.stderr = -1;
+        info.stdout = 1;
+        info.stdin = 0;
+        info.stderr = 2;
         pid_t rc = sys_create_process(FD_CWD, args[1], &info);
         if (rc < 0) {
             printf("Error creating process : %i\n", -rc);

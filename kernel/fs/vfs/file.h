@@ -34,7 +34,7 @@ struct file_operations {
     int (*ioctl)(struct file* file, uint64_t request, uint64_t arg);
 
     int (*open) (struct inode *inode, struct file *file);
-    int (*release) (struct inode *inode, struct file *file);
+    int (*close) (struct inode *inode, struct file *file);
 };
 
 // Открытый файл
@@ -60,6 +60,7 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
 
 struct file* file_clone(struct file* original);
 
+void file_acquire(struct file* file);
 void file_close(struct file* file);
 
 ssize_t file_read(struct file* file, size_t size, char* buffer);

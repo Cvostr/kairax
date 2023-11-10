@@ -18,9 +18,6 @@ void inode_open(struct inode* node, uint32_t flags)
     if (atomic_inc_and_test(&node->reference_count) == 1) {
         superblock_add_inode(node->sb, node);
     }
-    
-    if(node->operations->open)
-        node->operations->open(node, flags);
 
     release_spinlock(&node->spinlock);
 }

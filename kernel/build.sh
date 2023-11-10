@@ -68,6 +68,7 @@ gcc $GCC_ARGS drivers/storage/devices/storage_devices.c -o ./bin/storage_devices
 gcc $GCC_ARGS drivers/storage/partitions/storage_partitions.c -o ./bin/storage_partitions.o
 gcc $GCC_ARGS drivers/storage/partitions/formats/gpt.c -o ./bin/gpt.o
 gcc $GCC_ARGS drivers/video/video.c -o ./bin/video.o
+gcc $GCC_ARGS drivers/tty/tty.c -o ./bin/tty.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
@@ -88,6 +89,7 @@ gcc $GCC_ARGS proc/syscalls/syscalls.c -o ./bin/syscalls.o
 gcc $GCC_ARGS proc/syscalls/syscalls_memory.c -o ./bin/syscalls_memory.o
 gcc $GCC_ARGS proc/syscalls/syscalls_files.c -o ./bin/syscalls_files.o
 gcc $GCC_ARGS proc/syscalls/syscall_wait.c -o ./bin/syscall_wait.o
+gcc $GCC_ARGS proc/syscalls/syscalls_wd.c -o ./bin/syscalls_wd.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 
@@ -108,5 +110,7 @@ gcc $GCC_ARGS proc/elf64/elf64.c -o ./bin/elf64.o
 
 gcc $GCC_ARGS misc/bootshell/bootshell.c -o ./bin/bootshell.o
 gcc $GCC_ARGS misc/bootshell/bootshell_cmdproc.c -o ./bin/bootshell_cmdproc.o
+gcc $GCC_ARGS misc/kterm/kterm.c -o ./bin/kterm.o
+gcc $GCC_ARGS misc/kterm/vgaterm.c -o ./bin/vgaterm.o
 
 ld -n -o kernel.bin -T ./arch/x86_64/link.ld bin/*.o

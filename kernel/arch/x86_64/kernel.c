@@ -35,6 +35,8 @@
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
 #include "proc/timer.h"
+#include "drivers/tty/tty.h"
+#include "misc/kterm/kterm.h"
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);
@@ -125,6 +127,12 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	devfs_init();
 	ahci_init();	
 	init_nvme();
+	tty_init();
+
+	// ---
+	console_init();
+	// ---
+
 
 	vga_init_dev();
 	
@@ -136,14 +144,15 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	// Первоначальный процесс bootshell
-	struct process* proc = create_new_process(NULL);
+	//struct process* proc = create_new_process(NULL);
 	// Добавить в список и назначить pid
-    process_add_to_list(proc);
-	struct thread* thr = create_kthread(proc, bootshell);
+    //process_add_to_list(proc);
+	//struct thread* thr = create_kthread(proc, bootshell);
 	
+	kterm_process_start();
+
 	init_scheduler();
-	
-	scheduler_add_thread(thr);
+	//scheduler_add_thread(thr);
 	scheduler_start();
 	scheduler_yield(FALSE);
 

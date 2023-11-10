@@ -22,12 +22,21 @@ struct file* new_file()
     return file;
 }
 
+void file_acquire(struct file* file)
+{
+    atomic_inc(&file->refs);
+}
+
 void file_close(struct file* file) 
 {
     if (atomic_dec_and_test(&file->refs)) {
         //printf("CLOSING FILE %i - %i\n", file->inode->inode, file->refs);
         acquire_spinlock(&file->lock);
         
+        if (file->ops && file->ops->close) {
+            file->ops->close(file->inode, file);
+        }
+
         if (file->inode) {
             inode_close(file->inode);
         }
@@ -129,6 +138,7 @@ struct file* file_clone(struct file* original)
     struct file* file = new_file();
     file->inode = original->inode;
     file->dentry = original->dentry;
+    file->ops = original->ops;
 
     inode_open(file->inode, 0);
     dentry_open(file->dentry);

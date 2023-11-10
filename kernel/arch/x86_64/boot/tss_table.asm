@@ -9,24 +9,19 @@ align 16
 boot_tss:
     dd 0x0 ; Reseved 1
 tss_rspn:
-    dq rspn_stack ; RSP0
-    dq rspn_stack ; RSP1
-    dq rspn_stack ; RSP2
+    dq 0x0 ; RSP0
+    dq 0x0 ; RSP1
+    dq 0x0 ; RSP2
     dq 0x0 ; Reserved
 interrupt_stack_table:
-    dq istn_stack ; IST1
-    dq istn_stack ; IST2
-    dq istn_stack ; IST3
-    dq istn_stack ; IST4
-    dq istn_stack ; IST5
-    dq istn_stack ; IST6
-    dq istn_stack ; IST7
+    dq 0x0 ; IST1
+    dq 0x0 ; IST2
+    dq 0x0 ; IST3
+    dq 0x0 ; IST4
+    dq 0x0 ; IST5
+    dq 0x0 ; IST6
+    dq 0x0 ; IST7
     dq 0x0 ; Reserved
     dw 0x0 ; Reserved
     dw tss_size ; I/O Map Base Address
 tss_size: equ $ - boot_tss - 1
-
-; btw, alloc two stack for that, we have a lot of memory :)
-[section .bss]
-istn_stack: RESB 0x2000
-rspn_stack: RESB 0x2000

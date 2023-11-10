@@ -50,53 +50,62 @@ void free_pipe(struct pipe* pipe)
     release_spinlock(&pipe->lock);
 }
 
-ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
+ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count)
 {
-    struct pipe* p = (struct pipe*) file->private_data;
     size_t i;
-    acquire_spinlock(&p->lock);
+    acquire_spinlock(&pipe->lock);
 
-    while (p->read_pos == p->write_pos) {
+    while (pipe->read_pos == pipe->write_pos) {
         // Нечего читать - засыпаем
-        scheduler_sleep(&p->nreadfds, &p->lock);
+        scheduler_sleep(&pipe->nreadfds, &pipe->lock);
     }
 
-    for (size_t i = 0; i < count; i ++) {
+    for (i = 0; i < count; i ++) {
 
-        if(p->read_pos == p->write_pos)
+        if(pipe->read_pos == pipe->write_pos)
             break;
             
-        buffer[i] = p->buffer[p->read_pos++ % PIPE_SIZE];
+        buffer[i] = pipe->buffer[pipe->read_pos++ % PIPE_SIZE];
     }
 
     // Пробуждаем записывающих
-    scheduler_wakeup(&p->nwritefds);
+    scheduler_wakeup(&pipe->nwritefds);
 
-    release_spinlock(&p->lock);
+    release_spinlock(&pipe->lock);
     return i;
+}
+
+ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
+{
+    acquire_spinlock(&pipe->lock);
+    for (size_t i = 0; i < count; i ++) {
+        
+        while (pipe->write_pos == pipe->read_pos + PIPE_SIZE) {
+            // Больше места нет - пробуждаем читающих
+            scheduler_wakeup(&pipe->nreadfds);
+            // И засыпаем сами
+            scheduler_sleep(&pipe->nwritefds, &pipe->lock);
+        }
+
+        // записываем байт
+        pipe->buffer[pipe->write_pos++ % PIPE_SIZE] = buffer[i];
+    }
+
+    // Пробуждаем читающих
+    scheduler_wakeup(&pipe->nreadfds);
+
+    release_spinlock(&pipe->lock);
+    return count;
+}
+
+ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
+{
+    struct pipe* p = (struct pipe*) file->private_data;
+    return pipe_read(p, buffer, count);
 }
 
 ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
     struct pipe* p = (struct pipe*) file->private_data;
-    acquire_spinlock(&p->lock);
-    
-    for (size_t i = 0; i < count; i ++) {
-        
-        while (p->write_pos == p->read_pos + PIPE_SIZE) {
-            // Больше места нет - пробуждаем читающих
-            scheduler_wakeup(&p->nreadfds);
-            // И засыпаем сами
-            scheduler_sleep(&p->nwritefds, &p->lock);
-        }
-
-        // записываем байт
-        p->buffer[p->write_pos++ % PIPE_SIZE] = buffer[i];
-    }
-
-    // Пробуждаем читающих
-    scheduler_wakeup(&p->nreadfds);
-
-    release_spinlock(&p->lock);
-    return count;
+    return pipe_write(p, buffer, count);
 }

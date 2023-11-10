@@ -12,7 +12,6 @@ struct superblock;
 struct dentry;
 
 struct inode_operations {
-    void      (*open)(struct inode*, uint32_t);
     void      (*close)(struct inode*);
 
     int      (*chmod)(struct inode*, uint32_t);

@@ -309,7 +309,8 @@ int process_add_file(struct process* process, struct file* file)
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
             process->fds[i] = file;
-            atomic_inc(&file->refs);
+            //atomic_inc(&file->refs);
+            file_acquire(file);
             fd = i;
             goto exit;
         }
@@ -335,7 +336,7 @@ int process_add_file_at(struct process* process, struct file* file, int fd)
 
     // Добавить файл и увеличить счетчик ссылок
     process->fds[fd] = file;
-    atomic_inc(&file->refs);
+    file_acquire(file);
 
     release_spinlock(&process->fd_lock);
 

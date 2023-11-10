@@ -38,7 +38,6 @@ void devfs_init()
 
     filesystem_register(devfs);
 
-    root_inode_ops.open = devfs_open;
     root_inode_ops.chmod = NULL;
     root_inode_ops.mkdir = NULL;
     root_inode_ops.mkfile = NULL;
@@ -98,11 +97,6 @@ int devfs_add_char_device(const char* name, struct file_operations* fops)
     release_spinlock(&devfs_lock);
 
     return 0;
-}
-
-void devfs_open(struct inode* inode, uint32_t flags)
-{
-
 }
 
 struct dirent* devfs_readdir(struct file* dir, uint32_t index)

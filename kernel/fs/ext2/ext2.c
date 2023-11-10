@@ -23,14 +23,12 @@ void ext2_init()
     filesystem_register(ext2fs);
 
     file_inode_ops.chmod = ext2_chmod;
-    file_inode_ops.open = ext2_open;
     file_inode_ops.close = ext2_close;
     file_inode_ops.truncate = ext2_truncate;
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
     dir_inode_ops.chmod = ext2_chmod;
-    dir_inode_ops.open = ext2_open;
     dir_inode_ops.close = ext2_close;
     //dir_inode_ops.unlink = ext2_unlink;
 
@@ -809,11 +807,6 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     }
 
     return result;
-}
-
-void ext2_open(struct inode* inode, uint32_t flags)
-{
-
 }
 
 void ext2_close(struct inode* inode)
