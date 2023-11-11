@@ -19,5 +19,6 @@ ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, lo
 ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count);
+void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count);
 
 #endif

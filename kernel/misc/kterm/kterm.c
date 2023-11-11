@@ -51,9 +51,6 @@ void kterm_main()
 					console_cr();
 					break;
 				case '\n':
-					// -- TODO: отправлять CR и для записи в slave
-					console_cr();
-					// ----
 					console_lf();
 					break;
 				default:

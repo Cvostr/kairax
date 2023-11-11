@@ -39,7 +39,6 @@ int scanf(const char *format, ...)
 
 int vfscanf(FILE *stream, const char *format, va_list args)
 {
-    //struct arg_scanf farg = { (void*)stream, (int(*)(void*))fgetc, (int(*)(int,void*))ungetc };
-    //return scanf_generic(&farg, format, args);
-    return 0;
+    struct arg_scanf farg = { (void*)stream, (int(*)(void*))fgetc, NULL};
+    return scanf_generic(&farg, format, args);
 }

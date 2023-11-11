@@ -172,13 +172,13 @@ void console_print_char(char chr)
                         YOFFSET + console_lines * LINE_SIZE, 
                         LETTER_SIZE * 8,
                         LETTER_SIZE * 8, 0, 0, 0);
+    } else {
+        surface_draw_char(chr,
+            XOFFSET + console_col * COL_SIZE,
+            YOFFSET + console_lines * LINE_SIZE,
+            CONSOLE_TEXT_COLOR,
+            LETTER_SIZE, LETTER_SIZE);
     }
-
-    surface_draw_char(chr,
-        XOFFSET + console_col * COL_SIZE,
-        YOFFSET + console_lines * LINE_SIZE,
-        CONSOLE_TEXT_COLOR,
-        LETTER_SIZE, LETTER_SIZE);
 
     console_col++;
 

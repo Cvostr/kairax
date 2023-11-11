@@ -81,6 +81,10 @@ int main(int argc, char** argv) {
     fclose(tsf);
     printf("Written: %i bytes\n", written);
 
+    int num1, num2;
+    scanf("%i %i", &num1, &num2);
+    printf("NUM1: %i, NUM2: %i\n", num1, num2);
+
     char sym = 'A';
     for(int iterations = 0; iterations < 5; iterations ++) {
 

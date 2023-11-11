@@ -142,17 +142,10 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		drive_device_t* device = get_drive(i);
 		add_partitions_from_device(device);
 	}
-
-	// Первоначальный процесс bootshell
-	//struct process* proc = create_new_process(NULL);
-	// Добавить в список и назначить pid
-    //process_add_to_list(proc);
-	//struct thread* thr = create_kthread(proc, bootshell);
 	
 	kterm_process_start();
 
 	init_scheduler();
-	//scheduler_add_thread(thr);
 	scheduler_start();
 	scheduler_yield(FALSE);
 

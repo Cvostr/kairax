@@ -3,6 +3,7 @@
 #include "kstdlib.h"
 #include "drivers/video/video.h"
 #include "proc/syscalls.h"
+#include "misc/kterm/vgaterm.h"
 
 int getch()
 {

@@ -81,7 +81,8 @@ ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t o
 ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    return pipe_write(p_pty->slave_to_master, buffer, count);
+    tty_line_discipline_sw(p_pty, buffer, count);
+    return count;
 }
 
 ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
@@ -92,6 +93,23 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
 
 char crlf[2] = {'\r', '\n'};
 char remove[3] = {'\b', ' ', '\b'};
+
+void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
+{
+    size_t i = 0;
+    while (i < count) {
+        char chr = buffer[i];
+
+        switch (chr) {
+            case '\n':
+                pipe_write(p_pty->slave_to_master, crlf, 2);
+                break;
+            default:
+                pipe_write(p_pty->slave_to_master, &chr, 1);
+        }
+        i++;
+    }
+}
 
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 {

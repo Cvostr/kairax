@@ -225,6 +225,15 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     if (stdout != NULL) {
         process_add_file_at(new_process, stdout, 1);
     }
+    struct file* stdin = process_get_file(process, info->stdin);
+    if (stdin != NULL) {
+        process_add_file_at(new_process, stdin, 0);
+    }
+    struct file* stderr = process_get_file(process, info->stderr);
+    if (stderr != NULL) {
+        process_add_file_at(new_process, stderr, 0);
+    }
+    // -----------
 
     // Добавить файл к новому процессу
     fd = process_add_file(new_process, file);
