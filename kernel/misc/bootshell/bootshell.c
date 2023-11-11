@@ -6,7 +6,6 @@
 #include "proc/syscalls.h"
 
 char command[256];
-int cmd_len = 0;
 
 char curdir[512];
 struct inode* wd_inode = NULL;
@@ -23,21 +22,10 @@ void bootshell()
 
     while(1) {
 
-        char symbol = getch();
-        if (symbol != 0 && symbol != '\n') {
-            command[cmd_len++] = symbol;
-        }
+        kfgets(command, 256);
 
-        if (symbol == '\n') {
-            command[cmd_len++] = '\0';
-            bootshell_process_cmd(command);
-            bootshell_print_sign();
-            cmd_len = 0;
-        }
+        bootshell_process_cmd(command);
+        bootshell_print_sign();
 
-        /*if (symbol == 8 && cmd_len > 0) { //удаление символа
-            cmd_len--;
-            console_remove_from_end(1);
-        }*/
     }
 }

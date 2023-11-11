@@ -25,7 +25,7 @@ void init_ints_keyboard()
     register_interrupt_handler(0x21, keyboard_int_handler, NULL);
 
     int_keyb_fops.read = intk_f_read;
-	devfs_add_char_device("keyboard", &int_keyb_fops);
+	  devfs_add_char_device("keyboard", &int_keyb_fops);
 }
 
 void keyboard_int_handler(interrupt_frame_t* frame, void* data)
@@ -160,15 +160,20 @@ char keyboard_get_key_ascii(char keycode)
       return '8';
       break;
     case 0xB:
-      return '9';
-      break;
+        return '9';
+        break;
     case 0xC:
-      return '0';
-      break;
+        return '0';
+        break;
     case 0xD:
         return '-';
+        break;
     case 0x1D:
         return '\n';
+        break;
+    case 0xF:
+        return '\b';
+        break;
     case 0x3A:
       return ' ';
       break;

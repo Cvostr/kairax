@@ -12,6 +12,9 @@ struct pty {
     int lflags;
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
+
+    char buffer[1024];
+    int buffer_pos;
 };
 
 #define MAX_PTY_COUNT 64
@@ -63,6 +66,7 @@ int tty_create(struct file **master, struct file **slave)
 
 ssize_t master_file_write (struct file* file, const char* buffer, size_t count, loff_t offset)
 {
+    // Запись со стороны эмулятора терминала
     struct pty *p_pty = (struct pty *) file->private_data;
     tty_line_discipline_mw(p_pty, buffer, count);
     return count;
@@ -86,22 +90,40 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
     return pipe_read(p_pty->master_to_slave, buffer, count, 0);
 }
 
+char crlf[2] = {'\r', '\n'};
+char remove[3] = {'\b', ' ', '\b'};
+
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 {
     size_t i = 0;
-    pipe_write(p_pty->master_to_slave, buffer, count);
     while (i < count) {
         char first_char = buffer[i];
 
-        /*switch (first_char) {
+        switch (first_char) {
             case '\n':
-                // CR + LF
+                // Нажата кнопка enter
+                // Эхо в терминал CR + LF
+                pipe_write(p_pty->slave_to_master, crlf, 2);
+                // Записать буфер в slave
+                p_pty->buffer[p_pty->buffer_pos++] = '\n';
+                pipe_write(p_pty->master_to_slave, p_pty->buffer, p_pty->buffer_pos);
+                // Сброс позиции буфера
+                p_pty->buffer_pos = 0;
+                break;
+            case '\b':
+                // Нажата кнопка backspace
+                if (p_pty->buffer_pos > 0) {
+                    p_pty->buffer_pos--;
+                    // BKSP + SPACE + BKSP
+                    pipe_write(p_pty->slave_to_master, remove, 3);
+                }
+                break;
+            default:
+                // Добавить символ в буфер
+                p_pty->buffer[p_pty->buffer_pos++] = first_char;
+                // Эхо на консоль
                 pipe_write(p_pty->slave_to_master, &first_char, 1);
-        }*/
-
-        if (first_char >= 32 || first_char == '\n') {
-            // Эхо
-            pipe_write(p_pty->slave_to_master, &first_char, 1);
+                break;
         }
 
         i++;

@@ -11,6 +11,20 @@ int getch()
 	return ch;
 }
 
+char* kfgets(char* buffer, size_t len)
+{
+	char c;
+	size_t i = 0;
+	do {
+		sys_read_file(0, &c, 1);
+		buffer[i++] = c;
+	} while (c != '\n' && i < len);
+
+	buffer[i - 1] = '\0';
+
+	return buffer;
+}
+
 static int print(const char* data, size_t length) {
 	const unsigned char* bytes = (const unsigned char*) data;
 	for (size_t i = 0; i < length; i++)
@@ -45,7 +59,7 @@ int printf_stdout(const char* format, ...)
 	return written;
 }
 
-int printf_generic(int (*f) (char* str, size_t len), const char* format, va_list args)
+int printf_generic(int (*f) (const char* str, size_t len), const char* format, va_list args)
 {
 	int written = 0;
  
@@ -59,7 +73,6 @@ int printf_generic(int (*f) (char* str, size_t len), const char* format, va_list
 			while (format[amount] && format[amount] != '%')
 				amount++;
 			if (maxrem < amount) {
-				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
 			if (!f(format, amount))
@@ -75,7 +88,6 @@ int printf_generic(int (*f) (char* str, size_t len), const char* format, va_list
 			format++;
 			char c = (char) va_arg(args, int);
 			if (!maxrem) {
-				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
 			if (!f(&c, sizeof(c)))
@@ -86,7 +98,6 @@ int printf_generic(int (*f) (char* str, size_t len), const char* format, va_list
 			const char* str = va_arg(args, const char*);
 			size_t len = strlen(str);
 			if (maxrem < len) {
-				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
 			if (!f(str, len))
@@ -98,7 +109,6 @@ int printf_generic(int (*f) (char* str, size_t len), const char* format, va_list
 			char* str = itoa(integer, 10);
 			size_t len = strlen(str);
 			if (maxrem < len) {
-				// TODO: Set errno to EOVERFLOW.
 				return -1;
 			}
 			if (!f(str, len))

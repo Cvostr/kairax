@@ -167,6 +167,13 @@ void console_init()
 
 void console_print_char(char chr)
 {
+    if (chr == ' ') {
+        surface_draw_rect(  XOFFSET + console_col * COL_SIZE,
+                        YOFFSET + console_lines * LINE_SIZE, 
+                        LETTER_SIZE * 8,
+                        LETTER_SIZE * 8, 0, 0, 0);
+    }
+
     surface_draw_char(chr,
         XOFFSET + console_col * COL_SIZE,
         YOFFSET + console_lines * LINE_SIZE,
@@ -177,10 +184,20 @@ void console_print_char(char chr)
 
     // Вышли ли за правую границу экрана? или символ переноса
     if (console_col > BUFFER_LINE_LENGTH || chr == '\n') {
-        console_lines++;
-        console_col = 0;
-        console_scroll();
+        console_cr();
+        console_lf();
     }
+}
+
+void console_cr()
+{
+    console_col = 0;
+}
+
+void console_lf()
+{
+    console_lines++;
+    console_scroll();
 }
 
 void console_scroll()
@@ -204,7 +221,7 @@ void console_scroll()
 	}
 }
 
-void console_remove_from_end(int chars)
+void console_backspace(int chars)
 {
 	for (int i = 0; i < chars; i ++) {
 
@@ -214,12 +231,6 @@ void console_remove_from_end(int chars)
             console_lines--;
             console_col = 0;
         }
-
-        surface_draw_rect(  XOFFSET + console_col * COL_SIZE,
-                        YOFFSET + console_lines * LINE_SIZE, 
-                        LETTER_SIZE * 8,
-                        LETTER_SIZE * 8, 0, 0, 0);
-
 	}
 }
 

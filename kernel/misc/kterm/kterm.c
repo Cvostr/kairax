@@ -41,7 +41,24 @@ void kterm_main()
 		ssize_t n = sys_read_file(master, buff, 128);
 
 		for (int i = 0; i < n; i ++) {
-			console_print_char(buff[i]);
+
+			char c = buff[i];
+			switch (c) {
+				case '\b':
+					console_backspace(1);
+					break;
+				case '\r':
+					console_cr();
+					break;
+				case '\n':
+					// -- TODO: отправлять CR и для записи в slave
+					console_cr();
+					// ----
+					console_lf();
+					break;
+				default:
+					console_print_char(c);
+			}
 		}
 
 		char keycode = keyboard_get_key();
