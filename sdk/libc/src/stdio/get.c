@@ -2,6 +2,11 @@
 #include "stdio_impl.h"
 #include "unistd.h"
 
+int getchar ()
+{
+    return fgetc(stdin);
+}
+
 int fgetc(FILE *f)
 {
     if ((f->_flags & FSTREAM_CANREAD) == 0) {

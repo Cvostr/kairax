@@ -309,7 +309,6 @@ int process_add_file(struct process* process, struct file* file)
     for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] == NULL) {
             process->fds[i] = file;
-            //atomic_inc(&file->refs);
             file_acquire(file);
             fd = i;
             goto exit;

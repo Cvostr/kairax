@@ -61,10 +61,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		//Считаем физическую память
 		pmm_params.physical_mem_total += length;
 
+		// Запоминаем регион
+		pmm_add_region(start, length, type == 1 ? PMM_REGION_USABLE : 0);
+
 		if (type != 1)
 			pmm_set_mem_region(start, length);
-
-		//printf("REGION : %i %i %i\n", start, end, type);
 	}
 
 	pmm_take_base_regions();
@@ -79,6 +80,13 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	vga_init(P2V(kboot_info->fb_info.fb_addr), kboot_info->fb_info.fb_pitch, kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height,
 	kboot_info->fb_info.fb_bpp);
 	printf("Kairax Kernel v0.1\n");
+
+	struct pmm_region* reg = pmm_get_regions();
+	while (reg->length != 0) {
+		//printf("REGION : %i %i %i\n", reg->base, reg->length, reg->flags);
+		reg++;
+	} 
+
 	//printf("LOADER : %s\n", kboot_info->bootloader_string);
 	//printf("CMDLINE : %s\n", P2V(kboot_info->command_line));
 	//printf("width %i, height %i, addr %i\n", kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height, kboot_info->fb_info.fb_addr);

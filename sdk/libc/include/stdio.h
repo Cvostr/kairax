@@ -74,7 +74,7 @@ int sscanf(const char *str, const char *format, ...);
 int vsscanf(const char *str, const char *format, va_list args);
 
 int fgetc(FILE *f);
-
+int getchar();
 
 #ifdef __cplusplus
 }

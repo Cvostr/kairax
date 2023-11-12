@@ -17,6 +17,23 @@ spinlock_t pmm_lock;
 
 pmm_params_t pmm_params;
 
+#define PMM_MAX_REGIONS 100
+struct pmm_region pmm_regions[PMM_MAX_REGIONS];
+size_t pmm_regions_count = 0;
+
+void pmm_add_region(uint64_t base, uint64_t length, int flags)
+{
+	pmm_regions[pmm_regions_count].base = base;
+	pmm_regions[pmm_regions_count].length = length;
+	pmm_regions[pmm_regions_count].flags = flags;
+	pmm_regions_count++;
+}
+
+struct pmm_region* pmm_get_regions()
+{
+	return pmm_regions;
+}
+
 void pmm_set_params(pmm_params_t* params)
 {
 	memcpy(&pmm_params, params, sizeof(pmm_params_t));

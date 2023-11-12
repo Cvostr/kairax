@@ -13,11 +13,20 @@ typedef struct {
     uint64_t    kernel_size;
 } pmm_params_t;
 
+#define PMM_REGION_USABLE 1
+
+struct pmm_region {
+    uint64_t base;
+    uint64_t length;
+    int flags;
+};
+
 void init_pmm();
 
+void pmm_add_region(uint64_t base, uint64_t length, int flags);
+struct pmm_region* pmm_get_regions();
 // Занять определенный регион памяти
 void pmm_set_mem_region(uint64_t offset, uint64_t size);
-
 void pmm_take_base_regions();
 
 void* pmm_alloc_page();
