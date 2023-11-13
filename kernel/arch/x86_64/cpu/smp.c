@@ -153,7 +153,7 @@ void smp_init()
             gdt_update(&bsp_gdtr);
             x64_ltr(TSS_DEFAULT_OFFSET);
             // Установить IDT, включить прерывания
-            load_idt();
+            //load_idt();
             // Установка параметров для syscall
             cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
             // Запомнить данные ядра в KERNEL GS

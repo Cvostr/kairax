@@ -61,7 +61,11 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	char* port_mem = (char*)pmm_alloc_page();
 	uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
-	set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(port_mem), pageFlags);
+	//set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(port_mem), pageFlags);
+	map_page_mem(get_kernel_pml4(),
+			P2V(port_mem),
+			port_mem,
+			pageFlags);
 
     port->command_list = (HBA_COMMAND*)port_mem;
     port->fis = (fis_t*)(port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT);
@@ -79,7 +83,11 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	char* cmd_tables_mem = (char*)pmm_alloc_pages(pages_num);
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
 	for (int i = 0; i < pages_num; i ++) {
-		set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(cmd_tables_mem) + i * PAGE_SIZE, pageFlags);
+		//set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(cmd_tables_mem) + i * PAGE_SIZE, pageFlags);
+		map_page_mem(get_kernel_pml4(),
+			P2V(cmd_tables_mem) + i * PAGE_SIZE,
+			cmd_tables_mem + i * PAGE_SIZE,
+			pageFlags);
 	}
 
     for(int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++){

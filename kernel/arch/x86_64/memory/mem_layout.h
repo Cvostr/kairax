@@ -7,6 +7,7 @@
 
 #define KERNEL_TEXT_OFFSET      0xFFFFFFFF80000000           //После этого адреса начинается область памяти ядра
 #define PHYSICAL_MEM_MAP_OFFSET 0xFFFF888000000000           //После этого адреса начинается физическая память 
+#define PHYSICAL_MEM_MAP_END    0xffffc87fffffffff
 
 #define KHEAP_MAP_OFFSET        (0xffffc90000000000)
 #define KHEAP_SIZE              512ULL * 1024 * 1024		     //512MB памяти кучи ядра

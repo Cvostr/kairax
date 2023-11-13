@@ -43,11 +43,6 @@ size_t pmm_get_physical_mem_size() {
 	return pmm_params.physical_mem_total;
 }
 
-size_t pmm_get_physical_mem_max_addr()
-{
-	return pmm_params.physical_mem_max_addr;
-}
-
 void set_bit(uint64_t bit) {
     bitmap[bit / 64] |=  (1ULL << (bit % 64));
 }

@@ -23,6 +23,11 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _width = width;
     _height = height;
     _depth = depth;
+
+    //printf("width %i, height %i, addr %i\n", 
+    //    kboot_info->fb_info.fb_width,
+    //    kboot_info->fb_info.fb_height,
+    //    kboot_info->fb_info.fb_addr);
 }
 
 uint32_t vga_get_width()

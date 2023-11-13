@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
         }
     }
 
+    putchar('\n');
+
     close(srcfd);
 
     return 0;

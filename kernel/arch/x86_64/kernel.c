@@ -53,13 +53,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		uintptr_t start, length;
 		uint32_t type;
 		multiboot_get_memory_area(i, &start, &length, &type);
-		uintptr_t end = start + length;
 		
-		if (end > pmm_params.physical_mem_max_addr)
-			pmm_params.physical_mem_max_addr = end;
-		
-		//Считаем физическую память
-		pmm_params.physical_mem_total += length;
+		if (type == 1) {
+			//Считаем физическую память
+			pmm_params.physical_mem_total += length;
+		}
 
 		// Запоминаем регион
 		pmm_add_region(start, length, type == 1 ? PMM_REGION_USABLE : 0);
@@ -73,30 +71,36 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	init_pic();
 	setup_idt();
+	init_interrupts_handler(); 
+	// Установить IDT, включить прерывания
+    load_idt();
 	
 	page_table_t* new_pt = create_kernel_vm_map();
 	vmm_use_kernel_vm();
 
-	vga_init(P2V(kboot_info->fb_info.fb_addr), kboot_info->fb_info.fb_pitch, kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height,
-	kboot_info->fb_info.fb_bpp);
+	// ----------- KHEAP ----------
+	kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE);
+	// ----------------------------
+
+	vga_init(
+		P2V(kboot_info->fb_info.fb_addr),
+		kboot_info->fb_info.fb_pitch,
+		kboot_info->fb_info.fb_width,
+		kboot_info->fb_info.fb_height,
+		kboot_info->fb_info.fb_bpp);
+
 	printf("Kairax Kernel v0.1\n");
 
-	struct pmm_region* reg = pmm_get_regions();
+	/*struct pmm_region* reg = pmm_get_regions();
 	while (reg->length != 0) {
-		//printf("REGION : %i %i %i\n", reg->base, reg->length, reg->flags);
+		printf("REGION : %i %i %i\n", reg->base, reg->length, reg->flags);
 		reg++;
-	} 
+	} */
 
 	//printf("LOADER : %s\n", kboot_info->bootloader_string);
 	//printf("CMDLINE : %s\n", P2V(kboot_info->command_line));
-	//printf("width %i, height %i, addr %i\n", kboot_info->fb_info.fb_width, kboot_info->fb_info.fb_height, kboot_info->fb_info.fb_addr);
 
 	int rc = 0;
-	printf("KHEAP: Initialization...\n");
-	if ((rc = kheap_init(KHEAP_MAP_OFFSET, KHEAP_SIZE)) != 1) {
-		printf("KHEAP: Initialization failed!\n");
-		goto fatal_error;
-	}
 
 	printf("ACPI: Initialization ... ");
 	void* rsdp_ptr = kboot_info->rsdp_version > 0 ? kboot_info->rsdp_data : NULL;
@@ -117,7 +121,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	smp_init();
 	timer_init();
 
-	init_interrupts_handler(); 
 	printf("Reading PCI devices\n");
 	load_pci_devices_list();	
 
@@ -136,11 +139,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	ahci_init();	
 	init_nvme();
 	tty_init();
-
-	// ---
-	console_init();
-	// ---
-
 
 	vga_init_dev();
 	

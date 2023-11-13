@@ -111,7 +111,7 @@ void ahci_init()
 			memset(controller, 0, sizeof(ahci_controller_t));
 
 			controller->pci_device = device_desc;
-			controller->hba_mem = (HBA_MEMORY*)device_desc->BAR[5].address;
+			controller->hba_mem = (HBA_MEMORY*) device_desc->BAR[5].address;
 
 			size_t pages_num = align(device_desc->BAR[5].size, PAGE_SIZE) / PAGE_SIZE;
 			//Включить прерывания, DMA и MSA
@@ -121,11 +121,18 @@ void ahci_init()
 			// Данная страница уже замаплена, но без PAGE_UNCACHED, добавим флагов
 			uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
 			for (int page_i = 0; page_i < pages_num; page_i ++) {
-				set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(controller->hba_mem) + page_i * PAGE_SIZE, pageFlags);
+				map_page_mem(get_kernel_pml4(),
+					P2V(controller->hba_mem) + page_i * PAGE_SIZE,
+					controller->hba_mem + page_i * PAGE_SIZE,
+					pageFlags);
+				/*set_page_flags(
+					get_kernel_pml4(),
+					(uintptr_t) P2V(controller->hba_mem) + page_i * PAGE_SIZE,
+					pageFlags);*/
 			}
 
 			// Сохранение виртуального адреса на гллавную структуру контроллера
-			controller->hba_mem = (HBA_MEMORY*)P2V(controller->hba_mem);
+			controller->hba_mem = (HBA_MEMORY*) P2V(controller->hba_mem);
 
 			controller->version = controller->hba_mem->version;
 			controller->capabilities = controller->hba_mem->cap;

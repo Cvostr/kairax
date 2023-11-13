@@ -216,14 +216,15 @@ virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count)
     return get_first_free_pages_from(0, root, pages_count);
 }
 
-virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count){
-    for(virtual_addr_t addr = start; addr < MAX_PAGES_4; addr += PAGE_SIZE){
-        if(!arch_vm_is_mapped(root, addr)){
+virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count)
+{
+    for (virtual_addr_t addr = start; addr < MAX_PAGES_4; addr += PAGE_SIZE) {
+        if (!arch_vm_is_mapped(root, addr)) {
             int free = 0;
-            for(virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; saddr += PAGE_SIZE){
-                if(!arch_vm_is_mapped(root, saddr)){
+            for (virtual_addr_t saddr = addr; saddr < addr + pages_count * PAGE_SIZE; saddr += PAGE_SIZE) {
+                if (!arch_vm_is_mapped(root, saddr)) {
                     free++;
-                    if(free = pages_count){
+                    if (free = pages_count) {
                         return addr;
                     }
                 }else{

@@ -22,6 +22,7 @@ void kterm_process_start()
 
 void kterm_main()
 {
+	console_init();
     sys_create_pty(&master, &slave);
 	struct file *slave_file = process_get_file(kterm_process, slave);
 

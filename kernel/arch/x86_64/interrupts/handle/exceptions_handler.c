@@ -5,6 +5,9 @@
 #include "memory/mem_layout.h"
 #include "proc/process.h"
 #include "cpu/cpu_local_x64.h"
+#include "memory/mem_layout.h"
+#include "mem/pmm.h"
+#include "memory/kernel_vmm.h"
 
 void exception_handler(interrupt_frame_t* frame); //; прототип
 
@@ -56,9 +59,10 @@ void exception_handler(interrupt_frame_t* frame)
     uint64_t cr2;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
 
-    if (frame->cs == 0x23) {
-        // Исключение произошло в пользовательском процессе
-        if (frame->int_no == 0xE && (frame->error_code & 0b0001) == 0) {
+    if (frame->int_no == 0xE && (frame->error_code & 0b0001) == 0) {
+        if (frame->cs == 0x23) {
+            // Исключение произошло в пользовательском процессе
+
             // Page Fault
             int rc = process_handle_page_fault(cpu_get_current_thread()->process, cr2);
 
@@ -66,8 +70,15 @@ void exception_handler(interrupt_frame_t* frame)
                 // Все нормально, можно выходить
                 return;
             }
+        } else if (cr2 >= PHYSICAL_MEM_MAP_OFFSET && cr2 <= PHYSICAL_MEM_MAP_END) {
+            uint64_t addr_aligned = align_down(cr2, PAGE_SIZE);
+            uint64_t phys_addr = V2P(addr_aligned);
+            uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
+            map_page_mem( get_kernel_pml4(), (virtual_addr_t) addr_aligned, phys_addr, pageFlags);
+            return;
         }
     }
+
 
     printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);

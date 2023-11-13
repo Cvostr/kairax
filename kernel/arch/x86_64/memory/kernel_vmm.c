@@ -71,9 +71,6 @@ void map_page_mem_bt(page_table_t* root, virtual_addr_t virtual_addr, physical_a
 
 page_table_t* create_kernel_vm_map() 
 {
-    //Максимальный адрес физической памяти
-    size_t aligned_mem = align(pmm_get_physical_mem_max_addr(), PAGE_SIZE);
-
     //Размер ядра
     size_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
     kernel_size = align(kernel_size, PAGE_SIZE);
@@ -93,9 +90,22 @@ page_table_t* create_kernel_vm_map()
 		map_page_mem_bt(root_pml4, (virtual_addr_t)P2K(iter) + 0x100000ULL, 0x100000ULL + iter, pageFlags);
 	}
 
-    // маппинг физической памяти
-	for (iter = 0; iter <= aligned_mem; iter += PAGE_SIZE) {
-		map_page_mem_bt(root_pml4, (virtual_addr_t)P2V(iter), iter, pageFlags);
+    // маппинг регионов физической памяти
+    struct pmm_region* reg = pmm_get_regions();
+	while (reg->length != 0) {
+
+        //if ((reg->flags & PMM_REGION_USABLE) == 0) {
+         //   continue;
+        //} 
+
+        uint64_t base = align_down(reg->base, PAGE_SIZE);
+        uint64_t len = align(reg->length, PAGE_SIZE);
+		
+        for (iter = base; iter <= base + len; iter += PAGE_SIZE) {
+		    map_page_mem_bt(root_pml4, (virtual_addr_t)P2V(iter), iter, pageFlags);
+	    }
+
+        reg++;
 	}
 
     root_pml4 = P2V(K2P(root_pml4));
