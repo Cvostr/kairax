@@ -45,7 +45,14 @@ int vfs_get_free_mount_info_pos()
 
 int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname)
 {
-    struct dentry* mp = vfs_dentry_traverse_path(root_dentry, mount_path);
+    struct dentry* mount_dent = vfs_dentry_traverse_path(root_dentry, mount_path);
+
+    if (mount_dent == NULL) {
+        // Путь монтирования отсутствует
+        return -ERROR_NO_FILE;
+    }
+
+    // TODO: Проверить тип (должна быть директория)
 
     int mount_pos = vfs_get_free_mount_info_pos();
     if(mount_pos == -1)
@@ -68,10 +75,10 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         inode_open(root_inode, 0);
 
         // dentry монтирования
-        mp->sb = sb;
-        mp->inode = root_inode->inode;
-        sb->root_dir = mp;
-        dentry_open(mp);
+        mount_dent->sb = sb;
+        mount_dent->inode = root_inode->inode;
+        sb->root_dir = mount_dent;
+        dentry_open(mount_dent);
         
     } else {
         free_superblock(sb);

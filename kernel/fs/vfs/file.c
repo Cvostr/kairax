@@ -166,6 +166,8 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
     if (file_allow_read(file)) {
         if (file->ops->read) {
             read = file->ops->read(file, buffer, size, file->pos);
+        } else {
+            read = -ERROR_INVALID_VALUE;
         }
     } else {
         read = -ERROR_BAD_FD;
@@ -192,7 +194,12 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
             if ((file->flags & FILE_OPEN_FLAG_APPEND) == FILE_OPEN_FLAG_APPEND) {
                 file->pos = file->inode->size;
             }
-            written = file->ops->write(file, buffer, size, file->pos);
+
+            if (file->ops->write) {
+                written = file->ops->write(file, buffer, size, file->pos);
+            } else {
+                written = -ERROR_INVALID_VALUE;
+            }
         }
     } else {
         written = -ERROR_BAD_FD;
