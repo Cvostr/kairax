@@ -29,7 +29,7 @@ init_x64:
     mov gs, ax              
     mov ss, ax              
 
-    mov rsp, kernel_stack_top
+    mov rsp, P2V(K2P(kernel_stack_top))
     call lgdt_boot_v
     lea rax, [kmain]
     call rax

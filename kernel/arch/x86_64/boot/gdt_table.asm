@@ -6,7 +6,7 @@ extern tss_size
 section .rodata
 gdtptr:
     dw gdt_end - gdt_start - 0x1
-    dd V2P(gdt)
+    dd K2P(gdt)
 
 gdtptr_hh:
     dw gdt_end - gdt_start - 0x1

@@ -16,9 +16,9 @@ global _start
 
 section .text
 _start:
-	cli 							;Отключение прерываний
-	mov esp, V2P(kernel_stack_top) 	; Назначение стековой памяти
-	push ebx						;Сохранение указателя на таблицу multiboot2
+	cli 							; Отключение прерываний
+	mov esp, K2P(kernel_stack_top) 	; Назначение стековой памяти
+	push ebx						; Сохранение указателя на таблицу multiboot2
 	
 	call check_multiboot2			;Проверка multiboot2
 	call check_cpuid
@@ -28,13 +28,13 @@ _start:
 	call beginning_memmap
 	call enable_long_mode_paging
 
-	mov eax, V2P(gdtptr)
+	mov eax, K2P(gdtptr)
 	lgdt [eax]
 
 	mov edi, MAGIC_BOOTLOADER_MB2
 	pop esi							;Вернуть структуру multiboot2 в регистр первого аргумента (EDI)
 
-	jmp 0x08:V2P(init_x64)			;Выполнить дальний прыжок
+	jmp 0x08:K2P(init_x64)			;Выполнить дальний прыжок
 
 	hlt
 
@@ -44,7 +44,7 @@ check_multiboot2:
 	jne no_multiboot2
 	ret
 no_multiboot2:
-	mov esi, V2P(multiboot_error)
+	mov esi, K2P(multiboot_error)
 	call print_string
 	hlt
 
@@ -65,7 +65,7 @@ check_cpuid: ; проверка поддержки инструкции CPUID
 	je no_cpuid ; Ошибка, CPUID не поддерживается
 	ret
 no_cpuid:
-	mov esi, V2P(nocpuid_error)
+	mov esi, K2P(nocpuid_error)
 	call print_string
 	hlt
 
@@ -81,7 +81,7 @@ check_x64: ;Проверка, поддерживает ли процессор L
     jz no_x64
     ret
 no_x64:
-	mov esi, V2P(nolongmode_error)
+	mov esi, K2P(nolongmode_error)
 	call print_string
 	hlt
 
@@ -101,7 +101,7 @@ check_enable_sse:
 
 	ret
 no_sse:
-	mov esi, V2P(nosse_error)
+	mov esi, K2P(nosse_error)
 	call print_string
     hlt
 
@@ -125,32 +125,42 @@ end_print_loop:
 	ret
 
 beginning_memmap: ;Задает начальную конфигурацию для страничной памяти
-	mov eax, V2P(p3_table) ; В eax помещается адрес таблицы 3 уровня
+	mov eax, K2P(p3_table) ; В eax помещается адрес таблицы 3 уровня
 	or eax, 0b11 	; Память можно просматривать и изменять
-	mov DWORD [V2P(p4_table)], eax
-	mov DWORD [V2P(p4_table) + (PML4_ENTRY_INDEX * PAGE_ENTRY_SIZE)], eax
+	mov DWORD [K2P(p4_table)], eax
+	mov DWORD [K2P(p4_table) + (PML4_ENTRY_INDEX_KERN * PAGE_ENTRY_SIZE)], eax
 
-	mov eax, V2P(p2_table) ; В eax помещается адрес таблицы 2 уровня
+	mov eax, K2P(p3_table_1) ; В eax помещается адрес таблицы 3 уровня
+	or eax, 0b11 	; Память можно просматривать и изменять
+	mov DWORD [K2P(p4_table)], eax
+	mov DWORD [K2P(p4_table) + (PML4_ENTRY_INDEX_PHYS * PAGE_ENTRY_SIZE)], eax
+
+	mov eax, K2P(p2_table) ; В eax помещается адрес таблицы 2 уровня
 	or eax, 0b11	; Память можно просматривать и изменять
-	mov DWORD [V2P(p3_table)], eax
-	mov DWORD [V2P(p3_table) + (PDPT_ENTRY_INDEX * PAGE_ENTRY_SIZE)], eax
+	mov DWORD [K2P(p3_table)], eax
+	mov DWORD [K2P(p3_table) + (PDPT_ENTRY_INDEX_KERN * PAGE_ENTRY_SIZE)], eax
+
+	mov eax, K2P(p2_table) ; В eax помещается адрес таблицы 2 уровня
+	or eax, 0b11	; Память можно просматривать и изменять
+	mov DWORD [K2P(p3_table_1)], eax
+	mov DWORD [K2P(p3_table_1) + (PDPT_ENTRY_INDEX_PHYS * PAGE_ENTRY_SIZE)], eax
 
 	xor ecx, ecx 	; Быстрое обнуление счетчика
 .p1_loop:
 	mov eax, 0x200000 	;размер фреймов таблицы - 2 мб
 	mul ecx				;умножаем размер на номер 2-мб страницы
 	or eax, 0b10000011 ; Память можно просматривать и изменять, а также это очень большая страница
-	mov [V2P(p2_table) + ecx * 8], eax ; map ecx-th entry
+	mov [K2P(p2_table) + ecx * 8], eax ; map ecx-th entry
 
 	inc ecx 		; увеличение счетчика на 1
-	cmp ecx, 512 	; уже создано 64 страниц
+	cmp ecx, 512 	; уже создано 512 страниц
 	jne .p1_loop
 	ret
 
 enable_long_mode_paging: ;включение 64 битного режима процессора и страничной адресации
-	mov eax, V2P(p4_table)
+	mov eax, K2P(p4_table)
 	mov cr3, eax
-	;Взведение флага PAE, PGE, UMIP в регистре cr4
+	;Взведение флага PAE, PGE в регистре cr4
 	mov eax, cr4
 	or eax, (1 << 5) | (1 << 7)
 	mov cr4, eax
@@ -172,6 +182,8 @@ align 0x1000
 p4_table:
     resb 0x1000
 p3_table:
+    resb 0x1000
+p3_table_1:
     resb 0x1000
 p2_table:
     resb 0x1000
