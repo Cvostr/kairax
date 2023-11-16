@@ -73,17 +73,3 @@ int multiboot_get_memory_area(size_t entry_index, uintptr_t *start, uintptr_t *l
     *type = entry->type;
     return 0;
 }
-
-int multiboot_page_used(uintptr_t start)
-{
-    #define PAGE_SIZE 0x1000
-    #define overlap(st, len) ((uintptr_t)st < (start + PAGE_SIZE) && start <= ((uintptr_t)st + len))
-    if(
-        overlap(kernel_boot_info.bootloader_string, strlen(kernel_boot_info.bootloader_string)) ||
-        overlap(kernel_boot_info.command_line, strlen(kernel_boot_info.command_line)) ||
-        overlap(kernel_boot_info.mmap, kernel_boot_info.mmap_size) ||
-        0)
-        return 1;
-
-    return 0;
-}

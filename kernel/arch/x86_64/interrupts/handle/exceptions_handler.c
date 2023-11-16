@@ -60,10 +60,10 @@ void exception_handler(interrupt_frame_t* frame)
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
 
     if (frame->int_no == 0xE && (frame->error_code & 0b0001) == 0) {
-        if (frame->cs == 0x23) {
-            // Исключение произошло в пользовательском процессе
 
-            // Page Fault
+        // Page Fault
+        if (cr2 >= 0 && cr2 <= USERSPACE_MAX_ADDR) {
+            
             int rc = process_handle_page_fault(cpu_get_current_thread()->process, cr2);
 
             if (rc == 1) {
@@ -79,6 +79,9 @@ void exception_handler(interrupt_frame_t* frame)
         }
     }
 
+    if (frame->cs == 0x23) {
+        // Исключение произошло в пользовательском процессе
+    }
 
     printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);
@@ -99,7 +102,7 @@ void exception_handler(interrupt_frame_t* frame)
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
     for (int i = 0; i < 20; i ++) {
         uintptr_t value = *(stack_ptr++);
-        //if(value > KERNEL_TEXT_OFFSET)
+        if(value > KERNEL_TEXT_OFFSET)
             printf("%s, ", ulltoa(value, 16));
     }
 
