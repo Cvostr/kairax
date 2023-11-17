@@ -49,7 +49,17 @@ void file_close(struct file* file)
     }
 }
 
+char* format_path(const char* path) 
+{
+    char *result = strdup(path);
+    if (result[strlen(path) - 1] == '/')
+        result[strlen(path) - 1] = '\0';
+
+    return result;
+}
+
 void split_path(const char* path, char** directory_path_ptr, char** filename_ptr) {
+    //printf("ORIG %s\n", path);
     // Поиск разделителя файла
     char* last_slash = strrchr(path, '/');
 

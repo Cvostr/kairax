@@ -6,8 +6,6 @@
 #include "unistd.h"
 #include "limits.h"
 
-char temp[130];
-
 static char destination[32] = {0};
 
 char* itoa(long long number, int base){
@@ -16,16 +14,17 @@ char* itoa(long long number, int base){
     do {
       	int digit = number % base;
       	destination[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
-    	} while ((number /= base) != 0);
-    	destination[count] = '\0';
-    	int i;
-    	for (i = 0; i < count / 2; ++i) {
+    } while ((number /= base) != 0);
+    
+	destination[count] = '\0';
+
+    for (int i = 0; i < count / 2; ++i) {
       	char symbol = destination[i];
       	destination[i] = destination[count - i - 1];
       	destination[count - i - 1] = symbol;
-    	}
-    	return destination;
-
+    }
+    
+	return destination;
 }
 
 void write_to_console(const char* buffer, int size) {

@@ -72,11 +72,14 @@ int sys_mkdir(int dirfd, const char* path, int mode)
         return rc;
     }
 
+    // Форматировать путь + дублировать путь
+    char *formatted_path = format_path(path); 
+
     char* directory_path = NULL;
     char* filename = NULL;
 
-    // Разделить путь на путь директории имя файла
-    split_path(path, &directory_path, &filename);
+    // Разделить путь на путь директории и имя файла
+    split_path(formatted_path, &directory_path, &filename);
 
     // Открываем inode директории
     struct inode* dir_inode = vfs_fopen(dir_dentry, directory_path, 0, NULL);
@@ -87,7 +90,8 @@ int sys_mkdir(int dirfd, const char* path, int mode)
 
     if (dir_inode == NULL) {
         // Отсутствует полный путь к директории
-        return -1;
+        rc = -ERROR_NO_FILE;
+        goto exit;
     }
 
     // Создать папку
@@ -95,6 +99,8 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     // Закрыть inode директории
     inode_close(dir_inode);
 
+exit:
+    kfree(formatted_path);
     return rc;
 }
 

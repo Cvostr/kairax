@@ -16,6 +16,9 @@ void strncpy(char* dst, const char* src, size_t size);
 
 char* strchr(const char * string, int symbol);
 char* strrchr(const char * string, int symbol);
+char* strrnchr(const char * string, int symbol);
+
+char *strdup (const char *__s);
 
 int memcmp(const void*, const void*, size_t);
 void* memcpy(void* __restrict, const void* __restrict, size_t);

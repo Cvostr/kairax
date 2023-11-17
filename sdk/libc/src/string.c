@@ -14,7 +14,30 @@ void *memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n)
 
 void *memmove (void *__dest, const void *__src, size_t __n)
 {
+    u_char* src = (u_char*) __src;
+	u_char* dest = (u_char*) __dest;
+    size_t i = 0;
 
+	if (src == dest || __n == 0)
+		return __dest;
+
+	if (dest > src && dest - src < __n) {
+
+		for (i = __n - 1; i >= 0; i--)
+			dest[i] = src[i];
+
+		return __dest;
+	}
+	if (src > dest && src - dest < __n) {
+
+		for (i = 0; i < __n; i++)
+			dest[i] = src[i];
+
+		return __dest;
+	}
+
+	memcpy(__dest, __src, __n);
+	return __dest;
 }
 
 void *memset (void *__s, int __c, size_t __n)
@@ -137,11 +160,12 @@ char *strdup (const char *__s)
 {
     size_t strsize = strlen(__s);
     char* str = malloc(strsize + 1);
-    str[strsize] = '\0';
 
     if (str == NULL) {
         return NULL;
     }
+
+    str[strsize] = '\0';
 
     return memcpy(str, __s, strsize);
 }

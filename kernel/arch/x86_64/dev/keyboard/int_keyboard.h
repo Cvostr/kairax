@@ -14,7 +14,7 @@ struct keyboard_buffer {
 
 void init_ints_keyboard();
 
-char keyboard_get_key();
+short keyboard_get_key();
 short keyboard_get_key_from_buffer(struct keyboard_buffer* buffer);
 
 char keyboard_get_key_ascii(char keycode);

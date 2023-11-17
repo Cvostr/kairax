@@ -118,7 +118,7 @@ void keyboard_int_handler(interrupt_frame_t* frame, void* data)
     pic_eoi(1);
 }
 
-char keyboard_get_key()
+short keyboard_get_key()
 {
     return keyboard_get_key_from_buffer(main_key_buffer);
 }

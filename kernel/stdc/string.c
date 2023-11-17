@@ -1,5 +1,5 @@
 #include "string.h"
-
+#include "mem/kheap.h"
 
 size_t strlen(const char* str){
 	char *begine = (char*)str;
@@ -121,4 +121,17 @@ char* strrchr(const char* string, int symbol)
   	} while (*s++);
   	
 	return (result);
+}
+
+char *strdup (const char *__s)
+{
+    size_t strsize = strlen(__s);
+    char* str = kmalloc(strsize + 1);
+    str[strsize] = '\0';
+
+    if (str == NULL) {
+        return NULL;
+    }
+
+    return memcpy(str, __s, strsize);
 }
