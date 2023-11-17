@@ -4,27 +4,51 @@
 #include "fs/devfs/devfs.h"
 #include "mem/kheap.h"
 #include "keycodes.h"
+#include "sync/spinlock.h"
 
 struct file_operations int_keyb_fops;
 
 struct keyboard_buffer* key_buffers[KEY_BUFFERS_MAX];
+spinlock_t              key_buffers_lock = 0;
 struct keyboard_buffer* main_key_buffer = NULL;
 
 struct keyboard_buffer* new_keyboard_buffer() 
 {
+    struct keyboard_buffer* result = NULL;
+    acquire_spinlock(&key_buffers_lock);
+
     for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
         if (key_buffers[i] == NULL) {
 
             // Создать буфер
-            struct keyboard_buffer* kbuffer = kmalloc(sizeof(struct keyboard_buffer));
-            memset(kbuffer, 0, sizeof(struct keyboard_buffer));
+            result = kmalloc(sizeof(struct keyboard_buffer));
+            memset(result, 0, sizeof(struct keyboard_buffer));
 
-            key_buffers[i] = kbuffer;
-            return kbuffer;
+            key_buffers[i] = result;
+            goto exit;
         }
     }
 
-    return NULL;
+exit:
+    release_spinlock(&key_buffers_lock);
+    return result;
+}
+
+void keyboard_buffer_destroy(struct keyboard_buffer* kbuffer)
+{
+    acquire_spinlock(&key_buffers_lock);
+
+    for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
+        if (key_buffers[i] == kbuffer) {
+
+            // Освободить буфер
+            kfree(kbuffer);
+            key_buffers[i] = NULL;
+            break;
+        }
+    }
+
+    release_spinlock(&key_buffers_lock);
 }
 
 ssize_t intk_f_read (struct file* file, char* buffer, size_t count, loff_t offset)
@@ -45,6 +69,15 @@ int intk_f_open(struct inode *inode, struct file *file)
 {
     struct keyboard_buffer* buffer = new_keyboard_buffer();
     file->private_data = buffer;
+    // todo : улучшить в file_open
+    return 0;
+}
+
+int intk_f_close(struct inode *inode, struct file *file)
+{
+    struct keyboard_buffer* keybuffer = (struct keyboard_buffer*) file->private_data;
+    keyboard_buffer_destroy(keybuffer);
+    return 0;
 }
 
 void init_ints_keyboard()
@@ -57,7 +90,8 @@ void init_ints_keyboard()
 
     int_keyb_fops.read = intk_f_read;
     int_keyb_fops.open = intk_f_open;
-	  devfs_add_char_device("keyboard", &int_keyb_fops);
+    int_keyb_fops.close = intk_f_close;
+	devfs_add_char_device("keyboard", &int_keyb_fops);
 }
 
 void keyboard_int_handler(interrupt_frame_t* frame, void* data)

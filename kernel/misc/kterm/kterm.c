@@ -6,6 +6,7 @@
 #include "proc/syscalls.h"
 #include "stdio.h"
 #include "keycodes.h"
+#include "dev/keyboard/int_keyboard.h"
 
 struct process *kterm_process = NULL;
 int master, slave;
