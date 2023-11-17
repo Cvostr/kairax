@@ -29,8 +29,16 @@ struct keyboard_buffer* new_keyboard_buffer()
 
 ssize_t intk_f_read (struct file* file, char* buffer, size_t count, loff_t offset)
 {
-    buffer[0] = keyboard_get_key_from_buffer(file->private_data);
-    return buffer[0] != 0;
+    struct keyboard_buffer* keybuffer = (struct keyboard_buffer*) file->private_data;
+    if (keybuffer->start == keybuffer->end) {
+        return 0;
+    }
+
+    short pressed = keyboard_get_key_from_buffer(keybuffer);
+    buffer[0] = pressed & 0xFF;
+    buffer[1] = (pressed >> 8) & 0xFF;
+
+    return 1;
 }
 
 int intk_f_open(struct inode *inode, struct file *file)
@@ -49,12 +57,13 @@ void init_ints_keyboard()
 
     int_keyb_fops.read = intk_f_read;
     int_keyb_fops.open = intk_f_open;
-	devfs_add_char_device("keyboard", &int_keyb_fops);
+	  devfs_add_char_device("keyboard", &int_keyb_fops);
 }
 
 void keyboard_int_handler(interrupt_frame_t* frame, void* data)
 {
-    char keycode = inb(0x60) + 1;
+    char keycode_ps2 = inb(0x60);
+    short keycode_krx = keycode_ps2_to_kairax(keycode_ps2);
     
     for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
         if (key_buffers[i] != NULL) {
@@ -64,7 +73,7 @@ void keyboard_int_handler(interrupt_frame_t* frame, void* data)
             if (buffer->end >= KEY_BUFFER_SIZE) 
                 buffer->end = 0;
 
-            buffer->buffer[buffer->end] = keycode;
+            buffer->buffer[buffer->end] = keycode_krx;
             buffer->end += 1;
         }
     }
@@ -80,7 +89,7 @@ char keyboard_get_key()
     return keyboard_get_key_from_buffer(main_key_buffer);
 }
 
-char keyboard_get_key_from_buffer(struct keyboard_buffer* buffer)
+short keyboard_get_key_from_buffer(struct keyboard_buffer* buffer)
 {
     if (buffer->start != buffer->end) {
         if (buffer->start >= KEY_BUFFER_SIZE) buffer->start = 0;
@@ -193,6 +202,7 @@ short keycode_ps2_to_kairax(unsigned char keycode_ps2)
         DEFINE_KEY(0x25, KRXK_K)
         DEFINE_KEY(0x26, KRXK_L)
         //DEFINE_KEY(0x27, KRXK_) ;
+        DEFINE_KEY(0x2A, KRXK_LSHIFT)
         DEFINE_KEY(0x2B, KRXK_BSLASH)
         DEFINE_KEY(0x2C, KRXK_Z)
         DEFINE_KEY(0x2D, KRXK_X)
@@ -225,139 +235,5 @@ short keycode_ps2_to_kairax(unsigned char keycode_ps2)
         DEFINE_KEY(0x58, KRXK_F12)
     }
 
-    return (((short) keycode) << 8) | state;
-}
-
-char keyboard_get_key_ascii(char keycode)
-{
-	switch(keycode) {
-    case 0x11:
-        return 'q';
-    case 0x12:
-        return 'w';
-    case 0x13:
-      return 'e';
-      break;
-    case 0x14:
-      return 'r';
-      break;
-    case 0x15:
-      return 't';
-      break;
-    case 0x16:
-      return 'y';
-      break;
-    case 0x17:
-      return 'u';
-      break;
-    case 0x18:
-      return 'i';
-      break;
-    case 0x19:
-      return 'o';
-      break;
-    case 0x1A:
-      return 'p';
-      break;
-    case 0x1F:
-      return 'a';
-      break;
-    case 0x20:
-      return 's';
-      break;
-    case 0x21:
-      return 'd';
-      break;
-    case 0x22:
-      return 'f';
-      break;
-    case 0x23:
-      return 'g';
-      break;
-    case 0x24:
-      return 'h';
-      break;
-    case 0x25:
-      return 'j';
-      break;
-    case 0x26:
-      return 'k';
-      break;
-    case 0x27:
-      return 'l';
-      break;
-    case 0x2D:
-      return 'z';
-      break;
-    case 0x2E:
-      return 'x';
-      break;
-    case 0x2F:
-      return 'c';
-      break;
-    case 0x30:
-      return 'v';
-      break;
-    case 0x31:
-      return 'b';
-      break;
-    case 0x32:
-      return 'n';
-      break;
-    case 0x33:
-      return 'm';
-      break;
-    case 0x3:
-      return '1';
-      break;
-    case 0x4:
-      return '2';
-      break;
-    case 0x5:
-      return '3';
-      break;
-    case 0x6:
-      return '4';
-      break;
-    case 0x7:
-      return '5';
-      break;
-    case 0x8:
-      return '6';
-      break;
-    case 0x9:
-      return '7';
-      break;
-    case 0xA:
-      return '8';
-      break;
-    case 0xB:
-        return '9';
-        break;
-    case 0xC:
-        return '0';
-        break;
-    case 0xD:
-        return '-';
-        break;
-    case 0x1D:
-        return '\n';
-        break;
-    case 0xF:
-        return '\b';
-        break;
-    case 0x3A:
-      return ' ';
-      break;
-    case 0x36:
-      return '/';
-      break;
-    case 0x35:
-      return '.';
-      break;
-    default:
-        //if (keycode != 0)
-        //printf("%i ", keycode);
-	}
-	return 0;
+    return (((short) state) << 8) | keycode;
 }

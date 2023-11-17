@@ -7,7 +7,7 @@
 #define KEY_BUFFERS_MAX 10
 
 struct keyboard_buffer {
-    char buffer[KEY_BUFFER_SIZE];
+    short buffer[KEY_BUFFER_SIZE];
     unsigned char start;
     unsigned char end;
 };
@@ -15,7 +15,7 @@ struct keyboard_buffer {
 void init_ints_keyboard();
 
 char keyboard_get_key();
-char keyboard_get_key_from_buffer(struct keyboard_buffer* buffer);
+short keyboard_get_key_from_buffer(struct keyboard_buffer* buffer);
 
 char keyboard_get_key_ascii(char keycode);
 short keycode_ps2_to_kairax(unsigned char keycode_ps2);
