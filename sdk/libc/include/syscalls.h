@@ -16,6 +16,8 @@ extern int syscall_fdstat(int dirfd, const char* filepath, void* stat_buffer, in
 extern long long int syscall_file_seek(int fd, long int offset, int whence);
 extern int syscall_create_pipe(int* dirfd, int flags);
 extern int syscall_set_file_mode(int dirfd, const char* filepath, unsigned int mode, int flags);
+extern int syscall_remove_file(int fd, const char* path, int flags);
+extern int syscall_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath);
 extern int syscall_mount(const char* device, const char* mount_dir, const char* fs);
 extern int syscall_create_directory(int dirfd, const char* pathname, int mode);
 extern void* syscall_process_map_memory(void* address, unsigned long long length, int protection, int flags);

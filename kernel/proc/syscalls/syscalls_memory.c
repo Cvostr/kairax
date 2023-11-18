@@ -12,7 +12,7 @@
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
 {
     //printf("ADDR %s ", ulltoa(address, 16));
-    //printf("SZ %s", ulltoa(length, 16));
+    //printf_stdout("SZ %s\n", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
@@ -35,7 +35,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
     //NOT IMPLEMENTED FOR FILE MAP
     //TODO: IMPLEMENT
 
-    //printf(" FOUND ADDR %s\n", ulltoa(address, 16));
+    //printf_stdout(" FOUND ADDR %s\n", ulltoa(address, 16));
     return address;
 }
 
@@ -45,6 +45,10 @@ int sys_memory_unmap(void* address, uint64_t length)
     // TODO : implement splitting
     struct process* process = cpu_get_current_thread()->process;
     int rc = 0;
+
+    if (length == 0) {
+        return (void*)-ERROR_INVALID_VALUE;
+    }
 
     acquire_spinlock(&process->mmap_lock);
     struct mmap_range* region = process_get_region_by_addr(process, address);

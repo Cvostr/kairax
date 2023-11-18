@@ -232,3 +232,15 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 
     return result;
 }
+
+int sys_remove_file(int fd, const char* path, int flags)
+{
+    printf_stdout("removing %s \n", path);
+    return -1;
+}
+
+int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath)
+{
+    printf_stdout("renaming from %s to %s\n", oldpath, newpath);
+    return -1;
+}

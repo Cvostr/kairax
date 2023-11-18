@@ -167,7 +167,9 @@ botch(s)
 #endif
 
 void* sbrk(int len) {
-    return mmap(NULL, len, PROT_READ | PROT_WRITE, 0);
+	char *mm = mmap(NULL, len, PROT_READ | PROT_WRITE, 0);
+	memset(mm, 0, len);
+    return mm;
 }
 
 void *calloc(size_t num, size_t size)
@@ -189,10 +191,10 @@ void *malloc(size_t nbytes)
 	if (pagesz == 0) {
 		pagesz = n = 0x1000; //sysconf(_SC_PAGESIZE);
 		ASSERT(pagesz > 0);
-		op = (union overhead *)(void *)sbrk(0);
-  		n = n - sizeof (*op) - ((long)op & (n - 1));
-		if (n < 0)
-			n += pagesz;
+		//op = (union overhead *)(void *)sbrk(0);
+  		//n = n - sizeof (*op) - ((long)op & (n - 1));
+		//if (n < 0)
+		//	n += pagesz;
 		if (n) {
 			if (sbrk((int)n) == (void *)-1) {
 				return (NULL);

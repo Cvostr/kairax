@@ -2,6 +2,9 @@
 #include "unistd.h"
 #include "stdlib.h"
 #include "stdio_impl.h"
+#include "syscalls.h"
+#include "fcntl.h"
+#include "errno.h"
 
 int fclose(FILE *stream)
 {
@@ -47,6 +50,5 @@ int remove(const char* filename) {
 
 int rename(const char *oldpath, const char *newpath)
 {
-    // todo : implement
-    return 0;
+    __set_errno(syscall_rename(AT_FDCWD, oldpath, AT_FDCWD, newpath));
 }

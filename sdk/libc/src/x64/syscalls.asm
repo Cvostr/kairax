@@ -14,6 +14,7 @@ global syscall_write
 global syscall_ioctl
 global syscall_open_file
 global syscall_close
+global syscall_rename
 global syscall_fdstat
 global syscall_readdir
 global syscall_file_seek
@@ -87,6 +88,12 @@ syscall_ioctl:
 
 syscall_readdir:
     mov rax, 0x59
+    syscall
+    ret
+
+syscall_rename:
+    mov rax, 0x52
+    mov r10, rcx
     syscall
     ret
 

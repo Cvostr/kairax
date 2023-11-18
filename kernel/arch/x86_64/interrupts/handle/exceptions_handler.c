@@ -79,11 +79,7 @@ void exception_handler(interrupt_frame_t* frame)
         }
     }
 
-    if (frame->cs == 0x23) {
-        // Исключение произошло в пользовательском процессе
-    }
-
-    printf("Exception occured 0x%s (%s)\nKernel terminated. Please reboot your computer\n", 
+    printf("Exception occured 0x%s (%s)\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);
     printf("ERR = %s\n", ulltoa(frame->error_code, 16));
     printf("RAX = %s ", ulltoa(frame->rax, 16));
@@ -104,6 +100,15 @@ void exception_handler(interrupt_frame_t* frame)
         uintptr_t value = *(stack_ptr++);
         //if(value > KERNEL_TEXT_OFFSET)
             printf("%s, ", ulltoa(value, 16));
+    }
+
+    if (frame->cs == 0x23) {
+        // Исключение произошло в пользовательском процессе
+        // Завершаем процесс
+        printf("Process terminated!\n");
+        sys_exit_process(-1);
+    } else {
+        printf("Kernel terminated. Please reboot your computer\n");
     }
 
 	asm volatile("hlt");

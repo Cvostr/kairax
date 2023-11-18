@@ -143,9 +143,8 @@ uint8_t defaultFont[128][8] = {
 #define LINE_SIZE   18
 #define COL_SIZE    15
 
-#define BUFFER_LINE_LENGTH  67
-#define BUFFER_LINES        42
-#define BUFFER_SIZE (BUFFER_LINE_LENGTH * BUFFER_LINES)
+int BUFFER_LINE_LENGTH = 67;
+int BUFFER_LINES       = 42;
 
 #define DOUBLEBUFFER_DEPTH  32
 #define DOUBLEBUFFER_DEPTH_BYTES  4
@@ -163,6 +162,9 @@ void console_init()
     double_buffer = pmm_alloc_pages((console_buffer_size / PAGE_SIZE) + 1);
     double_buffer = P2V(double_buffer);
     memset(double_buffer, 0, console_buffer_size);
+
+    BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
+    BUFFER_LINES = vga_get_height() / LINE_SIZE;
 }
 
 void console_print_char(char chr)
