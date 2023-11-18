@@ -76,10 +76,11 @@ FILE *fdopen(int fd, const char* restrict mode)
         case O_RDWR:
             fil->_flags |= FSTREAM_CANWRITE;
         case O_RDONLY:
-            fil->_flags |= FSTREAM_CANREAD;
+            fil->_flags |= (FSTREAM_CANREAD | FSTREAM_INPUT);
             break;
         case O_WRONLY:
             fil->_flags |= FSTREAM_CANWRITE;
+            break;
     }
 
     return fil;

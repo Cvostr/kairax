@@ -18,14 +18,28 @@ int fclose(FILE *stream)
 
 long ftell(FILE *stream)
 {
-    return lseek(stream->_fileno, 0, SEEK_CUR);
+    off_t fdpos = 0;
+    if ((stream->_flags & FSTREAM_ERROR == FSTREAM_ERROR) || (fdpos = lseek(stream->_fileno, 0, SEEK_CUR)) == -1) {
+        return -1;
+    }
+
+    ssize_t modifier = 0;
+    if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT) {
+        modifier = -(stream->_buf_size - stream->_buf_pos);
+    } else {
+        modifier = stream->_buf_pos;
+    }
+
+    return fdpos + modifier;
 }
 
 int fseek(FILE *stream, long offset, int whence)
 {
+    fflush(stream);
     stream->_buf_pos = 0;
     stream->_buf_size = 0;
-    return lseek(stream->_fileno, offset, whence);
+    stream->_flags &= ~FSTREAM_EOF;
+    return lseek(stream->_fileno, offset, whence) == -1 ? -1 : 0;
 }
 
 int fileno(FILE *stream)

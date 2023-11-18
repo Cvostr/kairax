@@ -8,9 +8,8 @@
 #include "spawn.h"
 
 void thr1() {
-    fprintf(stdout, "to stdout\n");
     for (int i = 0; i < 3; i ++) {
-        printf(" THR \n");
+        fprintf(stdout, " THR \n");
         sleep(1);
     }
 
@@ -61,16 +60,17 @@ int main(int argc, char** argv) {
     pid_t rc = waitpid(pid, &status, 0);
     printf("PROCESS FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
 
-    /*pid_t tpi = create_thread(thr1, NULL);
+    pid_t tpi = create_thread(thr1, NULL);
     printf("CREATED THREAD %i, errno = %i\n", tpi, errno);
 
     rc = waitpid(tpi, &status, 0);
     printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
-*/
+
     FILE* tsf = fopen("bugaga.txt", "r");
     char* buffer = malloc(20);
     int readed = 0;
     while ((readed = fread(buffer, 1, 20, tsf)) > 0) {
+        printf("FTELL IS %i\n", ftell(tsf));
         for (int i = 0; i < readed; i ++) {
             putchar(buffer[i]);
         }

@@ -7,7 +7,9 @@ int fflush(FILE *stream)
 {
     ssize_t res;
 
-	if (stream->_buf_pos > 0) {
+    if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT) {
+        // todo : implement
+    } else if (stream->_buf_pos > 0) {
         res = write(stream->_fileno, stream->_buffer, stream->_buf_pos);
         if (res == -1 || res != stream->_buf_pos) {
             stream->_flags = FSTREAM_ERROR;

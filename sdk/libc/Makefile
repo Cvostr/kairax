@@ -6,6 +6,7 @@ OBJ_DIRS =  obj \
 			obj/stdio \
 			obj/stdlib \
 			obj/sys \
+			obj/threads \
 			obj/x64
 
 COMPILED_OBJS = obj/math.o \
@@ -45,6 +46,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/ctype.o \
 				obj/dirent.o \
 				obj/spawn.o \
+				obj/threads/mtx.o \
 				obj/x64/syscalls.o
 
 all: $(OBJ_DIRS) libc errno
