@@ -4,7 +4,7 @@
 
 extern apic_io_t*          ioapic_global;
 
-extern uint32_t            ioapic_isos_count = 0;
+extern uint32_t            ioapic_isos_count;
 extern ioapic_iso_t**      ioapic_isos;
 
 uint32_t ioapic_read(uint32_t reg)
@@ -19,4 +19,9 @@ void ioapic_write(uint32_t reg, uint32_t value)
     uint32_t* addr = (uint32_t*) P2V(ioapic_global->io_apic_address);
     *addr = (reg & 0xff);
     addr[4] = value;
+}
+
+void ioapic_redirect_interrupt(int lapic_id, int vector, int irq)
+{
+    
 }
