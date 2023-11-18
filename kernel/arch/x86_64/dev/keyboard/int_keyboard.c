@@ -12,6 +12,8 @@ struct keyboard_buffer* key_buffers[KEY_BUFFERS_MAX];
 spinlock_t              key_buffers_lock = 0;
 struct keyboard_buffer* main_key_buffer = NULL;
 
+int tag_E0 = 0;
+
 struct keyboard_buffer* new_keyboard_buffer() 
 {
     struct keyboard_buffer* result = NULL;
@@ -97,19 +99,25 @@ void init_ints_keyboard()
 void keyboard_int_handler(interrupt_frame_t* frame, void* data)
 {
     char keycode_ps2 = inb(0x60);
-    short keycode_krx = keycode_ps2_to_kairax(keycode_ps2);
-    
-    for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
-        if (key_buffers[i] != NULL) {
+    if (keycode_ps2 != 0xE0) {
+        short keycode_krx = keycode_ps2_to_kairax(keycode_ps2);
+        
+        for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
+            if (key_buffers[i] != NULL) {
 
-            struct keyboard_buffer* buffer = key_buffers[i];
+                struct keyboard_buffer* buffer = key_buffers[i];
 
-            if (buffer->end >= KEY_BUFFER_SIZE) 
-                buffer->end = 0;
+                if (buffer->end >= KEY_BUFFER_SIZE) 
+                    buffer->end = 0;
 
-            buffer->buffer[buffer->end] = keycode_krx;
-            buffer->end += 1;
+                buffer->buffer[buffer->end] = keycode_krx;
+                buffer->end += 1;
+            }
         }
+
+        tag_E0 = 0;
+    } else {
+        tag_E0 = 1;
     }
 
     int stat61 = inb(0x61);

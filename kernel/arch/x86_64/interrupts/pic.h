@@ -42,7 +42,9 @@ void pic_eoi(uint8_t irq);
 void init_pic(void);
 //Разрешить прерывание IRQ
 void pic_unmask(uint8_t irq);
-
+// Запретить прерывание на PIC
 void pic_mask(uint8_t irq);
+// Запретить все прерывания на PIC (для перехода на APIC)
+void pic_mask_all();
 
 #endif

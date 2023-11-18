@@ -72,8 +72,9 @@
 #define KRXK_NUMLOCK 66
 #define KRXK_SCRLOCK 67
 #define KRXK_BSLASH  68   
+#define KRXK_PLUS    69   
 
-#define RKXK_OEM_1  69
+#define RKXK_OEM_1  70
 
 
 #endif

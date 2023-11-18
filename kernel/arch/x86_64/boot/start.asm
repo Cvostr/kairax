@@ -2,7 +2,7 @@ bits 32
 
 %include "memory/mem_layout.asm"
 
-%define KERNEL_STACK_SIZE         (8192)
+%define KERNEL_STACK_SIZE         (4096)
 %define MAGIC_HEADER_MB2          0xE85250D6
 %define MAGIC_BOOTLOADER_MB2      0x36d76289
 
@@ -44,10 +44,7 @@ check_multiboot2:
 	jne no_multiboot2
 	ret
 no_multiboot2:
-	mov esi, K2P(multiboot_error)
-	call print_string
 	hlt
-
 
 check_cpuid: ; проверка поддержки инструкции CPUID
 	pushfd
@@ -65,8 +62,6 @@ check_cpuid: ; проверка поддержки инструкции CPUID
 	je no_cpuid ; Ошибка, CPUID не поддерживается
 	ret
 no_cpuid:
-	mov esi, K2P(nocpuid_error)
-	call print_string
 	hlt
 
 check_x64: ;Проверка, поддерживает ли процессор Long Mode
@@ -81,8 +76,6 @@ check_x64: ;Проверка, поддерживает ли процессор L
     jz no_x64
     ret
 no_x64:
-	mov esi, K2P(nolongmode_error)
-	call print_string
 	hlt
 
 check_enable_sse:
@@ -98,31 +91,9 @@ check_enable_sse:
     mov eax, cr4
     or ax, 0x3 << 0x9   
     mov cr4, eax
-
 	ret
 no_sse:
-	mov esi, K2P(nosse_error)
-	call print_string
     hlt
-
-print_string: ;вывод строки в консольный буфер (адрес строки в регистре esi)
-	push edi ;сохранение старых значений регистров в стеке
-	push eax
-	mov edi, 0xb8000 ;адрес консольного экранного буфера
-.print_str_loop:
-	mov al, BYTE [esi]
-	cmp al, 0
-	je end_print_loop
-	mov BYTE [edi], al
-	mov BYTE [edi + 1], 0x4F
-	inc esi
-	add edi, 2
-	jmp .print_str_loop
-
-end_print_loop:
-	pop eax
-	pop edi
-	ret
 
 beginning_memmap: ;Задает начальную конфигурацию для страничной памяти
 	mov eax, K2P(p3_table) ; В eax помещается адрес таблицы 3 уровня
@@ -187,14 +158,7 @@ p3_table_1:
     resb 0x1000
 p2_table:
     resb 0x1000
-;2048 байт стековой памяти
+; Стековая память
 kernel_stack_bottom:
     resb KERNEL_STACK_SIZE
 kernel_stack_top:
-
-
-section .rodata
-	multiboot_error db 'Mutiboot 2 error', 0x0
-	nocpuid_error db 'No CPUID support', 0x0
-	nolongmode_error db 'No 64-bit support in CPU', 0x0
-	nosse_error db 'No SSE support in CPU', 0x0

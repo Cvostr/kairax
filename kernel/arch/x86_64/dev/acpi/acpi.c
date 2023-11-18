@@ -30,7 +30,6 @@ uint32_t acpi_fadt_get_smi_cmd_port()
     return acpi_fadt->smi_cmd_port;
 }
 
-
 void acpi_parse_dt(acpi_header_t* dt)
 {
     dt = (acpi_header_t*)P2V(dt);

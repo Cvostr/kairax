@@ -3,7 +3,7 @@
 
 #include "interrupts/handle/handler.h"
 
-#define KEY_BUFFER_SIZE 16
+#define KEY_BUFFER_SIZE 20
 #define KEY_BUFFERS_MAX 10
 
 struct keyboard_buffer {
