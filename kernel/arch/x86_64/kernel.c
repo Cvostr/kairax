@@ -70,6 +70,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	pmm_set_params(&pmm_params);
 
 	init_pic();
+	//apic_init();
 	setup_idt();
 	init_interrupts_handler(); 
 	// Установить IDT, включить прерывания

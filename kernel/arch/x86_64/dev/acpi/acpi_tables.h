@@ -46,8 +46,26 @@ typedef struct PACKED
     uint8_t io_apic_id;
     uint8_t reserved;
     uint32_t io_apic_address;
-    uint32_t global_sys_interrupt_base;
+    uint32_t global_sys_interrupt_base; // GSI
 } apic_io_t;
+
+typedef struct PACKED
+{
+    apic_header_t   header;
+    uint8_t         bus_source;
+    uint8_t         irq_source;
+    int             gsi;
+    uint16_t        flags;
+} ioapic_iso_t;
+
+typedef struct PACKED
+{
+    apic_header_t   header;
+    uint8_t         nmi_source;
+    uint8_t         reserved;
+    uint16_t        flags;
+    int             gsi;
+} lapic_nmi_source_t;
 
 typedef struct PACKED
 {

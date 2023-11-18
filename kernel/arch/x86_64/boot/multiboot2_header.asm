@@ -22,8 +22,8 @@ framebuffer_tag_start:
     dw MULTIBOOT_HEADER_TAG_FRAMEBUFFER
     dw 0
     dd framebuffer_tag_end - framebuffer_tag_start
-    dd 1024
-    dd 768
+    dd 1152
+    dd 864
     dd 32
 framebuffer_tag_end:
 

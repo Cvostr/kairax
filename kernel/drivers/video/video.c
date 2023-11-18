@@ -14,6 +14,8 @@ uint32_t _width;
 uint32_t _height;
 uint32_t _depth;
 
+uint8_t* fb_double_buffer = NULL;
+
 struct file_operations vga_disp_fops;
 
 void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint32_t depth)
@@ -23,6 +25,12 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _width = width;
     _height = height;
     _depth = depth;
+
+    size_t double_buffer_size = (_width * _height * _depth);
+
+    fb_double_buffer = pmm_alloc_pages((double_buffer_size / PAGE_SIZE) + 1);
+    fb_double_buffer = P2V(fb_double_buffer);
+    memset(fb_double_buffer, 0, double_buffer_size);
 
     //printf("width %i, height %i, addr %i\n", 
     //    kboot_info->fb_info.fb_width,
@@ -57,10 +65,16 @@ void vga_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)
 {
     int pixwidth = _depth / 8;
     // Запись в экранный буфер
-    char* fb_addr = _addr + y * _pitch + x * pixwidth;
-    fb_addr[0] = b;
-    fb_addr[1] = g;
-    fb_addr[2] = r;
+    char* dfb_addr = fb_double_buffer + y * _pitch + x * pixwidth;
+    
+    if (dfb_addr[0] != b || dfb_addr[1] != g || dfb_addr[2] != r) {
+        dfb_addr[0] = b;
+        dfb_addr[1] = g;
+        dfb_addr[2] = r;
+
+        char* fb_addr = _addr + y * _pitch + x * pixwidth;
+        *((uint32_t*) fb_addr) = *((uint32_t*) dfb_addr);
+    }
 }
 
 void vga_draw_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b) 

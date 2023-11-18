@@ -4,10 +4,17 @@
 
 acpi_madt_t* acpi_madt_table;
 
+// local APIC
 #define MAX_CPU_COUNT 64
 uint32_t            cpus_apic_count = 0;
 apic_local_cpu_t*   cpus_apic[MAX_CPU_COUNT];
 
+// IOAPIC ISO Override
+#define MAX_IOAPIC_ISO_COUNT 64
+uint32_t            ioapic_isos_count = 0;
+ioapic_iso_t*       ioapic_isos[MAX_IOAPIC_ISO_COUNT];
+
+// Global
 apic_io_t*          ioapic_global;
 
 uint32_t acpi_get_cpus_apic_count()
@@ -55,6 +62,15 @@ void acpi_parse_apic_madt(acpi_madt_t* madt)
         case 1:
             // Это глобальный IOAPIC
             ioapic_global = (apic_io_t*)p;
+            break;
+        case 2:
+            // IO APIC ISO Override
+            ioapic_iso_t* ioapic_iso_override = (ioapic_iso_t*)p;
+            ioapic_isos[ioapic_isos_count++] = ioapic_iso_override;
+            break;
+        case 3:
+            lapic_nmi_source_t* lapic_nmi_src = (lapic_nmi_source_t*)p;
+            // todo : сохранить структуру
             break;
         case 5:
             // Если такая структура есть - надо использовать адрес lapic из неё

@@ -4,6 +4,9 @@
 
 extern apic_io_t*          ioapic_global;
 
+extern uint32_t            ioapic_isos_count = 0;
+extern ioapic_iso_t**      ioapic_isos;
+
 uint32_t ioapic_read(uint32_t reg)
 {
     uint32_t* addr = (uint32_t*) P2V(ioapic_global->io_apic_address);
