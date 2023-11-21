@@ -8,6 +8,7 @@
 #include "kstdlib.h"
 #include "string.h"
 #include "ipc/pipe.h"
+#include "fs/vfs/superblock.h"
 
 int sys_open_file(int dirfd, const char* path, int flags, int mode)
 {
@@ -82,7 +83,7 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     split_path(formatted_path, &directory_path, &filename);
 
     // Открываем inode директории
-    struct inode* dir_inode = vfs_fopen(dir_dentry, directory_path, 0, NULL);
+    struct inode* dir_inode = vfs_fopen(dir_dentry, directory_path, NULL);
 
     if (directory_path) {
         kfree(directory_path);
@@ -233,14 +234,84 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
     return result;
 }
 
-int sys_remove_file(int fd, const char* path, int flags)
+int sys_remove_file(int dirfd, const char* path, int flags)
 {
     printf_stdout("removing %s \n", path);
+
+    struct process* process = cpu_get_current_thread()->process;
+    
     return -1;
 }
 
-int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath)
+int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)
 {
-    printf_stdout("renaming from %s to %s\n", oldpath, newpath);
-    return -1;
+    if (oldpath == NULL || newpath == NULL) {
+        return -ERROR_NO_FILE;
+    }
+
+    struct process* process = cpu_get_current_thread()->process;
+
+    // Получить dentry, относительно которой открыть старый файл
+    struct dentry* olddir_dentry = NULL;
+    struct dentry* newdir_dentry = NULL;
+
+    // Получить dentry для olddirfd
+    int rc = process_get_relative_direntry(process, olddirfd, oldpath, &olddir_dentry);
+    if (rc != 0) 
+        return rc;
+    // Получить dentry для newdirfd
+    rc = process_get_relative_direntry(process, newdirfd, newpath, &newdir_dentry);
+    if (rc != 0) 
+        return rc;
+
+    // Открыть старый файл - получить inode и dentry
+    struct dentry* old_dentry;
+    struct inode* old_inode = vfs_fopen(olddir_dentry, oldpath, &old_dentry);
+    if (old_inode == NULL || old_dentry == NULL) {
+        return -ERROR_NO_FILE;
+    }
+
+    // Получить inode - директорию старого имени файла
+    struct inode* old_parent_inode = vfs_fopen_parent(old_dentry);
+
+    // Новый путь
+    char* new_directory_path = NULL;
+    // Новое имя
+    char* new_filename = NULL;
+    // Разделить новый путь на путь директории и имя файла
+    split_path(newpath, &new_directory_path, &new_filename);
+
+    // inode директории нового пути
+    struct dentry* new_parent_dentry = NULL;
+    struct inode* new_parent_inode = vfs_fopen(newdir_dentry, new_directory_path, &new_parent_dentry);
+
+    if (old_inode->device != new_parent_inode->device) {
+        rc = ERROR_OTHER_DEVICE;
+        goto exit;
+    }
+
+    // Переместить на диске
+    if (old_parent_inode->operations->rename) {
+        rc = old_parent_inode->operations->rename(old_parent_inode, old_dentry, new_parent_inode, new_filename);
+
+        if (rc != 0)
+            goto exit;
+    }
+
+    // Поменять имя в dentry
+    strcpy(old_dentry->name, new_filename);
+
+    dentry_reparent(old_dentry, new_parent_dentry);
+
+exit:
+    DENTRY_CLOSE_SAFE(old_dentry)
+
+    INODE_CLOSE_SAFE(old_parent_inode)
+
+    INODE_CLOSE_SAFE(old_inode)
+    
+    if (new_directory_path)
+        kfree(new_directory_path);
+
+    return rc;
 }

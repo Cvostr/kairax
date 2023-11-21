@@ -39,8 +39,11 @@ struct superblock* new_superblock();
 
 void free_superblock(struct superblock* sb);
 
+// Получить inode по номеру из кеша суперблока
+// Извне не использовать
 struct inode* superblock_get_cached_inode(struct superblock* sb, uint64 inode);
 
+// Считать inode по номеру из суперблока
 struct inode* superblock_get_inode(struct superblock* sb, uint64 inode);
 
 struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* parent, const char* name);

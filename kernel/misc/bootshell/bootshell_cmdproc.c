@@ -34,7 +34,7 @@ void cd(const char* path)
     }
 
     struct dentry* new_dentry;
-    wd_inode = vfs_fopen(wd_dentry, path, 0, &new_dentry);
+    wd_inode = vfs_fopen(wd_dentry, path, &new_dentry);
 
     if (wd_inode == NULL) {
         printf_stdout("ERROR: cant cd to %s\n", path);

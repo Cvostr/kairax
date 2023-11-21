@@ -13,5 +13,7 @@
 #define ERROR_FS_READONLY           30
 #define ERROR_RANGE                 34
 #define ERROR_WRONG_FUNCTION        38
+#define ERROR_ALREADY_EXISTS        17
+#define ERROR_OTHER_DEVICE          18
 
 #endif

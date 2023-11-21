@@ -17,17 +17,18 @@ struct dentry {
     atomic_t            refs_count;
 };
 
+#define DENTRY_CLOSE_SAFE(x) if (x) free_dentry(x);
+
 struct dentry* new_dentry();
 
 void free_dentry(struct dentry* dentry);
 
 void dentry_open(struct dentry* dentry);
-
 void dentry_close(struct dentry* dentry);
 
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir);
-
 void dentry_remove_subdir(struct dentry* parent, struct dentry* dir);
+void dentry_reparent(struct dentry* dentr, struct dentry* newparent);
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name);
 

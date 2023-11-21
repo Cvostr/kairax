@@ -183,21 +183,29 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst);
 // Выделить блок для иноды
 int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index);
 
+// Создать direntry в иноде на другую inode с указанным типом
 int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode, int type);
 
+// Удалить direntry в иноде по указанному имени
+int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, int* orig_type);
+
+// Преобразовать inode ФС ext2 в общий для ядра
 struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num);
 
+// Преобразовать dirent ФС ext2 в общий для ядра
 struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
-void ext2_open(struct inode* inode, uint32_t flags);
-
-void ext2_close(struct inode* inode);
+// --------------- Функции inode и file -----------
 
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
 
 int ext2_chmod(struct inode * inode, uint32_t mode);
+
+int ext2_truncate(struct inode* inode);
+
+int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inode* newparent, const char* newname);
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 
@@ -211,6 +219,6 @@ ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t off
 
 ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 
-int ext2_truncate(struct inode* inode);
+// -----------------------------------------------
 
 #endif

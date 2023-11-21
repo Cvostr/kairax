@@ -42,6 +42,10 @@ cd copy
 make
 cd ..
 
+cd mv
+make
+cd ..
+
 cd dynloader
 make
 cd ..

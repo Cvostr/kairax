@@ -26,9 +26,6 @@ void inode_close(struct inode* node)
 {
     acquire_spinlock(&node->spinlock);
 
-    if(node->operations->close)
-        node->operations->close(node);
-
     if (atomic_dec_and_test(&node->reference_count)) {
         superblock_remove_inode(node->sb, node);
         kfree(node);

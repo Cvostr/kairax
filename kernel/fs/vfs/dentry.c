@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "superblock.h"
+#include "stdio.h"
 
 struct dentry* new_dentry()
 {
@@ -13,27 +14,25 @@ struct dentry* new_dentry()
 
 void free_dentry(struct dentry* dentry)
 {
+    //printf("Freeing dentry, %s\n",dentry->name);
     free_list(dentry->subdirs);
     kfree(dentry);
 }
 
 void dentry_open(struct dentry* dentry)
 {
-    if (dentry->parent) {
-        dentry_open(dentry->parent);
-    }
-
     atomic_inc(&dentry->refs_count);
 }
 
 void dentry_close(struct dentry* dentry)
 {
+    //printf(" %i ", dentry->refs_count.counter);
+    //printf_stdout("CLOSING  %s LEft %i\n", dentry->name, dentry->refs_count.counter);
     if (atomic_dec_and_test(&dentry->refs_count)) {
         
         if (dentry->parent) {
             // Если есть родитель, удалиться из его списка и уменьшить счетчик родителя
             dentry_remove_subdir(dentry->parent, dentry);
-            dentry_close(dentry->parent);
         }
 
         // Закрыть свои дочерние dentries
@@ -52,8 +51,11 @@ void dentry_close(struct dentry* dentry)
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir)
 {
     acquire_spinlock(&parent->lock);
-    list_add(parent->subdirs, dir); 
+    list_add(parent->subdirs, dir);
     release_spinlock(&parent->lock);
+
+    atomic_inc(&parent->refs_count);
+    atomic_inc(&dir->refs_count); 
 }
 
 void dentry_remove_subdir(struct dentry* parent, struct dentry* dir)
@@ -61,6 +63,15 @@ void dentry_remove_subdir(struct dentry* parent, struct dentry* dir)
     acquire_spinlock(&parent->lock);
     list_remove(parent->subdirs, dir); 
     release_spinlock(&parent->lock);
+
+    dentry_close(parent);
+    dentry_close(dir);
+}
+
+void dentry_reparent(struct dentry* dentr, struct dentry* newparent)
+{
+    dentry_remove_subdir(dentr->parent, dentr);
+    dentry_add_subdir(newparent, dentr);
 }
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name)

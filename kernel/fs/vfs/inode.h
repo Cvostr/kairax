@@ -12,12 +12,11 @@ struct superblock;
 struct dentry;
 
 struct inode_operations {
-    void      (*close)(struct inode*);
-
     int      (*chmod)(struct inode*, uint32_t);
     int      (*mkdir)(struct inode*, const char*, uint32_t);
     int      (*mkfile)(struct inode*, const char*, uint32_t);
     int      (*truncate)(struct inode*);
+    int      (*rename)(struct inode*, struct dentry*, struct inode*, const char*);
     int      (*unlink)(struct inode*, struct dentry*);
 };
 
@@ -32,6 +31,8 @@ struct file_operations;
 #define INODE_FLAG_SYMLINK     0xA000
 
 #define WRONG_INODE_INDEX       UINT64_MAX
+
+#define INODE_CLOSE_SAFE(x) if (x) inode_close(x);
 
 // Представление объекта со стороны файловой системы
 struct inode {

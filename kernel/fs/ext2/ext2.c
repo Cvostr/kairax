@@ -5,6 +5,7 @@
 #include "mem/kheap.h"
 #include "mem/pmm.h"
 #include "stdio.h"
+#include "errors.h"
 
 struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
@@ -23,19 +24,17 @@ void ext2_init()
     filesystem_register(ext2fs);
 
     file_inode_ops.chmod = ext2_chmod;
-    file_inode_ops.close = ext2_close;
     file_inode_ops.truncate = ext2_truncate;
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
     dir_inode_ops.chmod = ext2_chmod;
-    dir_inode_ops.close = ext2_close;
+    dir_inode_ops.rename = ext2_rename;
     //dir_inode_ops.unlink = ext2_unlink;
+    dir_ops.readdir = ext2_file_readdir;
 
     file_ops.read = ext2_file_read;
     file_ops.write = ext2_file_write;
-
-    dir_ops.readdir = ext2_file_readdir;
 
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
@@ -477,6 +476,7 @@ int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t 
 
 int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode, int type)
 {
+    // Считать родительскую inode
     ext2_inode_t*    e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, parent->inode);
 
@@ -504,7 +504,9 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 
     while (offset < e2_inode->size) {
         // dirent выравнены по размеру блока
+        // Надо ли считать следующий блок
         if (in_block_offset >= inst->block_size) {
+            // Считать следующий блок
             block_index++;
             in_block_offset -= inst->block_size;
             ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
@@ -764,6 +766,15 @@ struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
         case EXT2_DT_DIR:
             result->type = DT_DIR;
             break;
+        case EXT2_DT_CHR:
+            result->type = DT_CHR;
+            break;
+        case EXT2_DT_FIFO:
+            result->type = DT_FIFO;
+            break;
+        case EXT2_DT_BLK:
+            result->type = DT_BLK;
+            break;
     }
 
     return result;
@@ -807,11 +818,6 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     }
 
     return result;
-}
-
-void ext2_close(struct inode* inode)
-{
-    
 }
 
 ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
@@ -858,6 +864,25 @@ int ext2_truncate(struct inode* inode)
     return 0;
 }
 
+int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inode* newparent, const char* newname)
+{
+    ext2_instance_t* oldpinst = (ext2_instance_t*)oldparent->sb->fs_info;
+    ext2_instance_t* newpinst = (ext2_instance_t*)newparent->sb->fs_info;
+
+    if (oldpinst != newpinst) {
+        return -ERROR_OTHER_DEVICE;
+    }
+
+    if (ext2_find_dentry(oldpinst->vfs_sb, newparent->inode, newname) != WRONG_INODE_INDEX) {
+        return -ERROR_ALREADY_EXISTS;
+    }
+
+    int orig_type = 0;
+    ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
+
+    ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->inode, orig_type);
+}
+
 int ext2_chmod(struct inode * inode, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
@@ -875,7 +900,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
     
     if (ext2_find_dentry(parent->sb, parent->inode, dir_name) != WRONG_INODE_INDEX) {
-        return -2; //уже существует
+        return -ERROR_ALREADY_EXISTS;
     }
 
     // Создать inode на диске
@@ -953,7 +978,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
     if (ext2_find_dentry(parent->sb, parent->inode, file_name) != WRONG_INODE_INDEX) {
-        return -2; //уже существует
+        return -ERROR_ALREADY_EXISTS;
     }
 
     // Создать inode на диске
@@ -1042,6 +1067,58 @@ exit:
 
     return result;
 }
+
+int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, int* orig_type)
+{
+    ext2_inode_t*    e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, parent->inode);
+
+    // Подготовить буфер для блоков
+    char* buffer = kmalloc(inst->block_size);
+    // смещение относительно данных inode
+    uint64_t offset = 0;
+    uint64_t offset_in_block = 0;
+    uint64_t block_index = 0;
+    
+    size_t name_len = strlen(name);
+
+    // Считать первый блок
+    ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+
+    while (offset < e2_inode->size) {
+        
+        // Надо ли считать следующий блок
+        if (offset_in_block >= inst->block_size) {
+            // Считать следующий блок
+            block_index++;
+            offset_in_block = 0;
+            ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+        }
+
+        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + offset_in_block);
+        // Проверка совпадения имени
+        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) {
+            // инвалидировать dentry
+            curr_entry->inode = 0;
+            if (orig_type != NULL) {
+                *orig_type = curr_entry->type;
+            }
+            // Записать изменения на диск
+            ext2_write_inode_block(inst, e2_inode, parent->inode, block_index, (char*)kheap_get_phys_address(buffer));
+            goto exit;
+        }
+
+        offset_in_block += curr_entry->size;
+        offset += curr_entry->size;
+    }
+
+exit:
+    kfree(buffer);
+    kfree(e2_inode);
+
+    return 0;
+}
+
 
 uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name)
 {
