@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     int rc = rename(old, new);
 
     if (rc == -1) {
-        printf("Can't rename from %s to %s, error : %i", old, new, errno);
+        printf("Can't rename from %s to %s, error : %i\n", old, new, errno);
     }
 
     return 0;

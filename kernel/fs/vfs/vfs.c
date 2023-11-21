@@ -161,6 +161,10 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry**
 
 struct inode* vfs_fopen_parent(struct dentry* child)
 {
+    if (child->parent == NULL) {
+        return NULL;
+    }
+
     struct inode* parent_inode = superblock_get_inode(child->sb, child->parent->inode);
 
     if (parent_inode) {

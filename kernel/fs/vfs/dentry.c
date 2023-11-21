@@ -74,6 +74,20 @@ void dentry_reparent(struct dentry* dentr, struct dentry* newparent)
     dentry_add_subdir(newparent, dentr);
 }
 
+int dentry_is_child(struct dentry* d1, struct dentry* d2)
+{
+    struct dentry* parent = d2->parent;
+    while (parent != NULL) {
+        if (parent == d1) {
+            return 1;
+        }
+
+        parent = parent->parent;
+    } 
+
+    return 0;
+}
+
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name)
 {
     struct dentry* result = NULL;

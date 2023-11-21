@@ -251,9 +251,17 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
     struct process* process = cpu_get_current_thread()->process;
 
-    // Получить dentry, относительно которой открыть старый файл
     struct dentry* olddir_dentry = NULL;
     struct dentry* newdir_dentry = NULL;
+    struct dentry* new_parent_dentry = NULL;
+
+    struct inode* old_parent_inode = NULL;
+    struct inode* new_parent_inode = NULL;
+
+    // Новый путь
+    char* new_directory_path = NULL;
+    // Новое имя
+    char* new_filename = NULL;
 
     // Получить dentry для olddirfd
     int rc = process_get_relative_direntry(process, olddirfd, oldpath, &olddir_dentry);
@@ -265,28 +273,39 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
         return rc;
 
     // Открыть старый файл - получить inode и dentry
-    struct dentry* old_dentry;
+    struct dentry* old_dentry = NULL;
     struct inode* old_inode = vfs_fopen(olddir_dentry, oldpath, &old_dentry);
     if (old_inode == NULL || old_dentry == NULL) {
-        return -ERROR_NO_FILE;
+        rc = -ERROR_NO_FILE;
+        goto exit;
     }
 
-    // Получить inode - директорию старого имени файла
-    struct inode* old_parent_inode = vfs_fopen_parent(old_dentry);
+    // Получить inode - директорию старого файла
+    old_parent_inode = vfs_fopen_parent(old_dentry);
 
-    // Новый путь
-    char* new_directory_path = NULL;
-    // Новое имя
-    char* new_filename = NULL;
     // Разделить новый путь на путь директории и имя файла
     split_path(newpath, &new_directory_path, &new_filename);
 
-    // inode директории нового пути
-    struct dentry* new_parent_dentry = NULL;
-    struct inode* new_parent_inode = vfs_fopen(newdir_dentry, new_directory_path, &new_parent_dentry);
+    if (strcmp(new_filename, "..") == 0 || strcmp(new_filename, ".") == 0) {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    // Открыть inode директории нового пути
+    new_parent_inode = vfs_fopen(newdir_dentry, new_directory_path, &new_parent_dentry);
+
+    if (new_parent_inode == NULL || new_parent_dentry == NULL) {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    if (dentry_is_child(old_dentry, new_parent_dentry) == 1 || old_dentry == new_parent_dentry) {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
 
     if (old_inode->device != new_parent_inode->device) {
-        rc = ERROR_OTHER_DEVICE;
+        rc = -ERROR_OTHER_DEVICE;
         goto exit;
     }
 
@@ -305,10 +324,11 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
 exit:
     DENTRY_CLOSE_SAFE(old_dentry)
+    DENTRY_CLOSE_SAFE(new_parent_dentry)
 
     INODE_CLOSE_SAFE(old_parent_inode)
-
     INODE_CLOSE_SAFE(old_inode)
+    INODE_CLOSE_SAFE(new_parent_inode)
     
     if (new_directory_path)
         kfree(new_directory_path);
