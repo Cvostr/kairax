@@ -37,6 +37,9 @@
 #include "proc/timer.h"
 #include "drivers/tty/tty.h"
 #include "misc/kterm/kterm.h"
+#include "misc/kterm/vgaterm.h"
+
+extern struct vgaconsole* current_console;
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);
@@ -89,6 +92,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		kboot_info->fb_info.fb_width,
 		kboot_info->fb_info.fb_height,
 		kboot_info->fb_info.fb_bpp);
+
+	current_console = console_init();
 
 	printf("Kairax Kernel v0.1\n");
 

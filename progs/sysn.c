@@ -51,7 +51,7 @@ int main() {
 
     // ошибка
     close(123);
-    printf("ERRNO = %i", errno);
+    printf("ERRNO = %i\n", errno);
 
     int send = 343;
     pid_t tpi = create_thread(thread_func, &send);
@@ -63,6 +63,7 @@ int main() {
 		sleep(2);
 
         printf(" %i", counter++);
+        fflush(stdout);
     }
 
     return 0;

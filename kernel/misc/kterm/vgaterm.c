@@ -3,6 +3,7 @@
 #include "drivers/video/video.h"
 #include "memory/mem_layout.h"
 #include "string.h"
+#include "mem/kheap.h"
 
 uint8_t defaultFont[128][8] = {
     {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // U+0000 (nul)
@@ -149,131 +150,138 @@ int BUFFER_LINES       = 42;
 #define DOUBLEBUFFER_DEPTH  32
 #define DOUBLEBUFFER_DEPTH_BYTES  4
 
-uint32_t console_passed_chars = 0;
-uint32_t console_lines = 0;
-uint32_t console_col = 0;
-
-char* double_buffer = NULL;
-uint32_t console_buffer_size = 0;
-
-void console_init()
+struct vgaconsole* console_init()
 {
-    console_buffer_size = (vga_get_width() * vga_get_height() * DOUBLEBUFFER_DEPTH_BYTES);
-    double_buffer = pmm_alloc_pages((console_buffer_size / PAGE_SIZE) + 1);
-    double_buffer = P2V(double_buffer);
-    memset(double_buffer, 0, console_buffer_size);
+    struct vgaconsole* vgconsl = kmalloc(sizeof(struct vgaconsole));
+    memset(vgconsl, 0, sizeof(struct vgaconsole));
 
-    BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
-    BUFFER_LINES = vga_get_height() / LINE_SIZE;
+    vgconsl->console_buffer_size = (vga_get_width() * vga_get_height() * DOUBLEBUFFER_DEPTH_BYTES);
+    vgconsl->double_buffer = pmm_alloc_pages((vgconsl->console_buffer_size / PAGE_SIZE) + 1);
+    vgconsl->double_buffer = P2V(vgconsl->double_buffer);
+    memset(vgconsl->double_buffer, 0, vgconsl->console_buffer_size);
+
+    return vgconsl;
+    //BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
+    //BUFFER_LINES = vga_get_height() / LINE_SIZE;
 }
 
-void console_print_char(char chr)
+void console_print_char(struct vgaconsole* vgconsole, char chr)
 {
     if (chr == ' ') {
-        surface_draw_rect(  XOFFSET + console_col * COL_SIZE,
-                        YOFFSET + console_lines * LINE_SIZE, 
+        surface_draw_rect(vgconsole, XOFFSET + vgconsole->console_col * COL_SIZE,
+                        YOFFSET + vgconsole->console_lines * LINE_SIZE, 
                         LETTER_SIZE * 8,
                         LETTER_SIZE * 8, 0, 0, 0);
     } else {
-        surface_draw_char(chr,
-            XOFFSET + console_col * COL_SIZE,
-            YOFFSET + console_lines * LINE_SIZE,
+        surface_draw_char(vgconsole, chr,
+            XOFFSET + vgconsole->console_col * COL_SIZE,
+            YOFFSET + vgconsole->console_lines * LINE_SIZE,
             CONSOLE_TEXT_COLOR,
             LETTER_SIZE, LETTER_SIZE);
     }
 
-    console_col++;
+    vgconsole->console_col++;
 
     // Вышли ли за правую границу экрана? или символ переноса
-    if (console_col > BUFFER_LINE_LENGTH || chr == '\n') {
-        console_cr();
-        console_lf();
+    if (vgconsole->console_col > BUFFER_LINE_LENGTH || chr == '\n') {
+        console_cr(vgconsole);
+        console_lf(vgconsole);
     }
 }
 
-void console_cr()
+void console_redraw(struct vgaconsole* vgconsole)
 {
-    console_col = 0;
+    for (int i = 0; i < vga_get_width(); i ++) {
+        for (int j = 0; j < vga_get_height(); j ++) {
+            uint8_t* addr = vgconsole->double_buffer + j * vga_get_pitch() + i * DOUBLEBUFFER_DEPTH_BYTES;
+            vga_draw_pixel(i, j, addr[0], addr[1], addr[2]);
+        }   
+    }
 }
 
-void console_lf()
+void console_cr(struct vgaconsole* vgconsole)
 {
-    console_lines++;
-    console_scroll();
+    vgconsole->console_col = 0;
 }
 
-void console_scroll()
+void console_lf(struct vgaconsole* vgconsole)
 {
-	if (console_lines >= BUFFER_LINES) {
+    vgconsole->console_lines++;
+    console_scroll(vgconsole);
+}
+
+void console_scroll(struct vgaconsole* vgconsole)
+{
+	if (vgconsole->console_lines >= BUFFER_LINES) {
         
-        console_lines--;
+        vgconsole->console_lines--;
 
         uint32_t pitch = vga_get_pitch(); //vga_get_width() * DOUBLEBUFFER_DEPTH_BYTES;
         // Перенести строки фреймбуффера вверх
         int pixel_lines = (YOFFSET + LINE_SIZE) * pitch;
         int to_copy = (vga_get_height() - YOFFSET - LINE_SIZE) * pitch;
-        memcpy(double_buffer + YOFFSET * pitch, double_buffer + pixel_lines, to_copy);
+        memcpy(vgconsole->double_buffer + YOFFSET * pitch, vgconsole->double_buffer + pixel_lines, to_copy);
 
         // Очистить последнюю строку
         pixel_lines = LINE_SIZE * pitch;
         int offset = (YOFFSET + (BUFFER_LINES - 1) * LINE_SIZE) * pitch;
-        memset(double_buffer + offset, 0, pixel_lines);
+        memset(vgconsole->double_buffer + offset, 0, pixel_lines);
 
-        vga_draw(double_buffer, vga_get_height(), vga_get_width());        
+        vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
 	}
 }
 
-void console_backspace(int chars)
+void console_backspace(struct vgaconsole* vgconsole, int chars)
 {
 	for (int i = 0; i < chars; i ++) {
 
-        if (console_col > 0)
-            console_col --;
+        if (vgconsole->console_col > 0)
+            vgconsole->console_col --;
         else {
-            console_lines--;
-            console_col = 0;
+            vgconsole->console_lines--;
+            vgconsole->console_col = 0;
         }
 	}
 }
 
-void surface_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)
+void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)
 {
     vga_draw_pixel(x, y, r, g, b);
 
-    if (double_buffer) {
+    if (vgconsole && vgconsole->double_buffer) {
         uint32_t pitch = vga_get_width() * DOUBLEBUFFER_DEPTH_BYTES;
         // Запись в double buffer
-        uint8_t* fb_addr = double_buffer + y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
+        uint8_t* fb_addr = vgconsole->double_buffer + y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
         fb_addr[0] = b;
         fb_addr[1] = g;
         fb_addr[2] = r;
     }
 }
 
-void surface_draw_rect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b)
+void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b)
 {
     for (uint32_t i = 0; i < height; i++) {
         for (uint32_t j = 0; j < width; j++) {
-            surface_draw_pixel(j + x, i + y, r, g, b);
+            surface_draw_pixel(vgconsole, j + x, i + y, r, g, b);
         }
     }
 }
 
-void console_console_print_string(const char* string){
+void console_console_print_string(struct vgaconsole* vgconsole, const char* string){
 	char* _str = (char*)string;
 	while(_str[0] != '\0'){
-	    console_print_char(_str[0]);
+	    console_print_char(vgconsole, _str[0]);
 		_str++;
 	}
 }
 
-void surface_draw_char(char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale) {
+void surface_draw_char(struct vgaconsole* vgconsole, char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale) {
     if (vscale <= 1 && hscale <= 1) {
         for (uint32_t i = 0; i < 8; i++) {
             int row = defaultFont[(int)c][i];
             for (uint32_t j = 0; j < 8; j++) {
                 if ((row & (1 << j)) >> j) {
-                    surface_draw_pixel(x + j, y + i, r, g, b);
+                    surface_draw_pixel(vgconsole, x + j, y + i, r, g, b);
                 }
             }
         }
@@ -282,7 +290,7 @@ void surface_draw_char(char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uin
             int row = defaultFont[(int)c][i];
             for (uint32_t j = 0; j < 8; j++) {
                 if ((row & (1 << j)) >> j) {
-                    surface_draw_rect(x + j * hscale, y + i * vscale, hscale, vscale, r, g, b);
+                    surface_draw_rect(vgconsole, x + j * hscale, y + i * vscale, hscale, vscale, r, g, b);
                 }
             }
         }

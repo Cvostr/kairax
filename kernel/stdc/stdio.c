@@ -5,6 +5,8 @@
 #include "proc/syscalls.h"
 #include "misc/kterm/vgaterm.h"
 
+extern struct vgaconsole* current_console;
+
 int getch()
 {
 	char ch;
@@ -29,7 +31,7 @@ char* kfgets(char* buffer, size_t len)
 static int print(const char* data, size_t length) {
 	const unsigned char* bytes = (const unsigned char*) data;
 	for (size_t i = 0; i < length; i++)
-		console_print_char(bytes[i]);
+		console_print_char(current_console, bytes[i]);
 	return 1;
 }
 

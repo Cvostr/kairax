@@ -7,9 +7,22 @@
 #include "stdio.h"
 #include "keycodes.h"
 #include "dev/keyboard/int_keyboard.h"
+#include "mem/kheap.h"
 
 struct process *kterm_process = NULL;
-int master, slave;
+
+struct terminal_session {
+	int master;
+	int slave;
+	struct process*	proc;
+	struct vgaconsole* console;
+};
+
+#define KTERM_SESSIONS_MAX 12
+struct terminal_session* kterm_sessions[KTERM_SESSIONS_MAX];
+
+struct vgaconsole* current_console = NULL;
+struct terminal_session* current_session = NULL;
 
 void kterm_process_start()
 {
@@ -24,42 +37,72 @@ void kterm_process_start()
 
 char keyboard_get_key_ascii(char keycode);
 
+struct terminal_session* new_kterm_session(int create_console) {
+	struct terminal_session* session = kmalloc(sizeof(struct terminal_session));
+	sys_create_pty(&session->master, &session->slave);
+
+	struct file *slave_file = process_get_file(kterm_process, session->slave);
+
+	session->proc = create_new_process(NULL);
+	// Добавить в список и назначить pid
+    process_add_to_list(session->proc);
+	// Переопределить каналы
+	process_add_file_at(session->proc, slave_file, 0);
+	process_add_file_at(session->proc, slave_file, 1);
+	process_add_file_at(session->proc, slave_file, 2);
+
+	struct thread* thr = create_kthread(session->proc, bootshell);
+	scheduler_add_thread(thr);
+
+	if (create_console > 0) {
+		session->console = console_init();
+	}
+
+	return session;
+}
+
+void change_to(int index) {
+	if (index >= KTERM_SESSIONS_MAX)
+		return;
+
+	struct terminal_session* session = kterm_sessions[index];
+	if (session == NULL) {
+		session = new_kterm_session(TRUE);
+		kterm_sessions[index] = session;
+	}
+
+	current_session = session;
+	current_console = session->console;
+
+	console_redraw(current_console);
+}
+
 void kterm_main()
 {
-	console_init();
-    sys_create_pty(&master, &slave);
-	struct file *slave_file = process_get_file(kterm_process, slave);
-
-	struct process* proc = create_new_process(NULL);
-	// Добавить в список и назначить pid
-    process_add_to_list(proc);
-	// Переопределить каналы
-	process_add_file_at(proc, slave_file, 0);
-	process_add_file_at(proc, slave_file, 1);
-	process_add_file_at(proc, slave_file, 2);
-
-	struct thread* thr = create_kthread(proc, bootshell);
-	scheduler_add_thread(thr);
+	struct terminal_session* session = new_kterm_session(0);
+	current_session = session;
+	kterm_sessions[0] = session;
+	session->console = current_console;
 
 	while (1) {
 		char buff[128];
-		ssize_t n = sys_read_file(master, buff, 128);
+		ssize_t n = sys_read_file(current_session->master, buff, 128);
 
 		for (int i = 0; i < n; i ++) {
 
 			char c = buff[i];
 			switch (c) {
 				case '\b':
-					console_backspace(1);
+					console_backspace(current_console, 1);
 					break;
 				case '\r':
-					console_cr();
+					console_cr(current_console);
 					break;
 				case '\n':
-					console_lf();
+					console_lf(current_console);
 					break;
 				default:
-					console_print_char(c);
+					console_print_char(current_console, c);
 			}
 		}
 
@@ -69,9 +112,15 @@ void kterm_main()
 			char keycode = (keycode_ext) & 0xFF;
 			int state = (keycode_ext >> 8) & 0xFF;
 
+			if (keycode >= KRXK_F1 && keycode <= KRXK_F12) {
+				int index = keycode - KRXK_F1; 
+				change_to(index);
+			}
+
 			if (state == 0) {
 				char symbol = keyboard_get_key_ascii(keycode);
-				sys_write_file(master, &symbol, 1);
+				if (symbol > 0)
+					sys_write_file(current_session->master, &symbol, 1);
 			}
 		}
 	}

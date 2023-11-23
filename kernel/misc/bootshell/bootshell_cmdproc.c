@@ -19,33 +19,10 @@
 
 #include "proc/syscalls.h"
 
-extern char curdir[512];
-extern struct inode* wd_inode;
-extern struct dentry* wd_dentry;
 
 void cd(const char* path) 
-{
-    if (wd_inode) {
-        inode_close(wd_inode);
-    }
-
-    if (wd_dentry) {
-        dentry_close(wd_dentry);
-    }
-
-    struct dentry* new_dentry;
-    wd_inode = vfs_fopen(wd_dentry, path, &new_dentry);
-
-    if (wd_inode == NULL) {
-        printf_stdout("ERROR: cant cd to %s\n", path);
-        return;
-    }
-
-    wd_dentry = new_dentry;
-    memset(curdir, 0, 512);
-    vfs_dentry_get_absolute_path(wd_dentry, NULL, curdir);
-                
-    sys_set_working_dir(curdir);
+{         
+    sys_set_working_dir(path);
 }
 
 void bootshell_process_cmd(char* cmdline) 
@@ -158,7 +135,7 @@ void bootshell_process_cmd(char* cmdline)
     }
     if (strcmp(cmd, "stress") == 0) {
 
-        struct process_create_info info;
+        /*struct process_create_info info;
         info.current_directory = curdir;
         info.num_args = argc;
         info.args = args;
@@ -177,11 +154,13 @@ void bootshell_process_cmd(char* cmdline)
             if (rc < 0) {
                 printf_stdout("Error creating process ls : %i\n", -rc);
             }
-        }
+        }*/
 
     }
     if (strcmp(cmd, "exec") == 0) {
 
+        char curdir[512];
+        sys_get_working_dir(curdir, 512);
         struct process_create_info info;
         info.current_directory = curdir;
         info.num_args = argc - 1;

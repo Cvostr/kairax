@@ -26,7 +26,7 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _height = height;
     _depth = depth;
 
-    size_t double_buffer_size = (_width * _height * _depth);
+    size_t double_buffer_size = (_width * _height * _depth) / 8;
 
     fb_double_buffer = pmm_alloc_pages((double_buffer_size / PAGE_SIZE) + 1);
     fb_double_buffer = P2V(fb_double_buffer);
