@@ -47,8 +47,8 @@ int sys_create_pty(int *master_fd, int *slave_fd)
     *master_fd = process_add_file(process, master);
     *slave_fd = process_add_file(process, slave);
 
-    file_acquire(master);
-    file_acquire(slave);
+    //file_acquire(master);
+    //file_acquire(slave);
 
     return rc;
 }

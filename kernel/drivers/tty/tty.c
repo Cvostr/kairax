@@ -93,6 +93,7 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
 
 char crlf[2] = {'\r', '\n'};
 char remove[3] = {'\b', ' ', '\b'};
+char ETX[3] = {'^', 'C'};
 
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
 {
@@ -135,6 +136,10 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                     // BKSP + SPACE + BKSP
                     pipe_write(p_pty->slave_to_master, remove, 3);
                 }
+                break;
+            case 0x3: // ETX
+                pipe_write(p_pty->slave_to_master, ETX, 2); // ^C
+                // todo : сигнал завершения процесса
                 break;
             default:
                 // Добавить символ в буфер

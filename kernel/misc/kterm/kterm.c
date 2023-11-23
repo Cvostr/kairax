@@ -8,6 +8,7 @@
 #include "keycodes.h"
 #include "dev/keyboard/int_keyboard.h"
 #include "mem/kheap.h"
+#include "string.h"
 
 struct process *kterm_process = NULL;
 
@@ -16,6 +17,7 @@ struct terminal_session {
 	int slave;
 	struct process*	proc;
 	struct vgaconsole* console;
+	int ctrl_hold;
 };
 
 #define KTERM_SESSIONS_MAX 12
@@ -37,8 +39,11 @@ void kterm_process_start()
 
 char keyboard_get_key_ascii(char keycode);
 
-struct terminal_session* new_kterm_session(int create_console) {
+struct terminal_session* new_kterm_session(int create_console) 
+{
 	struct terminal_session* session = kmalloc(sizeof(struct terminal_session));
+	memset(session, 0, sizeof(struct terminal_session));
+
 	sys_create_pty(&session->master, &session->slave);
 
 	struct file *slave_file = process_get_file(kterm_process, session->slave);
@@ -61,7 +66,8 @@ struct terminal_session* new_kterm_session(int create_console) {
 	return session;
 }
 
-void change_to(int index) {
+void kterm_change_to(int index) 
+{
 	if (index >= KTERM_SESSIONS_MAX)
 		return;
 
@@ -70,6 +76,9 @@ void change_to(int index) {
 		session = new_kterm_session(TRUE);
 		kterm_sessions[index] = session;
 	}
+
+	if (current_session == session)
+		return;
 
 	current_session = session;
 	current_console = session->console;
@@ -114,13 +123,38 @@ void kterm_main()
 
 			if (keycode >= KRXK_F1 && keycode <= KRXK_F12) {
 				int index = keycode - KRXK_F1; 
-				change_to(index);
+				kterm_change_to(index);
 			}
 
-			if (state == 0) {
-				char symbol = keyboard_get_key_ascii(keycode);
-				if (symbol > 0)
-					sys_write_file(current_session->master, &symbol, 1);
+			switch (keycode) {
+				case KRXK_LCTRL:
+				case KRXK_RCTRL:
+					current_session->ctrl_hold = (state == 0);
+					break;
+
+				default:
+					if (state == 0) {
+						char symbol = keyboard_get_key_ascii(keycode);
+
+						if (current_session->ctrl_hold) {
+							int chr = 0;
+							switch (symbol) {
+								case 'c':
+									chr = 3;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'h':
+									chr = '\b';
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+							}
+							break;
+						}
+
+						if (symbol > 0)
+							sys_write_file(current_session->master, &symbol, 1);
+					}
+				break;
 			}
 		}
 	}
