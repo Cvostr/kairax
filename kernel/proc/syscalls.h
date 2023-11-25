@@ -26,7 +26,7 @@ int sys_readdir(int fd, struct dirent* dirent);
 
 int sys_ioctl(int fd, uint64_t request, uint64_t arg);
 
-int sys_remove_file(int dirfd, const char* path, int flags);
+int sys_unlink(int dirfd, const char* path, int flags);
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags);
 

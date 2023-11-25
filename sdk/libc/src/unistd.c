@@ -2,6 +2,7 @@
 #include "syscalls.h"
 #include "errno.h"
 #include "time.h"
+#include "fcntl.h"
 
 pid_t getpid()
 {
@@ -51,6 +52,11 @@ int pipe(int pipefd[2])
 int close(int fd)
 {
     __set_errno(syscall_close(fd));
+}
+
+int unlink(const char* path)
+{
+    __set_errno(syscall_unlink(AT_FDCWD, path, 0));
 }
 
 off_t lseek(int fd, off_t offset, int whence)

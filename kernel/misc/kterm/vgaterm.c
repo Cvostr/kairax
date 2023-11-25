@@ -4,6 +4,7 @@
 #include "memory/mem_layout.h"
 #include "string.h"
 #include "mem/kheap.h"
+#include "sync/spinlock.h"
 
 uint8_t defaultFont[128][8] = {
     {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // U+0000 (nul)
@@ -136,6 +137,8 @@ uint8_t defaultFont[128][8] = {
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}  // U+007F
 };
 
+spinlock_t  console_lock = 0;
+
 #define CONSOLE_TEXT_COLOR 180, 180, 180
 #define XOFFSET 5
 #define YOFFSET 5
@@ -167,6 +170,7 @@ struct vgaconsole* console_init()
 
 void console_print_char(struct vgaconsole* vgconsole, char chr)
 {
+    acquire_spinlock(&console_lock);
     if (chr == ' ') {
         surface_draw_rect(vgconsole, XOFFSET + vgconsole->console_col * COL_SIZE,
                         YOFFSET + vgconsole->console_lines * LINE_SIZE, 
@@ -187,6 +191,7 @@ void console_print_char(struct vgaconsole* vgconsole, char chr)
         console_cr(vgconsole);
         console_lf(vgconsole);
     }
+    release_spinlock(&console_lock);    
 }
 
 void console_redraw(struct vgaconsole* vgconsole)
@@ -275,7 +280,8 @@ void console_console_print_string(struct vgaconsole* vgconsole, const char* stri
 	}
 }
 
-void surface_draw_char(struct vgaconsole* vgconsole, char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale) {
+void surface_draw_char(struct vgaconsole* vgconsole, char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale)
+{
     if (vscale <= 1 && hscale <= 1) {
         for (uint32_t i = 0; i < 8; i++) {
             int row = defaultFont[(int)c][i];

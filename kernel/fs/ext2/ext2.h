@@ -197,6 +197,8 @@ struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
 // --------------- Функции inode и file -----------
 
+int ext2_unlink(struct inode* parent, struct dentry* dent);
+
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);

@@ -234,13 +234,52 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
     return result;
 }
 
-int sys_remove_file(int dirfd, const char* path, int flags)
+int sys_unlink(int dirfd, const char* path, int flags)
 {
-    printf_stdout("removing %s \n", path);
-
     struct process* process = cpu_get_current_thread()->process;
+
+    struct dentry* dirdentry = NULL;
+    int rc = process_get_relative_direntry(process, dirfd, path, &dirdentry);
+    if (rc != 0) 
+        return rc;
+
+    struct dentry* target_dentry = NULL;
+    struct inode* target_inode = vfs_fopen(dirdentry, path, &target_dentry);
+
+    struct inode* parent_inode = NULL;
     
-    return -1;
+    if (target_inode == NULL || target_dentry == NULL) {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    int ino_mode = target_inode->mode;
+    INODE_CLOSE_SAFE(target_inode)
+
+    // Проверка, не пытаемся ли удалить точку монтирования?
+    if ((target_dentry->flags & DENTRY_MOUNTPOINT) == DENTRY_MOUNTPOINT) {
+        rc = -ERROR_BUSY;
+        goto exit;
+    }
+
+    // Текущая реализация поддерживает удаление только файлов
+    if ( !(ino_mode & INODE_TYPE_FILE)) {
+        rc = -ERROR_IS_DIRECTORY;
+        goto exit;
+    }
+
+    // Пометить dentry для удаления
+    target_dentry->flags |= DENTRY_UNLINK_DELAYED;
+    // Закрыть dentry. Если оно нигде больше не открыто - удаление произойдет прямо сейчас
+    rc = dentry_close(target_dentry);
+
+    if (rc != 0)
+        goto exit;
+
+exit:
+    DENTRY_CLOSE_SAFE(dirdentry)
+
+    return rc;
 }
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)

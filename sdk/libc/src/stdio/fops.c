@@ -58,8 +58,8 @@ int ferror(FILE *stream)
 }
 
 int remove(const char* filename) {
-    // todo : implement
-    return 0;
+    // todo : implement for rmdir
+    return unlink(filename);
 }
 
 int rename(const char *oldpath, const char *newpath)

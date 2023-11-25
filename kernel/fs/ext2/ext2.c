@@ -30,7 +30,7 @@ void ext2_init()
     dir_inode_ops.mkfile = ext2_mkfile;
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.rename = ext2_rename;
-    //dir_inode_ops.unlink = ext2_unlink;
+    dir_inode_ops.unlink = ext2_unlink;
     dir_ops.readdir = ext2_file_readdir;
 
     file_ops.read = ext2_file_read;
@@ -890,6 +890,40 @@ int ext2_chmod(struct inode * inode, uint32_t mode)
     ext2_inode(inst, e2_inode, inode->inode);
     e2_inode->mode = (e2_inode->mode & 0xFFFFF000) | mode;
     ext2_write_inode_metadata(inst, e2_inode, inode->inode);
+    kfree(e2_inode);
+
+    return 0;
+}
+
+int ext2_unlink(struct inode* parent, struct dentry* dent)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
+
+    // Считать ext2 - inode директории, из которой удаляем
+    ext2_inode_t* e2_parent_inode = new_ext2_inode();
+    ext2_inode(inst, e2_parent_inode, parent->inode);
+
+    // Получить удаляемую inode
+    uint32_t unlink_inode_idx = 0;
+    if ((unlink_inode_idx = ext2_find_dentry(parent->sb, parent->inode, dent->name)) == WRONG_INODE_INDEX) {
+        kfree(e2_parent_inode);
+        return -ERROR_ALREADY_EXISTS;
+    }
+
+    // Считать ext2 - inode директории, для которой делаем unlink
+    ext2_inode_t* e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, unlink_inode_idx);
+
+    // Уменьшить количество ссылок на выбранную inode
+    e2_inode->hard_links--;
+    ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
+
+    //e2_parent_inode->hard_links--;
+    //ext2_write_inode_metadata(inst, e2_parent_inode, parent->inode);
+    // Удалить dentry из родительской inode
+    ext2_remove_dentry(inst, parent, dent->name, NULL);
+
+    kfree(e2_parent_inode);
     kfree(e2_inode);
 
     return 0;

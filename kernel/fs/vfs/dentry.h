@@ -7,7 +7,12 @@
 #include "dirent.h"
 #include "stdc/atomic.h"
 
+#define DENTRY_MOUNTPOINT       2
+#define DENTRY_UNLINK_DELAYED   4
+#define DENTRY_TYPE_DIRECTORY   0x00200000
+
 struct dentry {
+    uint32_t            flags;
     uint64_t            inode;
     struct dentry*      parent;
     struct superblock*  sb;
@@ -24,7 +29,9 @@ struct dentry* new_dentry();
 void free_dentry(struct dentry* dentry);
 
 void dentry_open(struct dentry* dentry);
-void dentry_close(struct dentry* dentry);
+int dentry_close(struct dentry* dentry);
+// Сделать unlink для этой dentry
+int dentry_unlink(struct dentry* dentry);
 
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir);
 void dentry_remove_subdir(struct dentry* parent, struct dentry* dir);

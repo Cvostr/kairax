@@ -15,5 +15,6 @@
 #define ERROR_WRONG_FUNCTION        38
 #define ERROR_ALREADY_EXISTS        17
 #define ERROR_OTHER_DEVICE          18
+#define	ERROR_BUSY		            16
 
 #endif

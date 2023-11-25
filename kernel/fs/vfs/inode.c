@@ -77,25 +77,28 @@ int inode_truncate(struct inode* inode)
 {
     acquire_spinlock(&inode->spinlock);
 
+    int rc = -ERROR_INVALID_VALUE;
     if(inode->operations->truncate) {
-        inode->operations->truncate(inode);
+        rc = inode->operations->truncate(inode);
     }
 
     release_spinlock(&inode->spinlock);
+
+    return rc;
 }
 
 int inode_unlink(struct inode* parent, struct dentry* child)
 {
-    // NOT IMPLEMENTED, DENTRY LOCKS REQUIRED
     acquire_spinlock(&parent->spinlock);
 
+    int rc = -ERROR_INVALID_VALUE;
     if(parent->operations->unlink) {
-        parent->operations->unlink(parent, child);
+        rc = parent->operations->unlink(parent, child);
     }
 
     release_spinlock(&parent->spinlock);
 
-    return 0;
+    return rc;
 }
 
 int inode_stat(struct inode* node, struct stat* sstat)

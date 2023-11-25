@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "drivers/video/video.h"
 #include "proc/syscalls.h"
+#include "string.h"
 
 void bootshell_print_sign()
 {

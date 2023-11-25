@@ -32,7 +32,7 @@ struct file_operations;
 
 #define WRONG_INODE_INDEX       UINT64_MAX
 
-#define INODE_CLOSE_SAFE(x) if (x) inode_close(x);
+#define INODE_CLOSE_SAFE(x) if (x) {inode_close(x); x = 0;}
 
 // Представление объекта со стороны файловой системы
 struct inode {

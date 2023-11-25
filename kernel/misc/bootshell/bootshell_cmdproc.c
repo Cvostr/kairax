@@ -133,30 +133,6 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "sleep") == 0) {
         sys_thread_sleep(3, 0);
     }
-    if (strcmp(cmd, "stress") == 0) {
-
-        /*struct process_create_info info;
-        info.current_directory = curdir;
-        info.num_args = argc;
-        info.args = args;
-        //info.stdout = console_fd;
-        for (int i = 0; i < 20; i ++) {
-
-            pid_t rc = sys_create_process(-2, "/date.a", &info);
-            if (rc < 0) {
-                printf_stdout("Error creating process sysn : %i\n", -rc);
-            }
-            rc = sys_create_process(-2, "/sysc.a", &info);
-            if (rc < 0) {
-                printf_stdout("Error creating process sysc : %i\n", -rc);
-            }
-            rc = sys_create_process(-2, "/ls.a", &info);
-            if (rc < 0) {
-                printf_stdout("Error creating process ls : %i\n", -rc);
-            }
-        }*/
-
-    }
     if (strcmp(cmd, "exec") == 0) {
 
         char curdir[512];

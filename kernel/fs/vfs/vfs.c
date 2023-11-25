@@ -77,6 +77,7 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         // dentry монтирования
         mount_dent->sb = sb;
         mount_dent->inode = root_inode->inode;
+        mount_dent->flags |= DENTRY_MOUNTPOINT;
         sb->root_dir = mount_dent;
         dentry_open(mount_dent);
         

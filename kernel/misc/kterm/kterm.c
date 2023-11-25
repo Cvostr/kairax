@@ -137,7 +137,7 @@ void kterm_main()
 						char symbol = keyboard_get_key_ascii(keycode);
 
 						if (current_session->ctrl_hold) {
-							int chr = 0;
+							char chr = 0;
 							switch (symbol) {
 								case 'c':
 									chr = 3;

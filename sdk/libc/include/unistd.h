@@ -28,6 +28,8 @@ ssize_t write(int fd, const char* buffer, size_t size);
 
 int close(int fd);
 
+int unlink(const char* path);
+
 int usleep(unsigned long useconds);
 unsigned int sleep(unsigned int seconds);
 
