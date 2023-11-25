@@ -294,7 +294,7 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
 
     instance->partition = drive;
     instance->superblock = (ext2_superblock_t*)kmalloc(sizeof(ext2_superblock_t));
-    instance->block_size = 1024;
+    instance->block_size = EXT2_SUPERBLOCK_SIZE;
     // Считать суперблок
     ext2_partition_read_block(instance, 1, 1, (char*)kheap_get_phys_address(instance->superblock));
     
@@ -321,6 +321,8 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
         instance->bgds_blocks++;
 
     instance->bgds = (ext2_bgd_t*)kmalloc(instance->bgds_blocks * instance->block_size);
+    // Если реальный размер блока - 1024, то структуры BGD идут сразу за суперблоком во втором блоке
+    // Если больше - то номер блока BGD - 1
     instance->bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
     ext2_partition_read_block(instance, 
@@ -353,10 +355,9 @@ void ext2_write_bgds(ext2_instance_t* inst)
 
 void ext2_rewrite_superblock(ext2_instance_t* inst)
 {
-    ext2_partition_write_block( inst, 
-                                1,
-                                1,
-                                (char*)kheap_get_phys_address(inst->superblock));
+    uint64_t    start_lba = 1024 / 512;
+    uint64_t    lba_count = EXT2_SUPERBLOCK_SIZE / 512;
+    partition_write(inst->partition, start_lba, lba_count, (char*)kheap_get_phys_address(inst->superblock));
 }
 
 uint32_t ext2_alloc_inode(ext2_instance_t* inst)
@@ -407,6 +408,65 @@ exit:
     return result;
 }
 
+int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
+{
+    // Чтение удаляемой иноды
+    ext2_inode_t* ext2_rem_inode = new_ext2_inode();
+    ext2_inode(inst, ext2_rem_inode, inode);
+
+    // Обнуление ссылок
+    ext2_rem_inode->hard_links = 0;
+    ext2_rem_inode->mode = 0;
+
+    // Освобождение direct блоков
+    for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
+        uint32_t block_idx = ext2_rem_inode->blocks[block_i];
+
+        //printf("D BLOCK %i\n", block_idx);
+
+        if (block_idx > 0) {
+            ext2_free_block(inst, block_idx);
+            ext2_rem_inode->blocks[block_i] = 0;
+        }
+    }
+
+    ext2_rem_inode->size = 0;
+    ext2_rem_inode->num_blocks = 0;
+
+    // Перезапись
+    ext2_write_inode_metadata(inst, ext2_rem_inode, inode);
+
+    // todo: освобождение indirect блоков
+
+    // Этап освобождения номера в BGD и суперблоке
+    uint32_t inode_real_idx = inode - 1;
+    uint32_t inode_group_idx = inode_real_idx / inst->superblock->inodes_per_group;
+    uint32_t inode_bitmap_idx = inode_real_idx % inst->superblock->inodes_per_group;
+
+    // Выделение памяти под временный буфер для блока
+    uint8_t* buffer = (uint8_t*) kmalloc(inst->block_size);
+    uint8_t* buffer_phys = (uint8_t*) kheap_get_phys_address(buffer);
+
+    ext2_partition_read_block(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer_phys);
+
+    buffer[inode_bitmap_idx / 8] &= ~(1 << (inode_bitmap_idx % 8));
+
+    ext2_partition_write_block(inst, inst->bgds[inode_group_idx].block_bitmap, 1, buffer_phys);
+
+    // Увеличить количество свободных инодов в группе и записать на диск
+    inst->bgds[inode_group_idx].free_inodes++;
+    ext2_write_bgds(inst);
+
+    // Увеличить количество свободных инодов в суперблоке и записать на диск
+    inst->superblock->free_inodes++;
+    ext2_rewrite_superblock(inst);
+
+exit:
+    kfree(ext2_rem_inode);
+    kfree(buffer);
+    return 0;
+}
+
 uint64_t ext2_alloc_block(ext2_instance_t* inst)
 {
     uint8_t* buffer = (uint8_t*)kmalloc(inst->block_size);
@@ -449,6 +509,35 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
 exit:
     kfree(buffer);
     return block_index;
+}
+
+int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
+{
+    uint32_t block_bitmap_idx = (block_idx % inst->superblock->blocks_per_group);
+    uint64_t block_bgd_idx = (block_idx / inst->superblock->blocks_per_group);
+
+    uint8_t* buffer = (uint8_t*) kmalloc(inst->block_size);
+    uint8_t* buffer_phys = (uint8_t*) kheap_get_phys_address(buffer);
+
+    // Считать блок с BGD
+    ext2_partition_read_block(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer_phys);
+
+    buffer[block_bitmap_idx / 8] &= ~(1 << (block_bitmap_idx % 8));
+
+    // Записать измененный блок с BGD
+    ext2_partition_write_block(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer_phys);
+
+    // Увеличить количество свободных блоков в группе и записать на диск
+    inst->bgds[block_bgd_idx].free_blocks++;
+    ext2_write_bgds(inst);
+
+    // Увеличить количество свободных блоков в суперблоке и записать на диск
+    inst->superblock->free_blocks++;
+    ext2_rewrite_superblock(inst);
+
+exit:
+    kfree(buffer);
+    return 0;
 }
 
 int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index)
@@ -907,16 +996,20 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
     uint32_t unlink_inode_idx = 0;
     if ((unlink_inode_idx = ext2_find_dentry(parent->sb, parent->inode, dent->name)) == WRONG_INODE_INDEX) {
         kfree(e2_parent_inode);
-        return -ERROR_ALREADY_EXISTS;
+        return -ERROR_NO_FILE;
     }
 
-    // Считать ext2 - inode директории, для которой делаем unlink
+    // Считать ext2 - inode, для которой делаем unlink
     ext2_inode_t* e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, unlink_inode_idx);
 
     // Уменьшить количество ссылок на выбранную inode
     e2_inode->hard_links--;
-    ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
+    if (e2_inode->hard_links <= 0) {
+        ext2_purge_inode(inst, unlink_inode_idx);
+    } else {
+        ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
+    }
 
     //e2_parent_inode->hard_links--;
     //ext2_write_inode_metadata(inst, e2_parent_inode, parent->inode);

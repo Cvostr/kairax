@@ -13,6 +13,8 @@
 
 #define EXT2_MAGIC 61267
 
+#define EXT2_SUPERBLOCK_SIZE 1024
+
 typedef struct PACKED {
     uint32_t total_inodes;
     uint32_t total_blocks;
@@ -177,8 +179,14 @@ void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 // Создание новой inode на диске
 uint32_t ext2_alloc_inode(ext2_instance_t* inst);
 
+// Уничтожение inode, освобождение блоков, занимаемых этой inode
+int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode);
+
 // Выделение нового блока на диске
 uint64_t ext2_alloc_block(ext2_instance_t* inst);
+
+// Освободить блок с указанным индексом
+int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx);
 
 // Выделить блок для иноды
 int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index);
