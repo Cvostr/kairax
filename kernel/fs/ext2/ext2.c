@@ -288,6 +288,7 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
 
 int ext2_unmount(struct superblock* sb)
 {
+    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
     // Перезаписать на диск BGD и суперблок
     ext2_write_bgds(inst);
     ext2_rewrite_superblock(inst);
@@ -464,7 +465,7 @@ int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
 
     buffer[inode_bitmap_idx / 8] &= ~(1 << (inode_bitmap_idx % 8));
 
-    ext2_partition_write_block(inst, inst->bgds[inode_group_idx].block_bitmap, 1, buffer_phys);
+    ext2_partition_write_block(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer_phys);
 
     // Увеличить количество свободных инодов в группе
     inst->bgds[inode_group_idx].free_inodes++;
