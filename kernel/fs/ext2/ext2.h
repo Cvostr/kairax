@@ -158,6 +158,9 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
 // Вызывается VFS при монтировании
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb);
 
+// Вызывается при размонтировании
+int ext2_unmount(struct superblock* sb);
+
 // Прочитать данные файла inode
 ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf);
 
@@ -184,6 +187,9 @@ int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode);
 
 // Выделение нового блока на диске
 uint64_t ext2_alloc_block(ext2_instance_t* inst);
+
+// Освободить дерево блоков - применяется для очистки indirect блоков у inode
+int ext2_free_block_tree(ext2_instance_t* inst, uint64_t root, int level);
 
 // Освободить блок с указанным индексом
 int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx);

@@ -12,7 +12,7 @@ typedef struct {
     int                 flags;
 
     struct inode*        (*mount)(drive_partition_t*, struct superblock*);   //Вызывается при монтировании
-    int                 (*unmount)(struct superblock*); //Вызывается при размонтировании
+    int                  (*unmount)(struct superblock*); //Вызывается при размонтировании
 } filesystem_t;
 
 filesystem_t* new_filesystem();

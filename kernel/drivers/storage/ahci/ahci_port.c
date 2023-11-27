@@ -513,8 +513,8 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; // Spin lock timeout counter
 	int slot = ahci_port_get_free_cmdslot(port);
-	if (slot == -1)
-		return 0;
+	while (slot == -1)
+		slot = ahci_port_get_free_cmdslot(port);
 
 	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
 	cmdheader += slot;

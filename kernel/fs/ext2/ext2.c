@@ -20,6 +20,7 @@ void ext2_init()
     filesystem_t* ext2fs = new_filesystem();
     ext2fs->name = "ext2";
     ext2fs->mount = ext2_mount;
+    ext2fs->unmount = ext2_unmount;
 
     filesystem_register(ext2fs);
 
@@ -285,6 +286,13 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
     return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
 }
 
+int ext2_unmount(struct superblock* sb)
+{
+    // Перезаписать на диск BGD и суперблок
+    ext2_write_bgds(inst);
+    ext2_rewrite_superblock(inst);
+}
+
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
 {
     ext2_instance_t* instance = kmalloc(sizeof(ext2_instance_t));
@@ -357,7 +365,7 @@ void ext2_rewrite_superblock(ext2_instance_t* inst)
 {
     uint64_t    start_lba = 1024 / 512;
     uint64_t    lba_count = EXT2_SUPERBLOCK_SIZE / 512;
-    partition_write(inst->partition, start_lba, lba_count, (char*)kheap_get_phys_address(inst->superblock));
+    partition_write(inst->partition, start_lba, lba_count, (char*) kheap_get_phys_address(inst->superblock));
 }
 
 uint32_t ext2_alloc_inode(ext2_instance_t* inst)
@@ -422,21 +430,26 @@ int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
     for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
         uint32_t block_idx = ext2_rem_inode->blocks[block_i];
 
-        //printf("D BLOCK %i\n", block_idx);
-
         if (block_idx > 0) {
             ext2_free_block(inst, block_idx);
             ext2_rem_inode->blocks[block_i] = 0;
         }
     }
 
+    // Освобождение indirect блоков
+    ext2_free_block_tree(inst, ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS], 0);
+    ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS] = 0;
+    ext2_free_block_tree(inst, ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1);
+    ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS + 1] = 0;
+    ext2_free_block_tree(inst, ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS + 2], 2);
+    ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS + 2] = 0;
+
+    // Обнуление размера и кол-ва занимаемых блоков
     ext2_rem_inode->size = 0;
     ext2_rem_inode->num_blocks = 0;
 
     // Перезапись
     ext2_write_inode_metadata(inst, ext2_rem_inode, inode);
-
-    // todo: освобождение indirect блоков
 
     // Этап освобождения номера в BGD и суперблоке
     uint32_t inode_real_idx = inode - 1;
@@ -453,12 +466,14 @@ int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
 
     ext2_partition_write_block(inst, inst->bgds[inode_group_idx].block_bitmap, 1, buffer_phys);
 
-    // Увеличить количество свободных инодов в группе и записать на диск
+    // Увеличить количество свободных инодов в группе
     inst->bgds[inode_group_idx].free_inodes++;
-    ext2_write_bgds(inst);
 
-    // Увеличить количество свободных инодов в суперблоке и записать на диск
+    // Увеличить количество свободных инодов в суперблоке
     inst->superblock->free_inodes++;
+
+    // Перезаписать на диск BGD и суперблок
+    ext2_write_bgds(inst);
     ext2_rewrite_superblock(inst);
 
 exit:
@@ -511,6 +526,39 @@ exit:
     return block_index;
 }
 
+int ext2_free_block_tree(ext2_instance_t* inst, uint64_t root, int level)
+{
+    if (root == 0) {
+        return 0;
+    }
+
+    // Подготовить буфер для основного блока
+    uint32* block_list = kmalloc(inst->block_size);
+    uint8_t* block_list_phys = (uint8_t*) kheap_get_phys_address(block_list);
+
+    // Cчитать блок
+    ext2_partition_read_block(inst, root, 1, block_list_phys);
+
+    for (size_t i = 0; i < inst->block_size / sizeof(uint32_t); i ++) {
+        uint32_t subblock_idx = block_list[i];
+
+        if (subblock_idx > 0) {
+            if (level > 0) {
+                ext2_free_block_tree(inst, subblock_idx, level - 1);
+            } else {
+                ext2_free_block(inst, subblock_idx);
+            }
+        }
+    }
+
+    memset(block_list, 0, inst->block_size);
+    ext2_partition_write_block(inst, root, 1, block_list_phys);
+
+    ext2_free_block(inst, root);
+    kfree(block_list);
+    return 0;
+}
+
 int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
 {
     uint32_t block_bitmap_idx = (block_idx % inst->superblock->blocks_per_group);
@@ -527,13 +575,11 @@ int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
     // Записать измененный блок с BGD
     ext2_partition_write_block(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer_phys);
 
-    // Увеличить количество свободных блоков в группе и записать на диск
+    // Увеличить количество свободных блоков в группе
     inst->bgds[block_bgd_idx].free_blocks++;
-    ext2_write_bgds(inst);
 
-    // Увеличить количество свободных блоков в суперблоке и записать на диск
+    // Увеличить количество свободных блоков в суперблоке
     inst->superblock->free_blocks++;
-    ext2_rewrite_superblock(inst);
 
 exit:
     kfree(buffer);
