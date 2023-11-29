@@ -1083,10 +1083,13 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
 
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+
     inode->mode = INODE_TYPE_DIRECTORY | (0xFFF & mode);
-    inode->atime = 0;
-    inode->ctime = 0;
-    inode->mtime = 0;
+    inode->atime = current_time.tv_sec;
+    inode->ctime = current_time.tv_sec;
+    inode->mtime = current_time.tv_sec;
     inode->dtime = 0;
     inode->gid = 0;
     inode->userid = 0;
@@ -1161,10 +1164,13 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
 
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+
     inode->mode = INODE_TYPE_FILE | (0xFFF & mode);
-    inode->atime = 0;
-    inode->ctime = 0;
-    inode->mtime = 0;
+    inode->atime = current_time.tv_sec;
+    inode->ctime = current_time.tv_sec;
+    inode->mtime = current_time.tv_sec;
     inode->dtime = 0;
     inode->gid = 0;
     inode->userid = 0;

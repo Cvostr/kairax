@@ -1,5 +1,5 @@
-#ifndef _TIME_H
-#define _TIME_H
+#ifndef _KTIME_H
+#define _KTIME_H
 
 #include "types.h"
 

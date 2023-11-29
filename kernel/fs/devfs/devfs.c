@@ -2,6 +2,7 @@
 #include "list/list.h"
 #include "string.h"
 #include "mem/kheap.h"
+#include "proc/syscalls.h"
 
 struct inode_operations root_inode_ops;
 struct file_operations  root_file_ops;
@@ -21,13 +22,16 @@ void devfs_init()
 {
     devfs_devices = create_list();
 
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+
     // Заранее создать корневую inode
     devfs_root_inode = new_vfs_inode();
     devfs_root_inode->inode = inode_index++;                   
     devfs_root_inode->mode = INODE_TYPE_DIRECTORY;
-    devfs_root_inode->create_time = 0;
-    devfs_root_inode->access_time = 0;
-    devfs_root_inode->modify_time = 0;
+    devfs_root_inode->create_time = current_time.tv_sec;
+    devfs_root_inode->access_time = current_time.tv_sec;
+    devfs_root_inode->modify_time = current_time.tv_sec;
     devfs_root_inode->operations = &root_inode_ops;
     devfs_root_inode->file_ops = &root_file_ops;
     atomic_inc(&devfs_root_inode->reference_count);
@@ -73,13 +77,16 @@ int devfs_add_char_device(const char* name, struct file_operations* fops)
 
     struct devfs_device* device = new_devfs_device_struct();
 
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+
     // Создание inode
     device->inode = new_vfs_inode();
     device->inode->inode = inode_index++;                   
     device->inode->mode = INODE_FLAG_CHARDEVICE;
-    device->inode->create_time = 0;
-    device->inode->access_time = 0;
-    device->inode->modify_time = 0;
+    device->inode->create_time = current_time.tv_sec;
+    device->inode->access_time = current_time.tv_sec;
+    device->inode->modify_time = current_time.tv_sec;
     device->inode->file_ops = fops;
     device->inode->operations = &dev_inode_ops;
     atomic_inc(&device->inode->reference_count);
