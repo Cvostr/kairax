@@ -5,7 +5,7 @@
 #include "sync/spinlock.h"
 #include "list/list.h"
 #include "dirent.h"
-#include "stdc/atomic.h"
+#include "atomic.h"
 
 #define DENTRY_MOUNTPOINT       2
 #define DENTRY_UNLINK_DELAYED   4

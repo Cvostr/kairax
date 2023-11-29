@@ -1,7 +1,7 @@
 #ifndef _TIMER_H
 #define _TIMER_H
 
-#include "stdc/time.h"
+#include "kairax/time.h"
 
 #define TIMER_FREQUENCY 1000
 

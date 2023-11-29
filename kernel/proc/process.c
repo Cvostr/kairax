@@ -8,7 +8,7 @@
 #include "memory/kernel_vmm.h"
 #include "errors.h"
 #include "kstdlib.h"
-#include "proc/elf64/elf64.h"
+#include "elf_process_loader.h"
 #include "process_list.h"
 
 struct process*  create_new_process(struct process* parent)

@@ -4,7 +4,7 @@ rm -rf bin
 mkdir bin
 
 x64_SRC=./arch/x86_64
-STDC_PATH=./stdc
+STDC_PATH=./kairax
 GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
 
@@ -106,7 +106,7 @@ gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
 gcc $GCC_ARGS mem/pmm.c -o ./bin/pmm.o
 
 #ELF
-gcc $GCC_ARGS proc/elf64/elf64.c -o ./bin/elf64.o
+gcc $GCC_ARGS proc/elf_process_loader.c -o ./bin/elf64.o
 
 gcc $GCC_ARGS misc/bootshell/bootshell.c -o ./bin/bootshell.o
 gcc $GCC_ARGS misc/bootshell/bootshell_cmdproc.c -o ./bin/bootshell_cmdproc.o

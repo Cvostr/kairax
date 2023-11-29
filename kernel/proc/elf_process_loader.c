@@ -1,8 +1,9 @@
-#include "elf64.h"
+#include "elf_process_loader.h"
 #include "string.h"
-#include "../process.h"
+#include "process.h"
 #include "kstdlib.h"
 #include "mem/kheap.h"
+#include "kairax/errors.h"
 
 int elf_check_signature(struct elf_header* elf_header)
 {

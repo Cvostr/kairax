@@ -7,7 +7,7 @@
 #include "proc/thread_scheduler.h"
 #include "mem/pmm.h"
 #include "kstdlib.h"
-#include "proc/elf64/elf64.h"
+#include "../elf_process_loader.h"
 #include "string.h"
 #include "dev/acpi/acpi.h"
 #include "ipc/pipe.h"

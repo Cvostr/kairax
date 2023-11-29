@@ -1,7 +1,7 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 
-#include "list/list.h"
+#include "kairax/list/list.h"
 #include "fs/vfs/file.h"
 #include "fs/vfs/stat.h"
 #include "mem/paging.h"

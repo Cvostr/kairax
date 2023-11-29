@@ -3,7 +3,7 @@
 
 #include "types.h"
 #include "process.h"
-#include "elf64/elf64.h"
+#include "elf_process_loader.h"
 
 #define STACK_SIZE 4096
 
