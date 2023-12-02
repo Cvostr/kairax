@@ -133,6 +133,17 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "sleep") == 0) {
         sys_thread_sleep(3, 0);
     }
+    if(strcmp(cmd, "insmod") == 0) {
+        struct file* mod_file = file_open(NULL, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
+        size_t size = mod_file->inode->size;
+        char* image_data = kmalloc(size);
+        file_read(mod_file, size, image_data);
+
+        int rc = sys_load_module(image_data, size);
+        if (rc < 0) {
+            printf_stdout("Error loadng module : %i\n", -rc);
+        }
+    }
     if (strcmp(cmd, "exec") == 0) {
 
         char curdir[512];

@@ -49,6 +49,9 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
 
 int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
 
+// Уничтожить страницы в таблице виртуальной памяти
+void destroy_page_table(table_entry_t* entries, int level, uint64_t mask);
+
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count);
 
 virtual_addr_t get_first_free_pages_from(virtual_addr_t start, page_table_t* root, uint64_t pages_count);

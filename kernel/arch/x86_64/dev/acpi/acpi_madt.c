@@ -1,6 +1,7 @@
 #include "acpi.h"
 #include "memory/kernel_vmm.h"
 #include "mem/pmm.h"
+#include "stdio.h"
 
 acpi_madt_t* acpi_madt_table;
 
@@ -74,7 +75,7 @@ void acpi_parse_apic_madt(acpi_madt_t* madt)
             break;
         case 5:
             // Если такая структура есть - надо использовать адрес lapic из неё
-            printf("64 bit APIC override");
+            printk("64 bit APIC override");
             apic_override_t* ovstruct = (apic_override_t*)p;
             madt->local_apic_address = ovstruct->addr;
         

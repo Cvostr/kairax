@@ -41,7 +41,7 @@ static int print_stdout(const char* data, size_t length) {
 	return 1;
 }
 
-int printf(const char* restrict format, ...) {
+int printk(const char* restrict format, ...) {
 	va_list parameters;
 	va_start(parameters, format);
  

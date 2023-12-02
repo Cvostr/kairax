@@ -201,6 +201,23 @@ int arch_vm_is_mapped(void* arch_table, uint64_t address)
     return pt_table->entries[level1_index] & PAGE_PRESENT;
 }
 
+void destroy_page_table(table_entry_t* entries, int level, uint64_t mask)
+{
+    if (level > 0) {
+        for (int i = 0; i < 512; i ++) {
+            table_entry_t entry = entries[i];
+            if ((entry & mask) == mask) {
+
+                uintptr_t addr = GET_PAGE_FRAME(entry);
+               
+                destroy_page_table(P2V(addr), level - 1, mask);
+            }
+        }
+    }    
+    
+    pmm_free_page(V2P(entries));
+}
+
 int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 {
     int rc = 0;

@@ -50,7 +50,8 @@ gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o
 gcc $GCC_ARGS $STDC_PATH/vector/vector.c -o ./bin/vector.o
 gcc $GCC_ARGS $STDC_PATH/guid/guid.c -o ./bin/guid.o
 
-#generic stdc
+#generic kairax
+gcc $GCC_ARGS $STDC_PATH/elf.c -o ./bin/elf.o
 gcc $GCC_ARGS $STDC_PATH/string.c -o ./bin/stdc_string.o
 gcc $GCC_ARGS $STDC_PATH/stdlib.c -o ./bin/stdc_stdlib.o
 gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
@@ -81,6 +82,7 @@ gcc $GCC_ARGS fs/vfs/file.c -o ./bin/file.o
 gcc $GCC_ARGS fs/vfs/superblock.c -o ./bin/superblock.o
 
 #generic proc
+gcc $GCC_ARGS proc/elf_process_loader.c -o ./bin/elf_process_loader.o
 gcc $GCC_ARGS proc/process.c -o ./bin/process.o
 gcc $GCC_ARGS proc/process_list.c -o ./bin/process_list.o
 gcc $GCC_ARGS proc/thread.c -o ./bin/thread.o
@@ -90,6 +92,7 @@ gcc $GCC_ARGS proc/syscalls/syscalls_memory.c -o ./bin/syscalls_memory.o
 gcc $GCC_ARGS proc/syscalls/syscalls_files.c -o ./bin/syscalls_files.o
 gcc $GCC_ARGS proc/syscalls/syscall_wait.c -o ./bin/syscall_wait.o
 gcc $GCC_ARGS proc/syscalls/syscalls_wd.c -o ./bin/syscalls_wd.o
+gcc $GCC_ARGS proc/syscalls/syscalls_modules.c -o ./bin/syscalls_modules.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 
@@ -105,8 +108,10 @@ gcc $GCC_ARGS mem/paging.c -o ./bin/paging.o
 gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
 gcc $GCC_ARGS mem/pmm.c -o ./bin/pmm.o
 
-#ELF
-gcc $GCC_ARGS proc/elf_process_loader.c -o ./bin/elf64.o
+#generic modules
+gcc $GCC_ARGS mod/module_loader.c -o ./bin/module_loader.o
+gcc $GCC_ARGS mod/function_table.c -o ./bin/function_table.o
+gcc $GCC_ARGS mod/module_stor.c -o ./bin/module_stor.o
 
 gcc $GCC_ARGS misc/bootshell/bootshell.c -o ./bin/bootshell.o
 gcc $GCC_ARGS misc/bootshell/bootshell_cmdproc.c -o ./bin/bootshell_cmdproc.o

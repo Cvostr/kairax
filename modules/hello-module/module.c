@@ -1,23 +1,21 @@
-static void init()
+#include "module.h"
+#include "functions.h"
+
+void myfunc()
+{
+	printk("Hello %i", 12);
+}
+
+int init()
 {
 	printk("Hello");
+	myfunc();
+	return 0;
 }
 
-static void exit()
+void exit()
 {
-
+	printk("Bye");
 }
 
-struct module_metadata
-{
-    char name[20];
-    void (*init)(void);
-    void (*exit)(void);
-};
-
-__attribute__((section(".modinfo")))
-struct module_metadata dummy = {
-    .name = "hello-module",
-    .init = init,
-    .exit = exit,
-};
+DEFINE_MODULE("hello-module", init, exit)

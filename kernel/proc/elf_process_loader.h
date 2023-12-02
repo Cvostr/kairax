@@ -26,14 +26,6 @@ struct aux_pair {
 
 #define INTERP_PATH_MAX_LEN 64
 
-int elf_check_signature(struct elf_header* elf_header);
-
-struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
-
-struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index);
-
-char* elf_get_string_at(char* image, uint32_t string_index);
-
 int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip, char* interp_path);
 
 #endif

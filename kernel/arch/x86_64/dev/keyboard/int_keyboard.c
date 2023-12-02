@@ -5,6 +5,7 @@
 #include "mem/kheap.h"
 #include "keycodes.h"
 #include "sync/spinlock.h"
+#include "string.h"
 
 struct file_operations int_keyb_fops;
 

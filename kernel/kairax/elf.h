@@ -106,4 +106,47 @@ struct elf_section_header_entry {
     uint64_t    ent_size;
 } PACKED;
 
+struct elf_symbol {
+	uint32_t	    name;
+	unsigned char	info;
+	unsigned char	other;
+	uint16_t	    shndx;
+	uint64_t	    value;
+	uint64_t	    size;
+} PACKED;
+
+struct elf_rela {
+    void*       offset;
+    uint64_t    info;
+    int64_t     addend;
+} PACKED;
+
+#define ELF64_R_SYM(i) ((i) >> 32)
+#define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
+
+#define R_X86_64_64		    1
+#define R_X86_64_PC32		2
+#define R_X86_64_GOT32		3
+#define R_X86_64_PLT32		4
+
+#define STB_LOCAL       0
+#define STB_GLOBAL      1
+#define STB_WEAK        2
+
+#define STT_NOTYPE      0
+#define STT_OBJECT      1
+#define STT_FUNC        2
+#define STT_SECTION     3
+#define STT_FILE        4
+
+#define SHN_UNDEF       0
+
+int elf_check_signature(struct elf_header* elf_header);
+
+struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
+
+struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index);
+
+char* elf_get_string_at(char* image, uint32_t string_index);
+
 #endif

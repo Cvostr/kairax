@@ -9,6 +9,8 @@ extern uintptr_t __KERNEL_END;
 extern uintptr_t __KERNEL_VIRT_END;
 extern uintptr_t __KERNEL_VIRT_LINK;
 
+uintptr_t kernel_top_addr = 0;
+
 page_table_t* root_pml4 = NULL;
 
 page_table_t* get_kernel_pml4()
@@ -26,6 +28,9 @@ page_table_t* create_kernel_vm_map()
     //Размер ядра
     size_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
     kernel_size = align(kernel_size, PAGE_SIZE);
+
+    // Адрес, на котором кончается код ядра - к нему потом будут прилинкованы модули
+    kernel_top_addr = P2K(kernel_size + 0x100000ULL);
 
     uint64_t p4_page_flags = PAGE_PRESENT | PAGE_WRITABLE;
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
@@ -74,24 +79,25 @@ void* arch_clone_kernel_vm_table()
     return result;
 }
 
-void vmm_destroy_page_table(table_entry_t* entries, int level)
-{
-    if (level > 0) {
-        for (int i = 0; i < 512; i ++) {
-            table_entry_t entry = entries[i];
-            if ((entry & PAGE_PRESENT) && (entry & PAGE_USER_ACCESSIBLE)) {
-
-                uintptr_t addr = GET_PAGE_FRAME(entry);
-               
-                vmm_destroy_page_table(P2V(addr), level - 1);
-            }
-        }
-    }    
-    
-    pmm_free_page(V2P(entries));
-}
-
 void arch_destroy_vm_table(void* root)
 {
-    vmm_destroy_page_table(((page_table_t*)root)->entries, 4);
+    destroy_page_table(((page_table_t*)root)->entries, 4, PAGE_PRESENT | PAGE_USER_ACCESSIBLE);
+}
+
+uint64_t arch_expand_kernel_mem(uint64_t size)
+{
+    // Прибавить защитную страницу
+    kernel_top_addr += PAGE_SIZE;
+    // Сохранить адрес для возврата
+    uintptr_t temp = kernel_top_addr;
+    uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
+    
+    // todo : не кончилось ли 48 битное адресное пространство?
+
+    for (uintptr_t iter = 0; iter <= size; iter += PAGE_SIZE) {
+		map_page_mem(root_pml4, temp + iter, pmm_alloc_page(), pageFlags);
+        kernel_top_addr += PAGE_SIZE;
+	}
+
+    return temp;
 }
