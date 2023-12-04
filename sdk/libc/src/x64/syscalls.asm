@@ -32,6 +32,8 @@ global syscall_wait
 global syscall_get_time_epoch
 global syscall_thread_exit
 global syscall_get_ticks_count
+global syscall_load_module
+global syscall_unload_module
 
 syscall_read:
     mov rax, 0x0
@@ -157,6 +159,18 @@ syscall_mount:
 
 syscall_poweroff:
     mov rax, 0xA9
+    syscall
+    ret
+
+syscall_load_module:
+    mov rax, 0xAF
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_unload_module:
+    mov rax, 0xB0
+    mov r10, rcx
     syscall
     ret
 

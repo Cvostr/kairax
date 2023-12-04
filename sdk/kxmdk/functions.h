@@ -5,6 +5,14 @@
 
 int printk(const char* __restrict, ...);
 
+struct inode {
+    uint32_t    mode;       // Тип и разрешения
+};
+
+struct file {
+    struct inode*           inode;
+};
+
 struct file_operations {
     off_t (*llseek) (struct file* file, off_t offset, int whence);
     ssize_t (*read) (struct file* file, char* buffer, size_t count, loff_t offset);

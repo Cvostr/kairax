@@ -11,7 +11,9 @@ struct module {
     void (*mod_destroy_routine)(void);
 };
 
-struct module* mstor_new_module(uint64_t size);
+struct module* mstor_new_module(uint64_t size, const char* name);
+
+int mstor_register_module(struct module* module);
 
 int mstor_destroy_module(const char* module_name);
 

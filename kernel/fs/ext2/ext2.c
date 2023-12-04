@@ -1058,8 +1058,6 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
         ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
     }
 
-    //e2_parent_inode->hard_links--;
-    //ext2_write_inode_metadata(inst, e2_parent_inode, parent->inode);
     // Удалить dentry из родительской inode
     ext2_remove_dentry(inst, parent, dent->name, NULL);
 

@@ -46,7 +46,7 @@ page_table_t* create_kernel_vm_map()
 
     uint64_t iter = 0;
     // маппинг текста ядра 
-	for (iter = 0; iter <= kernel_size; iter += PAGE_SIZE) {
+	for (iter = 0; iter < kernel_size; iter += PAGE_SIZE) {
 		map_page_mem(root_pml4, (virtual_addr_t)P2K(iter) + 0x100000ULL, 0x100000ULL + iter, pageFlags);
 	}
 
@@ -86,15 +86,14 @@ void arch_destroy_vm_table(void* root)
 
 uint64_t arch_expand_kernel_mem(uint64_t size)
 {
-    // Прибавить защитную страницу
-    kernel_top_addr += PAGE_SIZE;
+    size = align(size, PAGE_SIZE);
     // Сохранить адрес для возврата
     uintptr_t temp = kernel_top_addr;
     uint64_t pageFlags = PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL;
     
     // todo : не кончилось ли 48 битное адресное пространство?
 
-    for (uintptr_t iter = 0; iter <= size; iter += PAGE_SIZE) {
+    for (uintptr_t iter = 0; iter < size; iter += PAGE_SIZE) {
 		map_page_mem(root_pml4, temp + iter, pmm_alloc_page(), pageFlags);
         kernel_top_addr += PAGE_SIZE;
 	}

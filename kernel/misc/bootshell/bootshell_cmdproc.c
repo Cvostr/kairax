@@ -135,21 +135,30 @@ void bootshell_process_cmd(char* cmdline)
     }
     if(strcmp(cmd, "insmod") == 0) {
         struct file* mod_file = file_open(NULL, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
+        if (mod_file == NULL) {
+            goto exit;
+        }
         size_t size = mod_file->inode->size;
         char* image_data = kmalloc(size);
         file_read(mod_file, size, image_data);
 
         int rc = sys_load_module(image_data, size);
         if (rc < 0) {
-            printf_stdout("Error loadng module : %i\n", -rc);
+            printf_stdout("Error loading module : %i\n", -rc);
+        }
+
+        kfree(image_data);
+    }
+    if(strcmp(cmd, "unlmod") == 0) {
+        int rc = sys_unload_module(args[1]);
+        if (rc < 0) {
+            printf_stdout("Error unloading module : %i\n", -rc);
         }
     }
     if (strcmp(cmd, "exec") == 0) {
 
-        char curdir[512];
-        sys_get_working_dir(curdir, 512);
         struct process_create_info info;
-        info.current_directory = curdir;
+        info.current_directory = NULL;
         info.num_args = argc - 1;
         info.args = args + 1;
         info.stdout = 1;

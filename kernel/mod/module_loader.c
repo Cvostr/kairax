@@ -16,6 +16,7 @@ struct kxmodule_header
 
 int module_load(const char* image, size_t size)
 {
+    int rc = 0;
     struct elf_header* elf_header = (struct elf_header*) image;
 
     if (!elf_check_signature(elf_header)) {
@@ -54,12 +55,19 @@ int module_load(const char* image, size_t size)
 
     if (module_header_ptr == NULL) {
         // В модуле отсутствует секция kxmod_header. Без нее делать что-либо дальше нет смысла
-        return -1; //todo: уточнить код
+        return -ERROR_BAD_EXEC_FORMAT;
     }
 
-    struct module* mod = mstor_new_module(size);
+    char* module_name = ((struct kxmodule_header*) (image + (uint64_t) module_header_ptr))->mod_name;
+
+    struct module* mod = mstor_new_module(size, module_name);
     if (mod == NULL) {
         return -1;
+    }
+
+    rc = mstor_register_module(mod);
+    if (rc != 0) {
+        goto exit;
     }
 
     // Копируем данные в память рядом с кодом ядра
@@ -122,11 +130,12 @@ int module_load(const char* image, size_t size)
     }
 
     module_header_ptr = (struct kxmodule_header*) (mod->offset + (uint64_t) module_header_ptr);
-
-    strcpy(mod->name, module_header_ptr->mod_name);
     mod->mod_init_routine = module_header_ptr->mod_init_routine;
     mod->mod_destroy_routine = module_header_ptr->mod_destroy_routine;
 
-    int rc = mod->mod_init_routine();
+    if (mod->mod_init_routine)
+        rc = mod->mod_init_routine();
+    
+exit:
     return rc;
 }

@@ -70,5 +70,6 @@ uint64_t sys_get_tick_count();
 int sys_create_pty(int *master_fd, int *slave_fd);
 
 int sys_load_module(void* module_image, size_t image_size);
+int sys_unload_module(const char* module_name);
 
 #endif
