@@ -74,4 +74,6 @@ int inode_truncate(struct inode* inode);
 
 int inode_unlink(struct inode* parent, struct dentry* child);
 
+int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_parent, const char* name);
+
 #endif

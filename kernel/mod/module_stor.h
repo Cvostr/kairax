@@ -4,7 +4,7 @@
 #include "types.h"
 
 struct module {
-    const char name[30];
+    char name[30];
     uint64_t offset;
     uint64_t size;
     int (*mod_init_routine)(void);

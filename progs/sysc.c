@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
         }
     }
     fclose(tsf);
-    tsf = fopen("bugaga.txt", "wa");
+    tsf = fopen("bugaga.txt", "w");
     int written = fwrite("abab", 1, 4, tsf);
     fclose(tsf);
     printf("Written: %i bytes\n", written);

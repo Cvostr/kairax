@@ -993,7 +993,29 @@ int ext2_truncate(struct inode* inode)
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
     ext2_inode_t* e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, inode->inode);
+    
+    // Освобождение direct блоков
+    for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
+        uint32_t block_idx = e2_inode->blocks[block_i];
+
+        if (block_idx > 0) {
+            ext2_free_block(inst, block_idx);
+            e2_inode->blocks[block_i] = 0;
+        }
+    }
+
+    // Освобождение indirect блоков
+    ext2_free_block_tree(inst, e2_inode->blocks[EXT2_DIRECT_BLOCKS], 0);
+    e2_inode->blocks[EXT2_DIRECT_BLOCKS] = 0;
+    ext2_free_block_tree(inst, e2_inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1);
+    e2_inode->blocks[EXT2_DIRECT_BLOCKS + 1] = 0;
+    ext2_free_block_tree(inst, e2_inode->blocks[EXT2_DIRECT_BLOCKS + 2], 2);
+    e2_inode->blocks[EXT2_DIRECT_BLOCKS + 2] = 0;
+
+    // Обнуление размера и кол-ва занимаемых блоков
     e2_inode->size = 0;
+    e2_inode->num_blocks = 0;
+
     ext2_write_inode_metadata(inst, e2_inode, inode->inode);
     kfree(e2_inode);
 

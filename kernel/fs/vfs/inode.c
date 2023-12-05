@@ -82,6 +82,10 @@ int inode_truncate(struct inode* inode)
         rc = inode->operations->truncate(inode);
     }
 
+    if (rc == 0) {
+        inode->size = 0;
+    }
+
     release_spinlock(&inode->spinlock);
 
     return rc;
@@ -97,6 +101,22 @@ int inode_unlink(struct inode* parent, struct dentry* child)
     }
 
     release_spinlock(&parent->spinlock);
+
+    return rc;
+}
+
+int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_parent, const char* name)
+{
+    acquire_spinlock(&parent->spinlock);
+    acquire_spinlock(&new_parent->spinlock);
+    
+    int rc = -ERROR_INVALID_VALUE;
+    if (parent->operations->rename) {
+        rc = parent->operations->rename(parent, orig, new_parent, name);
+    }
+
+    release_spinlock(&parent->spinlock);
+    release_spinlock(&new_parent->spinlock);
 
     return rc;
 }

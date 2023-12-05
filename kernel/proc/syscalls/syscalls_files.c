@@ -44,6 +44,11 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
         return -ERROR_IS_DIRECTORY;
     }
 
+    if ((file->inode->mode & INODE_TYPE_FILE) && (flags & FILE_OPEN_FLAG_TRUNCATE) && file_allow_write(file)) {
+        printf_stdout("\nTRUNC\n");
+        inode_truncate(file->inode);
+    }
+
     // Добавить файл к процессу
     fd = process_add_file(process, file);
 
@@ -349,12 +354,9 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
     }
 
     // Переместить на диске
-    if (old_parent_inode->operations->rename) {
-        rc = old_parent_inode->operations->rename(old_parent_inode, old_dentry, new_parent_inode, new_filename);
-
-        if (rc != 0)
-            goto exit;
-    }
+    rc = inode_rename(old_parent_inode, old_dentry, new_parent_inode, new_filename);
+    if (rc != 0)
+        goto exit;
 
     // Поменять имя в dentry
     strcpy(old_dentry->name, new_filename);
