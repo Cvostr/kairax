@@ -101,6 +101,8 @@ void exception_handler(interrupt_frame_t* frame)
         //if(value > KERNEL_TEXT_OFFSET)
             printf("%s, ", ulltoa(value, 16));
     }
+    
+    printf("\n");
 
     if (frame->cs == 0x23) {
         // Исключение произошло в пользовательском процессе

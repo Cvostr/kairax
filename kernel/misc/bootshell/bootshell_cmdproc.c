@@ -68,7 +68,7 @@ void bootshell_process_cmd(char* cmdline)
 
         int result = vfs_mount_fs(mnt_path, partition, "ext2");
         if (result < 0) {
-            printf_stdout("ERROR: vfs_mount returned with code %i\n", result);
+            printf_stdout("ERROR: vfs_mount returned with code %i\n", -result);
         }else{
             printf_stdout("Successfully mounted!\n");
         }
@@ -177,14 +177,14 @@ void bootshell_process_cmd(char* cmdline)
         for(int i = 0; i < 100; i ++){
             struct superblock* mount = mounts[i];
             if(mount != NULL) {
-                size_t reqd_size = 0;
-                char* abs_path_buffer = NULL;
-                vfs_dentry_get_absolute_path(mount->root_dir, &reqd_size, NULL);
-                abs_path_buffer = kmalloc(reqd_size + 1);
-                memset(abs_path_buffer, 0, reqd_size + 1);
-                vfs_dentry_get_absolute_path(mount->root_dir, NULL, abs_path_buffer);
-                printf_stdout("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, abs_path_buffer, mount->filesystem->name);
-                kfree(abs_path_buffer);
+                //size_t reqd_size = 0;
+                //char* abs_path_buffer = NULL;
+                //vfs_dentry_get_absolute_path(mount->root_dir, &reqd_size, NULL);
+                //abs_path_buffer = kmalloc(reqd_size + 1);
+                //memset(abs_path_buffer, 0, reqd_size + 1);
+                //vfs_dentry_get_absolute_path(mount->root_dir, NULL, abs_path_buffer);
+                printf_stdout("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, "abs_path_buffer", mount->filesystem->name);
+                //kfree(abs_path_buffer);
             }
         }
     }
@@ -235,7 +235,7 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmdline, "pci") == 0){
         printf_stdout("PCI devices %i \n", get_pci_devices_count());
         for(int i = 0; i < get_pci_devices_count(); i ++){
-            pci_device_desc* desc = &get_pci_devices_descs()[i];
+            struct pci_device_desc* desc = &get_pci_devices_descs()[i];
             printf_stdout("%i:%i:%i ", desc->bus, desc->device, desc->function);
             
             switch(desc->device_class){

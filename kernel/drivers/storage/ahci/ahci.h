@@ -29,12 +29,12 @@
 #include "ahci_port.h"
 
 typedef struct PACKED {
-    pci_device_desc*    pci_device;
-    HBA_MEMORY*         hba_mem;
-    ahci_port_t         ports[32];
-    uint32_t            version;
-    uint32_t            capabilities;
-    uint32_t            capabilities_ext;
+    struct pci_device_desc* pci_device;
+    HBA_MEMORY*             hba_mem;
+    ahci_port_t             ports[32];
+    uint32_t                version;
+    uint32_t                capabilities;
+    uint32_t                capabilities_ext;
 } ahci_controller_t;
 
 int ahci_controller_reset(ahci_controller_t* controller);

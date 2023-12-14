@@ -1,6 +1,4 @@
 #include "kterm.h"
-#include "vgaterm.h"
-#include "proc/process.h"
 #include "proc/thread.h"
 #include "misc/bootshell/bootshell.h"
 #include "proc/syscalls.h"
@@ -11,14 +9,6 @@
 #include "string.h"
 
 struct process *kterm_process = NULL;
-
-struct terminal_session {
-	int master;
-	int slave;
-	struct process*	proc;
-	struct vgaconsole* console;
-	int ctrl_hold;
-};
 
 #define KTERM_SESSIONS_MAX 12
 struct terminal_session* kterm_sessions[KTERM_SESSIONS_MAX];
@@ -59,7 +49,7 @@ struct terminal_session* new_kterm_session(int create_console)
 	struct thread* thr = create_kthread(session->proc, bootshell);
 	scheduler_add_thread(thr);
 
-	if (create_console > 0) {
+	if (create_console == TRUE) {
 		session->console = console_init();
 	}
 
@@ -88,32 +78,14 @@ void kterm_change_to(int index)
 
 void kterm_main()
 {
-	struct terminal_session* session = new_kterm_session(0);
+	struct terminal_session* session = new_kterm_session(FALSE);
 	current_session = session;
 	kterm_sessions[0] = session;
 	session->console = current_console;
 
 	while (1) {
-		char buff[128];
-		ssize_t n = sys_read_file(current_session->master, buff, 128);
 
-		for (int i = 0; i < n; i ++) {
-
-			char c = buff[i];
-			switch (c) {
-				case '\b':
-					console_backspace(current_console, 1);
-					break;
-				case '\r':
-					console_cr(current_console);
-					break;
-				case '\n':
-					console_lf(current_console);
-					break;
-				default:
-					console_print_char(current_console, c);
-			}
-		}
+		kterm_session_process(current_session);
 
 		short keycode_ext = keyboard_get_key();
 		if (keycode_ext > 0) {
@@ -159,7 +131,6 @@ void kterm_main()
 		}
 	}
 }
-
 
 char keyboard_get_key_ascii(char keycode)
 {

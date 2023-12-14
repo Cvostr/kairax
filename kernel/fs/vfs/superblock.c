@@ -67,7 +67,8 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
         goto exit;
         
     // считать dentry с диска
-    uint64_t inode = sb->operations->find_dentry(sb, parent->inode, name);
+    int dentry_type = 0;
+    uint64_t inode = sb->operations->find_dentry(sb, parent->inode, name, &dentry_type);
     if (inode != WRONG_INODE_INDEX) {
         // нашелся объект с указанным именем
         result = new_dentry();
@@ -75,6 +76,13 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
         result->parent = parent;
         result->sb = sb;
         result->inode = inode;
+
+        switch (dentry_type) {
+            case DT_DIR:
+                result->flags |= DENTRY_TYPE_DIRECTORY;
+                break;
+        }
+
         // Добавить в список подпапок родителя
         dentry_add_subdir(parent, result); 
     }

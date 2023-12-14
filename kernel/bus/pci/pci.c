@@ -12,7 +12,7 @@
 #define PCI_BAR_64 0x04
 #define PCI_BAR_PREFETCH 0x08
 
-static pci_device_desc* pci_devices_descs;
+static struct pci_device_desc* pci_devices_descs;
 int pci_devices_count = 0;
 
 int get_pci_devices_count()
@@ -20,7 +20,7 @@ int get_pci_devices_count()
 	return pci_devices_count;
 }
 
-pci_device_desc* get_pci_devices_descs()
+struct pci_device_desc* get_pci_devices_descs()
 {
 	return pci_devices_descs;
 }
@@ -67,17 +67,17 @@ void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_ind
 	pci_config_write32(bus, device, func, offset, *address);
 }
 
-void pci_set_command_reg(pci_device_desc* device, uint16_t flags)
+void pci_set_command_reg(struct pci_device_desc* device, uint16_t flags)
 {
 	pci_config_write16(device->bus, device->device, device->function, 0x4, flags);
 }
 
-uint16_t pci_get_command_reg(pci_device_desc* device)
+uint16_t pci_get_command_reg(struct pci_device_desc* device)
 {
 	return pci_config_read16(device->bus, device->device, device->function, 0x4);
 }
 
-void pci_device_set_enable_interrupts(pci_device_desc* device, int enable)
+void pci_device_set_enable_interrupts(struct pci_device_desc* device, int enable)
 {
 	uint16_t cmd = pci_get_command_reg(device);
 	if (enable > 0) {
@@ -89,7 +89,7 @@ void pci_device_set_enable_interrupts(pci_device_desc* device, int enable)
 	pci_set_command_reg(device, cmd);
 }
 
-int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* device_desc)
+int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, struct pci_device_desc* device_desc)
 {
 	uint16_t device_probe = pci_config_read16(bus, device, func, 0);
 	//проверка, существует ли устройство
@@ -127,7 +127,7 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 			uint32_t mask = 0;
 			read_pci_bar(bus, device, func, i, &address, &mask);
 
-			pci_bar_t* bar_ptr = &device_desc->BAR[i];
+			struct pci_device_bar* bar_ptr = &device_desc->BAR[i];
 
 			if (mask & PCI_BAR_64) {
 				// 64-bit MMIO
@@ -167,8 +167,8 @@ int get_pci_device(uint8_t bus, uint8_t device, uint8_t func, pci_device_desc* d
 void load_pci_devices_list()
 {
 	pci_devices_count = 0;
-	pci_devices_descs = kmalloc(sizeof(pci_device_desc) * MAX_PCI_DEVICES);
-	memset(pci_devices_descs, 0, sizeof(pci_device_desc) * MAX_PCI_DEVICES);
+	pci_devices_descs = kmalloc(sizeof(struct pci_device_desc) * MAX_PCI_DEVICES);
+	memset(pci_devices_descs, 0, sizeof(struct pci_device_desc) * MAX_PCI_DEVICES);
 
 	for (int bus = 0; bus < 256; bus ++) {
 		for (uint8_t device = 0; device < 32; device ++) {

@@ -116,6 +116,7 @@ gcc $GCC_ARGS mod/module_stor.c -o ./bin/module_stor.o
 gcc $GCC_ARGS misc/bootshell/bootshell.c -o ./bin/bootshell.o
 gcc $GCC_ARGS misc/bootshell/bootshell_cmdproc.c -o ./bin/bootshell_cmdproc.o
 gcc $GCC_ARGS misc/kterm/kterm.c -o ./bin/kterm.o
+gcc $GCC_ARGS misc/kterm/kterm_session.c -o ./bin/kterm_session.o
 gcc $GCC_ARGS misc/kterm/vgaterm.c -o ./bin/vgaterm.o
 
 ld -n -o kernel.bin -T ./arch/x86_64/link.ld bin/*.o

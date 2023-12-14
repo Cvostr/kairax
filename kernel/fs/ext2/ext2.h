@@ -209,6 +209,8 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
 // Преобразовать dirent ФС ext2 в общий для ядра
 struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
+int ext2_dt_to_vfs_dt(int ext2_dt);
+
 // --------------- Функции inode и file -----------
 
 int ext2_unlink(struct inode* parent, struct dentry* dent);
@@ -225,7 +227,7 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 
-uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name);
+uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type);
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 

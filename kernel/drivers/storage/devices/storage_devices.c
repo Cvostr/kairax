@@ -3,8 +3,6 @@
 #include "list/list.h"
 #include "string.h"
 
-#define MAX_STOR_DEVICES_HEADERS 300
-
 list_t* drives = NULL;
 
 void add_storage_device(drive_device_t* device)

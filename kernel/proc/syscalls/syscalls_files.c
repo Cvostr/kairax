@@ -253,6 +253,7 @@ int sys_unlink(int dirfd, const char* path, int flags)
 
     struct inode* parent_inode = NULL;
     
+    // не нашли файл, который нужно удалить
     if (target_inode == NULL || target_dentry == NULL) {
         rc = -ERROR_NO_FILE;
         goto exit;

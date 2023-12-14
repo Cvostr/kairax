@@ -197,7 +197,7 @@ struct nvme_queue {
 };
 
 struct nvme_device {
-    pci_device_desc*    pci_device;
+    struct pci_device_desc*    pci_device;
     struct nvme_bar0*   bar0;
     size_t              stride;
     size_t              queues_num;

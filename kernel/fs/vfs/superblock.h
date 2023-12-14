@@ -32,7 +32,7 @@ struct super_operations {
 
     struct inode* (*read_inode)(struct superblock *sb, uint64_t ino_num);
 
-    uint64_t (*find_dentry)(struct superblock *sb, uint64_t parent_num, const char* name);
+    uint64_t (*find_dentry)(struct superblock *sb, uint64_t parent_num, const char* name, int* type);
 };
 
 struct superblock* new_superblock();

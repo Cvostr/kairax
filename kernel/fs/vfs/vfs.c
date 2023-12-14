@@ -25,6 +25,7 @@ void vfs_init()
     // Создать корневой dentry с пустым именем
     root_dentry = new_dentry();
     root_dentry->inode = 0; // пока inode нет
+    root_dentry->flags |= DENTRY_TYPE_DIRECTORY;
     dentry_open(root_dentry); // Он должен всегда существовать
 }
 
@@ -52,7 +53,14 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         return -ERROR_NO_FILE;
     }
 
-    // TODO: Проверить тип (должна быть директория)
+    // Проверить тип (должна быть директория)
+    if ((mount_dent->flags & DENTRY_TYPE_DIRECTORY) == 0) {
+        return -ERROR_NOT_A_DIRECTORY;
+    }
+
+    if ((mount_dent->flags & DENTRY_MOUNTPOINT) == DENTRY_MOUNTPOINT) {
+        return -ERROR_BUSY;
+    }
 
     int mount_pos = vfs_get_free_mount_info_pos();
     if(mount_pos == -1)
@@ -68,7 +76,8 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
 
         if(root_inode == NULL) {
             free_superblock(sb);
-            return -5; //Ошибка при процессе монтирования
+            //Ошибка при процессе монтирования, считаем как поврежденный superblock
+            return -ERROR_INVALID_VALUE;
         }
 
         // Открыть корневую inode

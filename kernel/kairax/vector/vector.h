@@ -1,10 +1,13 @@
 #ifndef _VECTOR_H
 #define _VECTOR_H
 
+#include "sync/spinlock.h"
+
 struct vector {
-    void* data;
-    unsigned int allocated;
-    unsigned int size;
+    void*           data;
+    unsigned int    allocated;
+    unsigned int    size;
+    spinlock_t      lock;
 };
 
 struct vector* create_vector();

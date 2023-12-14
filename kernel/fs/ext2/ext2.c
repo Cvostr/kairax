@@ -892,28 +892,36 @@ struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent)
     struct dirent* result = new_vfs_dirent();
     result->inode = ext2_dirent->inode;
     strncpy(result->name, ext2_dirent->name, ext2_dirent->name_len);
-    switch (ext2_dirent->type) {
+    result->type = ext2_dt_to_vfs_dt(ext2_dirent->type);
+
+    return result;
+}
+
+int ext2_dt_to_vfs_dt(int ext2_dt)
+{
+    int dt = 0;
+    switch (ext2_dt) {
         case EXT2_DT_REG:
-            result->type = DT_REG;
+            dt = DT_REG;
             break;
         case EXT2_DT_LNK:
-            result->type = DT_LNK;
+            dt = DT_LNK;
             break;
         case EXT2_DT_DIR:
-            result->type = DT_DIR;
+            dt = DT_DIR;
             break;
         case EXT2_DT_CHR:
-            result->type = DT_CHR;
+            dt = DT_CHR;
             break;
         case EXT2_DT_FIFO:
-            result->type = DT_FIFO;
+            dt = DT_FIFO;
             break;
         case EXT2_DT_BLK:
-            result->type = DT_BLK;
+            dt = DT_BLK;
             break;
     }
 
-    return result;
+    return dt;
 }
 
 struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t ino_num)
@@ -1031,7 +1039,7 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
         return -ERROR_OTHER_DEVICE;
     }
 
-    if (ext2_find_dentry(oldpinst->vfs_sb, newparent->inode, newname) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(oldpinst->vfs_sb, newparent->inode, newname, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1063,7 +1071,7 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
 
     // Получить удаляемую inode
     uint32_t unlink_inode_idx = 0;
-    if ((unlink_inode_idx = ext2_find_dentry(parent->sb, parent->inode, dent->name)) == WRONG_INODE_INDEX) {
+    if ((unlink_inode_idx = ext2_find_dentry(parent->sb, parent->inode, dent->name, NULL)) == WRONG_INODE_INDEX) {
         kfree(e2_parent_inode);
         return -ERROR_NO_FILE;
     }
@@ -1093,7 +1101,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
     
-    if (ext2_find_dentry(parent->sb, parent->inode, dir_name) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent->inode, dir_name, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1174,7 +1182,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
-    if (ext2_find_dentry(parent->sb, parent->inode, file_name) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent->inode, file_name, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1320,7 +1328,7 @@ exit:
 }
 
 
-uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name)
+uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type)
 {
     uint64_t result = WRONG_INODE_INDEX;
     ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
@@ -1357,6 +1365,11 @@ uint64 ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, cons
         // Проверка совпадения имени
         if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) {
             result = curr_entry->inode;
+
+            if (type != NULL) {
+                *type = ext2_dt_to_vfs_dt(curr_entry->type);
+            }
+
             goto exit;
         }
 
