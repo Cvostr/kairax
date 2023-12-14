@@ -19,7 +19,7 @@ int vfs_unmount(char* mount_path);
 
 struct superblock* vfs_get_mounted_partition(const char* mount_path);
 
-struct superblock** vfs_get_mounts();
+struct superblock* vfs_get_mounted_sb(int index);
 
 //Функции файловой системы
 

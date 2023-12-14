@@ -4,6 +4,7 @@
 #include "memory/paging.h"
 #include "stdio.h"
 #include "mem/kheap.h"
+#include "list/list.h"
 
 #define MAX_PCI_DEVICES 128
 

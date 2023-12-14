@@ -22,6 +22,8 @@ void free_list(list_t* list);
 
 void list_add(list_t* list, void* element);
 
+struct list_node* list_get_node(list_t* list, void* element);
+
 void list_remove(list_t* list, void* element);
 
 size_t list_size(list_t* list);

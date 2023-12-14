@@ -105,15 +105,6 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args[1]);
     }
-    if(strcmp(cmd, "path") == 0){
-        int offset = 0;
-        struct superblock* result = vfs_dentry_traverse_path(vfs_get_root_dentry(), args[1])->sb;
-        if (result == NULL) {
-            printf_stdout("No mounted device\n");
-        }else 
-            printf_stdout("Partition: %s\n", result->partition->name);
-        
-    }
     if(strcmp(cmd, "ls") == 0) {
         int fd = sys_open_file(FD_CWD, argc > 1 ? args[1] : NULL, FILE_OPEN_MODE_READ_ONLY, 0);
 
@@ -173,18 +164,20 @@ void bootshell_process_cmd(char* cmdline)
         sys_wait(rc, &status, 0);
     }
     else if (strcmp(cmdline, "mounts") == 0) {
-        struct superblock** mounts = vfs_get_mounts();
-        for(int i = 0; i < 100; i ++){
-            struct superblock* mount = mounts[i];
-            if(mount != NULL) {
-                //size_t reqd_size = 0;
-                //char* abs_path_buffer = NULL;
-                //vfs_dentry_get_absolute_path(mount->root_dir, &reqd_size, NULL);
-                //abs_path_buffer = kmalloc(reqd_size + 1);
-                //memset(abs_path_buffer, 0, reqd_size + 1);
-                //vfs_dentry_get_absolute_path(mount->root_dir, NULL, abs_path_buffer);
-                printf_stdout("Partition %s mounted to path %s/ Filesystem %s\n", mount->partition->name, "abs_path_buffer", mount->filesystem->name);
-                //kfree(abs_path_buffer);
+        struct superblock* sb = NULL;
+        int i = 0;
+        while ((sb = vfs_get_mounted_sb(i ++)) != NULL) {
+
+            if(sb != NULL) {
+                size_t reqd_size = 0;
+                char* abs_path_buffer = NULL;
+                vfs_dentry_get_absolute_path(sb->root_dir, &reqd_size, NULL);
+                abs_path_buffer = kmalloc(reqd_size + 1);
+                memset(abs_path_buffer, 0, reqd_size + 1);
+                vfs_dentry_get_absolute_path(sb->root_dir, NULL, abs_path_buffer);
+                int em = 0;
+                printf_stdout("Partition %s mounted to path %s Filesystem %s\n", sb->partition ? sb->partition->name : &em, abs_path_buffer, sb->filesystem->name);
+                kfree(abs_path_buffer);
             }
         }
     }

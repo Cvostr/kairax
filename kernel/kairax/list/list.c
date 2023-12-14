@@ -53,21 +53,32 @@ void list_add(list_t* list, void* element)
 
 void list_remove(list_t* list, void* element)
 {
-    if(list == NULL)
-        return;
+    struct list_node* node = list_get_node(list, element);
+
+    if (node) {
+        list_unlink(list, node);
+        kfree(node);
+    }
+}
+
+struct list_node* list_get_node(list_t* list, void* element)
+{
+    if (list == NULL)
+        return NULL;
 
     // Найти запись для удаления
     struct list_node* current = list->head;
     for (size_t i = 0; i < list->size; i++)
     {
         if (current->element == element) {
-            list_unlink(list, current);
-            kfree(current);
-            return;
+            
+            return current;
         }
 
         current = current->next;
     }
+
+    return NULL;
 }
 
 void list_unlink(list_t* list, struct list_node* node)

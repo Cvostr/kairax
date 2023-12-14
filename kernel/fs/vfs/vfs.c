@@ -4,10 +4,9 @@
 #include "filesystems.h"
 #include "mem/kheap.h"
 #include "superblock.h"
+#include "list/list.h"`
 
-#define MAX_MOUNTS 100
-
-struct superblock** vfs_mounts = NULL;
+list_t* vfs_mounts = NULL;
 struct dentry*      root_dentry;
 
 struct dirent* new_vfs_dirent()
@@ -19,8 +18,7 @@ struct dirent* new_vfs_dirent()
 
 void vfs_init()
 {
-    vfs_mounts = (struct superblock**)kmalloc(sizeof(struct superblock*) * MAX_MOUNTS);
-    memset(vfs_mounts, 0, sizeof(struct superblock*) * MAX_MOUNTS);
+    vfs_mounts = create_list();
 
     // Создать корневой dentry с пустым именем
     root_dentry = new_dentry();
@@ -32,16 +30,6 @@ void vfs_init()
 struct dentry* vfs_get_root_dentry()
 {
     return root_dentry;
-}
-
-int vfs_get_free_mount_info_pos()
-{
-    for(int i = 0; i < MAX_MOUNTS; i ++){
-        if(vfs_mounts[i] == NULL)
-            return i;
-    }
-
-    return -1;
 }
 
 int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname)
@@ -61,10 +49,6 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
     if ((mount_dent->flags & DENTRY_MOUNTPOINT) == DENTRY_MOUNTPOINT) {
         return -ERROR_BUSY;
     }
-
-    int mount_pos = vfs_get_free_mount_info_pos();
-    if(mount_pos == -1)
-        return -2;  //Не найдено место
 
     struct superblock* sb = new_superblock();
     sb->filesystem = filesystem_get_by_name(fsname); 
@@ -95,7 +79,8 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         return -4;  //Нет функции монтирования
     }
 
-    vfs_mounts[mount_pos] = sb;
+    // Сохранить в списке
+    list_add(vfs_mounts, sb);
 
     return 0;
 }
@@ -105,7 +90,7 @@ int vfs_unmount(char* mount_path)
     struct dentry* root_dentry = vfs_dentry_traverse_path(root_dentry, mount_path);
     
     if (!root_dentry) {
-        return -1;
+        return -ERROR_INVALID_VALUE;
     }
 
     // получение корневой dentry монтирования
@@ -113,21 +98,24 @@ int vfs_unmount(char* mount_path)
 
     struct superblock* sb = root_dentry->sb;
 
-    for (int i = 0; i < MAX_MOUNTS; i ++) {
-        if (vfs_mounts[i] == sb) {
-            //выполнить отмонтирование ФС
-            if (sb->filesystem->unmount != NULL) {
-                sb->filesystem->unmount(sb);
-            }
+    struct list_node* sb_list_node = list_get_node(vfs_mounts, sb);
 
-            //Освободить память
-            free_superblock(sb);
-            vfs_mounts[i] = NULL;
-            return 1;
+    if (sb_list_node) {
+        //выполнить отмонтирование ФС
+        if (sb->filesystem->unmount != NULL) {
+            sb->filesystem->unmount(sb);
         }
+
+        //Освободить память
+        free_superblock(sb);
+
+        // Удалить из списка
+        list_remove(vfs_mounts, sb);
+    } else {
+        return -ERROR_INVALID_VALUE;
     }
 
-    return -1;
+    return 0;
 }
 
 struct superblock* vfs_get_mounted_partition(const char* mount_path)
@@ -138,9 +126,9 @@ struct superblock* vfs_get_mounted_partition(const char* mount_path)
 }
 
 
-struct superblock** vfs_get_mounts()
+struct superblock* vfs_get_mounted_sb(int index)
 {
-    return vfs_mounts;
+    return list_get(vfs_mounts, index);
 }
 
 struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry** dentry)
