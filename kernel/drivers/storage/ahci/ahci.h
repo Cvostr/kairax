@@ -1,7 +1,7 @@
 #ifndef _AHCI_H
 #define _AHCI_H
 
-#include "bus/pci/pci.h"
+#include "dev/bus/pci/pci.h"
 #include "ahci_defines.h"
 
 #define AHCI_CAPABILITY_64BIT       (1UL << 31)
@@ -29,7 +29,7 @@
 #include "ahci_port.h"
 
 typedef struct PACKED {
-    struct pci_device_desc* pci_device;
+    struct pci_device_info* pci_device;
     HBA_MEMORY*             hba_mem;
     ahci_port_t             ports[32];
     uint32_t                version;

@@ -1,7 +1,7 @@
 #include "bootshell_cmdproc.h"
 #include "string.h"
 
-#include "bus/pci/pci.h"
+#include "dev/device_man.h"
 
 #include "drivers/storage/devices/storage_devices.h"
 #include "drivers/storage/partitions/storage_partitions.h"
@@ -226,93 +226,19 @@ void bootshell_process_cmd(char* cmdline)
         sys_poweroff(0x40);
     }
     if(strcmp(cmdline, "pci") == 0){
-        printf_stdout("PCI devices %i \n", get_pci_devices_count());
-        for(int i = 0; i < get_pci_devices_count(); i ++){
-            struct pci_device_desc* desc = &get_pci_devices_descs()[i];
-            printf_stdout("%i:%i:%i ", desc->bus, desc->device, desc->function);
-            
-            switch(desc->device_class){
-            case 0x1: {//Mass storage
-                switch(desc->device_subclass){ //IDE contrl
-                case 0x1: printf_stdout("Mass Storage IDE Controller"); 
-                    break;
-                case 0x6: printf_stdout("Mass Storage SATA"); 
-                    if(desc->prog_if == 0x1){
-                        printf_stdout(" AHCI controller");
-                    }else{
-                        printf_stdout(" controller");
-                    } 
-                    break;
-                case 0x8: printf_stdout("Mass Storage NVME controller"); 
-                    break;
-                }
-                
-            break;
-            }
-            case 0x2: {//Internet
-            switch(desc->device_subclass){
-                case 0x0: printf_stdout("Network Ethernet controller"); break;  //Ethernet
-                }
-            break;
-            }
 
-            case 0x3:{ //Graphics
-            switch(desc->device_subclass){ 
-                case 0x0: printf_stdout("VGA graphics controller"); break;//VGA
-                case 0x02: printf_stdout("3D graphics controller"); break;
-                case 0x80: printf_stdout("Unknown graphics card"); break;
-                }
-            break;
-            }
+        struct device* dev = NULL;
+        int i = 0;
+        while ((dev = get_device(i ++)) != NULL) {
 
-            case 0x4:{ //Multimedia
-            switch(desc->device_subclass){ 
-                case 0x03: printf_stdout("Multimedia Audio device"); break;
-                }
-            break;
-            }
+            if(dev != NULL) {
+                printf_stdout("Device %s\n", dev->dev_name);
 
-            case 0x5:{ //Multimedia
-            switch(desc->device_subclass){ 
-                case 0x80: printf_stdout("Unknown Memory controller"); break;
+                if (dev->dev_bus == DEVICE_BUS_PCI) {
+                    struct pci_device_info* desc = dev->pci_info;
+                    printf_stdout("\t %i:%i:%i \n", desc->bus, desc->device, desc->function);
                 }
-            break;
             }
-            case 0x6:{ //System bridge devices
-            switch(desc->device_subclass){ //
-                case 0x0: printf_stdout("System host bridge"); break;
-                case 0x1: printf_stdout("System ISA bridge"); break;
-                case 0x4: printf_stdout("System PCI-PCI bridge"); break;
-                case 0x80: printf_stdout("System unknown bridge"); break;
-                }
-            break;
-            }
-
-            case 0x7:{ //Simple communication port devices
-            switch(desc->device_subclass){ //
-                case 0x0: printf_stdout("System host bridge"); break;
-                case 0x1: printf_stdout("System ISA bridge"); break;
-                case 0x4: printf_stdout("System PCI-PCI bridge"); break;
-                case 0x80: printf_stdout("Unknown Simple Communications dev"); break;
-                }
-            break;
-            }
-
-            case 0xC:{ //Serial port devices
-            switch(desc->device_subclass){ //
-                case 0x3: printf_stdout("USB Controller"); break;
-                case 0x5: printf_stdout("SMBus"); break;
-                }
-            break;
-            }
-            default:{
-                printf_stdout("Unknown");
-                printf_stdout("%i %i %i %i %i\n", desc->vendor_id, desc->device_id, desc->device_class, desc->device_subclass);
-                break;
-            }
-        }
-        printf_stdout("\n");
-
         }
     }
 

@@ -1,7 +1,7 @@
 #ifndef _NVME_H
 #define _NVME_H
 
-#include "bus/pci/pci.h"
+#include "dev/bus/pci/pci.h"
 #include "types.h"
 
 #define NVME_CMD_IO_READ    0x02
@@ -197,7 +197,7 @@ struct nvme_queue {
 };
 
 struct nvme_device {
-    struct pci_device_desc*    pci_device;
+    struct pci_device_info*    pci_device;
     struct nvme_bar0*   bar0;
     size_t              stride;
     size_t              queues_num;

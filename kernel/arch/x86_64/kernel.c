@@ -5,7 +5,7 @@
 #include "interrupts/pic.h"
 #include "interrupts/handle/handler.h"
 #include "dev/keyboard/int_keyboard.h"
-#include "bus/pci/pci.h"
+#include "dev/bus/pci/pci.h"
 
 #include "drivers/storage/ahci/ahci.h"
 #include "drivers/storage/nvme/nvme.h"

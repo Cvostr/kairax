@@ -58,8 +58,10 @@ gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
 gcc $GCC_ARGS $STDC_PATH/stdio.c -o ./bin/stdc_stdio.o
 gcc $GCC_ARGS $STDC_PATH/time.c -o ./bin/time.o
 
-#generic bus
-gcc $GCC_ARGS bus/pci/pci.c -o ./bin/pci.o
+#generic dev
+gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o
+gcc $GCC_ARGS dev/device_man.c -o ./bin/device_man.o
+gcc $GCC_ARGS dev/bus/pci/pci.c -o ./bin/pci.o
 
 #generic drivers
 gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o

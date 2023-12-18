@@ -26,16 +26,12 @@ void vga_init(void* addr, uint32_t pitch, uint32_t width, uint32_t height, uint3
     _height = height;
     _depth = depth;
 
-    size_t double_buffer_size = (_width * _height * _depth) / 8;
+    size_t vga_buffer_size = (_width * _height * _depth) / 8;
+    memset(_addr, 0, vga_buffer_size);
 
-    fb_double_buffer = pmm_alloc_pages((double_buffer_size / PAGE_SIZE) + 1);
-    fb_double_buffer = P2V(fb_double_buffer);
-    memset(fb_double_buffer, 0, double_buffer_size);
-
-    //printf("width %i, height %i, addr %i\n", 
-    //    kboot_info->fb_info.fb_width,
-    //    kboot_info->fb_info.fb_height,
-    //    kboot_info->fb_info.fb_addr);
+    fb_double_buffer = pmm_alloc_pages((vga_buffer_size / PAGE_SIZE) + 1);
+    fb_double_buffer = P2V(vga_buffer_size);
+    memset(fb_double_buffer, 0, vga_buffer_size);
 }
 
 uint32_t vga_get_width()
