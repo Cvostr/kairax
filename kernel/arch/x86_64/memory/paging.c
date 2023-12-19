@@ -127,7 +127,7 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free)
         return ERR_NO_PAGE_PRESENT;
     } else {
         if (free == TRUE) {
-            uintptr_t phys_addr = (uintptr_t)GET_PAGE_FRAME(pt_table->entries[level1_index]);
+            uintptr_t phys_addr = (uintptr_t) GET_PAGE_FRAME(pt_table->entries[level1_index]);
             pmm_free_page(phys_addr);
         }
         pt_table->entries[level1_index] = 0;

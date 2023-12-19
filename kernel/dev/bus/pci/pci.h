@@ -59,12 +59,14 @@ uint16_t pci_get_command_reg(struct pci_device_info* device);
 
 void pci_set_command_reg(struct pci_device_info* device, uint16_t flags);
 
+// Включить или выключить прерывания
 void pci_device_set_enable_interrupts(struct pci_device_info* device, int enable);
 
 // Попыпаться получить устройство по указанным параметрам
 // Если устройство есть - будет зарегистрировано через register_device
 int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func);
 
+// Сканировать шину PCI и добавить устройства
 void load_pci_devices_list();
 
 char* pci_get_device_name(uint8_t class, uint8_t subclass, uint8_t pif);

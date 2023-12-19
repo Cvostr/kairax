@@ -36,6 +36,7 @@ gcc $GCC_ARGS $x64_SRC/interrupts/apic.c -o ./bin/apic.o
 gcc $GCC_ARGS $x64_SRC/interrupts/ioapic.c -o ./bin/ioapic.o
 gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging_x64.o
 gcc $GCC_ARGS $x64_SRC/memory/kernel_vmm.c -o ./bin/kernel_vmm.o
+gcc $GCC_ARGS $x64_SRC/memory/iomem.c -o ./bin/iomem.o
 gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o

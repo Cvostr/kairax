@@ -6,6 +6,7 @@
 #include "mem/pmm.h"
 #include "dev/device_drivers.h"
 #include "dev/device.h"
+#include "mem/iomem.h"
 
 struct nvme_queue* nvme_create_queue(size_t slots)
 {
@@ -35,7 +36,7 @@ int nvme_ctlr_device_probe(struct device *dev) {
 	memset(device, 0, sizeof(struct nvme_device));
 
 	device->pci_device = device_desc;
-	device->bar0 = (struct nvme_bar0*)P2V(device->pci_device->BAR[0].address);
+	device->bar0 = (struct nvme_bar0*) map_io_region(device_desc->BAR[0].address, device_desc->BAR[0].size);
 
 	pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			

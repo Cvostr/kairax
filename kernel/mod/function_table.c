@@ -5,6 +5,7 @@
 #include "dev/device_drivers.h"
 #include "dev/bus/pci/pci.h"
 #include "mem/kheap.h"
+#include "mem/iomem.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -17,7 +18,9 @@ struct kernel_function functions[] = {
     KFUNCTION(pci_config_read16),
     KFUNCTION(pci_config_read32),
     KFUNCTION(pci_config_write16),
-    KFUNCTION(pci_config_write32)
+    KFUNCTION(pci_config_write32),
+    KFUNCTION(map_io_region),
+    KFUNCTION(unmap_io_region)
 };
 
 void* kfunctions_get_by_name(const char* name)

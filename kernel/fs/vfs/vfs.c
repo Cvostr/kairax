@@ -76,7 +76,7 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         
     } else {
         free_superblock(sb);
-        return -4;  //Нет функции монтирования
+        return -ERROR_INVALID_VALUE;  //Нет функции монтирования
     }
 
     // Сохранить в списке
