@@ -2,6 +2,7 @@
 #define _DEVICE_DRIVER_H
 
 #include "kairax/types.h"
+#include "device.h"
 
 #define PCI_ANY_ID (uint16_t) (~0)
 

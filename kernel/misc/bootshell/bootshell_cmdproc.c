@@ -225,7 +225,7 @@ void bootshell_process_cmd(char* cmdline)
     else if(strcmp(cmd, "reboot") == 0){
         sys_poweroff(0x40);
     }
-    if(strcmp(cmdline, "pci") == 0){
+    if(strcmp(cmdline, "dev") == 0){
 
         struct device* dev = NULL;
         int i = 0;

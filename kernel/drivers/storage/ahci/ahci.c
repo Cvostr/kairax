@@ -8,7 +8,6 @@
 #include "mem/pmm.h"
 #include "string.h"
 #include "kstdlib.h"
-#include "memory/kernel_vmm.h"
 #include "mem/kheap.h"
 #include "mem/iomem.h"
 #include "drivers/storage/devices/storage_devices.h"
