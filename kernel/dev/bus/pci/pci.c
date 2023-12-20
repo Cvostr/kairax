@@ -103,7 +103,7 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 {
 	uint16_t device_probe = i_pci_config_read16(bus, device, func, 0);
 	//проверка, существует ли устройство
-	if (device_probe != 0xFFFF){
+	if (device_probe != 0xFFFF) {
 
 		struct pci_device_info* device_desc = kmalloc(sizeof(struct pci_device_info));
 		memset(device_desc, 0, sizeof(struct pci_device_info));
@@ -179,7 +179,11 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 
 		dev->dev_bus = DEVICE_BUS_PCI;
 		dev->pci_info = device_desc;
-		strcpy(dev->dev_name, dev_basename);
+
+		if (dev_basename != NULL) {
+			strcpy(dev->dev_name, dev_basename);
+		}
+
 		register_device(dev);
 
 		return 0;

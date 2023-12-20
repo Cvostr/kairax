@@ -2,7 +2,7 @@
 #include "list/list.h"
 #include "device_drivers.h"
 
-list_t devices_list = {0};
+list_t devices_list = {0,};
 
 int register_device(struct device* dev)
 {

@@ -5,7 +5,7 @@
 #include "errors.h"
 #include "list/list.h"
 
-list_t kernel_modules = {0};
+list_t kernel_modules = {0,};
 spinlock_t      kernel_modules_lock = 0;
 
 struct module* mstor_get_module_with_name(const char* name) 

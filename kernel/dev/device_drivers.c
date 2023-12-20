@@ -2,7 +2,7 @@
 #include "list/list.h"
 #include "device_man.h"
 
-list_t pci_dev_drivers = {0};
+list_t pci_dev_drivers = {0,};
 
 int register_pci_device_driver(struct pci_device_driver* driver)
 {
