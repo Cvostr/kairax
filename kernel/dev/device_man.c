@@ -2,24 +2,20 @@
 #include "list/list.h"
 #include "device_drivers.h"
 
-list_t* devices_list = NULL;
+list_t devices_list = {0};
 
 int register_device(struct device* dev)
 {
-    if (devices_list == NULL) {
-        devices_list = create_list();
-    }
-
     dev->dev_state = DEVICE_STATE_UNINITIALIZED;
 
-    list_add(devices_list, dev);
+    list_add(&devices_list, dev);
 
     probe_device(dev);
 }
 
 struct device* get_device(int index)
 {
-    return list_get(devices_list, index);
+    return list_get(&devices_list, index);
 }
 
 void probe_device(struct device* dev)
@@ -57,14 +53,10 @@ void probe_device(struct device* dev)
 
 void probe_devices()
 {
-    if (devices_list == NULL) {
-        return;
-    }
-
-    struct list_node* current_node = devices_list->head;
+    struct list_node* current_node = devices_list.head;
     struct device* dev = NULL;
 
-    for (size_t i = 0; i < devices_list->size; i++) {
+    for (size_t i = 0; i < devices_list.size; i++) {
         
         dev = (struct device*) current_node->element;
 

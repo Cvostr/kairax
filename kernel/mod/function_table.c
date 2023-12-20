@@ -6,6 +6,7 @@
 #include "dev/bus/pci/pci.h"
 #include "mem/kheap.h"
 #include "mem/iomem.h"
+#include "dev/interrupts.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -20,7 +21,8 @@ struct kernel_function functions[] = {
     KFUNCTION(pci_config_write16),
     KFUNCTION(pci_config_write32),
     KFUNCTION(map_io_region),
-    KFUNCTION(unmap_io_region)
+    KFUNCTION(unmap_io_region),
+    KFUNCTION(register_irq_handler)
 };
 
 void* kfunctions_get_by_name(const char* name)

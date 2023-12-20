@@ -3,33 +3,26 @@
 #include "string.h"
 #include "sync/spinlock.h"
 #include "errors.h"
+#include "list/list.h"
 
-#define KERNEL_MODULES_MAX 200
-struct module*  kernel_modules[KERNEL_MODULES_MAX];
+list_t kernel_modules = {0};
 spinlock_t      kernel_modules_lock = 0;
-
-int mstor_get_free_index_unlock() 
-{
-    for (int i = 0; i < KERNEL_MODULES_MAX; i ++) {
-        if (kernel_modules[i] == NULL) {
-            return i;
-        }        
-    }
-
-    return -1;
-}
 
 struct module* mstor_get_module_with_name(const char* name) 
 {
-    for (int i = 0; i < KERNEL_MODULES_MAX; i ++) {
-        
-        if (kernel_modules[i] == NULL) {
-            continue;
-        }
+    struct list_node* current_node = kernel_modules.head;
+    struct module* mod = NULL;
 
-        if (strcmp(kernel_modules[i]->name, name) == 0) {
-            return kernel_modules[i];
+    for (size_t i = 0; i < kernel_modules.size; i++) {
+        
+        mod = (struct module*) current_node->element;
+
+        if (strcmp(mod->name, name) == 0) {
+            return mod;
         }
+        
+        // Переход на следующий элемент
+        current_node = current_node->next;
     }
 
     return NULL;
@@ -46,14 +39,9 @@ struct module* mstor_new_module(uint64_t size, const char* name)
 
 int mstor_register_module(struct module* module)
 {
-    int idx = 0;
     int rc = -1;
 
     acquire_spinlock(&kernel_modules_lock);
-
-    idx = mstor_get_free_index_unlock();
-    if (idx == -1)
-        goto exit;
 
     // Проверить, не загружен ли уже модуль с таким именем
     if (mstor_get_module_with_name(module->name) != NULL) {
@@ -66,7 +54,7 @@ int mstor_register_module(struct module* module)
     module->offset = arch_expand_kernel_mem(module->size);
 
     // Сохранить в массиве
-    kernel_modules[idx] = module;
+    list_add(&kernel_modules, module);
     rc = 0;
 
 exit:
@@ -79,20 +67,7 @@ int mstor_destroy_module(const char* module_name)
     acquire_spinlock(&kernel_modules_lock);
 
     int rc = -1;
-    struct module* mod = NULL;
-    int idx = 0;
-    for (int i = 0; i < KERNEL_MODULES_MAX; i ++) {
-        
-        if (kernel_modules[i] == NULL) {
-            continue;
-        }
-
-        if (strcmp(kernel_modules[i]->name, module_name) == 0) {
-            mod = kernel_modules[i];
-            idx = i;
-            break;
-        }
-    }
+    struct module* mod = mstor_get_module_with_name(module_name);
 
     if (mod == NULL) {
         goto exit;
@@ -103,7 +78,7 @@ int mstor_destroy_module(const char* module_name)
         mod->mod_destroy_routine();
 
     kfree(mod);
-    kernel_modules[idx] = NULL;
+    list_remove(&kernel_modules, mod);
     rc = 0;
 
 exit:

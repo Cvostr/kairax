@@ -2,15 +2,11 @@
 #include "list/list.h"
 #include "device_man.h"
 
-list_t* pci_dev_drivers = NULL;
+list_t pci_dev_drivers = {0};
 
 int register_pci_device_driver(struct pci_device_driver* driver)
 {
-    if (pci_dev_drivers == NULL) {
-        pci_dev_drivers = create_list();
-    }
-
-    list_add(pci_dev_drivers, driver);
+    list_add(&pci_dev_drivers, driver);
 
     probe_devices();
 }
@@ -37,14 +33,10 @@ int pci_id_terms_equals(struct pci_device_id* req_pci_dev_id, struct pci_device_
 
 struct pci_device_driver* drivers_get_for_pci_device(struct pci_device_id* pci_dev_id)
 {
-    if (pci_dev_drivers == NULL) {
-        return NULL;
-    }
-
-    struct list_node* current_node = pci_dev_drivers->head;
+    struct list_node* current_node = pci_dev_drivers.head;
     struct pci_device_driver* driver = NULL;
 
-    for (size_t i = 0; i < pci_dev_drivers->size; i++) {
+    for (size_t i = 0; i < pci_dev_drivers.size; i++) {
         driver = (struct pci_device_driver*) current_node->element;
         struct pci_device_id* driver_id = driver->pci_device_ids;
         

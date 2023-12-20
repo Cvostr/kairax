@@ -6,6 +6,7 @@
 #include "keycodes.h"
 #include "sync/spinlock.h"
 #include "string.h"
+#include "dev/interrupts.h"
 
 struct file_operations int_keyb_fops;
 
@@ -88,8 +89,7 @@ void init_ints_keyboard()
     memset(key_buffers, 0, sizeof(key_buffers));
     main_key_buffer = new_keyboard_buffer();
 
-    pic_unmask(0x21);
-    register_interrupt_handler(0x21, keyboard_int_handler, NULL);
+    register_irq_handler(1, keyboard_int_handler, NULL);
 
     int_keyb_fops.read = intk_f_read;
     int_keyb_fops.open = intk_f_open;
@@ -124,7 +124,7 @@ void keyboard_int_handler(interrupt_frame_t* frame, void* data)
     int stat61 = inb(0x61);
     outb(0x61, stat61 | 1);
 
-    pic_eoi(1);
+    //pic_eoi(1);
 }
 
 short keyboard_get_key()

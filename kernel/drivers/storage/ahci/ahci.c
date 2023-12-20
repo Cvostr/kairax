@@ -3,7 +3,6 @@
 #include "stdio.h"
 #include "io.h"
 #include "interrupts/handle/handler.h"
-#include "interrupts/pic.h"
 #include "stddef.h"
 #include "atomic.h"
 #include "mem/pmm.h"
@@ -15,6 +14,7 @@
 #include "drivers/storage/devices/storage_devices.h"
 #include "dev/device_drivers.h"
 #include "dev/device.h"
+#include "dev/interrupts.h"
 
 void ahci_controller_probe_ports(ahci_controller_t* controller){
 	// Виртуальный адрес HBA_MEMORY
@@ -50,8 +50,6 @@ void ahci_int_handler(interrupt_frame_t* frame, void* data)
 
 	// Очистка прерывания
 	controller->hba_mem->is = interrupt_pending;
-
-	pic_eoi(11);
 }
 
 int ahci_controller_reset(ahci_controller_t* controller) 
@@ -128,8 +126,7 @@ int ahci_device_probe(struct device *dev) {
 	}
 
 	uint8_t irq = device_desc->interrupt_line;
-	register_interrupt_handler(0x20 + irq, ahci_int_handler, controller);
-    pic_unmask(0x20 + irq);
+	register_irq_handler(irq, ahci_int_handler, controller);
 
 	// Получить информацию о портах. первый этап инициализации
 	ahci_controller_probe_ports(controller);
