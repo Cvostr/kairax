@@ -139,7 +139,6 @@ uint8_t defaultFont[128][8] = {
 
 spinlock_t  console_lock = 0;
 
-#define CONSOLE_TEXT_COLOR 180, 180, 180
 #define XOFFSET 5
 #define YOFFSET 5
 
@@ -168,7 +167,7 @@ struct vgaconsole* console_init()
     //BUFFER_LINES = vga_get_height() / LINE_SIZE;
 }
 
-void console_print_char(struct vgaconsole* vgconsole, char chr)
+void console_print_char(struct vgaconsole* vgconsole, char chr, unsigned char r, unsigned char g, unsigned char b)
 {
     acquire_spinlock(&console_lock);
     if (chr == ' ') {
@@ -180,7 +179,7 @@ void console_print_char(struct vgaconsole* vgconsole, char chr)
         surface_draw_char(vgconsole, chr,
             XOFFSET + vgconsole->console_col * COL_SIZE,
             YOFFSET + vgconsole->console_lines * LINE_SIZE,
-            CONSOLE_TEXT_COLOR,
+            r, g, b,
             LETTER_SIZE, LETTER_SIZE);
     }
 
@@ -257,9 +256,9 @@ void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, ui
         uint32_t pitch = vga_get_width() * DOUBLEBUFFER_DEPTH_BYTES;
         // Запись в double buffer
         uint8_t* fb_addr = vgconsole->double_buffer + y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
-        fb_addr[0] = b;
+        fb_addr[0] = r;
         fb_addr[1] = g;
-        fb_addr[2] = r;
+        fb_addr[2] = b;
     }
 }
 
@@ -270,14 +269,6 @@ void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uin
             surface_draw_pixel(vgconsole, j + x, i + y, r, g, b);
         }
     }
-}
-
-void console_console_print_string(struct vgaconsole* vgconsole, const char* string){
-	char* _str = (char*)string;
-	while(_str[0] != '\0'){
-	    console_print_char(vgconsole, _str[0]);
-		_str++;
-	}
 }
 
 void surface_draw_char(struct vgaconsole* vgconsole, char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale)

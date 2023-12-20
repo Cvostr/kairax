@@ -103,7 +103,7 @@ void vga_draw(const char* buffer, uint32_t width, uint32_t height)
 {
     for (int i = 0; i < width; i ++) {
         for (int j = 0; j < height; j ++) {
-            vga_draw_pixel(j, i, buffer[2], buffer[1], buffer[0]);
+            vga_draw_pixel(j, i, buffer[0], buffer[1], buffer[2]);
             buffer += 4;
         }
     }

@@ -6,6 +6,14 @@
 
 #define KTERM_SESSION_BUFFER_SIZE 128
 
+#define DEFAULT_FOREGROUND_COLOR {.r = 170, .g = 170, .b = 170}
+
+struct kterm_color {
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+};
+
 struct terminal_session {
 	int master;
 	int slave;
@@ -16,6 +24,8 @@ struct terminal_session {
 	char buffer[KTERM_SESSION_BUFFER_SIZE];
 	int buffer_size;
 	int buffer_pos;
+
+	struct kterm_color foreground_color;
 };
 
 void kterm_process_start();

@@ -31,7 +31,7 @@ char* kfgets(char* buffer, size_t len)
 static int print(const char* data, size_t length) {
 	const unsigned char* bytes = (const unsigned char*) data;
 	for (size_t i = 0; i < length; i++)
-		console_print_char(current_console, bytes[i]);
+		console_print_char(current_console, bytes[i], 170, 170, 170);
 	return 1;
 }
 

@@ -20,7 +20,10 @@ void kterm_session_process(struct terminal_session* session)
 				kterm_process_esc_sequence(session);
 				break;
 			default:
-				console_print_char(session->console, c);
+				console_print_char(session->console, c,
+				 	session->foreground_color.r,
+				 	session->foreground_color.g,
+				 	session->foreground_color.b);
 		}
 	}
 }
@@ -54,9 +57,13 @@ void kterm_process_esc_sequence(struct terminal_session* session)
 	}
 }
 
+// https://en.wikipedia.org/wiki/ANSI_escape_code#CSI
+
+#define CSI_MAX_ARGS 20
+
 void kterm_session_process_csi(struct terminal_session* session)
 {
-	int args[20];
+	int args[CSI_MAX_ARGS];
 	int argc = 0;
 	int questionSign = 0;
 	char terminateChar = 0;
@@ -66,24 +73,64 @@ void kterm_session_process_csi(struct terminal_session* session)
 	while (1) {
 		char chr = kterm_session_next_char(session);
 
-		if (chr == ';') {
+		switch (chr) {
+			case '0' ... '9':
+				number = number * 10 + (chr - '0');
+				break;
+			break;
+			case 0x40 ... 0x7E:
+				terminateChar = chr;
+			case ';':
+				if (argc < CSI_MAX_ARGS) {
+					args[argc ++] = number;
+					number = 0;
+				}
+				break;
+		}
 
-			args[argc ++] = number;
-			number = 0;
-
-		} else if ('0' <= chr && chr <= '9') {
-
-			number = number * 10 + (chr - '0');
-
-		} else if (0x40 <= chr && chr <= 0x7E) {
-			terminateChar = chr;
+		if (terminateChar != 0) {
 			break;
 		}
 	}
 
+	struct kterm_color colors[] = {
+		{.r = 0, .g = 0, .b = 0},
+		{.r = 170, .g = 0, .b = 0},
+		{.r = 0, .g = 170, .b = 0},	// green
+		{.r = 170, .g = 85, .b = 0}, //yellow
+		{.r = 0, .g = 0, .b = 170},	// blue
+		{.r = 170, .g = 0, .b = 170},
+		{.r = 0, .g = 170, .b = 170},
+		{.r = 170, .g = 170, .b = 170}, //white
+		{.r = 85, .g = 85, .b = 85},	// bright black
+		{.r = 255, .g = 85, .b = 85},	//bright red
+		{.r = 85, .g = 255, .b = 85},	// bright green
+		{.r = 255, .g = 255, .b = 85},	// bright yellow
+		{.r = 85, .g = 85, .b = 255},	// bright blue
+		{.r = 255, .g = 85, .b = 255},	// bright magenta
+		{.r = 85, .g = 255, .b = 255},
+		{.r = 255, .g = 255, .b = 255},
+	};
+
     switch (terminateChar) {
         case 'm' :
             // SGR
+
+			for (int i = 0; i < argc; i ++) {
+				switch (args[i]) {
+					case 0:
+						struct kterm_color foreground_color = DEFAULT_FOREGROUND_COLOR;
+						session->foreground_color = foreground_color;
+						break;
+					case 30 ... 37:
+						session->foreground_color = colors[args[i] - 30];
+						break;
+					case 90 ... 97:
+						session->foreground_color = colors[args[i] - 82];
+						break;
+				}
+			}
+
             break;
     }
 }

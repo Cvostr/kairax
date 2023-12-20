@@ -13,7 +13,7 @@ struct vgaconsole {
 };
 
 struct vgaconsole* console_init();
-void console_print_char(struct vgaconsole* vgconsole, char chr);
+void console_print_char(struct vgaconsole* vgconsole, char chr, unsigned char r, unsigned char g, unsigned char b);
 void console_scroll(struct vgaconsole* vgconsole);
 void console_backspace(struct vgaconsole* vgconsole, int chars);
 void console_cr(struct vgaconsole* vgconsole);
