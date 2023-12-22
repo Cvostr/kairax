@@ -36,7 +36,7 @@ void probe_device(struct device* dev)
             struct pci_device_driver* drv = drivers_get_for_pci_device(&id);
             if (drv != NULL) {
 
-                dev->dev_driver = dev;
+                dev->dev_driver = drv;
 
                 if (drv->ops->probe) {
                     dev->dev_status_code = drv->ops->probe(dev);

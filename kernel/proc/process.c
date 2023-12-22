@@ -156,6 +156,15 @@ exit:
     return rc;
 }
 
+int process_is_userspace_region(struct process* process, uintptr_t base, size_t len)
+{
+    if (base + len >= USERSPACE_MAX_ADDR) {
+        return 0;
+    }
+
+    return 1;
+}
+
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags)
 {
     // Выравнивание

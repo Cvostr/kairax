@@ -1,11 +1,17 @@
 #include "string.h"
 #include "mem/kheap.h"
 
-size_t strlen(const char* str){
-	char *begine = (char*)str;
+size_t strlen(const char* str)
+{
+	char* begin = (char*) str;
+
+	if (begin == NULL) {
+        return 0;
+    }
 
   	while (*str++);
-  	return str - begine - 1;
+	
+  	return str - begin - 1;
 }
 
 char* strcat(char *str, char* add_str){

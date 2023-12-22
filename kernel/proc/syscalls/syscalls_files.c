@@ -16,6 +16,8 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     struct dentry* dir_dentry = NULL;
     struct process* process = cpu_get_current_thread()->process;
 
+    //VALIDATE_USER_POINTER(process, path, strlen(path))
+
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
 
@@ -70,6 +72,7 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     int rc = -1;
     struct dentry* dir_dentry = NULL;
     struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, path, strlen(path))
 
     // Получить dentry, относительно которой создать папку
     rc = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
@@ -113,6 +116,9 @@ ssize_t sys_read_file(int fd, char* buffer, size_t size)
 {
     ssize_t bytes_read = -1;
     struct process* process = cpu_get_current_thread()->process;
+
+    //VALIDATE_USER_POINTER(process, buffer, size)
+
     struct file* file = process_get_file(process, fd);
 
     if (file == NULL) {
@@ -130,6 +136,9 @@ ssize_t sys_write_file(int fd, const char* buffer, size_t size)
 {
     ssize_t bytes_written = -1;
     struct process* process = cpu_get_current_thread()->process;
+
+    //VALIDATE_USER_POINTER(process, buffer, size)
+
     struct file* file = process_get_file(process, fd);
 
     if (file == NULL) {
@@ -150,6 +159,8 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     int close_at_end = 0;
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
+
+    VALIDATE_USER_POINTER(process, statbuf, sizeof(struct stat))
 
     // Открыть файл относительно папки и флагов
     rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
@@ -194,6 +205,9 @@ int sys_readdir(int fd, struct dirent* dirent)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
+
+    //VALIDATE_USER_POINTER(process, dirent, sizeof(struct dirent))
+
     struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
@@ -241,6 +255,7 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 int sys_unlink(int dirfd, const char* path, int flags)
 {
     struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, path, strlen(path))
 
     struct dentry* dirdentry = NULL;
     int rc = process_get_relative_direntry(process, dirfd, path, &dirdentry);

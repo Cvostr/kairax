@@ -3,7 +3,6 @@
 
 #include "bus/pci/pci.h"
 #include "bus/usb/usb.h"
-
 #include "type/drive_device.h"
 
 #define DEVICE_NAME_LEN     60
@@ -37,10 +36,7 @@ struct device {
     union {
         struct pci_device_info* pci_info;
         struct usb_device_info* usb_info;
-    };
-
-    union {
-        struct drive_device* drive_info;
+        struct drive_device_info* drive_info;
     };
 };
 

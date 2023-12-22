@@ -6,6 +6,9 @@
 #include "process.h"
 #include "time.h"
 
+#define VALIDATE_NULL_POINTER(base) if (base == 0) {return -ERROR_INVALID_VALUE;}
+#define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,base,len) == 0) {return -ERROR_INVALID_VALUE;}
+
 int sys_not_implemented();
 
 int sys_open_file(int dirfd, const char* path, int flags, int mode);

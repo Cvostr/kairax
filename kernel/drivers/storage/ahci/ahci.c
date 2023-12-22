@@ -190,6 +190,24 @@ int ahci_device_probe(struct device *dev) {
 			drive_header->write = ahci_port_write_lba;
 			drive_header->read = ahci_port_read_lba;
 			add_storage_device(drive_header);
+
+			// новый вариант
+			struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
+			memset(drive_info, 0, sizeof(struct drive_device_info));
+			drive_info->uses_lba48 = cmd_sets & (1 << 26);
+			drive_info->nbytes = (uint64_t)drive_header->sectors * 512;
+			drive_info->sectors = drive_header->sectors;
+			strcpy(drive_info->blockdev_name, drive_header->name);
+
+			struct device* drive_dev = kmalloc(sizeof(struct device));
+			memset(drive_dev, 0, sizeof(struct device));
+			drive_dev->dev_type = DEVICE_TYPE_DRIVE;
+			drive_dev->dev_parent = dev;
+			drive_dev->dev_data = &controller->ports[i];
+			strcpy(drive_dev->dev_name, drive_header->model);
+			drive_dev->drive_info = drive_info;
+			
+			register_device(drive_dev);
 		}
 		else if (dt == AHCI_DEV_SATAPI)
 		{
