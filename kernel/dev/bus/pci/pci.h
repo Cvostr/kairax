@@ -2,7 +2,6 @@
 #define _PCI_H
 
 #include "kairax/types.h"
-#include "dev/device.h"
 
 struct pci_device_bar {
 	uintptr_t 		address;
@@ -42,6 +41,8 @@ struct pci_device_info {
 #define PCI_DEVCMD_BUSMASTER_ENABLE 0x4
 #define PCI_DEVCMD_MSA_ENABLE 0x2
 #define PCI_DEVCMP_INTERRUPTS_DISABLE (1 << 10)
+
+struct device;
 
 uint16_t i_pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 uint32_t i_pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);

@@ -19,7 +19,7 @@ drive_partition_t* new_drive_partition_header()
     return result;
 }
 
-void add_partitions_from_device(drive_device_t* device){
+void add_partitions_from_device(struct device* device){
     char* first_sector = kmalloc(512);
     char* second_sector = kmalloc(512);
 
@@ -48,7 +48,7 @@ void add_partitions_from_device(drive_device_t* device){
             partition->start_lba = mbr_partition->lba_start;
             partition->sectors = mbr_partition->lba_sectors;
 
-            strcpy(partition->name, device->name);
+            strcpy(partition->name, device->drive_info->blockdev_name);
 			strcat(partition->name, "p");
 			strcat(partition->name, itoa(i, 10));
 
@@ -83,7 +83,7 @@ void add_partitions_from_device(drive_device_t* device){
                 partition->sectors = (entry->end_lba - entry->start_lba) + 1;
 
                 //Формирование имени раздела
-                strcpy(partition->name, device->name);
+                strcpy(partition->name, device->drive_info->blockdev_name);
                 strcat(partition->name, "p");
                 strcat(partition->name, itoa(found_partitions, 10));
 

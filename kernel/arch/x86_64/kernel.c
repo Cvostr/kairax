@@ -21,7 +21,7 @@
 #include "proc/thread_scheduler.h"
 #include "dev/cmos/cmos.h"
 #include "dev/acpi/acpi.h"
-#include "drivers/storage/devices/storage_devices.h"
+#include "dev/device_man.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
 #include "fs/vfs/vfs.h"
@@ -149,12 +149,19 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	vga_init_dev();
 	
 	init_ints_keyboard();
-
-	for(int i = 0; i < get_drive_devices_count(); i ++) {
-		drive_device_t* device = get_drive(i);
-		add_partitions_from_device(device);
-	}
 	
+	struct device* dev = NULL;
+    int i = 0;
+    while ((dev = get_device(i ++)) != NULL) {
+
+        if(dev != NULL) {
+            
+            if (dev->dev_type == DEVICE_TYPE_DRIVE) {
+                add_partitions_from_device(dev);
+            }
+        }
+    }
+
 	kterm_process_start();
 
 	init_scheduler();

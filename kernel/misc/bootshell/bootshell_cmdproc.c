@@ -3,7 +3,6 @@
 
 #include "dev/device_man.h"
 
-#include "drivers/storage/devices/storage_devices.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
 #include "mem/kheap.h"
@@ -181,12 +180,7 @@ void bootshell_process_cmd(char* cmdline)
             }
         }
     }
-    else if(strcmp(cmdline, "list disks") == 0){
-        for(int i = 0; i < get_drive_devices_count(); i ++){
-            drive_device_t* device = get_drive(i);
-            printf_stdout("Drive Name %s, Model %s, Serial %s, Size : %i MiB\n", device->name, device->model, device->serial, device->bytes / (1024UL * 1024));
-        }
-    }
+
     if(strcmp(cmdline, "list partitions") == 0){
         for(int i = 0; i < get_partitions_count(); i ++){
             drive_partition_t* partition = get_partition(i);

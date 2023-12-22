@@ -1,11 +1,11 @@
 #ifndef _STORAGE_PARTITIONS_H
 #define _STORAGE_PARTITIONS_H
 
-#include "../devices/storage_devices.h"
+#include "dev/device.h"
 
 typedef struct PACKED {
     char                    name[15];       //Имя устройства в системе  
-    drive_device_t*         device;
+    struct device*          device;
     uint32_t                index;
 
     uint64_t                start_lba;
@@ -15,7 +15,7 @@ typedef struct PACKED {
 
 drive_partition_t* new_drive_partition_header();
 
-void add_partitions_from_device(drive_device_t* device);
+void add_partitions_from_device(struct device* device);
 
 void add_partition_header(drive_partition_t* partition_header);
 //Количество разделов, подключенных в данный момент

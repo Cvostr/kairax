@@ -7,6 +7,7 @@
 #include "ctype.h"
 #include "stdio.h"
 #include "kstdlib.h"
+#include "dev/device.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
@@ -408,8 +409,8 @@ uint32_t parse_identity_buffer(char* buffer,
 	}
 }
 
-int ahci_port_read_lba(ahci_port_t *port, uint64_t start, uint64_t count, uint16_t *buf){
-	return ahci_port_read_lba48(port, start, (uint32_t)count, buf);
+int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, uint16_t *buf){
+	return ahci_port_read_lba48(device->dev_data, start, (uint32_t)count, buf);
 }
 
 int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint16_t *buf){
@@ -504,8 +505,8 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	return 1;
 }
 
-int ahci_port_write_lba(ahci_port_t *port, uint64_t start, uint64_t count, uint16_t *buf){
-	return ahci_port_write_lba48(port, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, buf);
+int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, uint16_t *buf){
+	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, buf);
 }
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){

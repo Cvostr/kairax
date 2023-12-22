@@ -10,7 +10,6 @@
 #include "kstdlib.h"
 #include "mem/kheap.h"
 #include "mem/iomem.h"
-#include "drivers/storage/devices/storage_devices.h"
 #include "dev/device_drivers.h"
 #include "dev/device.h"
 #include "dev/interrupts.h"
@@ -162,50 +161,41 @@ int ahci_device_probe(struct device *dev) {
 			memset(P2V(identity_buffer), 0, IDENTITY_BUFFER_SIZE);
 			ahci_port_identity(&controller->ports[i], identity_buffer);
 
-			drive_device_t* drive_header = new_drive_device_header();
 
 			uint16_t type, capabilities;
 			uint32_t cmd_sets;
+
+			// новый вариант
+			struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
+			memset(drive_info, 0, sizeof(struct drive_device_info));
+			
+			struct device* drive_dev = kmalloc(sizeof(struct device));
+			memset(drive_dev, 0, sizeof(struct device));
+			drive_dev->dev_type = DEVICE_TYPE_DRIVE;
+			drive_dev->dev_parent = dev;
+			drive_dev->dev_data = &controller->ports[i];
+			drive_dev->drive_info = drive_info;
 
 			// Разобрать строку информации
 			parse_identity_buffer(P2V(identity_buffer), 
 									  &type,
 									  &capabilities,
 									  &cmd_sets,
-									  &drive_header->sectors,
-									  drive_header->model,
-									  drive_header->serial);
+									  &drive_info->sectors,
+									  drive_dev->dev_name,
+									  drive_info->serial);
 
 			pmm_free_page(identity_buffer);
 
-			drive_header->uses_lba48 = cmd_sets & (1 << 26);
-			drive_header->bytes = (uint64_t)drive_header->sectors * 512;
-			drive_header->ident = (drive_ident_t)&controller->ports[i];
-				
-			strcpy(drive_header->name, "ahci");
-			strcat(drive_header->name, itoa(0, 10));
-			strcat(drive_header->name, "n");
-			strcat(drive_header->name, itoa(i, 10));
-				
-			drive_header->write = ahci_port_write_lba;
-			drive_header->read = ahci_port_read_lba;
-			add_storage_device(drive_header);
-
-			// новый вариант
-			struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
-			memset(drive_info, 0, sizeof(struct drive_device_info));
+			drive_info->nbytes = (uint64_t)drive_info->sectors * 512;
 			drive_info->uses_lba48 = cmd_sets & (1 << 26);
-			drive_info->nbytes = (uint64_t)drive_header->sectors * 512;
-			drive_info->sectors = drive_header->sectors;
-			strcpy(drive_info->blockdev_name, drive_header->name);
+			drive_info->write = ahci_port_write_lba;
+			drive_info->read = ahci_port_read_lba;
+			strcpy(drive_info->blockdev_name, "ahci");
+			strcat(drive_info->blockdev_name, itoa(0, 10));
+			strcat(drive_info->blockdev_name, "n");
+			strcat(drive_info->blockdev_name, itoa(i, 10));
 
-			struct device* drive_dev = kmalloc(sizeof(struct device));
-			memset(drive_dev, 0, sizeof(struct device));
-			drive_dev->dev_type = DEVICE_TYPE_DRIVE;
-			drive_dev->dev_parent = dev;
-			drive_dev->dev_data = &controller->ports[i];
-			strcpy(drive_dev->dev_name, drive_header->model);
-			drive_dev->drive_info = drive_info;
 			
 			register_device(drive_dev);
 		}
