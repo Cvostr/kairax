@@ -3,6 +3,7 @@
 
 #include "gdt.h"
 #include "proc/thread.h"
+#include "mem/paging.h"
 
 struct cpu_local_x64 {
     // Указатели на стек пользователя и ядра. НЕ ПЕРЕМЕЩАТЬ!!!
@@ -16,6 +17,7 @@ struct cpu_local_x64 {
     int lapic_id;
     int id;
 
+    struct vm_table* current_vm;
     struct thread* current_thread;
 } PACKED;
 
@@ -49,6 +51,16 @@ static inline void cpu_set_current_thread(struct thread* thr)
 static inline struct thread* cpu_get_current_thread()
 {
     return this_core->current_thread;
+}
+
+static inline void cpu_set_current_vm_table(struct vm_table* vmt)
+{
+    this_core->current_vm = vmt;
+}
+
+static inline struct vm_tabel* cpu_get_current_vm_table()
+{
+    return this_core->current_vm;
 }
 
 #endif

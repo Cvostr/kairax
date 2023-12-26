@@ -141,6 +141,10 @@ struct elf_rela {
 
 #define SHN_UNDEF       0
 
+#define SHT_SYMTAB      2
+#define SHT_STRTAB      3
+#define SHT_RELA        4
+
 int elf_check_signature(struct elf_header* elf_header);
 
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);

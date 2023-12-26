@@ -10,7 +10,7 @@ struct kxmodule_header
 
 #define DEFINE_MODULE(name, init_routine, destroy_routine) __attribute__((section(".kxmod_header"))) \
 struct kxmodule_header modheader = { \
-    .mod_name = "hello-module", \
+    .mod_name = name, \
     .mod_init_routine = init_routine, \
     .mod_destroy_routine = destroy_routine, \
 };

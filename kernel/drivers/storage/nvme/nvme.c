@@ -101,7 +101,7 @@ struct device_driver_ops nvme_ops = {
 
 struct pci_device_driver nvme_driver = {
 	.dev_name = "Mass storage NVME Controller",
-	.pci_device_ids = &nvme_ids,
+	.pci_device_ids = nvme_ids,
 	.ops = &nvme_ops
 };
 

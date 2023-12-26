@@ -1,6 +1,7 @@
 #include "device_man.h"
 #include "list/list.h"
 #include "device_drivers.h"
+#include "string.h"
 
 list_t devices_list = {0,};
 
@@ -37,6 +38,7 @@ void probe_device(struct device* dev)
             if (drv != NULL) {
 
                 dev->dev_driver = drv;
+                strcpy(dev->dev_name, drv->dev_name);
 
                 if (drv->ops->probe) {
                     dev->dev_status_code = drv->ops->probe(dev);

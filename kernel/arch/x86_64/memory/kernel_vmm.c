@@ -1,5 +1,6 @@
 #include "kernel_vmm.h"
 #include "mem/pmm.h"
+#include "mem/vmm.h"
 #include "stdio.h"
 #include "string.h"
 #include "kstdlib.h"
@@ -16,6 +17,11 @@ page_table_t* root_pml4 = NULL;
 page_table_t* get_kernel_pml4()
 {
     return root_pml4;
+}
+
+uintptr_t vmm_get_virtual_address(uintptr_t addr)
+{
+    return P2V(addr);
 }
 
 void* vmm_get_physical_addr(physical_addr_t physical_addr) 

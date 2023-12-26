@@ -1,9 +1,13 @@
 #ifndef KXMDK_FUNCTIONS_H
 #define KXMDK_FUNCTIONS_H
 
-#include "types.h"
+#include "kairax/types.h"
 
 int printk(const char* __restrict, ...);
+
+void* kmalloc(uint64_t size);
+
+void kfree(void* mem);
 
 struct inode {
     uint32_t    mode;       // Тип и разрешения

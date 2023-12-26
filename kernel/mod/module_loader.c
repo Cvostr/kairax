@@ -27,7 +27,7 @@ int module_load(const char* image, size_t size)
     struct elf_section_header_entry* symtab_section = NULL;
     struct elf_section_header_entry* strtab_section = NULL;
 
-    struct elf_section_header_entry* rela_sections[5];
+    struct elf_section_header_entry* rela_sections[6];
     int rela_sections_num = 0;
 
     // Чтение секций, поиск заголовка
@@ -40,13 +40,13 @@ int module_load(const char* image, size_t size)
         if (strcmp(section_name, ".kxmod_header") == 0) {
             // Заголочная секция
             module_header_ptr = sehentry->offset;
-        } else if (strcmp(section_name, ".symtab") == 0) {
+        } else if (sehentry->type == SHT_SYMTAB) {
             // Секция перемещений в коде
             symtab_section = sehentry;
         } else if (strcmp(section_name, ".strtab") == 0) {
             // Секция перемещений в коде
             strtab_section = sehentry;
-        } else if(strncmp(section_name, ".rela.", 6) == 0) {
+        } else if(sehentry->type == SHT_RELA) {
             // Это одна из секций перемещений
             // Добавляем её в массив
             rela_sections[rela_sections_num++] = sehentry;
@@ -116,13 +116,14 @@ int module_load(const char* image, size_t size)
                 switch (relocation_type) {
                     case R_X86_64_PC32:
                     case R_X86_64_PLT32:
+                        // Куда применить перемещение
                         int* value = (int*) (mod->offset + relocating_section->offset + rela->offset);
                         int jmpoffset = (int) ((uint64_t) (mod->offset + sym_section->offset + sym->value + rela->addend) - (uint64_t) value);
                         *value = jmpoffset;
                         break;
                     case R_X86_64_64:
                         uint64_t* value64 = (uint64_t*) (mod->offset + relocating_section->offset + rela->offset);
-                        *value64 = mod->offset + sym_section->offset + sym->value;
+                        *value64 = mod->offset + sym_section->offset + sym->value + rela->addend;
                         break;
                 }
             }

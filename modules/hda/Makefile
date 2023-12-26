@@ -3,7 +3,7 @@ CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS=-c $(CWARN) $(CINCL) 
 COMPILER=gcc
 
-all: module.o
+all: hda.o
 
-module.o: module.c
-	$(COMPILER) $(CFLAGS) module.c -o module.ko
+hda.o: hda.c
+	$(COMPILER) $(CFLAGS) hda.c -o hda.ko

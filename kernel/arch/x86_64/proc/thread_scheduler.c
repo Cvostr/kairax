@@ -80,6 +80,7 @@ int scheduler_handler(thread_frame_t* frame)
         }
     }
 
+    cpu_set_current_vm_table(process->vmemory_table);
     // Сохранить указатель на новый поток в локальной структуре ядра
     cpu_set_current_thread(new_thread);
 

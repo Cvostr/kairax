@@ -248,7 +248,7 @@ struct device_driver_ops ahci_ops = {
 
 struct pci_device_driver ahci_driver = {
 	.dev_name = "Mass storage AHCI SATA Controller",
-	.pci_device_ids = &ahci_ids,
+	.pci_device_ids = ahci_ids,
 	.ops = &ahci_ops
 };
 
