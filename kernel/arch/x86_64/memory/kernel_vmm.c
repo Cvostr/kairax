@@ -24,7 +24,7 @@ uintptr_t vmm_get_virtual_address(uintptr_t addr)
     return P2V(addr);
 }
 
-void* vmm_get_physical_addr(physical_addr_t physical_addr) 
+void* vmm_get_physical_address(uintptr_t physical_addr) 
 {
     return (void*)get_physical_address(root_pml4, physical_addr);
 }

@@ -72,7 +72,7 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
     //Выделение временной памяти под считываемые блоки
     uint32_t* tmp = kmalloc(inst->block_size);
     //Получение физического адреса выделенной памяти
-    char* tmp_phys = (char*)kheap_get_phys_address(tmp);
+    char* tmp_phys = (char*)vmm_get_physical_address(tmp);
     int b = a - level;
     if(b < 0) {
         ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, tmp_phys);
@@ -1241,7 +1241,7 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     uint32_t passed_entries = 0;
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = (char*)kheap_get_phys_address(buffer);
+    char* buffer_phys = (char*) vmm_get_physical_address(buffer);
     //Прочитать начальный блок иноды
     ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
     //Проверка, не прочитан ли весь блок?

@@ -7,6 +7,7 @@
 #include "mem/kheap.h"
 #include "mem/iomem.h"
 #include "mem/vmm.h"
+#include "mem/pmm.h"
 #include "dev/interrupts.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
@@ -21,9 +22,15 @@ struct kernel_function functions[] = {
     KFUNCTION(pci_config_read32),
     KFUNCTION(pci_config_write16),
     KFUNCTION(pci_config_write32),
+    KFUNCTION(pci_get_command_reg),
+    KFUNCTION(pci_set_command_reg),
+    KFUNCTION(pci_device_set_enable_interrupts),
     KFUNCTION(map_io_region),
     KFUNCTION(unmap_io_region),
     KFUNCTION(vmm_get_virtual_address),
+    KFUNCTION(vmm_get_physical_address),
+    KFUNCTION(pmm_alloc_pages),
+    KFUNCTION(pmm_free_pages),
     KFUNCTION(register_irq_handler)
 };
 

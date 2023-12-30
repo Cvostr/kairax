@@ -1,5 +1,5 @@
 CINCL=-isystem ../../sdk/kxmdk -isystem ../../kernel -DMODULE
-CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes
+CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector
 CFLAGS=-c $(CWARN) $(CINCL) 
 COMPILER=gcc
 

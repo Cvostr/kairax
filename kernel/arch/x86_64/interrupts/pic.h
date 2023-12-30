@@ -1,7 +1,7 @@
 #ifndef _PIC_H
 #define _PIC_H
 
-#include "types.h"
+#include "kairax/types.h"
 #include "io.h"
 
 #define PIC1_START_INTERRUPT 0x20

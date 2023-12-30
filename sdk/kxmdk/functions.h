@@ -2,12 +2,17 @@
 #define KXMDK_FUNCTIONS_H
 
 #include "kairax/types.h"
+#include "mem/vmm.h"
+
+#define PAGE_SIZE 4096
 
 int printk(const char* __restrict, ...);
 
 void* kmalloc(uint64_t size);
-
 void kfree(void* mem);
+
+void* pmm_alloc_pages(uint32_t pages);
+void pmm_free_pages(void* addr, uint32_t pages);
 
 struct inode {
     uint32_t    mode;       // Тип и разрешения

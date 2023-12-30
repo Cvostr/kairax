@@ -183,7 +183,7 @@ void smp_init()
 
     char model[48];
 	cpuid_get_model_string(model);
-	printf("CPU %s, %i cores initialized\n", model, acpi_get_cpus_apic_count());
+	printk("CPU %s, %i cores initialized\n", model, acpi_get_cpus_apic_count());
 
     // Вернуть данные на место
     memcpy(P2V(trampoline_addr), P2V(temp), PAGE_SIZE);

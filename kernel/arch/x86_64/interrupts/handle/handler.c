@@ -32,5 +32,5 @@ void register_interrupt_handler(int interrupt_num, void* handler_func, void* dat
 int register_irq_handler(int irq, void* handler, void* data)
 {
 	register_interrupt_handler(0x20 + irq, handler, data);
-	pic_unmask(0x20 + irq);
+	pic_unmask(irq);
 }

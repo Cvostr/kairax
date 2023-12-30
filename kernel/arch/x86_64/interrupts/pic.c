@@ -23,22 +23,36 @@ void init_pic(void)
     pic_outb(PORT_PIC_SLAVE_DATA, ICW4_8086);
 
     pic_mask_all();
+
+    // Дополнительный PIC прицеплен ко второму входу главного.
+    // Нужно снять маску, чтобы получать прерывания >= IRQ8
+    pic_unmask(2);
 }
 
 void pic_unmask(uint8_t irq)
 {
-    //получение текущей маски
-    uint8_t curmask_master = inb(PORT_PIC_MASTER_DATA);
-    /* if bit == 0 irq is enable*/
-    outb(PORT_PIC_MASTER_DATA, curmask_master & ~(1 << irq));
+    uint8_t port = PORT_PIC_MASTER_DATA;
+
+    if (irq >= 8) {
+        port = PORT_PIC_SLAVE_DATA;
+        irq -= 8;
+    }
+
+    uint8_t curmask = inb(port);
+    outb(port, curmask & ~(1 << irq));
 }
 
 void pic_mask(uint8_t irq)
 {
-    //получение текущей маски
-    uint8_t curmask_master = inb(PORT_PIC_SLAVE_DATA);
-    /* if bit == 0 irq is enable*/
-    outb(PORT_PIC_MASTER_DATA, curmask_master | (1 << irq));
+    uint8_t port = PORT_PIC_MASTER_DATA;
+
+    if (irq >= 8) {
+        port = PORT_PIC_SLAVE_DATA;
+        irq -= 8;
+    }
+
+    uint8_t curmask = inb(port);
+    outb(port, curmask | (1 << irq));
 }
 
 void pic_mask_all()

@@ -94,7 +94,8 @@ void ahci_controller_enable_interrupts_ghc(ahci_controller_t* controller)
 	controller->hba_mem->ghc |= AHCI_CONTROLLER_INTERRUPTS_ENABLE;
 }
 
-int ahci_device_probe(struct device *dev) {
+int ahci_device_probe(struct device *dev) 
+{
 	struct pci_device_info* device_desc = dev->pci_info;
 
 	// Поиск подходящего PCI устройства
@@ -123,8 +124,8 @@ int ahci_device_probe(struct device *dev) {
 		printf("AHCI controller reset failed !\n");
 	}
 
-	uint8_t irq = device_desc->interrupt_line;
-	register_irq_handler(irq, ahci_int_handler, controller);
+	//uint8_t irq = device_desc->interrupt_line;
+	//register_irq_handler(irq, ahci_int_handler, controller);
 
 	// Получить информацию о портах. первый этап инициализации
 	ahci_controller_probe_ports(controller);

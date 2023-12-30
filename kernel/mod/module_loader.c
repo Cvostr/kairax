@@ -99,6 +99,7 @@ int module_load(const char* image, size_t size)
                 void* func_ptr = kfunctions_get_by_name(sym_name);
                 if (func_ptr == NULL) {
                     // todo : искать в других модулях
+                    printk("error locating symbol %s\n", sym_name);
                 }
 
                 //todo : архитектурно - зависимый код. разделить!

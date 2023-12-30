@@ -14,10 +14,7 @@ uintptr_t map_io_region(uintptr_t base, size_t size)
 			P2V(base) + page_i * PAGE_SIZE,
 			base + page_i * PAGE_SIZE,
 			pageFlags);
-		/*set_page_flags(
-			get_kernel_pml4(),
-			(uintptr_t) P2V(controller->hba_mem) + page_i * PAGE_SIZE,
-			pageFlags);*/
+
 	}
 
     return P2V(base);

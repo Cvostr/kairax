@@ -17,5 +17,5 @@ void timer_int_handler(thread_frame_t* context)
 void arch_timer_init()
 {
     pit_set_frequency(TIMER_FREQUENCY);
-    pic_unmask(0x20);
+    pic_unmask(0);
 }

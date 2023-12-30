@@ -58,7 +58,7 @@ static inline void cpu_set_current_vm_table(struct vm_table* vmt)
     this_core->current_vm = vmt;
 }
 
-static inline struct vm_tabel* cpu_get_current_vm_table()
+static inline struct vm_table* cpu_get_current_vm_table()
 {
     return this_core->current_vm;
 }
