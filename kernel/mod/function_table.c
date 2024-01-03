@@ -1,7 +1,7 @@
 #include "function_table.h"
 #include "kairax/stdio.h"
 #include "fs/devfs/devfs.h"
-#include "string.h"
+#include "kairax/string.h"
 #include "dev/device_drivers.h"
 #include "dev/bus/pci/pci.h"
 #include "mem/kheap.h"
@@ -31,7 +31,12 @@ struct kernel_function functions[] = {
     KFUNCTION(vmm_get_physical_address),
     KFUNCTION(pmm_alloc_pages),
     KFUNCTION(pmm_free_pages),
-    KFUNCTION(register_irq_handler)
+    KFUNCTION(register_irq_handler),
+    // kairax std
+    KFUNCTION(memset),
+    KFUNCTION(memcpy),
+    KFUNCTION(strcpy),
+    KFUNCTION(strcmp)
 };
 
 void* kfunctions_get_by_name(const char* name)

@@ -1,24 +1,5 @@
 #include "kairax/types.h"
-
-struct hda_dev {
-    void* io_addr;
-
-    int supports64;
-    int iss_num;
-    int oss_num;
-    int bss_num;
-
-    int ostream_reg_base;
-
-    uint32_t* corb;
-    uint64_t* rirb;
-
-    int corb_entries;
-    int rirb_entries;
-
-    void* istream;
-    void* ostream;
-};
+#include "kairax/list/list.h"
 
 #define GCAP 0x00
 #define GCTL 0x08
@@ -26,6 +7,7 @@ struct hda_dev {
 #define STATESTS    0x0E
 #define INTCTL 0x20
 
+#define SSYNC       0x38
 #define CORBLBASE   0x40
 #define CORBUBASE   0x44
 #define CORBWP      0x48
@@ -44,25 +26,116 @@ struct hda_dev {
 #define DPLBASE     0x70
 #define DPUBASE     0x74
 
-#define ISTREAM_CTLL    0x80
-#define ISTREAM_STS     0x83
+#define ISTREAM_REG_BASE 0x80
 
-#define OSTREAM_CTLL    0x100
-#define OSTREAM_CTLU    0x102
-#define OSTREAM_STS     0x103
-#define OSTREAM_CBL     0x108 
+#define ISTREAM_CTLL    0x0
+#define ISTREAM_CTLU    0x2
+#define ISTREAM_STS     0x3
+#define ISTREAM_LPIB    0x4
+#define ISTREAM_CBL     0x8
+#define ISTREAM_LVI     0xC
+#define ISTREAM_FMT     0x12
+#define ISTREAM_BDPL    0x18
+#define ISTREAM_BDPU    0x1C
 
-#define HDA_STREAM_BUFFER_SIZE  2048
-#define BDL_SIZE                4
+#define HDA_MAX_CODECS  15
+#define HDA_MAX_WIDGETS 10
 
-#define HDA_MAX_CODECS 15
+#define HDA_STREAM_CTL_RST 0x1
+#define HDA_STREAM_CTL_RUN 0x2
+#define HDA_STREAM_CTL_IOC 0x4
+#define HDA_STREAM_CTL_FEI 0x8
+#define HDA_STREAM_CTL_DEI 0x10
+
+#define HDAC_SDSTS_DESE  (1<<4)
+#define HDAC_SDSTS_FIFOE (1<<3)
+#define HDAC_SDSTS_BCIS  (1<<2)
+
+#define	SR_48_KHZ   (0U)
+#define	SR_44_KHZ   (1 << 14)
+#define	BITS_32     (4 << 4)
+#define	BITS_16     (1 << 4)
+#define	BITS_8      (0)
+
+struct HDA_BDL_ENTRY {
+	uint64_t paddr;
+	uint32_t length;
+	uint32_t ioc;
+} PACKED;
+
+struct hda_stream {
+    uint32_t                reg_base;
+    uint32_t                size;
+    void*                   mem;
+
+    uint32_t bdl_num;
+    struct HDA_BDL_ENTRY*   bdl;
+};
+
+struct hda_widget {
+
+    int type;
+    struct hda_stream* ostream;
+
+    // DACs, ADCs
+    int connections_num;
+    struct hda_widget* connections[10];
+
+    uint32_t conn_defaults;
+    uint32_t func_group_type;
+    uint32_t caps;
+    uint32_t stream_formats;
+    uint32_t pcm_rates;
+};
+
+struct hda_codec {
+    uint32_t codec;
+    uint16_t vendor_id;
+    uint16_t device_id;
+
+    uint8_t major;
+    uint8_t minor;
+    uint8_t revision;
+    uint8_t stepping;
+
+    uint8_t starting_node;
+    uint8_t nodes_num;
+
+    struct hda_widget* widgets[HDA_MAX_WIDGETS];
+};
+
+struct hda_dev {
+    void* io_addr;
+
+    int supports64;
+    int iss_num;
+    int oss_num;
+    int bss_num;
+
+    int ostream_reg_base;
+
+    uint32_t* corb;
+    uint64_t* rirb;
+
+    int corb_entries;
+    int rirb_entries;
+
+    struct hda_codec* codecs[HDA_MAX_CODECS];
+};
 
 // -- VERBS
 #define HDA_VERB_CODEC_GET_PARAM  0xF00
-#define HDA_VERB_GET_CONNECTION_LIST_ENTRY  0xF02
-
-#define HDA_VERB_GET_AMP_GAIN_MUTE  0xB
-#define HDA_VERB_SET_AMP_GAIN_MUTE  0x3
+#define HDA_VERB_GET_CONN_LIST_ENTRY  0xF02
+#define HDA_VERB_GET_STREAM_ID      0xF06
+#define HDA_VERB_SET_STREAM_ID      0x706
+#define HDA_VERB_SET_STREAM_FORMAT  0x200
+#define HDA_VERB_SET_POWER_STATE    0x705
+#define HDA_VERB_GET_AMP_GAIN_MUTE          0xB00
+#define HDA_VERB_SET_AMP_GAIN_MUTE          0x300
+#define HDA_VERB_GET_VOLUME_CONTROL         0xF0F
+#define HDA_VERB_SET_VOLUME_CONTROL         0x70F
+#define HDA_VERB_SET_PIN_WIDGET_CTL         0x707
+#define HDA_VERB_GET_CONNECTION_DEFAULTS    0xF1C
 
 // CODEC PARAMS
 #define HDA_CODEC_PARAM_VENDOR_ID       0
@@ -74,10 +147,38 @@ struct hda_dev {
 #define HDA_CODEC_PARAM_PCM_SIZE_RATE   0xA
 #define HDA_CODEC_SUPPORTED_STREAM_FORMATS  0xB
 #define HDA_CODEC_PIN_CAPABILITIES      0xC
+#define HDA_CODEC_GET_CONN_LIST_LEN     0xE
+#define HDA_CODEC_AMP_CAPS              0x12
+
+// WIDGET TYPES
+#define HDA_WIDGET_AUDIO_OUTPUT 0
+#define HDA_WIDGET_AUDIO_INPUT 1
+#define HDA_WIDGET_AUDIO_MIXER 2
+#define HDA_WIDGET_AUDIO_SELECTOR 3
+#define HDA_WIDGET_AUDIO_PIN_COMPLEX 4
+#define HDA_WIDGET_AUDIO_POWER_WIDGET 5
+#define HDA_WIDGET_AUDIO_VOLUME_KNOB 6
+#define HDA_WIDGET_AUDIO_BEEP_GENERATOR 7
+
+// DEFAULT DEVICE
+#define HDA_LINE_OUT    0
+#define HDA_SPEAKER     1
+#define HDA_HP_OUT      2
+#define HDA_CD          3
+#define HDA_SPDIF_OUT   4
+#define HDA_LINE_IN     8
+
+uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size);
+void hda_stream_run(struct hda_dev* dev, struct hda_stream* stream);
 
 void hda_int_handler(void* regs, struct hda_dev* data);
+uint32_t hda_codec_exec(struct hda_dev* dev, int codec, uint32_t node, uint32_t verb, uint32_t param);
 uint32_t hda_codec_get_param(struct hda_dev* dev, int codec, uint32_t node, uint32_t param);
 int hda_codec_send_verb(struct hda_dev* dev, uint32_t verb, uint64_t* out);
+
+struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec);
+struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* cd, int codec, int node, int nest);
+struct hda_widget* hda_codec_get_widget(struct hda_codec* codec, int node_num);
 
 static inline void hda_outd(struct hda_dev* dev, uintptr_t base, uint32_t value) 
 {
