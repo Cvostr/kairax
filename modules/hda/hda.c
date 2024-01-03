@@ -109,7 +109,7 @@ uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size)
 {
     uint32_t written = 0;
     uint32_t written_in_bdl = 0;
-    int bdl_i = 0;
+    uint32_t bdl_i = 0;
     struct HDA_BDL_ENTRY* current_bdl = stream->bdl;
 
     for (uint32_t i = 0; (i < size) && (bdl_i < stream->bdl_num); i ++) {
@@ -136,8 +136,8 @@ void hda_setup_corb_rirb(struct hda_dev* dev_data)
     dev_data->corb = (uint32_t*) map_io_region(corb, PAGE_SIZE);
     dev_data->rirb = (uint64_t*) map_io_region(rirb, PAGE_SIZE);
 
-    uint32_t corbsizereg = hda_inb(dev_data, CORBSIZE);
-    uint32_t rirbsizereg = hda_inb(dev_data, RIRBSIZE);
+    uint8_t corbsizereg = hda_inb(dev_data, CORBSIZE);
+    uint8_t rirbsizereg = hda_inb(dev_data, RIRBSIZE);
 
     printk("CORB reg %i RIRB reg %i \n", corbsizereg, rirbsizereg);
 
@@ -190,6 +190,48 @@ void hda_setup_corb_rirb(struct hda_dev* dev_data)
     hda_outw(dev_data, RIRBWP, 0);
 }
 
+int hda_controller_reset(struct hda_dev* dev)
+{
+    uint32_t stream_i;
+    uint32_t gctl = hda_ind(dev, GCTL);
+    //if (gctl & GCTL_CRST != 0) {
+
+        // Остановить потоки
+        for (stream_i = 0; stream_i < dev->streams_total; stream_i ++) {
+
+            uint32_t reg_offset = ISTREAM_REG_BASE + stream_i * 0x20;
+
+            hda_outb(dev, reg_offset + ISTREAM_CTLL, 0);
+            hda_outb(dev, reg_offset + ISTREAM_STS, 0);
+        }
+
+        // Остановить CORB, RIRB
+        hda_outb(dev, CORBCTL, 0);
+        hda_outb(dev, RIRBCTL, 0);
+
+        // Ожидание остановки CORB, RIRB
+        while (hda_inb(dev, CORBCTL) & 0x2 || hda_inb(dev, RIRBCTL) & 0x2)
+            ;
+
+        // Отключение DMA Position buffer
+        hda_outd(dev, DPLBASE, 0);
+        hda_outd(dev, DPUBASE, 0);
+
+        gctl = hda_ind(dev, GCTL);
+        // Сброс по CRST
+        // Сначала в первый бит пишем 0
+        hda_outd(dev, GCTL, gctl & ~GCTL_CRST);
+        while ((hda_ind(dev, GCTL) & GCTL_CRST) != 0);
+        
+        // Потом 1
+        hda_outd(dev, GCTL, GCTL_CRST);
+        while ((hda_ind(dev, GCTL) & GCTL_CRST) == 0);
+
+    //}
+
+    return 0;
+}
+
 int hda_device_probe(struct device *dev) 
 {
     printk("Intel HD Audio Device found!\n");
@@ -209,10 +251,6 @@ int hda_device_probe(struct device *dev)
 
     printk("Using IRQ : %i\n", irq);
 
-    // Включение по CRST
-    hda_outd(dev_data, GCTL, 1);
-    while (hda_ind(dev_data, GCTL) != 0x1);
-
     // Получить информацию о количестве стримов
     uint16_t caps = hda_inw(dev_data, GCAP);
     dev_data->supports64 = caps & 0x01; 
@@ -222,12 +260,16 @@ int hda_device_probe(struct device *dev)
 
     // сразу вычислим регистр первого output stream
     dev_data->ostream_reg_base = ISTREAM_REG_BASE + (0x20 * dev_data->iss_num);
+    dev_data->bstream_reg_base = dev_data->ostream_reg_base + (0x20 * dev_data->oss_num);
+
+    // Полный сброс контроллера
+    hda_controller_reset(dev_data);
 
     // Считаем суммарное количество потоков всех типов
-    uint32_t streams_total = dev_data->iss_num + dev_data->oss_num + dev_data->bss_num;
+    dev_data->streams_total = dev_data->iss_num + dev_data->oss_num + dev_data->bss_num;
 
     // Выделяем память под массив указателей на потоки
-    dev_data->streams = kmalloc(sizeof(struct hda_stream*) * streams_total);
+    dev_data->streams = kmalloc(sizeof(struct hda_stream*) * dev_data->streams_total);
 
     printk("Device CAPS: iss %i oss %i bss %i\n", dev_data->iss_num, dev_data->oss_num, dev_data->bss_num);
 
@@ -235,18 +277,10 @@ int hda_device_probe(struct device *dev)
     hda_outd(dev_data, INTCTL, 0);
     delay();
 
-    // Остановить CORB, RIRB
-    hda_outd(dev_data, CORBCTL, 0);
-    hda_outd(dev_data, RIRBCTL, 0);
-
-    // Ожидание остановки CORB, RIRB
-    while (hda_ind(dev_data, CORBCTL) & 0x2 || hda_ind(dev_data, RIRBCTL) & 0x2)
-        ;
-
     // Пока не используем DMA Position buffer
     // TODO: изучить и начать использовать, если необходимо
-    hda_outd(dev_data, DPLBASE, 0);
-    hda_outd(dev_data, DPUBASE, 0);
+    //hda_outd(dev_data, DPLBASE, 0);
+    //hda_outd(dev_data, DPUBASE, 0);
 
     // Инициализация CORB & RIRB
     hda_setup_corb_rirb(dev_data);
@@ -351,7 +385,7 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
     widget->caps = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_AUDIO_WIDGET_CAPS);
     widget->type = (widget->caps >> 20) & 0xF;
 
-    uint32_t amp_cap = hda_codec_get_param(dev, codec, node, HDA_CODEC_AMP_CAPS);
+    widget->amp_cap = hda_codec_get_param(dev, codec, node, HDA_CODEC_AMP_CAPS);
     uint32_t subnodes = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_SUB_NODE_COUNT);
 
     uint32_t starting_node = (subnodes >> 16) & 0xFF;

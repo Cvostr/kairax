@@ -89,6 +89,7 @@ struct hda_widget {
     uint32_t conn_defaults;
     uint32_t func_group_type;
     uint32_t caps;
+    uint32_t amp_cap;
     uint32_t stream_formats;
     uint32_t pcm_rates;
 };
@@ -118,6 +119,8 @@ struct hda_dev {
     int bss_num;
 
     int ostream_reg_base;
+    int bstream_reg_base;
+    uint32_t streams_total;
 
     uint32_t* corb;
     uint64_t* rirb;
@@ -131,6 +134,8 @@ struct hda_dev {
     struct hda_stream** streams;
     int ostreams;
 };
+
+#define GCTL_CRST 0b1
 
 // -- VERBS
 #define HDA_VERB_CODEC_GET_PARAM  0xF00
@@ -189,6 +194,8 @@ int hda_codec_send_verb(struct hda_dev* dev, uint32_t verb, uint64_t* out);
 struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec);
 struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* cd, int codec, int node, int nest);
 struct hda_widget* hda_codec_get_widget(struct hda_codec* codec, int node_num);
+
+int hda_controller_reset(struct hda_dev* dev);
 
 static inline void hda_outd(struct hda_dev* dev, uintptr_t base, uint32_t value) 
 {
