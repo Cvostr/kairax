@@ -194,6 +194,10 @@ int hda_controller_reset(struct hda_dev* dev)
 {
     uint32_t stream_i;
     uint32_t gctl = hda_ind(dev, GCTL);
+
+    // Выключение прерываний
+    hda_outd(dev, INTCTL, 0);
+
     //if (gctl & GCTL_CRST != 0) {
 
         // Остановить потоки
@@ -264,6 +268,7 @@ int hda_device_probe(struct device *dev)
 
     // Полный сброс контроллера
     hda_controller_reset(dev_data);
+    printk("Reset completed!\n");
 
     // Считаем суммарное количество потоков всех типов
     dev_data->streams_total = dev_data->iss_num + dev_data->oss_num + dev_data->bss_num;
@@ -272,10 +277,6 @@ int hda_device_probe(struct device *dev)
     dev_data->streams = kmalloc(sizeof(struct hda_stream*) * dev_data->streams_total);
 
     printk("Device CAPS: iss %i oss %i bss %i\n", dev_data->iss_num, dev_data->oss_num, dev_data->bss_num);
-
-    // Выключение прерываний
-    hda_outd(dev_data, INTCTL, 0);
-    delay();
 
     // Пока не используем DMA Position buffer
     // TODO: изучить и начать использовать, если необходимо

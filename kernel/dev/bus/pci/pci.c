@@ -148,7 +148,7 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 					uint32_t maskHigh;
 					read_pci_bar(bus, device, func, i + 1, &addressHigh, &maskHigh);
 
-					bar_ptr->address = (uintptr_t)(((uint32_t)addressHigh << 16) | (address & ~0xf));
+					bar_ptr->address = (uintptr_t)(((uint64_t)addressHigh << 32) | (address & ~0xf));
 					bar_ptr->size = ~(((uint32_t)maskHigh << 16) | (mask & ~0xf)) + 1;
 					bar_ptr->flags = address & 0xf;
 				} else if (mask & PCI_BAR_IO) {
