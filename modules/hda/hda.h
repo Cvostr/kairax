@@ -5,7 +5,8 @@
 #define GCTL 0x08
 #define WAKEEN      0x0C
 #define STATESTS    0x0E
-#define INTCTL 0x20
+#define INTCTL      0x20
+#define INTSTS      0x24
 
 #define SSYNC       0x38
 #define CORBLBASE   0x40
@@ -64,11 +65,15 @@ struct HDA_BDL_ENTRY {
 } PACKED;
 
 struct hda_stream {
+
+    uint32_t                index;
+    int                     type;
+
     uint32_t                reg_base;
     uint32_t                size;
     void*                   mem;
 
-    uint32_t bdl_num;
+    uint32_t                bdl_num;
     struct HDA_BDL_ENTRY*   bdl;
 };
 
@@ -78,7 +83,7 @@ struct hda_widget {
     struct hda_stream* ostream;
 
     // DACs, ADCs
-    int connections_num;
+    uint32_t connections_num;
     struct hda_widget* connections[10];
 
     uint32_t conn_defaults;
@@ -121,6 +126,10 @@ struct hda_dev {
     int rirb_entries;
 
     struct hda_codec* codecs[HDA_MAX_CODECS];
+
+    // Все потоки в порядке расположения их с учетом типа
+    struct hda_stream** streams;
+    int ostreams;
 };
 
 // -- VERBS
@@ -170,6 +179,7 @@ struct hda_dev {
 
 uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size);
 void hda_stream_run(struct hda_dev* dev, struct hda_stream* stream);
+void hda_register_stream(struct hda_dev* dev, struct hda_stream* stream);
 
 void hda_int_handler(void* regs, struct hda_dev* data);
 uint32_t hda_codec_exec(struct hda_dev* dev, int codec, uint32_t node, uint32_t verb, uint32_t param);

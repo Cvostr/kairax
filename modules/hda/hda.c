@@ -7,10 +7,15 @@
 #include "hda.h"
 #include "mem/iomem.h"
 #include "kairax/string.h"
+//#include "sound_data.h"
 
-struct hda_stream* hda_device_init_stream(struct hda_dev* dev, int index, int type, uint16_t format) 
+#define BDL_NUM 200
+
+struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, int type, uint16_t format) 
 {
     struct hda_stream* stream = kmalloc(sizeof(struct hda_stream));
+    stream->index = index;
+    stream->type = type;
 
     switch (type) {
         case 1: // Input
@@ -34,7 +39,7 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, int index, int ty
 
     // Максимальное количество BDL
     //stream->bdl_num = PAGE_SIZE / sizeof(struct HDA_BDL_ENTRY);
-    stream->bdl_num = 2;
+    stream->bdl_num = BDL_NUM;
 
     // Выделение памяти под BDL - всегда 4 кб
     void* bdl_phys = pmm_alloc_pages(1);
@@ -56,7 +61,8 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, int index, int ty
         stream->bdl[bdl_i].ioc = 1; // FIND OUT
 
         stream->bdl[bdl_i].paddr = pmm_alloc_pages(1);
-        map_io_region(stream->bdl[bdl_i].paddr, PAGE_SIZE);
+        char* mem = map_io_region(stream->bdl[bdl_i].paddr, PAGE_SIZE);
+        memset(mem, 0, PAGE_SIZE);
     }
 
     // Установка формата
@@ -85,6 +91,20 @@ void hda_stream_run(struct hda_dev* dev, struct hda_stream* stream)
 	hda_outb(dev, stream->reg_base + ISTREAM_CTLL, value);
 }
 
+void hda_register_stream(struct hda_dev* dev, struct hda_stream* stream)
+{
+    int base = 0;
+    switch (stream->type) {
+        case 3: // Bidirectional - Двунаправленный
+            base += dev->oss_num; // fall through
+        case 2: // Output
+            base += dev->iss_num;
+            break;
+    }
+
+    dev->streams[base + stream->index - 1] = stream;
+}
+
 uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size)
 {
     uint32_t written = 0;
@@ -97,7 +117,6 @@ uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size)
         char* dst = current_bdl->paddr;
         dst = vmm_get_virtual_address(dst);
         dst[written_in_bdl++] = mem[written++];
-        //printk("AADDD");
 
         if (written_in_bdl >= current_bdl->length) {
             bdl_i++;
@@ -179,6 +198,8 @@ int hda_device_probe(struct device *dev)
     pci_device_set_enable_interrupts(dev->pci_info, 1);
 
     struct hda_dev* dev_data = kmalloc(sizeof(struct hda_dev));
+    memset(dev_data, 0, sizeof(struct hda_dev));
+
     dev_data->io_addr = map_io_region(dev->pci_info->BAR[0].address, dev->pci_info->BAR[0].size);
 
     dev->dev_data = dev_data;
@@ -200,7 +221,13 @@ int hda_device_probe(struct device *dev)
     dev_data->bss_num = (caps & 0x00F8) >> 3;
 
     // сразу вычислим регистр первого output stream
-    dev_data->ostream_reg_base = 0x80 + (0x20 * dev_data->iss_num);
+    dev_data->ostream_reg_base = ISTREAM_REG_BASE + (0x20 * dev_data->iss_num);
+
+    // Считаем суммарное количество потоков всех типов
+    uint32_t streams_total = dev_data->iss_num + dev_data->oss_num + dev_data->bss_num;
+
+    // Выделяем память под массив указателей на потоки
+    dev_data->streams = kmalloc(sizeof(struct hda_stream*) * streams_total);
 
     printk("Device CAPS: iss %i oss %i bss %i\n", dev_data->iss_num, dev_data->oss_num, dev_data->bss_num);
 
@@ -227,7 +254,7 @@ int hda_device_probe(struct device *dev)
     hda_outd(dev_data, WAKEEN, hda_ind(dev_data, WAKEEN) & ~0x7fU);
     // Включение прерываний
     hda_outd(dev_data, GCTL, hda_ind(dev_data, GCTL) | (1 << 8));
-    hda_outd(dev_data, INTCTL, (1U << 31) | (1U << 30));
+    hda_outd(dev_data, INTCTL, (1U << 31) | (1U << 30) | 0xFFFF); // Прерывания разрешены в 16 потоках (0xFFFF)
 
     // RIRB response interrupt count
     hda_outd(dev_data, RINTCNT, 1);
@@ -260,6 +287,11 @@ int hda_device_probe(struct device *dev)
 
     printk("HDA device initialized\n");
 
+    // !!! DEMO !!!
+    //hda_stream_write(dev_data->streams[5], sound_data, sizeof(sound_data));
+    //hda_outb(dev_data, SSYNC, 2);
+    //hda_stream_run(dev_data, dev_data->streams[5]);
+
     return 0;
 }
 
@@ -269,7 +301,6 @@ struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec)
     memset(hcodec, 0, sizeof(struct hda_codec));
 
     hcodec->codec = codec;
-    //hcodec->pin_widgets = create_list();
 
     uint32_t vendor = hda_codec_get_param(dev, codec, 0, HDA_CODEC_PARAM_VENDOR_ID);
 
@@ -311,11 +342,10 @@ struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec)
     return hcodec;
 }
 
-char dat[] = {234, 149, 154, 56, 143, 34, 45, 78, 89, 123, 67};
-
 struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* cd, int codec, int node, int nest)
 {
     struct hda_widget* widget = kmalloc(sizeof(struct hda_widget));
+    memset(widget, 0, sizeof(struct hda_widget));
 
     widget->func_group_type = hda_codec_get_param(dev, codec, node, HDA_CODEC_FUNCTION_GROUP_TYPE);
     widget->caps = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_AUDIO_WIDGET_CAPS);
@@ -362,10 +392,10 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
                 uint32_t value = hda_codec_exec(dev, codec, node, HDA_VERB_GET_CONN_LIST_ENTRY, i);
 
                 for (int conn_i = 0; conn_i < multiplier && (i + conn_i < conn_list_len); conn_i ++) {
-                    int conn_node = value >> (8 * conn_i);
+                    int conn_node = (value >> (8 * conn_i)) & 0xFF;
 
                     printk("    Connection node %i\n", conn_node);
-                    widget->connections[widget->connections_num] = cd->widgets[conn_node];
+                    widget->connections[widget->connections_num ++] = cd->widgets[conn_node];
 
                 }
             }
@@ -380,24 +410,15 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
             //printk("Formats %i Rates %i \n", widget->stream_formats, widget->pcm_rates);
 
             uint16_t format = SR_44_KHZ | BITS_16 | 1;
-            int stream_id = 1;
+            int stream_id = ++dev->ostreams;  // В HDA нумерация потоков начинается с 1
             widget->ostream = hda_device_init_stream(dev, stream_id, 2, format);
+            hda_register_stream(dev, widget->ostream);
 
             hda_codec_send_verb(dev, hda_make_verb(codec, node, (HDA_VERB_SET_STREAM_FORMAT << 8) | format), NULL);
             hda_codec_send_verb(dev, hda_make_verb(codec, node, (HDA_VERB_SET_STREAM_ID << 8) | (stream_id << 4)), NULL);
 
             uint32_t amp = hda_codec_exec(dev, codec, node, HDA_VERB_GET_AMP_GAIN_MUTE, 0) | 0xb000 | 127;
             hda_codec_exec(dev, codec, node, HDA_VERB_SET_AMP_GAIN_MUTE, amp);
-
-            hda_outb(dev, SSYNC, stream_id);
-
-            hda_stream_write(widget->ostream, dat, sizeof(dat));
-
-            printk("PRE");
-
-            hda_stream_run(dev, widget->ostream);
-
-            printk("AFTER\n");
 
             break;
         case HDA_WIDGET_AUDIO_INPUT:
@@ -472,7 +493,24 @@ int hda_codec_send_verb(struct hda_dev* dev, uint32_t verb, uint64_t* out)
 
 void hda_int_handler(void* regs, struct hda_dev* data) 
 {
-	printk("HDA INT ");
+    uint32_t isr = hda_ind(data, INTSTS);
+    uint32_t streams_mask = isr & 0x3fffffff;
+    // Порядковый номер бита.
+    uint32_t current_bit_idx = 0;
+
+    while (streams_mask > 0) {
+
+        if ((streams_mask & 1) == 1) {
+            struct hda_stream* stream = data->streams[current_bit_idx];
+                //printk("INT IN STREAM %i, BIT %i\n", stream->index, current_bit_idx);
+            uint8_t stream_sts = hda_inb(data, stream->reg_base + ISTREAM_STS);
+            hda_outb(data, stream->reg_base + ISTREAM_STS, stream_sts);
+        }
+
+        streams_mask >>= 1;
+        current_bit_idx ++;
+    }
+
     hda_outb(data, RIRBSTS, hda_inb(data, RIRBSTS) | (4 | 1));
 }
 
