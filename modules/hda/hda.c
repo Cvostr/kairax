@@ -323,9 +323,9 @@ int hda_device_probe(struct device *dev)
     printk("HDA device initialized\n");
 
     // !!! DEMO !!!
-    //hda_stream_write(dev_data->streams[5], sound_data, sizeof(sound_data));
-    //hda_outb(dev_data, SSYNC, 2);
-    //hda_stream_run(dev_data, dev_data->streams[5]);
+    //hda_stream_write(dev_data->streams[4], sound_data, sizeof(sound_data));
+    //hda_outb(dev_data, SSYNC, 1);
+    //hda_stream_run(dev_data, dev_data->streams[4]);
 
     return 0;
 }
@@ -370,8 +370,15 @@ struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec)
     // Ищем виджеты, прицепленные к этому кодеку
     for (int node_i = hcodec->starting_node; node_i < hcodec->starting_node + hcodec->nodes_num; node_i ++) {
 
-        struct hda_widget* widget = hda_determine_widget(dev, hcodec, codec, node_i, 0);
-        hcodec->widgets[node_i] = widget;
+        uint32_t subnodes = hda_codec_get_param(dev, codec, node_i, HDA_CODEC_PARAM_SUB_NODE_COUNT);
+        uint32_t starting_node = (subnodes >> 16) & 0xFF;
+        uint32_t nodes_num = (subnodes) & 0xFF;
+
+        for (int subnode_i = starting_node; subnode_i < starting_node + nodes_num; subnode_i ++) {
+
+            struct hda_widget* widget = hda_determine_widget(dev, hcodec, codec, subnode_i, 0);
+            hcodec->widgets[subnode_i] = widget;
+        }
     }
 
     return hcodec;
@@ -395,7 +402,7 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
     // Включить
     hda_codec_exec(dev, codec, node, HDA_VERB_SET_POWER_STATE, 0x0000);
 
-    printk("node %i\n", node);
+    printk("Node %i ", node);
 
     for (int i = 0; i < nest; i ++) {
         printk("\t");
@@ -459,8 +466,11 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
         case HDA_WIDGET_AUDIO_INPUT:
             printk("Widget type : Audio input\n");
             break;
+        case HDA_WIDGET_AUDIO_MIXER:
+            printk("Widget type : Audio mixer\n");
+            break;
         default:
-            printk("unknown widget!!!!");
+            printk("Widget type : Unknown !!!!\n");
             break;
     }
 
@@ -510,8 +520,6 @@ int hda_codec_send_verb(struct hda_dev* dev, uint32_t verb, uint64_t* out)
 
     corbwp = (corbwp + 1) % dev->corb_entries;
 
-    //printk("OLD %i %i %i %i\n", corbwp, hda_inw(dev, CORBWP), hda_inw(dev, RIRBWP), hda_inw(dev, CORBRP));
-
     dev->corb[corbwp] = verb;
     hda_outw(dev, CORBWP, corbwp);
 
@@ -520,8 +528,6 @@ int hda_codec_send_verb(struct hda_dev* dev, uint32_t verb, uint64_t* out)
     if (out) {
         *out = dev->rirb[(rirbwp + 1) % dev->rirb_entries];
     }
-
-    //printk("NEW %i %i %i\n", hda_inw(dev, CORBWP), hda_inw(dev, RIRBWP), hda_inw(dev, CORBRP));
 
     return 0;
 }

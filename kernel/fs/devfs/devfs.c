@@ -3,6 +3,7 @@
 #include "string.h"
 #include "mem/kheap.h"
 #include "proc/syscalls.h"
+#include "kairax/time.h"
 
 struct inode_operations root_inode_ops;
 struct file_operations  root_file_ops;

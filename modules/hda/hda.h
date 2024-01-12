@@ -39,8 +39,9 @@
 #define ISTREAM_BDPL    0x18
 #define ISTREAM_BDPU    0x1C
 
-#define HDA_MAX_CODECS  15
-#define HDA_MAX_WIDGETS 10
+#define HDA_MAX_CODECS      15
+#define HDA_MAX_WIDGETS     100
+#define HDA_MAX_CONNECTIONS 20
 
 #define HDA_STREAM_CTL_RST 0x1
 #define HDA_STREAM_CTL_RUN 0x2
@@ -84,7 +85,7 @@ struct hda_widget {
 
     // DACs, ADCs
     uint32_t connections_num;
-    struct hda_widget* connections[10];
+    struct hda_widget* connections[HDA_MAX_CONNECTIONS];
 
     uint32_t conn_defaults;
     uint32_t func_group_type;

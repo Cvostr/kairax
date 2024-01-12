@@ -36,7 +36,8 @@ struct kernel_function functions[] = {
     KFUNCTION(memset),
     KFUNCTION(memcpy),
     KFUNCTION(strcpy),
-    KFUNCTION(strcmp)
+    KFUNCTION(strcmp),
+    KFUNCTION(strlen)
 };
 
 void* kfunctions_get_by_name(const char* name)
