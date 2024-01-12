@@ -45,7 +45,7 @@ void ap_init()
     gdt_update(&gdtr);
     x64_ltr(TSS_DEFAULT_OFFSET);
     // Установить таблицу дескрипторов прерываний, включить прерывания sti
-    load_idt();
+    //load_idt();
     // включить APIC
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
     // Установка параметров для syscall

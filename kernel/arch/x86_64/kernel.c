@@ -73,7 +73,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	pmm_set_params(&pmm_params);
 
 	init_pic();
-	//apic_init();
 	setup_idt();
 	init_interrupts_handler(); 
 	// Установить IDT, включить прерывания
@@ -122,10 +121,10 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	}
 
 	apic_init();
+	timer_init();
 
 	printf("SMP: Initialization\n");
 	smp_init();
-	timer_init();
 
 	printf("Reading PCI devices\n");
 	load_pci_devices_list();	

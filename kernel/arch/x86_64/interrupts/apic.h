@@ -15,6 +15,8 @@
 #define LAPIC_REG_TIMER_DIV         0x3e0
 #define LAPIC_EOI_ACK               0x00
 
+#define LAPIC_TIMER_PERIODIC        0x20000
+
 int apic_init();
 
 void lapic_write(uint32_t reg, uint32_t val);

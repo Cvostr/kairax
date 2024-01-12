@@ -9,7 +9,7 @@ extern int scheduler_handler(thread_frame_t* frame);
 
 void timer_int_handler(thread_frame_t* context) 
 {
-    pic_eoi(0);
+    lapic_eoi();
     timer_handle();
     scheduler_handler(context);
 }
@@ -17,5 +17,6 @@ void timer_int_handler(thread_frame_t* context)
 void arch_timer_init()
 {
     pit_set_frequency(TIMER_FREQUENCY);
-    pic_unmask(0);
+
+    ioapic_redirect_interrupt(0, 0x20, 0);
 }

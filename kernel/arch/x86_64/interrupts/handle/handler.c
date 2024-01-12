@@ -17,7 +17,8 @@ void int_handler(interrupt_frame_t* frame) {
 		handler(frame, interrupt_datas[frame->int_no]);
 
 	if (frame->int_no >= 0x20) {
-		pic_eoi(frame->int_no - 0x20);
+		//pic_eoi(frame->int_no - 0x20);
+		lapic_eoi();
 	}
 }
 
@@ -32,5 +33,7 @@ void register_interrupt_handler(int interrupt_num, void* handler_func, void* dat
 int register_irq_handler(int irq, void* handler, void* data)
 {
 	register_interrupt_handler(0x20 + irq, handler, data);
-	pic_unmask(irq);
+
+	ioapic_redirect_interrupt(0, 0x20 + irq, irq);
+	//pic_unmask(irq);
 }

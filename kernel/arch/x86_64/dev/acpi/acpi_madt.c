@@ -2,6 +2,7 @@
 #include "memory/kernel_vmm.h"
 #include "mem/pmm.h"
 #include "stdio.h"
+#include "kairax/kstdlib.h"
 
 acpi_madt_t* acpi_madt_table;
 
@@ -85,4 +86,13 @@ void acpi_parse_apic_madt(acpi_madt_t* madt)
 
         p += apic_header->length;   
     }
+}
+
+ioapic_iso_t* acpi_madt_get_iso(uint32_t index)
+{
+    if (index < ioapic_isos_count) {
+        return ioapic_isos[index];
+    }
+
+    return NULL;
 }

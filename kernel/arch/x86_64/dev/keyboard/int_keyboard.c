@@ -7,6 +7,7 @@
 #include "sync/spinlock.h"
 #include "string.h"
 #include "dev/interrupts.h"
+#include "interrupts/ioapic.h"
 
 struct file_operations int_keyb_fops;
 

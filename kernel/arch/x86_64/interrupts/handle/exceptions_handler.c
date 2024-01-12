@@ -64,11 +64,14 @@ void exception_handler(interrupt_frame_t* frame)
         // Page Fault
         if (cr2 >= 0 && cr2 <= USERSPACE_MAX_ADDR) {
             
-            int rc = process_handle_page_fault(cpu_get_current_thread()->process, cr2);
+            struct thread* thr = cpu_get_current_thread();
+            if (thr) {
+                int rc = process_handle_page_fault(thr->process, cr2);
 
-            if (rc == 1) {
-                // Все нормально, можно выходить
-                return;
+                if (rc == 1) {
+                    // Все нормально, можно выходить
+                    return;
+                }
             }
         } else if (cr2 >= PHYSICAL_MEM_MAP_OFFSET && cr2 <= PHYSICAL_MEM_MAP_END) {
             uint64_t addr_aligned = align_down(cr2, PAGE_SIZE);

@@ -5,10 +5,10 @@
 
 uint32_t pit_get_count()
 {
-    outb(0x43, 0b0000000);
- 
-	uint32_t count = (inb(0x40) << 8) | inb(0x40);
-	return count;
+    outb(0x43, 0);
+	uint16_t counth = inb(0x40);
+    uint8_t countl = inb(0x40);
+	return counth << 8 | countl;
 }
 
 void pit_set_reload_value(uint32_t count)

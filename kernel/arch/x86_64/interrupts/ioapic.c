@@ -1,6 +1,7 @@
 #include "ioapic.h"
 #include "dev/acpi/acpi.h"
 #include "memory/mem_layout.h"
+#include "kairax/kstdlib.h"
 
 extern apic_io_t*          ioapic_global;
 
@@ -9,14 +10,14 @@ extern ioapic_iso_t**      ioapic_isos;
 
 uint32_t ioapic_read(uint32_t reg)
 {
-    uint32_t* addr = (uint32_t*) P2V(ioapic_global->io_apic_address);
+    uint32_t volatile* addr = (uint32_t volatile*) P2V(ioapic_global->io_apic_address);
     *addr = (reg & 0xFF);
     return addr[4];
 }
 
 void ioapic_write(uint32_t reg, uint32_t value)
 {
-    uint32_t* addr = (uint32_t*) P2V(ioapic_global->io_apic_address);
+    uint32_t volatile* addr = (uint32_t volatile*) P2V(ioapic_global->io_apic_address);
     *addr = (reg & 0xff);
     addr[4] = value;
 }
@@ -24,8 +25,10 @@ void ioapic_write(uint32_t reg, uint32_t value)
 void ioapic_redirect_interrupt(int lapic_id, int vector, int irq)
 {
     // Сначала ищем в iso
-    for (int i = 0; i < ioapic_isos_count; i ++) {
-        ioapic_iso_t* iso = ioapic_isos[i];
+    int iso_index = 0;
+    ioapic_iso_t* iso;
+    while ((iso = acpi_madt_get_iso(iso_index++)) != NULL) {
+
         if (iso->irq_source == irq) {
             // Для IRQ найдено переопределение ISO - используем его
             ioapic_redirect_interrupt_to_gsi(lapic_id, vector, iso->gsi, iso->flags);
@@ -39,7 +42,7 @@ void ioapic_redirect_interrupt(int lapic_id, int vector, int irq)
 
 void ioapic_redirect_interrupt_to_gsi(int lapic_id, int vector, int gsi, int iso_flags)
 {
-    uint64_t value = vector & 0b111;
+    uint64_t value = vector & 0x7F;
     value |= (((uint64_t) lapic_id) << 56);
 
     // Обработка флагов IS Override
@@ -50,10 +53,10 @@ void ioapic_redirect_interrupt_to_gsi(int lapic_id, int vector, int gsi, int iso
 
     if (iso_flags & 8) {
         // Level triggered
-        value != (1 << 15);
+        value |= (1 << 15);
     }
 
-    int redir_table_pos = 0x10 + (gsi - ioapic_global->global_sys_interrupt_base);
+    int redir_table_pos = 0x10 + (gsi - ioapic_global->global_sys_interrupt_base) * 2;
     ioapic_write(redir_table_pos, value & 0xFFFFFFFF);
     ioapic_write(redir_table_pos + 1, (value >> 32) & 0xFFFFFFFF);
 }

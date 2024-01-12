@@ -193,3 +193,21 @@ int acpi_get_revision()
     else if(acpi_rsdp.revision == 2)
         return 2;
 }
+
+#define PMT_TIMER_RATE 3579545 // 3.57 MHz
+
+void acpi_delay(size_t us)
+{
+    if(acpi_fadt->pm_timer_length != 4){
+        printk("Error: ACPI Timer not available\n"); // panic for now
+    }
+    
+    size_t count = inl(acpi_fadt->pm_timer_block);
+    size_t end = (us * PMT_TIMER_RATE) / 1000000;
+    size_t current = 0;
+
+    while (current < end) {
+        current = ((inl(acpi_fadt->pm_timer_block) - count) & 0xffffff);
+    }
+
+}

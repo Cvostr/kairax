@@ -35,15 +35,9 @@
 #define PORT_PIC_SLAVE_CMD       0xA0
 #define PORT_PIC_SLAVE_DATA      0xA1
 
-#define PIC_EOI 0x20
-//необходимо вызывать после каждого IRQ прерывания
-void pic_eoi(uint8_t irq);
 //Инициализация PIC
 void init_pic(void);
-//Разрешить прерывание IRQ
-void pic_unmask(uint8_t irq);
-// Запретить прерывание на PIC
-void pic_mask(uint8_t irq);
+
 // Запретить все прерывания на PIC (для перехода на APIC)
 void pic_mask_all();
 
