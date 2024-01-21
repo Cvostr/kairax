@@ -25,6 +25,7 @@ struct kernel_function functions[] = {
     KFUNCTION(pci_get_command_reg),
     KFUNCTION(pci_set_command_reg),
     KFUNCTION(pci_device_set_enable_interrupts),
+    KFUNCTION(pci_device_set_msi_vector),
     KFUNCTION(map_io_region),
     KFUNCTION(unmap_io_region),
     KFUNCTION(vmm_get_virtual_address),
@@ -32,6 +33,7 @@ struct kernel_function functions[] = {
     KFUNCTION(pmm_alloc_pages),
     KFUNCTION(pmm_free_pages),
     KFUNCTION(register_irq_handler),
+    KFUNCTION(alloc_irq),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

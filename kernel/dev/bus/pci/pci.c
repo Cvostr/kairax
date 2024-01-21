@@ -165,9 +165,9 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 			//Чтение 32х битного указателя на структуру cardbus
 			device_desc->cardbus_ptr = i_pci_config_read32(bus, device, func, 0x28);
 
-			uint16_t interrupts = i_pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
-			device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
-			device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
+			//uint16_t interrupts = i_pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
+			//device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
+			//device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
 			//Отключение прерываний у устройства
 			pci_device_set_enable_interrupts(device_desc, 0);
 		}
@@ -190,6 +190,55 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 	}
 	
 	return -1;
+}
+
+extern uint64_t arch_get_msi_address(uint64_t *data, size_t vector, uint32_t processor, uint8_t edgetrigger, uint8_t deassert);
+
+int pci_device_set_msi_vector(struct device* device, uint32_t vector)
+{
+	if ((device->pci_info->status & PCI_STATUS_MSI_CAPABLE) != PCI_STATUS_MSI_CAPABLE) {
+		return -1;
+	}
+
+	uint32_t cap_reg = pci_config_read32(device, 0x34);
+	cap_reg &= 0xFF;
+
+	while (cap_reg != 0) {
+		uint32_t cap = pci_config_read32(device, cap_reg);
+
+		uint8_t type = cap & 0xFF;
+
+		if (type == 0x05) {
+			uint16_t messctl = cap >> 16;
+			int msi_64bit_cap = (messctl & (1 << 7));
+			int mask = (messctl & (1 << 8));
+
+			uint64_t msi_data = 0;
+			uint64_t msi_addr = arch_get_msi_address(&msi_data, vector, 0, 1, 0);
+
+			// Записать адрес и msi_data
+			pci_config_write32(device, cap_reg + 0x04, msi_addr & UINT32_MAX);
+
+			if (msi_64bit_cap) {
+				pci_config_write32(device, cap_reg + 0x8, msi_addr >> 32);
+				pci_config_write16(device, cap_reg + 0xC, msi_data & UINT16_MAX);
+			} else {
+				pci_config_write16(device, cap_reg + 0x8, msi_data & UINT16_MAX);
+			}
+
+			if (mask)
+				pci_config_write32(device, cap_reg + 0x10, 0);
+
+			// Записать Enable Bit
+			messctl |= 1;
+			cap = (((uint32_t) messctl) << 16) | cap & UINT16_MAX;
+			pci_config_write32(device, cap_reg, cap);
+
+			return 0;
+		}
+
+		cap_reg = (cap >> 8) & 0xFF;
+	}
 }
 
 char* pci_get_device_name(uint8_t class, uint8_t subclass, uint8_t pif)

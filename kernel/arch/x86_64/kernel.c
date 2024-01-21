@@ -75,8 +75,10 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_pic();
 	setup_idt();
 	init_interrupts_handler(); 
-	// Установить IDT, включить прерывания
+	// Установить IDT
     load_idt();
+	// включение прерываний
+	enable_interrupts();
 	
 	page_table_t* new_pt = create_kernel_vm_map();
 	vmm_use_kernel_vm();

@@ -132,6 +132,10 @@ char* strrchr(const char* string, int symbol)
 char *strdup (const char *__s)
 {
     size_t strsize = strlen(__s);
+	if (strsize == 0) {
+		return NULL;
+	}
+	
     char* str = kmalloc(strsize + 1);
     str[strsize] = '\0';
 

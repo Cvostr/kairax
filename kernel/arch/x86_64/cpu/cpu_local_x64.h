@@ -63,4 +63,9 @@ static inline struct vm_table* cpu_get_current_vm_table()
     return this_core->current_vm;
 }
 
+static inline int cpu_get_lapic_id()
+{
+    return this_core->lapic_id;
+}
+
 #endif

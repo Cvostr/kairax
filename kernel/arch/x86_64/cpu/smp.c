@@ -44,10 +44,6 @@ void ap_init()
     // Установка GDT и TSS
     gdt_update(&gdtr);
     x64_ltr(TSS_DEFAULT_OFFSET);
-    // Установить таблицу дескрипторов прерываний, включить прерывания sti
-    //load_idt();
-    // включить APIC
-    lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
     // Установка параметров для syscall
     cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
 
@@ -55,13 +51,18 @@ void ap_init()
     cpu_set_kernel_gs_base(curr_cpu_local);
     asm volatile("swapgs");
 
+    // Установить таблицу дескрипторов прерываний, включить прерывания sti
+    load_idt();
+    // включить APIC
+    lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
+
+    enable_interrupts();
+
     // Ядро запущено, можно запускать следующее
     ap_started_flag = 1;
 
     while (1) {
         asm volatile ("nop");
-        //char* addr = P2V(0xB8002);
-        //*addr = 'X';
     }
 }
 
@@ -152,8 +153,6 @@ void smp_init()
             // Установка GDT и TSS
             gdt_update(&bsp_gdtr);
             x64_ltr(TSS_DEFAULT_OFFSET);
-            // Установить IDT, включить прерывания
-            //load_idt();
             // Установка параметров для syscall
             cpu_set_syscall_params(syscall_entry_x64, 0x8, 0x10, 0xFFFFFFFF);
             // Запомнить данные ядра в KERNEL GS
@@ -163,8 +162,6 @@ void smp_init()
             // Больше ничего делать не нужно
             continue;
         }
-
-        //printf("CORE %i\n", cpu_i);
 
         // Выделить память для стека ядра и сохранить ее
         ap_stack = P2V(pmm_alloc_page() + PAGE_SIZE);

@@ -13,6 +13,7 @@ extern ap_stack
 bits 16
 section .text
 ap_trampoline:
+    cli
     mov eax, 0xA0
     mov cr4, eax
 

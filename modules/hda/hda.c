@@ -238,7 +238,7 @@ int hda_controller_reset(struct hda_dev* dev)
 
 int hda_device_probe(struct device *dev) 
 {
-    printk("Intel HD Audio Device found!\n");
+    printk("HD Audio Device found!\n");
 
     pci_set_command_reg(dev->pci_info, pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
     pci_device_set_enable_interrupts(dev->pci_info, 1);
@@ -250,10 +250,14 @@ int hda_device_probe(struct device *dev)
 
     dev->dev_data = dev_data;
 
-    uint8_t irq = dev->pci_info->interrupt_line;
-	register_irq_handler(irq, hda_int_handler, dev_data);
-
+    uint8_t irq = alloc_irq(0, "hda");
     printk("Using IRQ : %i\n", irq);
+    int rc = pci_device_set_msi_vector(dev, irq);
+    if (rc == -1) {
+        printk("Error: Device doesn't support MSI\n");
+        return -1;
+    }
+	register_irq_handler(irq, hda_int_handler, dev_data);
 
     // Получить информацию о количестве стримов
     uint16_t caps = hda_inw(dev_data, GCAP);
@@ -538,6 +542,8 @@ void hda_int_handler(void* regs, struct hda_dev* data)
     uint32_t streams_mask = isr & 0x3fffffff;
     // Порядковый номер бита.
     uint32_t current_bit_idx = 0;
+
+    //printk("INT HDA\n");
 
     while (streams_mask > 0) {
 

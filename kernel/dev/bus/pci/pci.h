@@ -34,13 +34,15 @@ struct pci_device_info {
 
 	uint32_t 		cardbus_ptr;
 
-	uint8_t 		interrupt_line;
-	uint8_t 		interrupt_pin;
+	//uint8_t 		interrupt_line;
+	//uint8_t 		interrupt_pin;
 } PACKED;
 
 #define PCI_DEVCMD_BUSMASTER_ENABLE 0x4
 #define PCI_DEVCMD_MSA_ENABLE 0x2
 #define PCI_DEVCMP_INTERRUPTS_DISABLE (1 << 10)
+
+#define PCI_STATUS_MSI_CAPABLE			(1 << 4)
 
 struct device;
 
@@ -62,6 +64,10 @@ void pci_set_command_reg(struct pci_device_info* device, uint16_t flags);
 
 // Включить или выключить прерывания
 void pci_device_set_enable_interrupts(struct pci_device_info* device, int enable);
+
+// Назначить устройству номер MSI прерывания
+// Включает MSI прерывания
+int pci_device_set_msi_vector(struct device* device, uint32_t vector);
 
 // Попыпаться получить устройство по указанным параметрам
 // Если устройство есть - будет зарегистрировано через register_device

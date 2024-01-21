@@ -38,16 +38,20 @@ void ahci_int_handler(interrupt_frame_t* frame, void* data)
 	ahci_controller_t* controller = (ahci_controller_t*) data;
 	uint32 interrupt_pending = controller->hba_mem->is & controller->hba_mem->pi;
 
-	for (int i = 0; i < 32; i++) {
+	if (interrupt_pending == 0)
+		return;
+
+	//printk("AHCI %i\n", interrupt_pending);
+	/*for (int i = 0; i < 32; i++) {
 		if (interrupt_pending & (1 << i)) {
 			if (controller->ports[i].implemented) {
 				ahci_port_interrupt(&controller->ports[i]);
 			}
 		}
-	}
+	}*/
 
 	// Очистка прерывания
-	controller->hba_mem->is = interrupt_pending;
+	//controller->hba_mem->is = interrupt_pending;
 }
 
 int ahci_controller_reset(ahci_controller_t* controller) 
@@ -124,8 +128,13 @@ int ahci_device_probe(struct device *dev)
 		printf("AHCI controller reset failed !\n");
 	}
 
-	//uint8_t irq = device_desc->interrupt_line;
-	//register_irq_handler(irq, ahci_int_handler, controller);
+	uint8_t irq = alloc_irq(0, "ahci");
+    int rc = pci_device_set_msi_vector(dev, irq);
+    if (rc == -1) {
+        printk("Error: Device doesn't support MSI\n");
+        return -1;
+    }
+	register_irq_handler(irq, ahci_int_handler, controller);
 
 	// Получить информацию о портах. первый этап инициализации
 	ahci_controller_probe_ports(controller);

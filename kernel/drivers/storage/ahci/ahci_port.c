@@ -51,7 +51,6 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 {
     memset(port, 0, sizeof(ahci_port_t));
 		
-	port->implemented = 1;
     port->port_reg = port_desc;
     port->index = index;
 	
@@ -118,6 +117,8 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	ahci_port_fis_receive_enable(port);
 
     ahci_port_flush_posted_writes(port);
+
+	port->implemented = 1;
 
     return port;
 }

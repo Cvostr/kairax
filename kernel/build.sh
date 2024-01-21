@@ -13,7 +13,7 @@ nasm $NASM_ARGS $x64_SRC/boot/multiboot2_header.asm -o ./bin/multiboot2_header.o
 nasm $NASM_ARGS $x64_SRC/boot/gdt_table.asm -o ./bin/gdt_table.o
 nasm $NASM_ARGS $x64_SRC/boot/tss_table.asm -o ./bin/tss_table.o
 nasm $NASM_ARGS $x64_SRC/boot/x64.asm -o ./bin/x64.o
-nasm $NASM_ARGS $x64_SRC/interrupts/interrupts.asm -o ./bin/interrupts.o
+nasm $NASM_ARGS $x64_SRC/interrupts/interrupts.asm -o ./bin/interrupts_x64.o
 nasm $NASM_ARGS $x64_SRC/proc/syscalls_entry.asm -o ./bin/syscalls_entry.o
 nasm $NASM_ARGS $x64_SRC/proc/scheduler_entry.asm -o ./bin/scheduler_entry.o
 nasm $NASM_ARGS $x64_SRC/cpu/smp_trampoline.asm -o ./bin/smp_trampoline.o
@@ -42,6 +42,7 @@ gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
+gcc $GCC_ARGS $x64_SRC/dev/pci.c -o ./bin/pci_x64.o
 
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler_x64.o
@@ -63,6 +64,7 @@ gcc $GCC_ARGS $STDC_PATH/time.c -o ./bin/time.o
 gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o
 gcc $GCC_ARGS dev/device_man.c -o ./bin/device_man.o
 gcc $GCC_ARGS dev/bus/pci/pci.c -o ./bin/pci.o
+gcc $GCC_ARGS dev/interrupts.c -o ./bin/interrupts.o
 
 #generic drivers
 gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o

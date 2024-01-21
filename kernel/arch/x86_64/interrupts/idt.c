@@ -52,7 +52,4 @@ void load_idt()
 
     // Загрузка дескриптора
     x64_lidt(&idtr);
-
-    // включение прерываний
-	enable_interrupts();
 }

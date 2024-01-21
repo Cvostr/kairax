@@ -26,11 +26,10 @@ struct nvme_queue* nvme_create_queue(size_t slots)
 int nvme_ctlr_device_probe(struct device *dev) {
 	struct pci_device_info* device_desc = dev->pci_info;
 
-	printf("NVME controller found on bus: %i, device: %i func: %i IRQ: %i \n", 
+	printf("NVME controller found on bus: %i, device: %i func: %i \n", 
 		device_desc->bus,
 		device_desc->device,
-		device_desc->function,
-		device_desc->interrupt_line);
+		device_desc->function);
 
 	struct nvme_device* device = (struct nvme_device*)kmalloc(sizeof(struct nvme_device));
 	memset(device, 0, sizeof(struct nvme_device));
@@ -75,11 +74,10 @@ int nvme_ctlr_device_probe(struct device *dev) {
 		}
 
 		if (status & (1 << 1)) {
-			printf("ERROR: Can't initialize NVME controller on bus: %i, device: %i func: %i IRQ: %i\n",
+			printf("ERROR: Can't initialize NVME controller on bus: %i, device: %i func: %i\n",
 				device_desc->bus,
 				device_desc->device,
-				device_desc->function,
-				device_desc->interrupt_line);
+				device_desc->function);
 			break;
 		}
 	}
