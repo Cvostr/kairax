@@ -7,5 +7,6 @@ qemu-system-x86_64 -m 3G -d int \
  			-device ide-hd,drive=disk,bus=ahci.0,bootindex=4 \
 			-device ide-hd,drive=bootdisk,bus=ahci.1,bootindex=0 \
 			-device intel-hda -device hda-duplex \
+			-device qemu-xhci \
 			-no-reboot \
 			-no-shutdown      

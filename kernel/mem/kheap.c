@@ -170,10 +170,10 @@ void kfree(void* mem)
     release_spinlock(&kheap_lock);
 }
 
-physical_addr_t kheap_get_phys_address(void* mem)
+void* kheap_get_phys_address(void* mem)
 {
     acquire_spinlock(&kheap_lock);
-    physical_addr_t result = get_physical_address(get_kernel_pml4(), (virtual_addr_t)mem);
+    void* result = get_physical_address(get_kernel_pml4(), (virtual_addr_t)mem);
     release_spinlock(&kheap_lock);
 
     return result;

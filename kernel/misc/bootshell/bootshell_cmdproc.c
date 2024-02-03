@@ -230,7 +230,7 @@ void bootshell_process_cmd(char* cmdline)
 
                 if (dev->dev_bus == DEVICE_BUS_PCI) {
                     struct pci_device_info* desc = dev->pci_info;
-                    printf_stdout("\t %i:%i:%i class %i, subclass %i\n", desc->bus, desc->device, desc->function, desc->device_class, desc->device_subclass);
+                    printf_stdout("\t %i:%i:%i class %i, subclass %i, pif %i\n", desc->bus, desc->device, desc->function, desc->device_class, desc->device_subclass, desc->prog_if);
                 }
             }
         }

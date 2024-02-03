@@ -150,6 +150,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	vga_init_dev();
 	
 	init_ints_keyboard();
+
+	usb_init();
 	
 	struct device* dev = NULL;
     int i = 0;

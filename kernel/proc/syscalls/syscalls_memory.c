@@ -47,7 +47,7 @@ int sys_memory_unmap(void* address, uint64_t length)
     int rc = 0;
 
     if (length == 0) {
-        return (void*)-ERROR_INVALID_VALUE;
+        return -ERROR_INVALID_VALUE;
     }
 
     acquire_spinlock(&process->mmap_lock);

@@ -147,10 +147,10 @@ struct elf_rela {
 
 int elf_check_signature(struct elf_header* elf_header);
 
-struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index);
+struct elf_section_header_entry* elf_get_section_entry(const char* image, uint32_t section_index);
 
 struct elf_program_header_entry* elf_get_program_entry(char* image, uint32_t program_index);
 
-char* elf_get_string_at(char* image, uint32_t string_index);
+char* elf_get_string_at(const char* image, uint32_t string_index);
 
 #endif

@@ -78,7 +78,6 @@ void acpi_parse_apic_madt(acpi_madt_t* madt)
             // Если такая структура есть - надо использовать адрес lapic из неё
             printk("64 bit APIC override");
             apic_override_t* ovstruct = (apic_override_t*)p;
-            madt->local_apic_address = ovstruct->addr;
         
         default:
             break;

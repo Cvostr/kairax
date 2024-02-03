@@ -2,6 +2,7 @@
 #include "kstdlib.h"
 #include "interrupts/pic.h"
 #include "exceptions_handler.h"
+#include "../apic.h"
 
 void (*interrupt_handlers[256])(interrupt_frame_t*, void*);
 void* interrupt_datas[256];

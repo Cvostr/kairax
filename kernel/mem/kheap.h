@@ -35,7 +35,7 @@ void* kmalloc(uint64_t size);
 
 void kfree(void* mem);
 
-physical_addr_t kheap_get_phys_address(void* mem);
+void* kheap_get_phys_address(void* mem);
 
 kheap_item_t* kheap_get_head_item();
 

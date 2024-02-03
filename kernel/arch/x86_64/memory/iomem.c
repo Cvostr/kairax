@@ -2,6 +2,7 @@
 #include "kernel_vmm.h"
 #include "mem_layout.h"
 #include "mem/pmm.h"
+#include "kairax/kstdlib.h"
 
 uintptr_t map_io_region(uintptr_t base, size_t size)
 {

@@ -64,6 +64,7 @@ gcc $GCC_ARGS $STDC_PATH/time.c -o ./bin/time.o
 gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o
 gcc $GCC_ARGS dev/device_man.c -o ./bin/device_man.o
 gcc $GCC_ARGS dev/bus/pci/pci.c -o ./bin/pci.o
+gcc $GCC_ARGS dev/bus/usb/usb_xhci.c -o ./bin/usb_xhci.o
 gcc $GCC_ARGS dev/interrupts.c -o ./bin/interrupts.o
 
 #generic drivers

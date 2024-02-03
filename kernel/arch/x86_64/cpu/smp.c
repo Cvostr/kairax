@@ -51,11 +51,12 @@ void ap_init()
     cpu_set_kernel_gs_base(curr_cpu_local);
     asm volatile("swapgs");
 
-    // Установить таблицу дескрипторов прерываний, включить прерывания sti
+    // Установить таблицу дескрипторов прерываний
     load_idt();
     // включить APIC
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
 
+    // включить прерывания sti
     enable_interrupts();
 
     // Ядро запущено, можно запускать следующее
