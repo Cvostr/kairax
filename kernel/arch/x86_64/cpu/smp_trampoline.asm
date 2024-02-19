@@ -14,7 +14,9 @@ bits 16
 section .text
 ap_trampoline:
     cli
-    mov eax, 0xA0
+
+    mov eax, cr4
+    or eax, 0xA0
     mov cr4, eax
 
     mov edx, [cs : ap_vmem - ap_trampoline]

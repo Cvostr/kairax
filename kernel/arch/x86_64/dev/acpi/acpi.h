@@ -53,6 +53,6 @@ void acpi_poweroff();
 
 void acpi_reboot();
 
-void acpi_delay(size_t us);
+int acpi_delay(size_t us);
 
 #endif

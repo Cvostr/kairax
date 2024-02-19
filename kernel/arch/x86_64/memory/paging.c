@@ -10,6 +10,8 @@ extern void write_cr3(void*);
 
 extern uint64 read_cr3();
 
+extern void x64_tlb_shootdown(void* addr);
+
 page_table_t* new_page_table()
 {
     page_table_t* table = (page_table_t*)pmm_alloc_page();
@@ -133,8 +135,8 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free)
         pt_table->entries[level1_index] = 0;
     }
 
-    // TODO: сделать сброс TLB более правильным
-    write_cr3(read_cr3());
+    // TODO: сделать сброс TLB более правильным - через IPI уведомлять остальные ядра
+    x64_tlb_shootdown(virtual_addr);
 
     return 0;
 }

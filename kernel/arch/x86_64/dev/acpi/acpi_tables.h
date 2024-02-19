@@ -34,6 +34,24 @@ typedef struct PACKED
 
 typedef struct PACKED
 {
+    acpi_header_t header;
+    uint8_t hardware_revid;
+    uint8_t info;
+    uint16_t pci_vendor_id;
+    
+    uint8_t address_space_id;
+    uint8_t register_bit_width;
+    uint8_t register_bit_offset;
+    uint8_t reserved;
+    uint64_t address;
+
+    uint8_t hpet_number;
+    uint16_t minimum_tick;
+    uint8_t page_protection;
+} acpi_hpet_t;
+
+typedef struct PACKED
+{
     apic_header_t header;
     uint8_t acpi_cpu_id;
     uint8_t lapic_id;

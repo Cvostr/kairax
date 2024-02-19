@@ -4,6 +4,7 @@
 #include "memory/kernel_vmm.h"
 #include "mem/pmm.h"
 #include "io.h"
+#include "dev/hpet/hpet.h"
 
 #define to_acpi_header(x)  (acpi_header_t*)(uintptr_t)(x)
 
@@ -35,7 +36,7 @@ void acpi_parse_dt(acpi_header_t* dt)
     dt = (acpi_header_t*)P2V(dt);
     uint32_t signature = dt->signature;
 
-    if (signature == 0x50434146)
+    if (signature == 0x50434146)    // FADT in LE
     {
         acpi_fadt = (acpi_fadt_t*)dt;
         if (acpi_get_revision() == 1)
@@ -43,9 +44,13 @@ void acpi_parse_dt(acpi_header_t* dt)
         else if (acpi_get_revision() == 2)
             acpi_parse_dsdt((acpi_header_t*)((uintptr_t)acpi_fadt->x_dsdt));
     }
-    else if (signature == 0x43495041)
+    else if (signature == 0x43495041)   // APIC in LE
     {
         acpi_parse_apic_madt((acpi_madt_t*)dt);
+    } 
+    else if (signature == 0x54455048) // HPET in LE
+    {
+        init_hpet((acpi_hpet_t*)dt);
     }
 }
 
@@ -196,18 +201,20 @@ int acpi_get_revision()
 
 #define PMT_TIMER_RATE 3579545 // 3.57 MHz
 
-void acpi_delay(size_t us)
+int acpi_delay(size_t us)
 {
-    if(acpi_fadt->pm_timer_length != 4){
-        printk("Error: ACPI Timer not available\n"); // panic for now
+    if (acpi_fadt->pm_timer_length != 4){
+        printk("Error: ACPI Timer not available\n");
+        return -1;
     }
     
     size_t count = inl(acpi_fadt->pm_timer_block);
-    size_t end = (us * PMT_TIMER_RATE) / 1000000;
+    size_t end = (us * PMT_TIMER_RATE) / 100;
     size_t current = 0;
 
     while (current < end) {
         current = ((inl(acpi_fadt->pm_timer_block) - count) & 0xffffff);
     }
 
+    return 0;
 }

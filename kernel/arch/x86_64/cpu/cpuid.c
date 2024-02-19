@@ -1,5 +1,5 @@
 #include "cpuid.h"
-#include "types.h"
+#include "kairax/types.h"
 #include "string.h"
 
 #define cpuid(in,a,b,c,d) do { asm volatile ("cpuid" : "=a"(a),"=b"(b),"=c"(c),"=d"(d) : "a"(in)); } while(0)

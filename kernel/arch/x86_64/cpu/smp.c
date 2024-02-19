@@ -13,6 +13,7 @@
 #include "interrupts/idt.h"
 #include "cpuid.h"
 #include "dev/cmos/cmos.h"
+#include "proc/timer.h"
 
 extern char ap_trampoline[];
 extern char ap_trampoline_end[];
@@ -56,11 +57,13 @@ void ap_init()
     // включить APIC
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
 
-    // включить прерывания sti
-    enable_interrupts();
+    lapic_timer_calibrate(TIMER_FREQUENCY);
 
     // Ядро запущено, можно запускать следующее
     ap_started_flag = 1;
+
+    // включить прерывания sti
+    //enable_interrupts();
 
     while (1) {
         asm volatile ("nop");
@@ -159,6 +162,8 @@ void smp_init()
             // Запомнить данные ядра в KERNEL GS
             cpu_set_kernel_gs_base(curr_cpu_local);
             asm volatile("swapgs");
+
+            lapic_timer_calibrate(TIMER_FREQUENCY);
 
             // Больше ничего делать не нужно
             continue;
