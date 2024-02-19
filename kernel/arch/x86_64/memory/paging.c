@@ -97,10 +97,18 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
 
 void arch_vm_unmap(void* arch_table, uint64_t vaddr)
 {
-    unmap_page(arch_table, vaddr, TRUE);
+    uintptr_t phys = 0;
+    unmap_page1(arch_table, vaddr, &phys);
+    pmm_free_page(phys);
 }
 
-int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free)
+//Удалить виртуальную страницу
+int unmap_page(page_table_t* root, uintptr_t virtual_addr)
+{
+    return unmap_page1(root, virtual_addr, NULL);
+}
+
+int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr)
 {
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
@@ -128,9 +136,8 @@ int unmap_page(page_table_t* root, uintptr_t virtual_addr, int free)
     if (!(pt_table->entries[level1_index] & PAGE_PRESENT)) {
         return ERR_NO_PAGE_PRESENT;
     } else {
-        if (free == TRUE) {
-            uintptr_t phys_addr = (uintptr_t) GET_PAGE_FRAME(pt_table->entries[level1_index]);
-            pmm_free_page(phys_addr);
+        if (phys_addr) {
+            *phys_addr = (uintptr_t) GET_PAGE_FRAME(pt_table->entries[level1_index]);
         }
         pt_table->entries[level1_index] = 0;
     }
@@ -224,7 +231,7 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 {
     int rc = 0;
     physical_addr_t phys_addr = get_physical_address(root, virtual_addr);
-    unmap_page(root, virtual_addr, FALSE);
+    unmap_page(root, virtual_addr);
 	map_page_mem(root, virtual_addr, phys_addr, flags);
 
     return 0;

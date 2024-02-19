@@ -27,7 +27,7 @@ int unmap_io_region(uintptr_t base, size_t size)
 
     for (int page_i = 0; page_i < pages_num; page_i ++) {
 
-        unmap_page(get_kernel_pml4(), base + page_i * PAGE_SIZE, FALSE);
+        unmap_page(get_kernel_pml4(), base + page_i * PAGE_SIZE);
 	}
 
     return 0;
