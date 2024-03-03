@@ -12,6 +12,7 @@ extern kernel_stack_top
 extern gdtptr_hh
 extern kmain
 extern x64_ltr
+global x64_idle_routine
 
 [section .text] 
 
@@ -81,3 +82,7 @@ global disable_interrupts
 disable_interrupts:
     cli
     ret
+
+x64_idle_routine:
+    hlt
+    jmp x64_idle_routine

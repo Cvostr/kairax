@@ -19,6 +19,7 @@ struct cpu_local_x64 {
 
     struct vm_table* current_vm;
     struct thread* current_thread;
+    struct thread* idle_thread;
 } PACKED;
 
 static struct cpu_local_x64 __seg_gs * const this_core = 0;
@@ -66,6 +67,11 @@ static inline struct vm_table* cpu_get_current_vm_table()
 static inline int cpu_get_lapic_id()
 {
     return this_core->lapic_id;
+}
+
+static inline struct thread* cpu_get_idle_thread()
+{
+    return this_core->idle_thread;
 }
 
 #endif

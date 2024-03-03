@@ -23,7 +23,7 @@ scheduler_entry:
 
     ; Переход в код планировщика
     mov rdi, rsp
-    call scheduler_handler
+    jmp scheduler_handler
 
 global scheduler_exit
 scheduler_exit:

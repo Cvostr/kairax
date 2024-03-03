@@ -27,6 +27,7 @@ int ap_started_flag = 0;
 struct cpu_local_x64* curr_cpu_local;
 
 extern void syscall_entry_x64();
+extern void x64_idle_routine();
 
 #define TRAMPOLINE_PAGE 1
 
@@ -52,6 +53,8 @@ void ap_init()
     cpu_set_kernel_gs_base(curr_cpu_local);
     asm volatile("swapgs");
 
+    curr_cpu_local->idle_thread = create_idle_thread();
+
     // Установить таблицу дескрипторов прерываний
     load_idt();
     // включить APIC
@@ -65,9 +68,7 @@ void ap_init()
     // включить прерывания sti
     //enable_interrupts();
 
-    while (1) {
-        asm volatile ("nop");
-    }
+    x64_idle_routine();
 }
 
 void smp_init()
@@ -162,6 +163,8 @@ void smp_init()
             // Запомнить данные ядра в KERNEL GS
             cpu_set_kernel_gs_base(curr_cpu_local);
             asm volatile("swapgs");
+
+            curr_cpu_local->idle_thread = create_idle_thread();
 
             lapic_timer_calibrate(TIMER_FREQUENCY);
 

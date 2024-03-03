@@ -80,12 +80,15 @@ int scheduler_handler(thread_frame_t* frame)
         }
     }
 
-    cpu_set_current_vm_table(process->vmemory_table);
+    
     // Сохранить указатель на новый поток в локальной структуре ядра
     cpu_set_current_thread(new_thread);
 
-    // Заменить таблицу виртуальной памяти процесса
-    switch_pml4(V2P(process->vmemory_table->arch_table));
+     // Заменить таблицу виртуальной памяти процесса
+    if (cpu_get_current_vm_table() != process->vmemory_table) {  
+        cpu_set_current_vm_table(process->vmemory_table);
+        switch_pml4(V2P(process->vmemory_table->arch_table));
+    }
 
     scheduler_exit(new_thread->context);
 }

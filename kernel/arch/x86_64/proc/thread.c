@@ -61,7 +61,9 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
     thread->stack_ptr = process_alloc_stack_memory(process, stack_size);
+    // Выделить память под стек ядра
     thread->kernel_stack_ptr = P2V(pmm_alloc_page());
+    memset(thread->kernel_stack_ptr, 0, PAGE_SIZE);
 
     if (process->tls) {
         // TLS должно также включать в себя

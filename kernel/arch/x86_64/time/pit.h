@@ -1,7 +1,7 @@
 #ifndef _PIT_H
 #define _PIT_H
 
-#include "types.h"
+#include "kairax/types.h"
 
 uint32_t pit_get_count();
 

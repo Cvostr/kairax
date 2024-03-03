@@ -35,6 +35,7 @@
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
 #include "proc/timer.h"
+#include "proc/idle.h"
 #include "drivers/tty/tty.h"
 #include "misc/kterm/kterm.h"
 #include "misc/kterm/vgaterm.h"
@@ -126,6 +127,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	timer_init();
 
 	printf("SMP: Initialization\n");
+	init_idle_process();
 	smp_init();
 
 	printf("Reading PCI devices\n");
