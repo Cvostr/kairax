@@ -7,13 +7,15 @@
 struct file_operations tty_master_fops;
 struct file_operations tty_slave_fops;
 
+#define PTY_LINE_MAX_BUFFER_SIZE 2048
+
 struct pty {
     int pty_id;
     int lflags;
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
 
-    char buffer[1024];
+    char buffer[PTY_LINE_MAX_BUFFER_SIZE];
     int buffer_pos;
 };
 
@@ -75,6 +77,7 @@ ssize_t master_file_write (struct file* file, const char* buffer, size_t count, 
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
+    // Неблокирующее чтение
     return pipe_read(p_pty->slave_to_master, buffer, count, 1);
 }
 
@@ -112,6 +115,14 @@ void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
     }
 }
 
+void pty_linebuffer_append(struct pty* p_pty, char c)
+{
+    if (p_pty->buffer_pos < (PTY_LINE_MAX_BUFFER_SIZE - 1)) {
+        p_pty->buffer[p_pty->buffer_pos++] = c;
+    }
+}
+
+// Дисциплина линии при записи в master со стороны терминала
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 {
     size_t i = 0;
@@ -143,7 +154,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                 break;
             default:
                 // Добавить символ в буфер
-                p_pty->buffer[p_pty->buffer_pos++] = first_char;
+                pty_linebuffer_append(p_pty, first_char);
                 // Эхо на консоль
                 pipe_write(p_pty->slave_to_master, &first_char, 1);
                 break;

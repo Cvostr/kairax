@@ -30,5 +30,6 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count);
 
 ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
+int pipe_file_close(struct inode *inode, struct file *file);
 
 #endif

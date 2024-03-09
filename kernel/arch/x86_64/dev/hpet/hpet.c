@@ -11,7 +11,7 @@ uint64_t hpet_read(uint64_t reg);
 
 int init_hpet(acpi_hpet_t* hpet)
 {
-    hpet_address = P2V(hpet->address);
+    hpet_address = (uint64_t) P2V(hpet->address);
 
     map_page_mem(get_kernel_pml4(),
 			hpet_address,

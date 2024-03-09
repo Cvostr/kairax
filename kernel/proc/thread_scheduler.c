@@ -56,6 +56,7 @@ void scheduler_remove_process_threads(struct process* process)
 void scheduler_sleep(void* handle, spinlock_t* lock)
 {
     struct thread* thr = cpu_get_current_thread();
+    printk("SLP %i", thr->id);
 
     if (lock != NULL)
         release_spinlock(lock);

@@ -50,6 +50,7 @@ struct terminal_session* new_kterm_session(int create_console)
 
 	struct thread* thr = create_kthread(session->proc, bootshell);
 	scheduler_add_thread(thr);
+	process_add_to_list(thr);
 
 	if (create_console == TRUE) {
 		session->console = console_init();

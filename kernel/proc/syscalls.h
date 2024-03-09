@@ -35,6 +35,8 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
 off_t sys_file_seek(int fd, off_t offset, int whence); 
 
+int sys_fcntl(int fd, int cmd, long arg);
+
 int sys_pipe(int* pipefd, int flags);
 
 int sys_get_working_dir(char* buffer, size_t size);
