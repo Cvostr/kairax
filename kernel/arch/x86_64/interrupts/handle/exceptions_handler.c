@@ -98,7 +98,7 @@ void exception_handler(interrupt_frame_t* frame)
     printf("RDX = %s\n", ulltoa(frame->rdx, 16));
     printf("CS = %s ", ulltoa(frame->cs, 16));
     printf("SS = %s ", ulltoa(frame->ss, 16));
-    printf("CR2 = %s", ulltoa(cr2, 16));
+    printf("CR2 = %s ", ulltoa(cr2, 16));
     printf("CR3 = %s\n", ulltoa(cr3, 16));
     printf("STACK TRACE: ");
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;

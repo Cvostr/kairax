@@ -69,7 +69,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
             goto exit;
         }
 
-        printk("BLK %i %i ", pipe->write_pos, pipe->read_pos);
+        //printk("BLK %i %i ", pipe->write_pos, pipe->read_pos);
         // Нечего читать - засыпаем
         scheduler_sleep(&pipe->nreadfds, &pipe->lock);
     }
@@ -96,7 +96,7 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
     for (size_t i = 0; i < count; i ++) {
         
         while (pipe->write_pos == pipe->read_pos + PIPE_SIZE) {
-            printk("OBER %i %i", pipe->write_pos, pipe->read_pos);
+            //printk("OBER %s %i %i %i ", buffer, count, pipe->write_pos, pipe->read_pos);
             // Больше места нет - пробуждаем читающих
             scheduler_wakeup(&pipe->nreadfds);
             // И засыпаем сами

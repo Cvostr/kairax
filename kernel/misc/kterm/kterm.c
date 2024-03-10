@@ -25,6 +25,7 @@ void kterm_process_start()
 
 	struct thread* thr = create_kthread(kterm_process, kterm_main);
 	scheduler_add_thread(thr);
+	process_add_to_list(thr);
 }
 
 char keyboard_get_key_ascii(char keycode);
@@ -40,7 +41,8 @@ struct terminal_session* new_kterm_session(int create_console)
 
 	struct file *slave_file = process_get_file(kterm_process, session->slave);
 
-	session->proc = create_new_process(NULL);
+	// Процесс shell
+	session->proc = create_new_process(kterm_process);
 	// Добавить в список и назначить pid
     process_add_to_list(session->proc);
 	// Переопределить каналы

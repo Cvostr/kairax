@@ -84,6 +84,7 @@ check_enable_sse:
     test edx, 1 << 25
     jz no_sse ; если zf = 0, то sse не поддерживается
     
+	; Включение SSE
     mov eax, cr0
     and ax, 0xFFFB   
     or ax, 0x2       
