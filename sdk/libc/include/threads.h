@@ -2,6 +2,7 @@
 #define _THREADS_H
 
 #include <sys/types.h>
+#include "stddef.h"
 
 #ifdef __cplusplus
 extern "C" {

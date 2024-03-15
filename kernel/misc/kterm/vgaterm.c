@@ -158,8 +158,7 @@ struct vgaconsole* console_init()
     memset(vgconsl, 0, sizeof(struct vgaconsole));
 
     vgconsl->console_buffer_size = (vga_get_width() * vga_get_height() * DOUBLEBUFFER_DEPTH_BYTES);
-    vgconsl->double_buffer = pmm_alloc_pages((vgconsl->console_buffer_size / PAGE_SIZE) + 1);
-    vgconsl->double_buffer = P2V(vgconsl->double_buffer);
+    vgconsl->double_buffer = kmalloc(vgconsl->console_buffer_size);
     memset(vgconsl->double_buffer, 0, vgconsl->console_buffer_size);
 
     return vgconsl;

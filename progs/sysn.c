@@ -14,6 +14,7 @@ void thread_func(int * arg) {
 		sleep(4);
 
         printf("TID %i \t", gettid());
+        fflush(stdout);
     }
 }
 

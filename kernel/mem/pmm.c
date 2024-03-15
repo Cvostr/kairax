@@ -63,8 +63,8 @@ uint64_t find_free_page()
 	//сначала пропускаем все полностью заполненные 64-битные блоки
 	while (bitmap[i] == 0xFFFFFFFFFFFFFFFF) {
     	i++;
-    	if ( i == MAX_BITMASK_DATA)
-      		return -1;
+    	if (i == MAX_BITMASK_DATA)
+      		return 0;
   	}
 
 	uint64_t bits  = bitmap[i];
@@ -107,7 +107,7 @@ uint64_t find_free_pages(int pages) {
     	i++;   
   	}
 
-  	return -1;
+  	return 0;
 }
 
 
@@ -118,7 +118,7 @@ void* pmm_alloc_page()
 
 	//Найти номер первой свободной страницы
   	uint64_t i = find_free_page();
-	if (i == -1) {
+	if (i == 0) {
 		goto exit;
 	}
 	
@@ -142,7 +142,7 @@ void* pmm_alloc_pages(uint32_t pages)
 
 	uint64_t i = find_free_pages(pages);
 
-	if (i == -1) {
+	if (i == 0) {
 		goto exit;
 	}
 

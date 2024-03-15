@@ -33,7 +33,7 @@ unsigned long int strtoul(const char *nptr, char **endptr, int base)
         val = val * 10 + (*curpos++ - '0');
     }
 
-    if (*endptr != NULL) {
+    if (endptr != NULL) {
         *endptr = curpos;
     }
 

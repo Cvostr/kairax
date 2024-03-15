@@ -100,12 +100,22 @@ void exception_handler(interrupt_frame_t* frame)
     printf("SS = %s ", ulltoa(frame->ss, 16));
     printf("CR2 = %s ", ulltoa(cr2, 16));
     printf("CR3 = %s\n", ulltoa(cr3, 16));
-    printf("STACK TRACE: ");
+
+    uint8_t* ip = frame->rip;
+    printf("INSTR: ");
+    for (int i = 0; i < 8; i ++) {
+        printf("%s ", ulltoa(*(ip++), 16));
+    }
+    
+    printf("\nSTACK TRACE: \n");
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
-    for (int i = 0; i < 20; i ++) {
-        uintptr_t value = *(stack_ptr++);
+    for (int i = -3; i < 10; i ++) {
+        uintptr_t value = *(stack_ptr - i);
+        if (i == 0) {
+            printf(" | ");
+        }
         //if(value > KERNEL_TEXT_OFFSET)
-            printf("%s, ", ulltoa(value, 16));
+            printf("%s ", ulltoa(value, 16));
     }
     
     printf("\n");
@@ -115,6 +125,7 @@ void exception_handler(interrupt_frame_t* frame)
         // Завершаем процесс
         printf("Process terminated!\n");
         sys_exit_process(-1);
+
     } else {
         printf("Kernel terminated. Please reboot your computer\n");
     }
