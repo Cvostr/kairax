@@ -27,7 +27,7 @@ extern int syscall_poweroff(int cmd);
 extern long long int syscall_wait(long int pid, int* status, int options);
 extern int syscall_get_time_epoch(void *tv);
 
-extern int syscall_load_module(void* module_image, size_t image_size);
+extern int syscall_load_module(void* module_image, unsigned long long image_size);
 extern int syscall_unload_module(const char* module_name);
 
 extern long long int syscall_create_thread(void* entry, void* arg, unsigned long long stack_size);

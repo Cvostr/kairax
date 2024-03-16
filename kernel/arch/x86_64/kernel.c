@@ -37,6 +37,7 @@
 #include "proc/timer.h"
 #include "proc/idle.h"
 #include "drivers/tty/tty.h"
+#include "drivers/char/random.h"
 #include "misc/kterm/kterm.h"
 #include "misc/kterm/vgaterm.h"
 
@@ -156,7 +157,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	tty_init();
 
 	vga_init_dev();
-	
+	random_init();
 	init_ints_keyboard();
 
 	usb_init();

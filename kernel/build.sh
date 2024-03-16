@@ -77,6 +77,7 @@ gcc $GCC_ARGS drivers/storage/partitions/storage_partitions.c -o ./bin/storage_p
 gcc $GCC_ARGS drivers/storage/partitions/formats/gpt.c -o ./bin/gpt.o
 gcc $GCC_ARGS drivers/video/video.c -o ./bin/video.o
 gcc $GCC_ARGS drivers/tty/tty.c -o ./bin/tty.o
+gcc $GCC_ARGS drivers/char/random.c -o ./bin/random.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
