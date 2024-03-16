@@ -71,8 +71,9 @@ void ap_init()
     x64_idle_routine();
 }
 
-void smp_init()
+int smp_init()
 {
+    int rc = 0;
     acpi_madt_t* madt = acpi_get_madt();
 
     size_t trampoline_size = (uint64_t)&ap_trampoline_end - (uint64_t)&ap_trampoline;
@@ -166,7 +167,10 @@ void smp_init()
 
             curr_cpu_local->idle_thread = create_idle_thread();
 
-            lapic_timer_calibrate(TIMER_FREQUENCY);
+            if (lapic_timer_calibrate(TIMER_FREQUENCY) != 0) {
+                rc = -1;
+                goto exit;
+            }
 
             // Больше ничего делать не нужно
             continue;
@@ -190,10 +194,16 @@ void smp_init()
     char model[48];
 	cpuid_get_model_string(model);
 	printk("CPU %s, %i cores initialized\n", model, acpi_get_cpus_apic_count());
-
+exit:
     // Вернуть данные на место
     memcpy(P2V(trampoline_addr), P2V(temp), PAGE_SIZE);
     
     pmm_free_page(temp);
     pmm_free_page(bootstrap_page);
+
+    // Переключаемся на основную виртуальную таблицу памяти ядра и уничтожаем временную
+    vmm_use_kernel_vm();
+    arch_destroy_vm_table(ap_bootstrap_vm);
+
+    return rc;
 }

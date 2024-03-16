@@ -22,8 +22,16 @@ void ioapic_write(uint32_t reg, uint32_t value)
     addr[4] = value;
 }
 
+int ioapic_is_available() {
+    return ioapic_global != NULL;
+}
+
 void ioapic_redirect_interrupt(int lapic_id, int vector, int irq)
 {
+    if (!ioapic_is_available()) {
+        return;
+    }
+
     // Сначала ищем в iso
     int iso_index = 0;
     ioapic_iso_t* iso;

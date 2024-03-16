@@ -4,7 +4,7 @@
 #include "memory/kernel_vmm.h"
 
 uint64_t hpet_period;
-uint64_t hpet_address;
+uint64_t hpet_address = 0;
 
 void hpet_write(uint64_t reg, uint64_t val);
 uint64_t hpet_read(uint64_t reg);
@@ -27,6 +27,11 @@ int init_hpet(acpi_hpet_t* hpet)
     hpet_write(HPET_GENERAL_CONFIG, HPET_CONFIG_ENABLE);
 }
 
+int hpet_is_available()
+{
+    return hpet_address != NULL;
+}
+
 uint64_t hpet_get_counter()
 {
     return hpet_read(HPET_MAIN_COUNTER_VALUE);
@@ -39,22 +44,32 @@ void hpet_reset_counter()
     hpet_write(HPET_GENERAL_CONFIG, HPET_CONFIG_ENABLE);
 }
 
-void hpet_sleep(uint64_t milliseconds)
+int hpet_sleep(uint64_t milliseconds)
 {
+    if (!hpet_is_available()) 
+        return -1;
+
     uint64_t target = hpet_read(HPET_MAIN_COUNTER_VALUE) + (milliseconds * 1000000000000) / hpet_period;
     while (!(hpet_read(HPET_MAIN_COUNTER_VALUE) >= target))
     {
         asm volatile("pause");
     }
+
+    return 0;
 }
 
-void hpet_nanosleep(uint64_t nanoseconds)
+int hpet_nanosleep(uint64_t nanoseconds)
 {
+    if (!hpet_is_available()) 
+        return -1;
+
     uint64_t target = hpet_read(HPET_MAIN_COUNTER_VALUE) + (nanoseconds * 1000000) / hpet_period;
     while (hpet_read(HPET_MAIN_COUNTER_VALUE) < target)
     {
         asm volatile("pause");
     }
+
+    return 0;
 }
 
 void hpet_write(uint64_t reg, uint64_t val)

@@ -12,8 +12,21 @@ void* local_apic_addr = NULL;   // Общий адрес для всех яде�
 
 int apic_init()
 {
+    if (acpi_get_madt() == NULL) {
+        printk("ERROR: apic_init(): MADT table is not present!\n");
+        return -1;
+    }
+
     local_apic_addr = P2V(acpi_get_madt()->local_apic_address);
+
+    if (local_apic_addr == NULL) {
+        printk("ERROR: apic_init(): LAPIC address is not present!\n");
+        return -1;
+    }
+
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | 0x100 | 0xFF);
+
+    return 0;
 }
 
 void lapic_write(uint32_t reg, uint32_t val)
@@ -27,8 +40,13 @@ uint32_t lapic_read(uint32_t reg)
 	return *((volatile uint32_t*)(local_apic_addr + reg));
 }
 
-void lapic_timer_calibrate(int freq)
+int lapic_timer_calibrate(int freq)
 {
+    if (!hpet_is_available()) {
+        printk("ERROR: lapic_timer_calibrate() : HPET is not available!\n");
+        return -1;
+    }
+
     lapic_write(LAPIC_REG_TIMER_DIV, 0x3);         // set divisor 16
     lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);   // set timer counter
     
@@ -41,6 +59,8 @@ void lapic_timer_calibrate(int freq)
     lapic_write(LAPIC_REG_LVT_TIMER, 0x20 | LAPIC_TIMER_PERIODIC);
     lapic_write(LAPIC_REG_TIMER_DIV, 0x3);         // 16
     lapic_write(LAPIC_REG_TIMER_INITCNT, calibration);
+
+    return 0;
 }
 
 void lapic_send_ipi(uint32_t lapic_id, uint32_t value)

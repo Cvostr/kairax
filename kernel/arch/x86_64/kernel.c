@@ -123,12 +123,18 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		printf("Success!\n");
 	}
 
-	apic_init();
+	printf("APIC: Initialization\n");
+	if (apic_init() != 0) {
+		goto fatal_error;
+	}
+
 	timer_init();
 
 	printf("SMP: Initialization\n");
 	init_idle_process();
-	smp_init();
+	if (smp_init() != 0) {
+		goto fatal_error;
+	}
 
 	printf("Reading PCI devices\n");
 	load_pci_devices_list();	

@@ -20,7 +20,7 @@
 
 int apic_init();
 
-void lapic_timer_calibrate(int freq);
+int lapic_timer_calibrate(int freq);
 
 void lapic_write(uint32_t reg, uint32_t val);
 

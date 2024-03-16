@@ -14,10 +14,11 @@
 #define HPET_CONFIG_LEGACY_MODE 0b10
 
 int init_hpet(acpi_hpet_t* hpet);
+int hpet_is_available();
 uint64_t hpet_get_counter();
 void hpet_reset_counter();
 
-void hpet_nanosleep(uint64_t nanoseconds);
-void hpet_sleep(uint64_t milliseconds);
+int hpet_nanosleep(uint64_t nanoseconds);
+int hpet_sleep(uint64_t milliseconds);
 
 #endif
