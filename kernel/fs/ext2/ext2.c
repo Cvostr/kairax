@@ -6,6 +6,7 @@
 #include "mem/pmm.h"
 #include "stdio.h"
 #include "errors.h"
+#include "kairax/time.h"
 
 struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
@@ -1047,6 +1048,8 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
     ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
 
     ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->inode, orig_type);
+
+    return 0;
 }
 
 int ext2_chmod(struct inode * inode, uint32_t mode)
@@ -1080,17 +1083,21 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
     ext2_inode_t* e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, unlink_inode_idx);
 
+    // Удалить dentry из родительской inode
+    if (ext2_remove_dentry(inst, parent, dent->name, NULL) != 0) {
+        goto exit;
+    }
+
     // Уменьшить количество ссылок на выбранную inode
     e2_inode->hard_links--;
     if (e2_inode->hard_links <= 0) {
+        // Ссылок не осталось - сносим inode
         ext2_purge_inode(inst, unlink_inode_idx);
     } else {
         ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
     }
 
-    // Удалить dentry из родительской inode
-    ext2_remove_dentry(inst, parent, dent->name, NULL);
-
+exit:
     kfree(e2_parent_inode);
     kfree(e2_inode);
 
@@ -1278,6 +1285,7 @@ exit:
 
 int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, int* orig_type)
 {
+    int rc = -1;
     ext2_inode_t*    e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, parent->inode);
 
@@ -1313,6 +1321,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
             }
             // Записать изменения на диск
             ext2_write_inode_block(inst, e2_inode, parent->inode, block_index, (char*)kheap_get_phys_address(buffer));
+            rc = 0;
             goto exit;
         }
 
@@ -1324,7 +1333,7 @@ exit:
     kfree(buffer);
     kfree(e2_inode);
 
-    return 0;
+    return rc;
 }
 
 

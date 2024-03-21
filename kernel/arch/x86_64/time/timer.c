@@ -14,6 +14,9 @@ void timer_int_handler(thread_frame_t* context)
 
     if (lc == 0) {
         timer_handle();
+    } else {
+        lapic_eoi();
+        return;
     }
 
     lapic_eoi();

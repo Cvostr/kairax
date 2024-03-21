@@ -7,7 +7,6 @@ global syscall_get_working_dir
 global syscall_set_working_dir
 global syscall_process_exit
 global syscall_sleep
-global syscall_scheduler_yield
 global syscall_process_exit
 global syscall_read
 global syscall_write
@@ -34,6 +33,7 @@ global syscall_thread_exit
 global syscall_get_ticks_count
 global syscall_load_module
 global syscall_unload_module
+global syscall_sched_yield
 
 syscall_read:
     mov rax, 0x0
@@ -69,6 +69,11 @@ syscall_file_seek:
 
 syscall_create_pipe:
     mov rax, 0x16
+    syscall
+    ret
+
+syscall_sched_yield:
+    mov rax, 0x18
     syscall
     ret
 
@@ -118,11 +123,6 @@ syscall_thread_get_id:
 
 syscall_process_set_break:
     mov rax, 0xC
-    syscall
-    ret
-
-syscall_scheduler_yield:
-    mov rax, 0x18
     syscall
     ret
 

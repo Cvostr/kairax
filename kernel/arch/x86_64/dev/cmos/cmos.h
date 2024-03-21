@@ -2,7 +2,7 @@
 #define _CMOS_H
 
 #include "types.h"
-#include "time.h"
+#include "kairax/time.h"
 
 #define CMOS_ADDRESS 0x70
 #define CMOS_DATA 0x71
@@ -19,21 +19,11 @@
 
 #define CMOS_STATUS_A           0x0A
 
-struct cmos_datetime {
-    int    year;
-    int     month;
-    int     day;
-
-    int     hour;
-    int     minute;
-    int     second;
-};
-
 unsigned long read_tsc();
 
-void cmos_rtc_get_datetime(struct cmos_datetime *time);
-
 void cmos_rtc_get_datetime_tm(struct tm* time);
+
+void cmos_rtc_set_datetime_tm(struct tm* time);
 
 void arch_sys_get_time_epoch(struct timeval *tv);
 

@@ -34,5 +34,6 @@ extern long long int syscall_create_thread(void* entry, void* arg, unsigned long
 extern long long int syscall_create_process(int dirfd, const char* filepath, void* info);
 extern void syscall_thread_exit(int code);
 extern unsigned long long int syscall_get_ticks_count();
+extern int syscall_sched_yield();
 
 #endif

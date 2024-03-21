@@ -43,6 +43,7 @@ void ap_init()
     gdtr_t gdtr;
     gdtr.base = (uintptr_t)curr_cpu_local->gdt;
     gdtr.limit = curr_cpu_local->gdt_size - 1;
+    
     // Установка GDT и TSS
     gdt_update(&gdtr);
     x64_ltr(TSS_DEFAULT_OFFSET);
@@ -53,20 +54,23 @@ void ap_init()
     cpu_set_kernel_gs_base(curr_cpu_local);
     asm volatile("swapgs");
 
+    // Переключаемся на основную виртуальную таблицу памяти ядра
+    vmm_use_kernel_vm();
+
     curr_cpu_local->idle_thread = create_idle_thread();
 
     // Установить таблицу дескрипторов прерываний
     load_idt();
     // включить APIC
     lapic_write(LAPIC_REG_SPURIOUS, lapic_read(LAPIC_REG_SPURIOUS) | (1 << 8) | 0xff);
-
+    // Калибровать таймер
     lapic_timer_calibrate(TIMER_FREQUENCY);
 
     // Ядро запущено, можно запускать следующее
     ap_started_flag = 1;
 
     // включить прерывания sti
-    //enable_interrupts();
+    enable_interrupts();
 
     x64_idle_routine();
 }

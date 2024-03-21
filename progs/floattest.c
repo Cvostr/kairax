@@ -1,6 +1,8 @@
 #include "stdio.h"
 #include "process.h"
 #include "unistd.h"
+#include "time.h"
+#include "sched.h"
 
 int fds[2];
 
@@ -25,16 +27,33 @@ void thread2(void* n) {
     }
 }
 
+void fl(int off) {
+    double sd = off;
+    double orig = sd;
+    double co = 1234;
+    while (1) {
+        sd = sd * (1 + ((double) off / 10));
+                sched_yield();
+        sd *= (off * -1 * co) * 1.5;
+
+
+        sd /= (1.5);
+        sd /= (co * off * -1);
+        sd /= (1 + ((double) off / 10));
+    
+
+        if (sd != orig)
+            printf("%c %f %f\n", 'A' + off, orig, sd);
+    }
+}
+
+
 int main(int argc, char** argv) {
 
-    //printf("Hello\n");
-    double sd;
-    while (1) {
-        sd = sd * 2 + 2;
-        int f = sd / 10;
-
-        sd = sd * 35 * f;
-    }
+    asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
+    create_thread(fl, 2);
+    printf("CREATED");
+    fl(4);
     /*pipe(fds);
     create_thread(thread, NULL);
     create_thread(thread2, NULL);

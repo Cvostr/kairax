@@ -206,7 +206,7 @@ int sys_readdir(int fd, struct dirent* dirent)
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
 
-    //VALIDATE_USER_POINTER(process, dirent, sizeof(struct dirent))
+    VALIDATE_USER_POINTER(process, dirent, sizeof(struct dirent))
 
     struct file* file = process_get_file(process, fd);
 
@@ -310,6 +310,9 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
     struct process* process = cpu_get_current_thread()->process;
 
+    VALIDATE_USER_POINTER(process, oldpath, strlen(oldpath))
+    VALIDATE_USER_POINTER(process, newpath, strlen(newpath))
+
     struct dentry* olddir_dentry = NULL;
     struct dentry* newdir_dentry = NULL;
     struct dentry* new_parent_dentry = NULL;
@@ -363,7 +366,8 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
         goto exit;
     }
 
-    if (old_inode->device != new_parent_inode->device) {
+    // Инода, старый и новый родители должны быть на одном устройстве
+    if (old_inode->device != new_parent_inode->device || old_parent_inode->device != new_parent_inode->device) {
         rc = -ERROR_OTHER_DEVICE;
         goto exit;
     }
@@ -371,7 +375,7 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
     // Переместить на диске
     rc = inode_rename(old_parent_inode, old_dentry, new_parent_inode, new_filename);
     if (rc != 0)
-        goto exit;
+        goto exit;    
 
     // Поменять имя в dentry
     strcpy(old_dentry->name, new_filename);
