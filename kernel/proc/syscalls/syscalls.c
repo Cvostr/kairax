@@ -182,7 +182,7 @@ int sys_set_time_epoch(const struct timeval *tv)
         return -ERROR_INVALID_VALUE;
     }
 
-    printk("SETTING TIME %i\n", tv->tv_sec);
+    //printk("SETTING TIME %i\n", tv->tv_sec);
     arch_sys_set_time_epoch(tv);
     return 0;
 }

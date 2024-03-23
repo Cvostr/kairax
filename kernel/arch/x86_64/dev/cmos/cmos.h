@@ -18,6 +18,7 @@
 #define CMOS_REG_RTC_CENTURY    0x32
 
 #define CMOS_STATUS_A           0x0A
+#define CMOS_STATUS_B           0x0B
 
 unsigned long read_tsc();
 
