@@ -26,5 +26,6 @@ void cmos_rtc_get_datetime_tm(struct tm* time);
 void cmos_rtc_set_datetime_tm(struct tm* time);
 
 void arch_sys_get_time_epoch(struct timeval *tv);
+void arch_sys_set_time_epoch(const struct timeval *tv);
 
 #endif

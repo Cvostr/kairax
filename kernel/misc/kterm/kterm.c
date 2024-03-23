@@ -221,9 +221,11 @@ char keyboard_get_key_ascii(char keycode)
     case KRXK_SPACE:
       	return ' ';
     case KRXK_SLASH:
-      return '/';
+      	return '/';
     case KRXK_DOT:
-      return '.';
+      	return '.';
+	case KRXK_SEMICOLON:
+		return ';';
       break;
     default:
         //if (keycode != 0)

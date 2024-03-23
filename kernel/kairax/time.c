@@ -17,6 +17,8 @@ const short days_in_month[13] =
     (31+28+31+30+31+30+31+31+30+31+30+31),
 };
 
+#define SECONDS_PER_DAY (24ULL * 60 * 60)
+
 int isleap(int year) 
 {
     return (!(year % 4) && ((year % 100) || !(year % 400)));
@@ -105,17 +107,6 @@ time_t tm_to_epoch(struct tm *tm)
 
     day  = years * 365 + (years + 1) / 4;
 
-    /* After 2100 we have to substract 3 leap years for every 400 years
-        This is not intuitive. Most mktime implementations do not support
-        dates after 2059, anyway, so we might leave this out for it's
-        bloat. */
-    if ((years -= 131) >= 0) {
-        years /= 100;
-        day -= (years >> 2) * 3 + 1;
-        if ((years &= 3) == 3) years--;
-        day -= years;
-    }
-
     day += tm->tm_yday = days_in_month [tm->tm_mon] + tm->tm_mday-1 + ( isleap (tm->tm_year+1900)  &  (tm->tm_mon > 1) );
 
     i = 7;
@@ -126,4 +117,42 @@ time_t tm_to_epoch(struct tm *tm)
     i = 60;
 
     return ((day + tm->tm_hour) * i + tm->tm_min) * i + tm->tm_sec;
+}
+
+struct tm* epoch_to_tm(const time_t* time, struct tm* r)
+{
+    time_t i;
+    time_t work = *time % SECONDS_PER_DAY;
+    r->tm_sec = work % 60;
+    work /= 60;
+    r->tm_min = work % 60;
+    r->tm_hour = work / 60;
+    work = *time / SECONDS_PER_DAY;
+    r->tm_wday = (4 + work) % 7;
+    for (i = 1970; ; ++i) {
+
+        time_t k = isleap(i) ? 366 : 365;
+        
+        if (work >= k)
+            work -= k;
+        else
+            break;
+    }
+
+    r->tm_year = i - 1900;
+    r->tm_yday = work;
+
+    r->tm_mday = 1;
+    if (isleap(i) && (work > 58)) {
+        if (work==59) 
+            r->tm_mday = 2;
+        work -= 1;
+    }
+
+    for (i = 11; i && (days_in_month[i]>work); --i);
+
+    r->tm_mon = i;
+    r->tm_mday += work - days_in_month[i];
+    
+    return r;
 }

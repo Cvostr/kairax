@@ -39,6 +39,7 @@ struct timezone {
 int isleap(int year);
 
 time_t tm_to_epoch(struct tm *tm);
+struct tm* epoch_to_tm(const time_t* time, struct tm* r);
 
 void timespec_add(struct timespec* t1, struct timespec* t2);
 void timespec_sub(struct timespec* t1, struct timespec* t2);

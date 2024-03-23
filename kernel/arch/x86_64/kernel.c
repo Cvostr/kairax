@@ -146,7 +146,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 									datetime.tm_min,
 									datetime.tm_sec,
 									datetime.tm_mday,
-									datetime.tm_mon,
+									datetime.tm_mon + 1,
 									datetime.tm_year + 1900);
 
 	vfs_init();

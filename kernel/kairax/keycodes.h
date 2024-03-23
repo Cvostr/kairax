@@ -73,8 +73,9 @@
 #define KRXK_SCRLOCK 67
 #define KRXK_BSLASH  68   
 #define KRXK_PLUS    69   
+#define KRXK_SEMICOLON    70   
 
-#define RKXK_OEM_1  70
+#define RKXK_OEM_1  71
 
 
 #endif

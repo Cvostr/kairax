@@ -245,7 +245,7 @@ short keycode_ps2_to_kairax(unsigned char keycode_ps2)
         DEFINE_KEY(0x24, KRXK_J)
         DEFINE_KEY(0x25, KRXK_K)
         DEFINE_KEY(0x26, KRXK_L)
-        //DEFINE_KEY(0x27, KRXK_) ;
+        DEFINE_KEY(0x27, KRXK_SEMICOLON)
         DEFINE_KEY(0x2A, KRXK_LSHIFT)
         DEFINE_KEY(0x2B, KRXK_BSLASH)
         DEFINE_KEY(0x2C, KRXK_Z)

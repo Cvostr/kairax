@@ -43,6 +43,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys/wait.o \
 				obj/sys/reboot.o \
 				obj/time.o \
+				obj/gmtime_r.o \
+				obj/timegm.o \
 				obj/ctype.o \
 				obj/dirent.o \
 				obj/spawn.o \

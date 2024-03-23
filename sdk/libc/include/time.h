@@ -13,7 +13,13 @@ int isleap(int year);
 struct tm* gmtime(const time_t* t);
 struct tm* gmtime_r(const time_t* t, struct tm* r);
 
+time_t timegm(struct tm *timeptr);
+
+time_t mktime(struct tm *timeptr);
+
 time_t time(time_t *t);
+int stime(time_t *t);
+
 int nanosleep(const struct timespec *req, struct timespec *rem);
 
 #ifdef __cplusplus
