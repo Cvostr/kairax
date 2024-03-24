@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "unistd.h"
 #include "stdio_impl.h"
+#include "errno.h"
 
 int compute_flags(const char *mode) 
 {
@@ -40,7 +41,7 @@ int compute_flags(const char *mode)
 FILE *fopen(const char *restrict filename, const char *restrict mode)
 {
     if (!strchr("rwa", *mode)) {
-        //set errno to INVALID VAL
+        errno = EINVAL;
 		return 0;
 	}
 

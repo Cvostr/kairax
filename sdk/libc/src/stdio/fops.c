@@ -57,6 +57,11 @@ int ferror(FILE *stream)
     return (stream->_flags & FSTREAM_ERROR) == FSTREAM_ERROR;
 }
 
+void rewind(FILE *stream)
+{
+    fseek(stream, 0, SEEK_SET);
+}
+
 int remove(const char* filename) {
     // todo : implement for rmdir
     return unlink(filename);

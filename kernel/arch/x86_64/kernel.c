@@ -158,6 +158,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	vga_init_dev();
 	random_init();
+	zero_init();
 	init_ints_keyboard();
 
 	usb_init();

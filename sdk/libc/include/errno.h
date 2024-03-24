@@ -15,5 +15,6 @@ int* __errno_location();
 #define ERROR_TOO_MANY_OPEN_FILES   24
 
 #define EISDIR                      21
+#define EINVAL                      22
 
 #endif

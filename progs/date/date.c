@@ -25,7 +25,7 @@ int get_month(char* month_str)
 		return -1;
 	}
 
-	for (int i = 0; i < 3; i ++) {
+	for (int i = 0; i < 12; i ++) {
 		if (strcmp(months[i], month_str) == 0) {
 			return i;
 		}
@@ -51,11 +51,15 @@ int main(int argc, char** argv) {
 			char* time = argv[5];
 
 			int month = get_month(mon);
+			if (month == -1) {
+				printf("Incorrect month value: %s\n", mon);
+				return 2;
+			}
 
 			int hour, min, sec;
 			sscanf(time, "%d;%d;%d", &hour, &min, &sec);
 
-			printf("Setting date to %02i:%02i:%02i   %i:%i:%i\n", hour, min, sec, day, month, year);
+			printf("Setting date to %02i:%02i:%02i   %i %s %i\n", hour, min, sec, day, mon, year);
 
 			struct tm ttim;
 			ttim.tm_hour = hour;
@@ -77,11 +81,11 @@ int main(int argc, char** argv) {
 		time_t timesec = time(NULL);
 		struct tm* t = gmtime(&timesec);
 
-		printf("%02i:%02i:%02i   %i:%i:%i\n", t->tm_hour, 
+		printf("%02i:%02i:%02i   %i %s %i\n", t->tm_hour, 
 										t->tm_min,
 										t->tm_sec,
 										t->tm_mday,
-										t->tm_mon + 1,
+										months[t->tm_mon],
 										t->tm_year + 1900);
 	}
 

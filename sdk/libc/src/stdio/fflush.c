@@ -7,6 +7,12 @@ int fflush(FILE *stream)
 {
     ssize_t res;
 
+    if (stream == NULL) {
+        fflush(stdout);
+        // todo : fflush all
+        //return 0;
+    }
+
     if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT) {
         // todo : implement
     } else if (stream->_buf_pos > 0) {

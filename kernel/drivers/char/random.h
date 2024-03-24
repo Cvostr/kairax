@@ -3,4 +3,6 @@
 
 void random_init();
 
+void zero_init();
+
 #endif

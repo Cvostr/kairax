@@ -10,6 +10,7 @@ int getchar ()
 int fgetc(FILE *f)
 {
     if ((f->_flags & FSTREAM_CANREAD) == 0) {
+        // Запрет на чтение
         f->_flags |= FSTREAM_ERROR;
         return EOF;
     }

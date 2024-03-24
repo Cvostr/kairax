@@ -7,21 +7,24 @@ static char stdin_buffer[STDIO_BUFFER_LENGTH];
 static FILE __stderr = {
     ._flags = FSTREAM_UNBUFFERED | FSTREAM_CANWRITE,
     ._fileno = 2,
-    ._buffer = NULL
+    ._buffer = NULL,
+    ._next = NULL
 };
 
 static FILE __stdout = {
     ._flags = FSTREAM_CANWRITE,
     ._fileno = 1,
     ._buffer = stdout_buffer,
-    ._buf_len = STDIO_BUFFER_LENGTH
+    ._buf_len = STDIO_BUFFER_LENGTH,
+    ._next = NULL
 };
 
 static FILE __stdin = {
     ._flags = FSTREAM_CANREAD | FSTREAM_INPUT,
     ._fileno = 0,
     ._buffer = stdin_buffer,
-    ._buf_len = STDIO_BUFFER_LENGTH
+    ._buf_len = STDIO_BUFFER_LENGTH,
+    ._next = NULL
 };
 
 FILE *stderr = &__stderr;
