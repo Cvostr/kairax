@@ -76,7 +76,7 @@ int mtx_unlock(mtx_t* mutex)
     }
 
     if (mutex->type & mtx_recursive /*&& проверить владение*/) {
-        
+
         if (__sync_add_and_fetch(&mutex->lock, -1) == 0) {
             futex(&mutex->lock, FUTEX_WAKE, 1, NULL);
         }
@@ -93,5 +93,5 @@ int mtx_unlock(mtx_t* mutex)
 
 void mtx_destroy(mtx_t* mutex)
 {
-    
+    // ничего не делаем : )
 }

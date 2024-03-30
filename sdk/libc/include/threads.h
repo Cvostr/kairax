@@ -2,7 +2,7 @@
 #define _THREADS_H
 
 #include <sys/types.h>
-#include <sys/time.h>
+#include "sys/time.h"
 #include "stddef.h"
 
 #ifdef __cplusplus
@@ -45,6 +45,17 @@ int mtx_timedlock(mtx_t* mutex, const struct timespec* time);
 int mtx_trylock(mtx_t* mutex);
 int mtx_unlock(mtx_t* mutex);
 void mtx_destroy(mtx_t* mutex);
+
+typedef struct {
+    int cnd;
+} cnd_t;
+
+int cnd_init(cnd_t* cond);
+int cnd_signal(cnd_t *cond);
+int cnd_broadcast(cnd_t *cond);
+int cnd_wait(cnd_t* cond, mtx_t* mutex);
+int cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex, const struct timespec* restrict time_point);
+void cnd_destroy(cnd_t* cond);
 
 #ifdef __cplusplus
 }

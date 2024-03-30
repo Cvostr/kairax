@@ -52,8 +52,6 @@ int main(int argc, char** argv) {
         printf("%s 0x%x \n", testmem, testmem);
     }
 
-
-
     char bf[100];
     __dtostr(1.5, bf, 100, 10, 6, 0);
 
@@ -78,7 +76,7 @@ int main(int argc, char** argv) {
     args[1] = "-a";
     args[2] = NULL;
     pid_t pid = 0;
-    posix_spawn(&pid, "/bin/ls.a", args);
+    posix_spawn(&pid, "/ls.a", args);
     printf("CREATED PROCESS %i, errno = %i\n", pid, errno);
     pid_t rc = waitpid(pid, &status, 0);
     printf("PROCESS FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
@@ -93,13 +91,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < THREADS; i ++) {
         pids[i] = create_thread(thr2, i);
     }
-    mtx_lock(&mutex);
-    for (int i = 0; i < 100; i ++) {
-        strcat(buff, "THR5");
-        usleep(1000);
-    }
 
-    mtx_unlock(&mutex);
     for (int i = 0; i < THREADS; i ++) {
         rc = waitpid(pids[i], &status, 0);
     }
