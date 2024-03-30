@@ -141,7 +141,7 @@ void sys_exit_process(int code)
     // Очистить процесс, сделать его зомби
     process_become_zombie(process);
     // Разбудить потоки, ждущие pid
-    scheduler_wakeup(process);
+    scheduler_wakeup(process, INT_MAX);
     // Удалить потоки процесса из планировщика
     scheduler_remove_process_threads(process);
 
@@ -157,7 +157,7 @@ void sys_exit_thread(int code)
     thr->code = code;
     thread_become_zombie(thr);
     // Разбудить потоки, ждущие pid
-    scheduler_wakeup(thr);
+    scheduler_wakeup(thr, INT_MAX);
     // Убрать поток из списка планировщика
     scheduler_remove_thread(thr);
     // Выйти

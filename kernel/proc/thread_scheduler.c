@@ -73,7 +73,7 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
         acquire_spinlock(lock);
 }
 
-int scheduler_wakeup(void* handle)
+int scheduler_wakeup(void* handle, int max)
 {
     int i = 0;
     acquire_spinlock(&threads_lock);
@@ -83,7 +83,7 @@ int scheduler_wakeup(void* handle)
         struct thread* thread = sched_threads[tid];
 
         if (thread != NULL) {
-            if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle) {
+            if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle && i < max) {
                 scheduler_unblock(thread);
                 i ++;
             }

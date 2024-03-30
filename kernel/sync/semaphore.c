@@ -68,7 +68,7 @@ void semaphore_release(struct semaphore* sem)
 
         // Если все освободили семафор - пробуждаем потоки
         if (sem->current == 0) {
-            scheduler_wakeup(sem);
+            scheduler_wakeup(sem, INT_MAX);
         }
     }
 

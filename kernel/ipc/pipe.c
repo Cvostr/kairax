@@ -83,7 +83,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
     }
 
     // Пробуждаем записывающих
-    scheduler_wakeup(&pipe->nwritefds);
+    scheduler_wakeup(&pipe->nwritefds, INT_MAX);
 
 exit:
     release_spinlock(&pipe->lock);
@@ -98,7 +98,7 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
         while (pipe->write_pos == pipe->read_pos + PIPE_SIZE) {
             //printk("OBER %s %i %i %i ", buffer, count, pipe->write_pos, pipe->read_pos);
             // Больше места нет - пробуждаем читающих
-            scheduler_wakeup(&pipe->nreadfds);
+            scheduler_wakeup(&pipe->nreadfds, INT_MAX);
             // И засыпаем сами
             scheduler_sleep(&pipe->nwritefds, &pipe->lock);
         }
@@ -108,7 +108,7 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
     }
 
     // Пробуждаем читающих
-    scheduler_wakeup(&pipe->nreadfds);
+    scheduler_wakeup(&pipe->nreadfds, INT_MAX);
 
     release_spinlock(&pipe->lock);
     return count;

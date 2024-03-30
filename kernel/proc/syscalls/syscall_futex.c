@@ -23,7 +23,7 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout)
        
     } else if (op == FUTEX_WAKE) {
         //printk(" WOKE UP  %i  ", futex_physaddr);
-        return scheduler_wakeup(futex_physaddr);
+        return scheduler_wakeup(futex_physaddr, val);
     }
 
     return 0;

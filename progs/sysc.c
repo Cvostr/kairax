@@ -17,16 +17,20 @@ void thr1() {
     thread_exit(125);
 }
 
-int val;
+#define THREADS 5 
 mtx_t mutex = {0};
-char buff[1024];
+char buff[4000];
 
-void thr2() {
+void thr2(int* val) {
+    int va = (int) val;
+    char st[5];
+    sprintf(st, "THR%i", va);
     mtx_lock(&mutex);
     for (int i = 0; i < 100; i ++) {
-        strcat(buff, "THR2");
+        strcat(buff, st);
         usleep(1000);
     }
+    strcat(buff, " - ");
 
     mtx_unlock(&mutex);
 
@@ -85,17 +89,20 @@ int main(int argc, char** argv) {
     rc = waitpid(tpi, &status, 0);
     printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
 
-    tpi = create_thread(thr2, NULL);
+    pid_t pids[THREADS];
+    for (int i = 0; i < THREADS; i ++) {
+        pids[i] = create_thread(thr2, i);
+    }
     mtx_lock(&mutex);
     for (int i = 0; i < 100; i ++) {
-        strcat(buff, "THR1");
+        strcat(buff, "THR5");
         usleep(1000);
     }
 
     mtx_unlock(&mutex);
-
-    rc = waitpid(tpi, &status, 0);
-
+    for (int i = 0; i < THREADS; i ++) {
+        rc = waitpid(pids[i], &status, 0);
+    }
     printf("RESULT IS %s\n", buff);
 
     FILE* tsf = fopen("bugaga.txt", "r");

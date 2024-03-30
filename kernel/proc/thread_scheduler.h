@@ -19,7 +19,7 @@ void scheduler_yield(int save_context);
 
 void scheduler_sleep(void* handle, spinlock_t* lock);
 
-int scheduler_wakeup(void* handle);
+int scheduler_wakeup(void* handle, int max);
 
 void scheduler_unblock(struct thread* thread);
 

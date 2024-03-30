@@ -44,7 +44,7 @@ void timer_handle()
             timespec_sub(&ev_timer->when, &offset);
 
             if (timespec_is_zero(&ev_timer->when)) {
-                scheduler_wakeup(ev_timer);
+                scheduler_wakeup(ev_timer, INT_MAX);
                 ev_timer->alarmed = 1;
             }
         }
