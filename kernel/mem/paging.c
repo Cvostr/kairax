@@ -91,3 +91,15 @@ int vm_is_mapped(struct vm_table* table, uint64_t address)
 
     return mapped;
 }
+
+uint64_t vm_get_physical_addr(struct vm_table* table, uint64_t addr)
+{
+    uint64_t paddr;
+    acquire_spinlock(&table->lock);
+
+    paddr = arch_vm_get_physical_addr(table->arch_table, addr);
+
+    release_spinlock(&table->lock);
+
+    return paddr;
+}

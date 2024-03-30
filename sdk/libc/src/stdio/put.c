@@ -25,6 +25,17 @@ int fputs(const char *s, FILE* stream)
 
 int fputc(int c, FILE *stream)
 {
+    int tmp;
+    
+    mtx_lock(&stream->_lock);
+    tmp = fputc_unlocked(c, stream);
+    mtx_unlock(&stream->_lock);
+    
+    return tmp;
+}
+
+int fputc_unlocked(int c, FILE *stream)
+{
     if ((stream->_flags & FSTREAM_CANWRITE) == 0) {
         stream->_flags |= FSTREAM_ERROR;
         return EOF;
@@ -32,7 +43,7 @@ int fputc(int c, FILE *stream)
 
     if (stream->_buf_pos >= stream->_buf_len - 1) {
         // Буфер полон - сбрасываем
-        if(fflush(stream) != 0) {
+        if(fflush_unlocked(stream) != 0) {
             stream->_flags |= FSTREAM_ERROR;
             return EOF;
         }
@@ -55,7 +66,7 @@ int fputc(int c, FILE *stream)
 
     if (c == '\n') {
         // Встретили перенос строки - сбрасвыаем кэш
-        if(fflush(stream) != 0) {
+        if(fflush_unlocked(stream) != 0) {
             stream->_flags |= FSTREAM_ERROR;
             return EOF;
         }

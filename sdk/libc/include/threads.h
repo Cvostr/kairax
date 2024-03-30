@@ -2,6 +2,7 @@
 #define _THREADS_H
 
 #include <sys/types.h>
+#include <sys/time.h>
 #include "stddef.h"
 
 #ifdef __cplusplus
@@ -40,6 +41,7 @@ typedef struct {
 
 int mtx_init(mtx_t* mutex, int type);
 int mtx_lock(mtx_t* mutex);
+int mtx_timedlock(mtx_t* mutex, const struct timespec* time);
 int mtx_trylock(mtx_t* mutex);
 int mtx_unlock(mtx_t* mutex);
 void mtx_destroy(mtx_t* mutex);

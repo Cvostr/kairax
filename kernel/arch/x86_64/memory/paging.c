@@ -148,6 +148,11 @@ int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr
     return 0;
 }
 
+uint64_t arch_vm_get_physical_addr(void* arch_table, uint64_t addr)
+{
+    return get_physical_address(arch_table, addr);
+}
+
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr)
 {
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);

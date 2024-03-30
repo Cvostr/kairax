@@ -4,6 +4,7 @@
 #include "stddef.h"
 #include "stdarg.h"
 #include "stdint.h"
+#include "threads.h"
 
 #define STDIO_BUFFER_LENGTH 2048
 
@@ -24,6 +25,7 @@ struct IO_FILE {
     uint32_t    _buf_size;  // Количество байт в буфере
     uint32_t    _buf_len;   // Размер выделенного буфера
     struct IO_FILE *_next;	// Связный список для всех FILE. используется в fflush(0)
+    mtx_t       _lock;
 };
 
 struct arg_printf {

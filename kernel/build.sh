@@ -102,6 +102,7 @@ gcc $GCC_ARGS proc/syscalls/syscalls_files.c -o ./bin/syscalls_files.o
 gcc $GCC_ARGS proc/syscalls/syscall_wait.c -o ./bin/syscall_wait.o
 gcc $GCC_ARGS proc/syscalls/syscalls_wd.c -o ./bin/syscalls_wd.o
 gcc $GCC_ARGS proc/syscalls/syscalls_modules.c -o ./bin/syscalls_modules.o
+gcc $GCC_ARGS proc/syscalls/syscall_futex.c -o ./bin/syscall_futex.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o

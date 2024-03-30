@@ -17,4 +17,6 @@
 #define ERROR_OTHER_DEVICE          18
 #define	ERROR_BUSY		            16
 
+#define	EAGAIN                      11
+
 #endif

@@ -5,6 +5,17 @@
 
 size_t fread(void *buffer, size_t size, size_t count, FILE *f)
 {
+    size_t tmp;
+    
+    mtx_lock(&f->_lock);
+    tmp = fread_unlocked(buffer, size, count, f);
+    mtx_unlock(&f->_lock);
+    
+    return tmp;
+}
+
+size_t fread_unlocked(void *buffer, size_t size, size_t count, FILE *f)
+{
     size_t len = size * count;
     size_t read = 0;
     int rb = 0;

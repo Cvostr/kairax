@@ -5,6 +5,17 @@
 
 size_t fwrite(const void *src, size_t size, size_t count, FILE *f)
 {
+    size_t tmp;
+    
+    mtx_lock(&f->_lock);
+    tmp = fwrite_unlocked(src, size, count, f);
+    mtx_unlock(&f->_lock);
+    
+    return tmp;
+}
+
+size_t fwrite_unlocked(const void *src, size_t size, size_t count, FILE *f)
+{
     size_t len = size * count;
     ssize_t res = 0;
     size_t i;
@@ -37,7 +48,7 @@ size_t fwrite(const void *src, size_t size, size_t count, FILE *f)
 */
     for (i = 0; i < len; i ++) {
         unsigned char c = ((unsigned char*) src) [i];
-        if (fputc(c, f) == EOF) {
+        if (fputc_unlocked(c, f) == EOF) {
             res = i;
             goto exit;
         }

@@ -35,6 +35,7 @@ global syscall_get_ticks_count
 global syscall_load_module
 global syscall_unload_module
 global syscall_sched_yield
+global syscall_futex
 
 syscall_read:
     mov rax, 0x0
@@ -211,6 +212,12 @@ syscall_get_time_epoch:
 
 syscall_set_time_epoch:
     mov rax, 0xA4
+    mov r10, rcx
+    syscall
+    ret
+
+syscall_futex:
+    mov rax, 0xCA
     mov r10, rcx
     syscall
     ret

@@ -5,6 +5,21 @@
 
 int fflush(FILE *stream)
 {
+    int tmp;
+    
+    if (stream)
+        mtx_lock(&stream->_lock);
+
+    tmp = fflush_unlocked(stream);
+    
+    if (stream)
+        mtx_unlock(&stream->_lock);
+    
+    return tmp;
+}
+
+int fflush_unlocked(FILE *stream)
+{
     ssize_t res;
 
     if (stream == NULL) {

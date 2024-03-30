@@ -27,15 +27,21 @@ FILE *fopen(const char *restrict filename, const char *restrict mode);
 FILE *fdopen(int fd, const char* restrict mode);
 
 size_t fwrite(const void *src, size_t size, size_t count, FILE *f);
-size_t fread(void *destv, size_t size, size_t count, FILE *f);
+size_t fwrite_unlocked(const void *src, size_t size, size_t count, FILE *f);
 
+size_t fread(void *destv, size_t size, size_t count, FILE *f);
+size_t fread_unlocked(void *destv, size_t size, size_t count, FILE *f);
+
+int fputc_unlocked(int c, FILE *stream);
 int fputc(int c, FILE *stream);
+
 int fputs(const char *s, FILE *stream);
 
 int putchar(int);
 int puts(const char*);
 
 int fflush(FILE *stream);
+int fflush_unlocked(FILE *stream);
 
 extern int snprintf(char *str, size_t size, const char *format, ...);
 extern int vsnprintf(char* str, size_t size, const char *format, va_list arg_ptr);

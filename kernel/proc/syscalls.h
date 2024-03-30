@@ -4,7 +4,7 @@
 #include "fs/vfs/stat.h"
 #include "fs/vfs/dirent.h"
 #include "process.h"
-#include "time.h"
+#include "kairax/time.h"
 
 #define VALIDATE_NULL_POINTER(base) if (base == 0) {return -ERROR_INVALID_VALUE;}
 #define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,base,len) == 0) {return -ERROR_INVALID_VALUE;}
@@ -78,5 +78,7 @@ int sys_create_pty(int *master_fd, int *slave_fd);
 
 int sys_load_module(void* module_image, size_t image_size);
 int sys_unload_module(const char* module_name);
+
+int sys_futex(void* futex, int op, int val, const struct timespec *timeout);
 
 #endif

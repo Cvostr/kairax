@@ -6,12 +6,29 @@
 #include "sys/wait.h"
 #include "errno.h"
 #include "spawn.h"
+#include "threads.h"
 
 void thr1() {
     for (int i = 0; i < 3; i ++) {
         fprintf(stdout, " THR \n");
         sleep(1);
     }
+
+    thread_exit(125);
+}
+
+int val;
+mtx_t mutex = {0};
+char buff[1024];
+
+void thr2() {
+    mtx_lock(&mutex);
+    for (int i = 0; i < 100; i ++) {
+        strcat(buff, "THR2");
+        usleep(1000);
+    }
+
+    mtx_unlock(&mutex);
 
     thread_exit(125);
 }
@@ -30,6 +47,8 @@ int main(int argc, char** argv) {
         sprintf(testmem, "String in malloced memory %i %c", 12, 'a');
         printf("%s 0x%x \n", testmem, testmem);
     }
+
+
 
     char bf[100];
     __dtostr(1.5, bf, 100, 10, 6, 0);
@@ -65,6 +84,19 @@ int main(int argc, char** argv) {
 
     rc = waitpid(tpi, &status, 0);
     printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
+
+    tpi = create_thread(thr2, NULL);
+    mtx_lock(&mutex);
+    for (int i = 0; i < 100; i ++) {
+        strcat(buff, "THR1");
+        usleep(1000);
+    }
+
+    mtx_unlock(&mutex);
+
+    rc = waitpid(tpi, &status, 0);
+
+    printf("RESULT IS %s\n", buff);
 
     FILE* tsf = fopen("bugaga.txt", "r");
     char* buffer = malloc(20);

@@ -36,6 +36,8 @@ void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size);
 
 int vm_is_mapped(struct vm_table* table, uint64_t address);
 
+uint64_t vm_get_physical_addr(struct vm_table* table, uint64_t addr);
+
 // Общие архитектурно зависимые функции
 
 void* arch_new_vm_table();
@@ -54,6 +56,9 @@ size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size);
 
 int arch_vm_is_mapped(void* arch_table, uint64_t address);
 
+uint64_t arch_vm_get_physical_addr(void* arch_table, uint64_t addr);
+
+// Расширить память текста ядра 
 uint64_t arch_expand_kernel_mem(uint64_t size);
 
 #endif
