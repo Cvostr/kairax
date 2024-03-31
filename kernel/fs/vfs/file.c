@@ -30,8 +30,7 @@ void file_acquire(struct file* file)
 void file_close(struct file* file) 
 {
     if (atomic_dec_and_test(&file->refs)) {
-        //printf("CLOSING FILE %i - %i\n", file->inode->inode, file->refs);
-        acquire_spinlock(&file->lock);
+        //printk("CLOSING FILE %i - %i\n", file->inode->inode, file->refs);
         
         if (file->ops && file->ops->close) {
             file->ops->close(file->inode, file);

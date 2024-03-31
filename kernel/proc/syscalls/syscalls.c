@@ -31,8 +31,6 @@ int sys_pipe(int* pipefd, int flags)
 
     pipefd[0] = process_add_file(process, pread_file);
     pipefd[1] = process_add_file(process, pwrite_file);
-    file_acquire(pread_file);
-    file_acquire(pwrite_file);
 
     return 0;
 }

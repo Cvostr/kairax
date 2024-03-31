@@ -32,6 +32,11 @@ struct dentry* vfs_get_root_dentry()
     return root_dentry;
 }
 
+void dentry_debug_tree()
+{
+    dentry_debug_tree_entry(root_dentry, 0);
+}
+
 int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname)
 {
     struct dentry* mount_dent = vfs_dentry_traverse_path(root_dentry, mount_path);

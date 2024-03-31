@@ -18,6 +18,7 @@ void free_dentry(struct dentry* dentry)
 {
     //printf("Freeing dentry, %s\n",dentry->name);
     free_list(dentry->subdirs);
+    memset(dentry, 0, sizeof(struct dentry));
     kfree(dentry);
 }
 
@@ -30,10 +31,15 @@ int dentry_close(struct dentry* dentry)
 {
     int rc = 0;
     if (atomic_dec_and_test(&dentry->refs_count)) {
+    
         if ((dentry->flags & DENTRY_UNLINK_DELAYED) == DENTRY_UNLINK_DELAYED) {
-            
+            // Это dentry помечено на удаление
             rc = dentry_unlink(dentry);
+            
             if (rc == 0) {
+                // Удаление из dentry родителя
+                dentry_remove_subdir(dentry->parent, dentry);
+                // Освобождение памяти
                 free_dentry(dentry);
             }
         }
@@ -59,9 +65,11 @@ void dentry_add_subdir(struct dentry* parent, struct dentry* dir)
 
 void dentry_remove_subdir(struct dentry* parent, struct dentry* dir)
 {
-    acquire_spinlock(&parent->lock);
-    list_remove(parent->subdirs, dir); 
-    release_spinlock(&parent->lock);
+    if (parent != NULL) {
+        acquire_spinlock(&parent->lock);
+        list_remove(parent->subdirs, dir); 
+        release_spinlock(&parent->lock);
+    }
 }
 
 void dentry_reparent(struct dentry* dentr, struct dentry* newparent)
@@ -184,6 +192,28 @@ void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, 
         if (p_result) {
             strcat(p_result, "/");
             strcat(p_result, p_dentry->name);
+        }
+    }
+}
+
+void dentry_debug_tree_entry(struct dentry* den, int level)
+{
+    for (int i = 0; i < level; i ++)
+        printf(" ");
+
+    printk("DEN %s inode %i. refs %i\n", den->name, den->inode, den->refs_count);
+    if (den->subdirs) {
+        struct list_node* current = den->subdirs->head;
+        struct dentry* child = NULL;
+
+        for (size_t i = 0; i < den->subdirs->size; i++) {
+            
+            child = (struct dentry*)current->element;
+
+            dentry_debug_tree_entry(child, level + 1);
+
+            // Переход на следующий элемент
+            current = current->next;
         }
     }
 }

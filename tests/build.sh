@@ -9,3 +9,9 @@ ld -melf_x86_64 $LD_ARGS -o sysn.a sysn.o ../sdk/crt/entry.o -L../sdk/libc/ -lc 
 
 gcc $ARGS floattest.c -o floattest.o
 ld -melf_x86_64 $LD_ARGS -o floattest.a floattest.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS fs.c -o fs.o
+ld -melf_x86_64 $LD_ARGS -o fs.a fs.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS pipe.c -o pipe.o
+ld -melf_x86_64 $LD_ARGS -o pipe.a pipe.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

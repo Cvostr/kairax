@@ -45,4 +45,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_dentry, const char* path);
 
 void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
 
+void dentry_debug_tree();
+void dentry_debug_tree_entry(struct dentry* den, int level);
+
 #endif
