@@ -11,9 +11,11 @@
 #include "msr.h"
 #include "interrupts/apic.h"
 #include "interrupts/idt.h"
+#include "interrupts/intctl_x64.h"
 #include "cpuid.h"
 #include "dev/cmos/cmos.h"
 #include "proc/timer.h"
+#include "proc/idle.h"
 
 extern char ap_trampoline[];
 extern char ap_trampoline_end[];

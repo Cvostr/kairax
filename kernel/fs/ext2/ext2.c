@@ -1114,6 +1114,9 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 
     // Создать inode на диске
     uint32_t inode_num = ext2_alloc_inode(inst);
+    if (inode_num == 0) {
+        return -ERROR_NO_SPACE;
+    }
     // Прочитать inode
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
@@ -1176,6 +1179,9 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     inode->hard_links++;
     ext2_write_inode_metadata(inst, inode, parent->inode);
 
+    // Увеличить количество ссылок vfs inode родителя
+    parent->hard_links++;
+
     // Обновить информацию о свободных папках в bgds
     uint32_t new_inode_group = inode_num / inst->superblock->inodes_per_group;
 	inst->bgds[new_inode_group].used_dirs++;
@@ -1195,6 +1201,9 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
     // Создать inode на диске
     uint32_t inode_num = ext2_alloc_inode(inst);
+    if (inode_num == 0) {
+        return -ERROR_NO_SPACE;
+    }
     // Прочитать inode
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);

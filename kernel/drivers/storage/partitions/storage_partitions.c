@@ -129,10 +129,10 @@ drive_partition_t* get_partition_with_name(const char* name)
     return NULL;
 }
 
-uint32_t partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
+int partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
     return drive_device_read(partition->device, lba_start + partition->start_lba, count, buffer);
 }
 
-uint32_t partition_write(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
+int partition_write(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer){
     return drive_device_write(partition->device, lba_start + partition->start_lba, count, buffer);
 }

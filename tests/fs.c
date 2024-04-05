@@ -23,6 +23,10 @@ int main(int argc, char** argv)
 {
     struct stat file_stat;
     int fd, rc;
+    int old_links;
+
+    rc = stat(".", &file_stat);
+    old_links = file_stat.st_nlink;
 
     printf("Test 1: Dir creation\n");
     fd = mkdir(testdir, TESTDIR_PERM);
@@ -40,23 +44,32 @@ int main(int argc, char** argv)
         printf("Invalid perm for %s, expected %i, got %i\n", testdir, TESTDIR_PERM, perm);
         return 3;
     }
+    if (file_stat.st_nlink != 2) {
+        printf("Invalid hard link count for %s, expected %i, got %i\n", testdir, 2, file_stat.st_nlink);
+        return 4;
+    }
+    rc = stat(".", &file_stat);
+    if (file_stat.st_nlink != (old_links + 1)) {
+        printf("Invalid hard link count for %s, expected %i, got %i\n", testdir, (old_links + 1), file_stat.st_nlink);
+        return 5;
+    }
     close(fd);
 
     printf("Test 2: File creation\n");
     fd = creat(testfile, TESTFILE_PERM);
     if (fd == -1) {
         printf("Failed creat() for %s\n", testfile);
-        return 4;
+        return 5;
     }
     rc = stat(testfile, &file_stat);
     if (rc == -1) {
         printf("Failed stat() for %s, errno = %i\n", testfile, errno);
-        return 5;
+        return 6;
     }
     perm = file_stat.st_mode & 0777;
     if (perm != TESTFILE_PERM) {
         printf("Invalid perm for %s, expected %i, got %i\n", testfile, TESTFILE_PERM, perm);
-        return 6;
+        return 7;
     }
 
     close(fd);
@@ -65,7 +78,7 @@ int main(int argc, char** argv)
     fd = open(testfile, O_RDWR, 0);
     if (fd == -1) {
         printf("Failed open() for %s\n", testfile);
-        return 7;
+        return 8;
     }
 
     for (int j = 0; j < PATTERN_SIZE; j ++) {
@@ -78,7 +91,7 @@ int main(int argc, char** argv)
     int pos = lseek(fd, 0, SEEK_CUR);
     if (pos != total_len) {
         printf("Incorrect pos, expected %i, got %i\n", total_len, pos);
-        return 8;
+        return 9;
     }
 
     printf("Test 4: File read\n");
@@ -89,17 +102,17 @@ int main(int argc, char** argv)
         rc = read(fd, testbuf, PATTERN_SIZE);
         if (rc == -1) {
             printf("Failed read() for %s, errno = %i\n", testfile, errno);
-            return 9;
+            return 10;
         }
         if (rc != PATTERN_SIZE) {
             printf("Failed read() for %s: incorrect result, expected %i, got %i\n", testfile, PATTERN_SIZE, rc);
-            return 10;
+            return 11;
         }
         
         for (int j = 0; j < 256; j ++) {
             if (pattern[j] != testbuf[j]) {
                 printf("Incorect data in file at pos %i\n", i * WRITE_PATTERN_ROUNDS + j);
-                return 11;
+                return 12;
             }
         }
     }
@@ -108,7 +121,7 @@ int main(int argc, char** argv)
     rc = remove(testfile);
     if (rc == -1) {
         printf("Failed remove() for %s, errno = %i\n", testfile, errno);
-        return 12;
+        return 13;
     }
 
     return 0;

@@ -59,11 +59,11 @@ uint32_t ahci_port_get_free_cmdslot(ahci_port_t* port);
 
 int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint16_t *buf);
 
-int ahci_port_read_lba(struct device* port, uint64_t start, uint64_t count, uint16_t *buf);
+int ahci_port_read_lba(struct device* port, uint64_t start, uint64_t count, char *buf);
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf);
 
-int ahci_port_write_lba(struct device *port, uint64_t start, uint64_t count, uint16_t *buf);
+int ahci_port_write_lba(struct device *port, uint64_t start, uint64_t count, const char *buf);
 
 int ahci_port_interrupt(ahci_port_t *port);
 

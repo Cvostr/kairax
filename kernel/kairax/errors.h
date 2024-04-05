@@ -10,13 +10,17 @@
 #define ERROR_INVALID_VALUE         22
 #define ERROR_NOT_A_DIRECTORY       20        
 #define ERROR_TOO_MANY_OPEN_FILES   24
+#define ERROR_NO_SPACE              28
 #define ERROR_FS_READONLY           30
 #define ERROR_RANGE                 34
 #define ERROR_WRONG_FUNCTION        38
 #define ERROR_ALREADY_EXISTS        17
 #define ERROR_OTHER_DEVICE          18
 #define	ERROR_BUSY		            16
+#define ERROR_NOT_EMPTY             90
 
 #define	EAGAIN                      11
+#define	ENOSPC                      ERROR_NO_SPACE
+#define ENOTEMPTY                   ERROR_NOT_EMPTY
 
 #endif

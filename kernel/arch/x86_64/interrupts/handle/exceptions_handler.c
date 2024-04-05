@@ -101,7 +101,7 @@ void exception_handler(interrupt_frame_t* frame)
     printf("CR2 = %s ", ulltoa(cr2, 16));
     printf("CR3 = %s\n", ulltoa(cr3, 16));
 
-    uint8_t* ip = frame->rip;
+    uint8_t* ip = (uint8_t*) frame->rip;
     printf("INSTR: ");
     for (int i = 0; i < 8; i ++) {
         printf("%s ", ulltoa(*(ip++), 16));

@@ -410,8 +410,8 @@ uint32_t parse_identity_buffer(char* buffer,
 	}
 }
 
-int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, uint16_t *buf){
-	return ahci_port_read_lba48(device->dev_data, start, (uint32_t)count, buf);
+int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, char *buf){
+	return ahci_port_read_lba48(device->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 
 int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint16_t *buf){
@@ -506,8 +506,8 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	return 1;
 }
 
-int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, uint16_t *buf){
-	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, buf);
+int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, const char *buf){
+	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, (uint16_t*) buf);
 }
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){
@@ -593,7 +593,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	// Check again
 	if (hba_port->is & HBA_PxIS_TFE)
 	{
-		printf("Read disk error\n");
+		printf("Write disk error\n");
 		return 0;
 	}
  

@@ -11,8 +11,8 @@ struct drive_device_info {
     uint32_t        sectors;            //Количество секторов
     uint64_t        nbytes;             //Вместимость в байтах  
 
-    uint32_t (*read) (struct device*, uint64_t, uint64_t, char*);
-    uint32_t (*write) (struct device*, uint32_t, uint64_t, char*);    
+    int (*read) (struct device*, uint64_t, uint64_t, char*);
+    int (*write) (struct device*, uint64_t, uint64_t, const char*);    
 };
 
 #endif

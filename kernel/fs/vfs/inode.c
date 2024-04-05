@@ -64,13 +64,16 @@ int inode_mkdir(struct inode* node, const char* name, uint32_t mode)
 
 int inode_mkfile(struct inode* node, const char* name, uint32_t mode)
 {
+    int rc = -1;
     acquire_spinlock(&node->spinlock);
 
     if(node->operations->mkfile) {
-        node->operations->mkfile(node, name, mode);
+        rc = node->operations->mkfile(node, name, mode);
     }
 
     release_spinlock(&node->spinlock);
+
+    return rc;
 }
 
 int inode_truncate(struct inode* inode)
@@ -130,6 +133,7 @@ int inode_stat(struct inode* node, struct stat* sstat)
     sstat->st_ino = node->inode;
     sstat->st_size = node->size;
     sstat->st_mode = node->mode;
+    sstat->st_nlink = node->hard_links;
     sstat->st_uid = node->uid;
     sstat->st_gid = node->gid;
     sstat->st_dev = node->device;

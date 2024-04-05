@@ -1,5 +1,6 @@
 #include "random.h"
 #include "fs/devfs/devfs.h"
+#include "proc/timer.h"
 
 struct file_operations random_fops;
 unsigned int rand_seed = 1;

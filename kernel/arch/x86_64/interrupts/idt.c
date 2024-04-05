@@ -13,10 +13,6 @@ extern void* isr_stub_table[256]; //таблица ISR
 
 extern void x64_lidt(idtr_t *idt);
 
-extern void enable_interrupts();
-
-extern void disable_interrupts();
-
 void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags)
 {
 	idt_descriptor_t* descriptor = &idt_descriptors[vector];

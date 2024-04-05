@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "kstdlib.h"
 #include "dev/cmos/cmos.h"
+#include "dev/hpet/hpet.h"
 
 #define NANOSECONDS_PER_SECOND 1000000000
 

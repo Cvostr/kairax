@@ -1,5 +1,6 @@
 #include "cmos.h"
 #include "io.h"
+#include "interrupts/intctl_x64.h"
 
 // 0x59 -> 59
 unsigned short cmos_format(unsigned short value, int is_bcd)
@@ -108,6 +109,6 @@ void arch_sys_get_time_epoch(struct timeval *tv)
 void arch_sys_set_time_epoch(const struct timeval *tv)
 {
     struct tm datetime;
-    epoch_to_tm(tv, &datetime);
+    epoch_to_tm(&tv->tv_sec, &datetime);
     cmos_rtc_set_datetime_tm(&datetime);
 }

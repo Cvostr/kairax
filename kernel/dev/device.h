@@ -40,12 +40,12 @@ struct device {
     };
 };
 
-uint32_t drive_device_read( struct device* drive,
+int drive_device_read( struct device* drive,
                             uint64_t start_lba,
                             uint64_t count,
                             char* buffer);
 
-uint32_t drive_device_write( struct device* drive,
+int drive_device_write( struct device* drive,
                             uint64_t start_lba,
                             uint64_t count,
                             char* buffer);

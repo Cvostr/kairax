@@ -257,15 +257,15 @@ int sys_unlink(int dirfd, const char* path, int flags)
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, path, strlen(path))
 
+    // Получение dentry от dirfd для относительного поиска
     struct dentry* dirdentry = NULL;
     int rc = process_get_relative_direntry(process, dirfd, path, &dirdentry);
     if (rc != 0) 
         return rc;
 
+    // Получить удаляемую inode и dentry
     struct dentry* target_dentry = NULL;
     struct inode* target_inode = vfs_fopen(dirdentry, path, &target_dentry);
-
-    struct inode* parent_inode = NULL;
     
     // не нашли файл, который нужно удалить
     if (target_inode == NULL || target_dentry == NULL) {

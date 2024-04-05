@@ -5,6 +5,7 @@
 #include "interrupts/pic.h"
 #include "proc/timer.h"
 #include "cpu/cpu_local_x64.h"
+#include "interrupts/apic.h"
 
 extern int scheduler_handler(thread_frame_t* frame);
 
