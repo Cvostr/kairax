@@ -60,11 +60,33 @@ int ferror(FILE *stream)
 void rewind(FILE *stream)
 {
     fseek(stream, 0, SEEK_SET);
+    clearerr(stream);
 }
 
-int remove(const char* filename) {
-    // todo : implement for rmdir
-    return unlink(filename);
+void clearerr(FILE *stream)
+{
+    mtx_lock(&stream->_lock);
+    clearerr_unlocked(stream);
+    mtx_unlock(&stream->_lock);
+}
+
+void clearerr_unlocked(FILE *stream)
+{
+    stream->_flags &= ~(FSTREAM_ERROR | FSTREAM_EOF);
+}
+
+int remove(const char* filename) 
+{
+    if (unlink(filename) != 0) 
+    {
+        if (errno == EISDIR) {
+            return rmdir(filename);
+        }
+
+        return -1;
+    }
+    
+    return 0;
 }
 
 int rename(const char *oldpath, const char *newpath)

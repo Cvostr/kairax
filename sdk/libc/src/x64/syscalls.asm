@@ -113,6 +113,12 @@ syscall_unlink:
     syscall
     ret
 
+syscall_rmdir:
+    mov rax, 0x54
+    mov r10, rcx
+    syscall
+    ret
+
 syscall_process_get_id:
     mov rax, 0x27
     syscall

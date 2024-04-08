@@ -302,6 +302,53 @@ exit:
     return rc;
 }
 
+int sys_rmdir(const char* path)
+{
+    int rc = -1;
+    struct process* process = cpu_get_current_thread()->process;
+
+    // Получить удаляемую inode и dentry относительно рабочей директории
+    struct dentry* target_dentry = NULL;
+    struct inode* target_inode = vfs_fopen(process->workdir->dentry, path, &target_dentry);
+
+    // не нашли файл, который нужно удалить
+    if (target_inode == NULL || target_dentry == NULL) {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    int ino_mode = target_inode->mode;
+    int hard_links = target_inode->hard_links;
+    INODE_CLOSE_SAFE(target_inode)
+
+    // С помощью rmdir удаляем только директории
+    if ( !(ino_mode & INODE_TYPE_DIRECTORY)) {
+        rc = -ERROR_NOT_A_DIRECTORY;
+        goto exit;
+    }
+
+    // Проверка, не пытаемся ли удалить точку монтирования?
+    if ((target_dentry->flags & DENTRY_MOUNTPOINT) == DENTRY_MOUNTPOINT) {
+        rc = -ERROR_BUSY;
+        goto exit;
+    }
+
+    // TODO: Проверить рабочую папку всех процессов
+    
+/*
+    if (hard_links > 2) {
+        rc = -ENOTEMPTY;
+        goto exit;
+    }
+*/
+    // TODO: implement
+
+
+exit:
+    return rc;
+}
+
+
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)
 {
     if (oldpath == NULL || newpath == NULL) {

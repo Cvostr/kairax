@@ -72,7 +72,7 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
     if (inode != WRONG_INODE_INDEX) {
         // нашелся объект с указанным именем
         result = new_dentry();
-        strcpy(result->name, name);
+        strncpy(result->name, name, MAX_DIRENT_NAME_LEN);
         result->parent = parent;
         result->sb = sb;
         result->inode = inode;

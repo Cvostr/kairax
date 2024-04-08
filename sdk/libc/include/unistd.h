@@ -30,6 +30,8 @@ int close(int fd);
 
 int unlink(const char* path);
 
+int rmdir(const char *path);
+
 int usleep(unsigned long useconds);
 unsigned int sleep(unsigned int seconds);
 

@@ -59,6 +59,11 @@ int unlink(const char* path)
     __set_errno(syscall_unlink(AT_FDCWD, path, 0));
 }
 
+int rmdir(const char *path)
+{
+    __set_errno(syscall_rmdir(path));
+}
+
 off_t lseek(int fd, off_t offset, int whence)
 {
     __set_errno(syscall_file_seek(fd, offset, whence));

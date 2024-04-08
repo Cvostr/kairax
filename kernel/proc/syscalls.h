@@ -31,6 +31,8 @@ int sys_ioctl(int fd, uint64_t request, uint64_t arg);
 
 int sys_unlink(int dirfd, const char* path, int flags);
 
+int sys_rmdir(const char* path);
+
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags);
 
 off_t sys_file_seek(int fd, off_t offset, int whence); 

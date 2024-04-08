@@ -60,6 +60,8 @@ long ftell(FILE *stream);
 int fileno(FILE *stream);
 int feof(FILE *stream);
 int ferror(FILE *stream);
+void clearerr(FILE *stream);
+void clearerr_unlocked(FILE *stream);
 void rewind(FILE *stream);
 
 // ---- printf ------
