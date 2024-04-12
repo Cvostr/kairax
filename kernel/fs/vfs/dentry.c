@@ -31,6 +31,8 @@ int dentry_close(struct dentry* dentry)
 {
     int rc = 0;
     if (atomic_dec_and_test(&dentry->refs_count)) {
+
+        // Переход в состояние неиспользуемое "unused"
     
         if ((dentry->flags & DENTRY_UNLINK_DELAYED) == DENTRY_UNLINK_DELAYED) {
             // Это dentry помечено на удаление
@@ -201,7 +203,7 @@ void dentry_debug_tree_entry(struct dentry* den, int level)
     for (int i = 0; i < level; i ++)
         printf(" ");
 
-    printk("DEN %s inode %i. refs %i\n", den->name, den->inode, den->refs_count);
+    printk("DEN %s inode %i. refs %i\n", den->name, den->d_inode->inode, den->refs_count);
     if (den->subdirs) {
         struct list_node* current = den->subdirs->head;
         struct dentry* child = NULL;

@@ -15,22 +15,21 @@ void inode_open(struct inode* node, uint32_t flags)
 {
     acquire_spinlock(&node->spinlock);
 
-    if (atomic_inc_and_test(&node->reference_count) == 1) {
-        superblock_add_inode(node->sb, node);
-    }
+    atomic_inc(&node->reference_count);
 
     release_spinlock(&node->spinlock);
 }
 
 void inode_close(struct inode* node)
 {
-    acquire_spinlock(&node->spinlock);
+    //acquire_spinlock(&node->spinlock);
 
     if (atomic_dec_and_test(&node->reference_count)) {
+        //printk("CLOSE inode %i\n", node->inode);
         superblock_remove_inode(node->sb, node);
         kfree(node);
     } else {
-        release_spinlock(&node->spinlock);
+        //release_spinlock(&node->spinlock);
     }
 }
 
@@ -132,6 +131,7 @@ int inode_stat(struct inode* node, struct stat* sstat)
 
     sstat->st_ino = node->inode;
     sstat->st_size = node->size;
+    sstat->st_blocks = node->blocks;
     sstat->st_mode = node->mode;
     sstat->st_nlink = node->hard_links;
     sstat->st_uid = node->uid;

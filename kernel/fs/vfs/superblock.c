@@ -54,28 +54,34 @@ struct inode* superblock_get_inode(struct superblock* sb, uint64 inode)
     // Не нашли, пробуем считать с диска
     result = sb->operations->read_inode(sb, inode);
     release_spinlock(&sb->spinlock);
+
+    superblock_add_inode(sb, result);
+
     return result;
 }
 
 struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* parent, const char* name)
 {
     struct dentry* result = NULL;
-    acquire_spinlock(&sb->spinlock);
 
     result = dentry_get_child_with_name(parent, name);
     if (result != NULL)
         goto exit;
         
+    acquire_spinlock(&sb->spinlock);
     // считать dentry с диска
     int dentry_type = 0;
-    uint64_t inode = sb->operations->find_dentry(sb, parent->inode, name, &dentry_type);
+    uint64_t inode = sb->operations->find_dentry(sb, parent->d_inode->inode, name, &dentry_type);
+    release_spinlock(&sb->spinlock);
+
     if (inode != WRONG_INODE_INDEX) {
         // нашелся объект с указанным именем
         result = new_dentry();
         strncpy(result->name, name, MAX_DIRENT_NAME_LEN);
         result->parent = parent;
         result->sb = sb;
-        result->inode = inode;
+        result->d_inode = superblock_get_inode(sb, inode);
+        inode_open(result->d_inode, 0);
 
         switch (dentry_type) {
             case DT_DIR:
@@ -86,9 +92,8 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
         // Добавить в список подпапок родителя
         dentry_add_subdir(parent, result); 
     }
-exit:
 
-    release_spinlock(&sb->spinlock);
+exit:
     return result;
 }
 
@@ -108,4 +113,27 @@ void superblock_remove_inode(struct superblock* sb, struct inode* inode)
     list_remove(sb->inodes, inode);
 
     release_spinlock(&sb->spinlock);
+}
+
+void debug_print_inodes(struct superblock* sb)
+{
+    acquire_spinlock(&sb->spinlock);
+    struct list_node* current = sb->inodes->head;
+    struct inode* node = NULL;
+    struct inode* result = NULL;
+
+    for (size_t i = 0; i < sb->inodes->size; i++) {
+
+        node = (struct inode*)current->element;
+
+        printk("INODE %i, refs: %i, links %i\n", node->inode, node->reference_count, node->hard_links);
+            
+        // Переход на следующий элемент
+        current = current->next;
+    }
+
+exit:
+    release_spinlock(&sb->spinlock);
+    
+    return result;
 }

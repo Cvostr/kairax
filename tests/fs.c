@@ -12,6 +12,7 @@
 
 char* testdir = "testdir";
 char* testfile = "testdir/testfile.txt";
+char* testfile2 = "testdir/testfile2.txt";
 #define TESTDIR_PERM 0666
 #define TESTFILE_PERM 0667
 
@@ -93,6 +94,11 @@ int main(int argc, char** argv)
         printf("Incorrect pos, expected %i, got %i\n", total_len, pos);
         return 9;
     }
+    stat(testfile, &file_stat);
+    if (total_len != file_stat.st_size) {
+        printf("Incorrect file size, expected %i, got %i\n", total_len, file_stat.st_size);
+        return 10;
+    }
 
     printf("Test 4: File read\n");
     lseek(fd, 0, SEEK_SET);
@@ -102,27 +108,59 @@ int main(int argc, char** argv)
         rc = read(fd, testbuf, PATTERN_SIZE);
         if (rc == -1) {
             printf("Failed read() for %s, errno = %i\n", testfile, errno);
-            return 10;
+            return 11;
         }
         if (rc != PATTERN_SIZE) {
             printf("Failed read() for %s: incorrect result, expected %i, got %i\n", testfile, PATTERN_SIZE, rc);
-            return 11;
+            return 12;
         }
         
         for (int j = 0; j < 256; j ++) {
             if (pattern[j] != testbuf[j]) {
                 printf("Incorect data in file at pos %i\n", i * WRITE_PATTERN_ROUNDS + j);
-                return 12;
+                return 13;
             }
         }
     }
 
-    printf("Test 5: File remove\n");
-    rc = remove(testfile);
+    printf("Test 5: File rename\n");
+    rc = rename(testfile, testfile2);
     if (rc == -1) {
-        printf("Failed remove() for %s, errno = %i\n", testfile, errno);
-        return 13;
+        printf("Failed rename() from %s to %s, errno = %i\n", testfile, testfile2, errno);
+        return 14;
     }
+    rc = stat(testfile, &file_stat);
+    if (rc != -1) {
+        printf("Successful stat() of %s, Something wrong\n", testfile);
+        return 15;
+    }
+    if (errno != ENOENT) {
+        printf("Incorrect errno(), expected %i, got %i\n", ENOENT, errno);
+        return 16;
+    }
+    rc = stat(testfile2, &file_stat);
+    if (rc == -1) {
+        printf("Failed stat() for %s, errno = %i\n", testfile2, errno);
+        return 17;
+    }
+
+    printf("Test 6: File remove\n");
+    rc = remove(testfile2);
+    if (rc == -1) {
+        printf("Failed remove() for %s, errno = %i\n", testfile2, errno);
+        return 18;
+    }
+    rc = stat(testfile2, &file_stat);
+    if (rc != -1) {
+        printf("Successful stat() of %s, Something wrong\n", testfile2);
+        return 19;
+    }
+    if (errno != ENOENT) {
+        printf("Incorrect errno, expected %i, got %i\n", ENOENT, errno);
+        return 20;
+    }
+
+    close(fd);
 
     return 0;
 }

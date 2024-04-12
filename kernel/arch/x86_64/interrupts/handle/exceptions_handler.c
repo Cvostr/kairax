@@ -109,7 +109,7 @@ void exception_handler(interrupt_frame_t* frame)
     
     printf("\nSTACK TRACE: \n");
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
-    for (int i = -3; i < 10; i ++) {
+    for (int i = -3; i < 25; i ++) {
         uintptr_t value = *(stack_ptr - i);
         if (i == 0) {
             printf(" | ");

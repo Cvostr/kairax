@@ -318,6 +318,7 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     if (instance->superblock->major >= 1) {
         // Ext2 версии 1 и новее, значит есть дополнительная часть superblock
         instance->file_size_64bit_flag = (instance->superblock->readonly_feature & EXT2_FEATURE_64BIT_FILE_SIZE) > 0;
+        //printk("FEATURE %i\n", instance->superblock->required_feature & EXT2_FEATURE_DENTRY_FILE_TYPE);
     }
 
     // Сохранить некоторые полезные значения
@@ -992,6 +993,9 @@ ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, lof
     ssize_t result = write_inode_filedata(inst, e2_inode, inode->inode, offset, count, buffer);
     file->pos += result;
 
+    inode->size = e2_inode->size;
+    inode->blocks = e2_inode->num_blocks;
+
     kfree(e2_inode);
 
     return result;
@@ -1047,7 +1051,7 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
     int orig_type = 0;
     ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
 
-    ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->inode, orig_type);
+    ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->d_inode->inode, orig_type);
 
     return 0;
 }
@@ -1090,12 +1094,16 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
 
     // Уменьшить количество ссылок на выбранную inode
     e2_inode->hard_links--;
+
     if (e2_inode->hard_links <= 0) {
         // Ссылок не осталось - сносим inode
         ext2_purge_inode(inst, unlink_inode_idx);
     } else {
         ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
     }
+
+    // Уменьшить количество ссылок на выбранную inode в VFS
+    dent->d_inode->hard_links--;
 
 exit:
     kfree(e2_parent_inode);
@@ -1153,7 +1161,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 
     // Добавить . и .. в новую директорию
     char* block_temp = kmalloc(inst->block_size);
-    memset(block_temp, 0, sizeof(inst->block_size));
+    memset(block_temp, 0, inst->block_size);
     // .
     ext2_direntry_t* dot_direntry = (ext2_direntry_t*)block_temp;
     dot_direntry->inode = inode_num;

@@ -22,7 +22,7 @@ void vfs_init()
 
     // Создать корневой dentry с пустым именем
     root_dentry = new_dentry();
-    root_dentry->inode = 0; // пока inode нет
+    root_dentry->d_inode = NULL; // пока inode нет
     root_dentry->flags |= DENTRY_TYPE_DIRECTORY;
     dentry_open(root_dentry); // Он должен всегда существовать
 }
@@ -74,8 +74,10 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
 
         // dentry монтирования
         mount_dent->sb = sb;
-        mount_dent->inode = root_inode->inode;
+        mount_dent->d_inode = root_inode;
+        //atomic_inc(&mount_dent->d_inode->reference_count);
         mount_dent->flags |= DENTRY_MOUNTPOINT;
+        // Сохранение указателя на dentry монтирования в superblock с увеличением счетчика
         sb->root_dir = mount_dent;
         dentry_open(mount_dent);
         
@@ -142,7 +144,7 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry**
 
     if (result_dentry) {
 
-        struct inode* result = superblock_get_inode(result_dentry->sb, result_dentry->inode);
+        struct inode* result = superblock_get_inode(result_dentry->sb, result_dentry->d_inode->inode);
 
         if (result) {
             // Увеличение счетчика, операции с ФС
@@ -168,7 +170,7 @@ struct inode* vfs_fopen_parent(struct dentry* child)
         return NULL;
     }
 
-    struct inode* parent_inode = superblock_get_inode(child->sb, child->parent->inode);
+    struct inode* parent_inode = superblock_get_inode(child->sb, child->parent->d_inode->inode);
 
     if (parent_inode) {
         inode_open(parent_inode, 0);

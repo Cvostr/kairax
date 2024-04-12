@@ -85,6 +85,7 @@ int devfs_add_char_device(const char* name, struct file_operations* fops)
     device->inode = new_vfs_inode();
     device->inode->inode = inode_index++;                   
     device->inode->mode = INODE_FLAG_CHARDEVICE;
+    device->inode->sb = devfs_root_inode->sb;
     device->inode->create_time = current_time.tv_sec;
     device->inode->access_time = current_time.tv_sec;
     device->inode->modify_time = current_time.tv_sec;
@@ -94,7 +95,8 @@ int devfs_add_char_device(const char* name, struct file_operations* fops)
 
     // Создание dentry
     device->dentry = new_dentry();
-    device->dentry->inode = device->inode->inode;
+    device->dentry->d_inode = device->inode;
+    atomic_inc(&device->inode->reference_count);
     device->dentry->sb = devfs_root_inode->sb;
     strcpy(device->dentry->name, name);
     atomic_inc(&device->dentry->refs_count);

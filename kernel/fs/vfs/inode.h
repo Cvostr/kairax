@@ -41,6 +41,7 @@ struct inode {
     uint32_t    gid;        // Идентификатор группы
     uint64_t    inode;      // Номер узла в драйвере файловой системы
     uint64_t    size;       // Размер файла (байт)
+    uint64_t    blocks;
     uint32_t    hard_links; // количество ссылок
     dev_t       device;
 

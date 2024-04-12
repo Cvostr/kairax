@@ -110,6 +110,9 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "dentry") == 0) {
         dentry_debug_tree();
     }
+    if(strcmp(cmd, "inode") == 0) {
+        debug_print_inodes(vfs_get_root_dentry()->sb);
+    }
     if(strcmp(cmd, "insmod") == 0) {
         struct file* mod_file = file_open(NULL, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
         if (mod_file == NULL) {

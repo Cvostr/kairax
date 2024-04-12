@@ -15,6 +15,7 @@ global syscall_open_file
 global syscall_close
 global syscall_rename
 global syscall_unlink
+global syscall_rmdir
 global syscall_fdstat
 global syscall_readdir
 global syscall_file_seek

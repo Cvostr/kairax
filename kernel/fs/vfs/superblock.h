@@ -8,7 +8,6 @@
 #include "dentry.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
-#define MOUNT_PATH_MAX_LEN 256
 struct super_operations;
 
 struct superblock {
@@ -51,5 +50,7 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
 void superblock_add_inode(struct superblock* sb, struct inode* inode);
 
 void superblock_remove_inode(struct superblock* sb, struct inode* inode);
+
+void debug_print_inodes(struct superblock* sb);
 
 #endif

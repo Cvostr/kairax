@@ -14,6 +14,7 @@ int* __errno_location();
 #define ERROR_NOT_A_DIRECTORY       20        
 #define ERROR_TOO_MANY_OPEN_FILES   24
 
+#define	ENOENT                      2
 #define	EAGAIN                      11
 #define EISDIR                      21
 #define EINVAL                      22

@@ -1,8 +1,8 @@
 #ifndef _SYS_STAT_H
 #define _SYS_STAT_H
 
-#include "sys/types.h"
-#include "sys/time.h"
+#include "types.h"
+#include "time.h"
 
 /* File types.  */
 #define	S_IFDIR	    0040000	/* Directory.  */

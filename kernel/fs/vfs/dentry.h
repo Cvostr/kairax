@@ -13,7 +13,7 @@
 
 struct dentry {
     uint32_t            flags;
-    uint64_t            inode;
+    struct inode*       d_inode;
     struct dentry*      parent;
     struct superblock*  sb;
     char                name[MAX_DIRENT_NAME_LEN];
