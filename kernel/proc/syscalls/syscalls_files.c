@@ -289,12 +289,17 @@ int sys_unlink(int dirfd, const char* path, int flags)
     }
 
     // Пометить dentry для удаления
-    target_dentry->flags |= DENTRY_UNLINK_DELAYED;
-    // Закрыть dentry. Если оно нигде больше не открыто - удаление произойдет прямо сейчас
-    rc = dentry_close(target_dentry);
+    target_dentry->flags |= DENTRY_INVALID;
+    
+    // Выполнить unlink в драйвере ФС
+    rc = inode_unlink(target_dentry->parent->d_inode, target_dentry);
 
     if (rc != 0)
         goto exit;
+
+    //printk("unlink() closing dentry %s, refs %i\n", target_dentry->name, target_dentry->refs_count);
+    // Закрыть dentry
+    dentry_close(target_dentry);
 
 exit:
     DENTRY_CLOSE_SAFE(dirdentry)

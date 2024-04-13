@@ -25,7 +25,12 @@ void inode_close(struct inode* node)
     //acquire_spinlock(&node->spinlock);
 
     if (atomic_dec_and_test(&node->reference_count)) {
-        //printk("CLOSE inode %i\n", node->inode);
+
+        if (node->hard_links == 0) {
+            //printk("Destroying inode %i\n", node->inode);
+            node->sb->operations->destroy_inode(node->sb, node);
+        }
+
         superblock_remove_inode(node->sb, node);
         kfree(node);
     } else {

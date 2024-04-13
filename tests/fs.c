@@ -159,7 +159,7 @@ int main(int argc, char** argv)
         printf("Incorrect errno, expected %i, got %i\n", ENOENT, errno);
         return 20;
     }
-
+    printf("\tClosing fd %i\n", fd);
     close(fd);
 
     return 0;

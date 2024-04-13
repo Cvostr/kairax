@@ -38,6 +38,7 @@ void ext2_init()
     file_ops.read = ext2_file_read;
     file_ops.write = ext2_file_write;
 
+    sb_ops.destroy_inode = ext2_purge_inode;
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
 }
@@ -419,11 +420,13 @@ exit:
     return result;
 }
 
-int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
+void ext2_purge_inode(struct superblock* sb, struct inode* inode)
 {
+    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
+    
     // Чтение удаляемой иноды
     ext2_inode_t* ext2_rem_inode = new_ext2_inode();
-    ext2_inode(inst, ext2_rem_inode, inode);
+    ext2_inode(inst, ext2_rem_inode, inode->inode);
 
     // Обнуление ссылок
     ext2_rem_inode->hard_links = 0;
@@ -452,10 +455,10 @@ int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
     ext2_rem_inode->num_blocks = 0;
 
     // Перезапись
-    ext2_write_inode_metadata(inst, ext2_rem_inode, inode);
+    ext2_write_inode_metadata(inst, ext2_rem_inode, inode->inode);
 
     // Этап освобождения номера в BGD и суперблоке
-    uint32_t inode_real_idx = inode - 1;
+    uint32_t inode_real_idx = inode->inode - 1;
     uint32_t inode_group_idx = inode_real_idx / inst->superblock->inodes_per_group;
     uint32_t inode_bitmap_idx = inode_real_idx % inst->superblock->inodes_per_group;
 
@@ -482,7 +485,6 @@ int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode)
 exit:
     kfree(ext2_rem_inode);
     kfree(buffer);
-    return 0;
 }
 
 uint64_t ext2_alloc_block(ext2_instance_t* inst)
@@ -1095,12 +1097,8 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
     // Уменьшить количество ссылок на выбранную inode
     e2_inode->hard_links--;
 
-    if (e2_inode->hard_links <= 0) {
-        // Ссылок не осталось - сносим inode
-        ext2_purge_inode(inst, unlink_inode_idx);
-    } else {
-        ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
-    }
+    // Перезаписать inode
+    ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
 
     // Уменьшить количество ссылок на выбранную inode в VFS
     dent->d_inode->hard_links--;

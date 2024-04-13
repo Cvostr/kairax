@@ -27,7 +27,7 @@ struct super_operations {
 
     struct inode *(*alloc_inode)(struct superblock *sb);
 
-    void (*destroy_inode)(struct inode * inode);
+    void (*destroy_inode)(struct superblock *sb, struct inode * inode);
 
     struct inode* (*read_inode)(struct superblock *sb, uint64_t ino_num);
 

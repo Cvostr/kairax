@@ -184,9 +184,6 @@ void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 // Создание новой inode на диске
 uint32_t ext2_alloc_inode(ext2_instance_t* inst);
 
-// Уничтожение inode, освобождение блоков, занимаемых этой inode
-int ext2_purge_inode(ext2_instance_t* inst, uint32_t inode);
-
 // Выделение нового блока на диске
 uint64_t ext2_alloc_block(ext2_instance_t* inst);
 
@@ -213,6 +210,15 @@ struct dirent* ext2_dirent_to_vfs_dirent(ext2_direntry_t* ext2_dirent);
 
 int ext2_dt_to_vfs_dt(int ext2_dt);
 
+// --------------- Функции Superblock -------------
+
+// Уничтожение inode, освобождение блоков, занимаемых этой inode
+void ext2_purge_inode(struct superblock* sb, struct inode* inode);
+
+struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
+
+uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type);
+
 // --------------- Функции inode и file -----------
 
 int ext2_unlink(struct inode* parent, struct dentry* dent);
@@ -226,10 +232,6 @@ int ext2_chmod(struct inode * inode, uint32_t mode);
 int ext2_truncate(struct inode* inode);
 
 int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inode* newparent, const char* newname);
-
-struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
-
-uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type);
 
 struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
 

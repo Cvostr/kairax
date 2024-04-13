@@ -65,8 +65,15 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
     struct dentry* result = NULL;
 
     result = dentry_get_child_with_name(parent, name);
-    if (result != NULL)
+    if (result != NULL) {
+
+        if ((result->flags & DENTRY_INVALID) == DENTRY_INVALID) {
+            result = NULL;
+            goto exit;
+        }
+
         goto exit;
+    }
         
     acquire_spinlock(&sb->spinlock);
     // считать dentry с диска
@@ -134,6 +141,4 @@ void debug_print_inodes(struct superblock* sb)
 
 exit:
     release_spinlock(&sb->spinlock);
-    
-    return result;
 }

@@ -8,7 +8,7 @@
 #include "atomic.h"
 
 #define DENTRY_MOUNTPOINT       2
-#define DENTRY_UNLINK_DELAYED   4
+#define DENTRY_INVALID          4
 #define DENTRY_TYPE_DIRECTORY   0x00200000
 
 struct dentry {
@@ -30,8 +30,6 @@ void free_dentry(struct dentry* dentry);
 
 void dentry_open(struct dentry* dentry);
 int dentry_close(struct dentry* dentry);
-// Сделать unlink для этой dentry
-int dentry_unlink(struct dentry* dentry);
 
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir);
 void dentry_remove_subdir(struct dentry* parent, struct dentry* dir);

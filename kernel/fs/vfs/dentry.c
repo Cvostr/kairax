@@ -16,7 +16,6 @@ struct dentry* new_dentry()
 
 void free_dentry(struct dentry* dentry)
 {
-    //printf("Freeing dentry, %s\n",dentry->name);
     free_list(dentry->subdirs);
     memset(dentry, 0, sizeof(struct dentry));
     kfree(dentry);
@@ -29,33 +28,22 @@ void dentry_open(struct dentry* dentry)
 
 int dentry_close(struct dentry* dentry)
 {
-    int rc = 0;
     if (atomic_dec_and_test(&dentry->refs_count)) {
 
         // Переход в состояние неиспользуемое "unused"
     
-        if ((dentry->flags & DENTRY_UNLINK_DELAYED) == DENTRY_UNLINK_DELAYED) {
-            // Это dentry помечено на удаление
-            rc = dentry_unlink(dentry);
+        if ((dentry->flags & DENTRY_INVALID) == DENTRY_INVALID) {
             
-            if (rc == 0) {
-                // Удаление из dentry родителя
-                dentry_remove_subdir(dentry->parent, dentry);
-                // Освобождение памяти
-                free_dentry(dentry);
-            }
+            //printk("destroying dentry %s, inode %i\n", dentry->name, dentry->d_inode->inode);
+            inode_close(dentry->d_inode);
+            // Удаление из dentry родителя
+            dentry_remove_subdir(dentry->parent, dentry);
+            // Освобождение памяти
+            free_dentry(dentry);
         }
     }
 
-    return rc;
-}
-
-int dentry_unlink(struct dentry* dentry)
-{
-    struct inode* parent_inode = vfs_fopen_parent(dentry);
-    int rc = inode_unlink(parent_inode, dentry);
-    INODE_CLOSE_SAFE(parent_inode)
-    return rc;
+    return 0;
 }
 
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir)
