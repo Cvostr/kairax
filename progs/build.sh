@@ -38,6 +38,10 @@ cd rm
 make
 cd ..
 
+cd rmdir
+make
+cd ..
+
 cd dynloader
 make
 cd ..

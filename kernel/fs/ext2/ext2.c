@@ -33,6 +33,7 @@ void ext2_init()
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.rename = ext2_rename;
     dir_inode_ops.unlink = ext2_unlink;
+    dir_inode_ops.rmdir = ext2_rmdir;
     dir_ops.readdir = ext2_file_readdir;
 
     file_ops.read = ext2_file_read;
@@ -1031,6 +1032,9 @@ int ext2_truncate(struct inode* inode)
     e2_inode->size = 0;
     e2_inode->num_blocks = 0;
 
+    inode->size = 0;
+    inode->blocks = 0;
+
     ext2_write_inode_metadata(inst, e2_inode, inode->inode);
     kfree(e2_inode);
 
@@ -1108,6 +1112,99 @@ exit:
     kfree(e2_inode);
 
     return 0;
+}
+
+int ext2_rmdir(struct inode* inode, struct dentry* dentry)
+{
+    int rc = 0;
+
+    ext2_instance_t* inst = (ext2_instance_t*) inode->sb->fs_info;
+
+    if (dentry->d_inode->hard_links > 2) {
+        rc = -ENOTEMPTY;
+        goto exit;
+    }
+
+    //Получить ext2 иноду удаляемой директории
+    ext2_inode_t* dir_inode = new_ext2_inode();
+    ext2_inode(inst, dir_inode, dentry->d_inode->inode);
+
+    // ------ Проверяем директорию, чтобы она была пустой ------------------
+    //Переменные
+    int dot = 0, dotdot = 0, other = 0;
+    uint32_t curr_offset = 0;
+    uint32_t block_offset = 0;
+    uint32_t in_block_offset = 0;
+    //Выделить временную память под буфер блоков
+    char* buffer = kmalloc(inst->block_size);
+    char* buffer_phys = (char*) vmm_get_physical_address(buffer);
+    //Прочитать начальный блок иноды
+    ext2_read_inode_block(inst, dir_inode, block_offset, buffer_phys);
+    //Проверка, не прочитан ли весь блок?
+    while (curr_offset < dir_inode->size) {
+
+        if (in_block_offset >= inst->block_size) {
+            block_offset++;
+            in_block_offset = 0;
+            ext2_read_inode_block(inst, dir_inode, block_offset, buffer_phys);
+        }
+
+        ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
+
+        if (curr_entry->inode != 0) {
+            if (curr_entry->name[0] == '.' && curr_entry->name_len == 1) {
+                dot = 1;
+            } else if (curr_entry->name[0] == '.' && curr_entry->name[1] == '.' && curr_entry->name_len == 2) {
+                dotdot = 1;
+            } else {
+                other ++;
+            }
+        }
+
+        in_block_offset += curr_entry->size;
+        curr_offset += curr_entry->size;
+    }
+    kfree(buffer);
+    // Должны быть только . и ..
+    if (!dot || !dotdot || other > 0) {
+        rc = -ENOTEMPTY;
+        goto exit;
+    }
+
+    // Удалить dentry директории из родительской inode
+    if (ext2_remove_dentry(inst, inode, dentry->name, NULL) != 0) {
+        goto exit;
+    }
+
+    // Обнулить количество ссылок на выбранную inode
+    dir_inode->hard_links = 0;
+    // Перезаписать inode
+    ext2_write_inode_metadata(inst, dir_inode, dentry->d_inode->inode);
+    // Обнулить количество ссылок на выбранную inode в VFS
+    dentry->d_inode->hard_links = 0;
+    
+    // Также должны уменьшить кол-во ссылок родительской директории, т.к в удаляемой директории есть ..
+    // Считать ext2 - inode директории, из которой удаляем
+    ext2_inode_t* parent_inode = new_ext2_inode();
+    ext2_inode(inst, parent_inode, inode->inode);
+
+    parent_inode->hard_links--;
+    // Перезаписать inode
+    ext2_write_inode_metadata(inst, parent_inode, inode->inode);
+    // Уменьшить количество ссылок на родительскую inode в VFS
+    inode->hard_links --;
+
+    // Обновить информацию о свободных папках в bgds
+    uint32_t new_inode_group = (dentry->d_inode->inode - 1) / inst->superblock->inodes_per_group;
+	inst->bgds[new_inode_group].used_dirs--;
+	ext2_write_bgds(inst);
+    
+    // Освобождение
+    kfree(parent_inode);
+
+exit:
+    kfree(dir_inode);
+    return rc;
 }
 
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
@@ -1189,7 +1286,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     parent->hard_links++;
 
     // Обновить информацию о свободных папках в bgds
-    uint32_t new_inode_group = inode_num / inst->superblock->inodes_per_group;
+    uint32_t new_inode_group = (inode_num - 1) / inst->superblock->inodes_per_group;
 	inst->bgds[new_inode_group].used_dirs++;
 	ext2_write_bgds(inst);
 
@@ -1241,8 +1338,6 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
     // Добавить иноду в директорию
     ext2_create_dentry(inst, parent, file_name, inode_num, EXT2_DT_REG);
-
-    ext2_write_bgds(inst);
 
     kfree(inode);
     return 0;

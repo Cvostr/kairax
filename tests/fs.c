@@ -30,8 +30,8 @@ int main(int argc, char** argv)
     old_links = file_stat.st_nlink;
 
     printf("Test 1: Dir creation\n");
-    fd = mkdir(testdir, TESTDIR_PERM);
-    if (fd == -1) {
+    rc = mkdir(testdir, TESTDIR_PERM);
+    if (rc == -1) {
         printf("Failed mkdir() for %s\n", testdir);
         return 1;
     }
@@ -54,7 +54,6 @@ int main(int argc, char** argv)
         printf("Invalid hard link count for %s, expected %i, got %i\n", testdir, (old_links + 1), file_stat.st_nlink);
         return 5;
     }
-    close(fd);
 
     printf("Test 2: File creation\n");
     fd = creat(testfile, TESTFILE_PERM);
@@ -123,6 +122,7 @@ int main(int argc, char** argv)
         }
     }
 
+    // ---------------------------------
     printf("Test 5: File rename\n");
     rc = rename(testfile, testfile2);
     if (rc == -1) {
@@ -144,6 +144,8 @@ int main(int argc, char** argv)
         return 17;
     }
 
+    // --------------------------------
+
     printf("Test 6: File remove\n");
     rc = remove(testfile2);
     if (rc == -1) {
@@ -159,8 +161,38 @@ int main(int argc, char** argv)
         printf("Incorrect errno, expected %i, got %i\n", ENOENT, errno);
         return 20;
     }
+    rc = fstat(fd, &file_stat);
+    if (rc == -1) {
+        printf("Failed stat() for %s, errno = %i\n", testfile, errno);
+        return 21;
+    }
+    printf("\tNew links on %s : %i\n", testfile2, file_stat.st_nlink);
+    if (file_stat.st_nlink != 0) {
+        printf("Invalid hard link count for %s, expected %i, got %i\n", testfile, 0, file_stat.st_nlink);
+        return 22;
+    }
     printf("\tClosing fd %i\n", fd);
     close(fd);
+
+    // -----------------------------
+
+    printf("Test 7: Directory unlink()\n");
+    rc = unlink(testdir);
+    if (rc != -1) {
+        printf("Successful unlink() on %s, Something wrong\n", testdir);
+        return 23;
+    }
+    if (errno != EISDIR) {
+        printf("Incorrect errno, expected %i, got %i\n", EISDIR, errno);
+        return 24;
+    }
+
+    printf("Test 8: Directory rmdir()\n");
+    rc = rmdir(testdir);
+    if (rc == -1) {
+        printf("Failed rmdir() for %s, errno = %i\n", testdir, errno);
+        return 25;
+    }
 
     return 0;
 }

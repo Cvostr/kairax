@@ -297,12 +297,12 @@ int sys_unlink(int dirfd, const char* path, int flags)
     if (rc != 0)
         goto exit;
 
-    //printk("unlink() closing dentry %s, refs %i\n", target_dentry->name, target_dentry->refs_count);
-    // Закрыть dentry
-    dentry_close(target_dentry);
-
 exit:
-    DENTRY_CLOSE_SAFE(dirdentry)
+    // Закрыть удаляемую dentry
+    //printk("unlink() closing dentry %s, refs %i\n", target_dentry->name, target_dentry->refs_count);
+    DENTRY_CLOSE_SAFE(target_dentry);
+
+    //DENTRY_CLOSE_SAFE(dirdentry)
 
     return rc;
 }
@@ -323,7 +323,6 @@ int sys_rmdir(const char* path)
     }
 
     int ino_mode = target_inode->mode;
-    int hard_links = target_inode->hard_links;
     INODE_CLOSE_SAFE(target_inode)
 
     // С помощью rmdir удаляем только директории
@@ -337,22 +336,31 @@ int sys_rmdir(const char* path)
         rc = -ERROR_BUSY;
         goto exit;
     }
-
-    // TODO: Проверить рабочую папку всех процессов
-    
 /*
-    if (hard_links > 2) {
-        rc = -ENOTEMPTY;
+    // нельзя удалять . и ..
+    if (strcmp(target_dentry->name, ".") == 0 || strcmp(target_dentry->name, "..") == 0) {
+        rc = -ERROR_INVALID_VALUE;
         goto exit;
     }
 */
-    // TODO: implement
 
+    // TODO: Проверить рабочую папку всех процессов
+
+    // Пометить dentry для удаления
+    target_dentry->flags |= DENTRY_INVALID;
+
+    // Выполнение rmdir в драйвере ФС
+    struct inode* parent_inode = target_dentry->parent->d_inode;
+    rc = inode_rmdir(parent_inode, target_dentry);
+    if (rc != 0)
+        goto exit;
 
 exit:
+    // Закрыть dentry
+    DENTRY_CLOSE_SAFE(target_dentry);
+
     return rc;
 }
-
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)
 {

@@ -223,6 +223,8 @@ uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, co
 
 int ext2_unlink(struct inode* parent, struct dentry* dent);
 
+int ext2_rmdir(struct inode*, struct dentry*);
+
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
