@@ -91,8 +91,8 @@ void process_become_zombie(struct process* process)
     }
 
     // Закрыть объект рабочей папки
-    if (process->workdir) {
-        file_close(process->workdir);
+    if (process->pwd) {
+        dentry_close(process->pwd);
     }
 
     // Переключаемся на основную виртуальную таблицу памяти ядра
@@ -509,9 +509,9 @@ int process_handle_page_fault(struct process* process, uint64_t address)
 
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result)
 {
-    if (dirfd == FD_CWD && process->workdir) {
+    if (dirfd == FD_CWD && process->pwd) {
         // Открыть относительно рабочей директории
-        *result = process->workdir->dentry;
+        *result = process->pwd;
         
     } else if (!vfs_is_path_absolute(path)) {
         // Открыть относительно другого файла
@@ -540,9 +540,9 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
     if (flags & DIRFD_IS_FD) {
         // Дескриптор файла передан в dirfd
         *file = process_get_file(process, dirfd);
-    } else if (dirfd == FD_CWD && process->workdir->dentry) {
+    } else if (dirfd == FD_CWD && process->pwd) {
         // Указан путь относительно рабочей директории
-        *file = file_open(process->workdir->dentry, path, 0, 0);
+        *file = file_open(process->pwd, path, 0, 0);
         *close_at_end = 1;
     } else {
         // Открываем файл относительно dirfd

@@ -14,10 +14,11 @@ int sys_get_working_dir(char* buffer, size_t size)
     size_t reqd_size = 0;
     struct process* process = cpu_get_current_thread()->process;
 
-    if (process->workdir) {
+    acquire_spinlock(&process->pwd_lock);
+    if (process->pwd) {
         
         // Вычисляем необходимый размер буфера
-        vfs_dentry_get_absolute_path(process->workdir->dentry, &reqd_size, NULL);
+        vfs_dentry_get_absolute_path(process->pwd, &reqd_size, NULL);
         
         if (reqd_size + 1 > size) {
             // Размер буфера недостаточный
@@ -26,8 +27,9 @@ int sys_get_working_dir(char* buffer, size_t size)
         }
 
         // Записываем путь в буфер
-        vfs_dentry_get_absolute_path(process->workdir->dentry, NULL, buffer);
+        vfs_dentry_get_absolute_path(process->pwd, NULL, buffer);
     }
+    release_spinlock(&process->pwd_lock);
 
 exit:
     return rc;
@@ -37,23 +39,28 @@ int sys_set_working_dir(const char* buffer)
 {
     int rc = 0;
     struct process* process = cpu_get_current_thread()->process;
-    struct dentry* workdir_dentry = process->workdir != NULL ? process->workdir->dentry : NULL;
-    struct file* new_workdir = file_open(workdir_dentry, buffer, 0, 0);
+    struct dentry* workdir_dentry = process->pwd != NULL ? process->pwd : NULL;
+    struct dentry* new_workdir = vfs_dentry_traverse_path(workdir_dentry, buffer);
 
     if (new_workdir) {
-        // файл открыт, убеждаемся что это директория 
-        if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
+        // Проверить тип (должна быть директория)
+        if ((new_workdir->flags & DENTRY_TYPE_DIRECTORY) == DENTRY_TYPE_DIRECTORY) {
 
+            acquire_spinlock(&process->pwd_lock);
             //  Закрываем старый файл, если был
-            if (process->workdir) {
-                file_close(process->workdir);
+            if (process->pwd) {
+                dentry_close(process->pwd);
             }
 
-            process->workdir = new_workdir;
+            // Увеличиваем счетчик ссылок и сохраняем
+            dentry_open(new_workdir);
+            process->pwd = new_workdir;
+
+            release_spinlock(&process->pwd_lock);
         } else {
             // Это не директория
             rc = -ERROR_NOT_A_DIRECTORY;
-            file_close(new_workdir);
+            dentry_close(new_workdir);
         }
     } else {
         rc = -ERROR_NO_FILE;

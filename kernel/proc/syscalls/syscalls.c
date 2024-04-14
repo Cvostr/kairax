@@ -313,15 +313,15 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
             
         if (info->current_directory) {
             // Указана рабочая директория
-            struct file* new_workdir = file_open(NULL, info->current_directory, 0, 0);
-            atomic_inc(&new_workdir->refs);
+            struct dentry* new_workdir = vfs_dentry_traverse_path(NULL, info->current_directory);
 
             if (new_workdir) {
                 
-                // Проверить тип inode, убедиться что это директория
-                if (new_workdir->inode->mode & INODE_TYPE_DIRECTORY) {
+                // Проверить тип, убедиться что это директория
+                if ((new_workdir->flags & DENTRY_TYPE_DIRECTORY) == DENTRY_TYPE_DIRECTORY) {
                     
-                    new_process->workdir = new_workdir;
+                    dentry_open(new_workdir);
+                    new_process->pwd = new_workdir;
 
                 } else {
                     // Это не директория - закрываем файл
@@ -341,11 +341,10 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
     // У процесса так и нет рабочей папки
     // Используем папку родителя, если она есть
-    if (new_process->workdir == NULL && process->workdir != NULL) {
+    if (new_process->pwd == NULL && process->pwd != NULL) {
 
-        new_process->workdir = file_clone(process->workdir);
-        //new_process->workdir = process->workdir;
-        atomic_inc(&new_process->workdir->refs);
+        dentry_open(process->pwd);
+        new_process->pwd = process->pwd;
     }
 
     // Формируем auxiliary вектор

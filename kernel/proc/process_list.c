@@ -41,3 +41,25 @@ void process_remove_from_list(struct process* process)
 
     release_spinlock(&process_lock);
 }
+
+int process_list_is_dentry_used_as_cwd(struct dentry* dentry)
+{
+    int rc = 0;
+    acquire_spinlock(&process_lock);
+
+    for (int pid = 0; pid < MAX_PROCESSES; pid ++) {
+
+        struct process* proc = processes[pid];
+
+        if (proc != NULL) {
+            
+            if (proc->pwd == dentry) {
+                rc = 1;
+                break;
+            }                
+        }
+    }
+
+    release_spinlock(&process_lock);
+    return rc;
+}

@@ -19,5 +19,6 @@ int* __errno_location();
 #define EISDIR                      21
 #define EINVAL                      22
 #define ETIMEDOUT                   116
+#define	EBUSY                       16
 
 #endif

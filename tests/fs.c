@@ -11,6 +11,7 @@
 #include "fcntl.h"
 
 char* testdir = "testdir";
+char* testdir_relative = "../testdir";
 char* testfile = "testdir/testfile.txt";
 char* testfile2 = "testdir/testfile2.txt";
 #define TESTDIR_PERM 0666
@@ -144,54 +145,81 @@ int main(int argc, char** argv)
         return 17;
     }
 
+    // ---=---------------------------
+
+    printf("Test 7: chdir() to testdir\n");
+    rc = chdir(testdir);
+    if (rc == -1) {
+        printf("Failed chdir() to %s, errno = %i\n", testdir, errno);
+        return 18;
+    }
+
+    char cwd[100];
+    getcwd(cwd, 100);
+    printf("\tWorkdir is %s\n", cwd);
+    chdir("..");
+
     // --------------------------------
 
-    printf("Test 6: File remove\n");
+    printf("Test 8: File remove\n");
     rc = remove(testfile2);
     if (rc == -1) {
         printf("Failed remove() for %s, errno = %i\n", testfile2, errno);
-        return 18;
+        return 19;
     }
     rc = stat(testfile2, &file_stat);
     if (rc != -1) {
         printf("Successful stat() of %s, Something wrong\n", testfile2);
-        return 19;
+        return 20;
     }
     if (errno != ENOENT) {
         printf("Incorrect errno, expected %i, got %i\n", ENOENT, errno);
-        return 20;
+        return 21;
     }
     rc = fstat(fd, &file_stat);
     if (rc == -1) {
         printf("Failed stat() for %s, errno = %i\n", testfile, errno);
-        return 21;
+        return 22;
     }
     printf("\tNew links on %s : %i\n", testfile2, file_stat.st_nlink);
     if (file_stat.st_nlink != 0) {
         printf("Invalid hard link count for %s, expected %i, got %i\n", testfile, 0, file_stat.st_nlink);
-        return 22;
+        return 23;
     }
     printf("\tClosing fd %i\n", fd);
     close(fd);
 
     // -----------------------------
 
-    printf("Test 7: Directory unlink()\n");
+    printf("Test 9: Directory unlink()\n");
     rc = unlink(testdir);
     if (rc != -1) {
         printf("Successful unlink() on %s, Something wrong\n", testdir);
-        return 23;
+        return 24;
     }
     if (errno != EISDIR) {
         printf("Incorrect errno, expected %i, got %i\n", EISDIR, errno);
-        return 24;
+        return 25;
     }
 
-    printf("Test 8: Directory rmdir()\n");
+    printf("Test 10: Directory rmdir() when its current WD\n");
+    rc = chdir(testdir);
+    rc = rmdir(testdir_relative);
+    if (rc != -1) {
+        printf("Successful rmdir() on current dir %s, Something wrong\n", testdir);
+        return 26;
+    }
+    if (errno != EBUSY) {
+        printf("Incorrect errno, expected %i, got %i\n", EBUSY, errno);
+        return 27;
+    }
+    chdir("..");
+
+    printf("Test 11: Directory rmdir()\n");
     rc = rmdir(testdir);
     if (rc == -1) {
         printf("Failed rmdir() for %s, errno = %i\n", testdir, errno);
-        return 25;
+        return 28;
     }
 
     return 0;

@@ -314,7 +314,7 @@ int sys_rmdir(const char* path)
 
     // Получить удаляемую inode и dentry относительно рабочей директории
     struct dentry* target_dentry = NULL;
-    struct inode* target_inode = vfs_fopen(process->workdir->dentry, path, &target_dentry);
+    struct inode* target_inode = vfs_fopen(process->pwd, path, &target_dentry);
 
     // не нашли файл, который нужно удалить
     if (target_inode == NULL || target_dentry == NULL) {
@@ -344,7 +344,11 @@ int sys_rmdir(const char* path)
     }
 */
 
-    // TODO: Проверить рабочую папку всех процессов
+    // Проверить, что удаляемая директория не является рабочей папкой какого либо процесса
+    if (process_list_is_dentry_used_as_cwd(target_dentry) != 0) {
+        rc = -ERROR_BUSY;
+        goto exit;
+    }
 
     // Пометить dentry для удаления
     target_dentry->flags |= DENTRY_INVALID;

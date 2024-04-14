@@ -43,7 +43,8 @@ struct process {
     uint64_t            brk;
     uint64_t            threads_stack_top;
     // Рабочая папка
-    struct file*        workdir;
+    spinlock_t          pwd_lock;
+    struct dentry*      pwd;
     // Таблица виртуальной памяти процесса
     struct vm_table*    vmemory_table;  
     // Связный список потоков
