@@ -213,7 +213,7 @@ int ext2_dt_to_vfs_dt(int ext2_dt);
 // --------------- Функции Superblock -------------
 
 // Уничтожение inode, освобождение блоков, занимаемых этой inode
-void ext2_purge_inode(struct superblock* sb, struct inode* inode);
+void ext2_purge_inode(struct inode* inode);
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 

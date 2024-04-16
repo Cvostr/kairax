@@ -421,9 +421,9 @@ exit:
     return result;
 }
 
-void ext2_purge_inode(struct superblock* sb, struct inode* inode)
+void ext2_purge_inode(struct inode* inode)
 {
-    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
+    ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
     
     // Чтение удаляемой иноды
     ext2_inode_t* ext2_rem_inode = new_ext2_inode();
@@ -432,6 +432,8 @@ void ext2_purge_inode(struct superblock* sb, struct inode* inode)
     // Обнуление ссылок
     ext2_rem_inode->hard_links = 0;
     ext2_rem_inode->mode = 0;
+
+    //printk("INODE %i SIZE %i BLOCKS %i\n", inode->inode, ext2_rem_inode->size, ext2_rem_inode->num_blocks);
 
     // Освобождение direct блоков
     for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
@@ -498,6 +500,9 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
 
     for (uint64_t bgd_i = 0; bgd_i < inst->bgds_blocks; bgd_i ++) {
         if (inst->bgds[bgd_i].free_blocks > 0) {
+
+            bitmap_index = 0;
+
             ext2_partition_read_block(inst, inst->bgds[bgd_i].block_bitmap, 1, (char*)kheap_get_phys_address(buffer));
 
             while (buffer[bitmap_index / 8] & (1 << (bitmap_index % 8))) {
@@ -586,6 +591,7 @@ int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
 
     // Увеличить количество свободных блоков в суперблоке
     inst->superblock->free_blocks++;
+    //printk("FREED BLOCK, now %i\n", inst->superblock->free_blocks);
 
 exit:
     kfree(buffer);
@@ -1093,6 +1099,8 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
     ext2_inode_t* e2_inode = new_ext2_inode();
     ext2_inode(inst, e2_inode, unlink_inode_idx);
 
+    //printk("UNLINK: INODE %i SIZE %i BLOCKS %i\n", unlink_inode_idx, e2_inode->size, e2_inode->num_blocks);
+
     // Удалить dentry из родительской inode
     if (ext2_remove_dentry(inst, parent, dent->name, NULL) != 0) {
         goto exit;
@@ -1102,7 +1110,7 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
     e2_inode->hard_links--;
 
     // Перезаписать inode
-    ext2_write_inode_metadata(inst, e2_parent_inode, unlink_inode_idx);
+    ext2_write_inode_metadata(inst, e2_inode, unlink_inode_idx);
 
     // Уменьшить количество ссылок на выбранную inode в VFS
     dent->d_inode->hard_links--;
@@ -1178,7 +1186,7 @@ int ext2_rmdir(struct inode* inode, struct dentry* dentry)
 
     // Обнулить количество ссылок на выбранную inode
     dir_inode->hard_links = 0;
-    // Перезаписать inode
+    // Перезаписать удаляемую inode
     ext2_write_inode_metadata(inst, dir_inode, dentry->d_inode->inode);
     // Обнулить количество ссылок на выбранную inode в VFS
     dentry->d_inode->hard_links = 0;
@@ -1189,14 +1197,14 @@ int ext2_rmdir(struct inode* inode, struct dentry* dentry)
     ext2_inode(inst, parent_inode, inode->inode);
 
     parent_inode->hard_links--;
-    // Перезаписать inode
+    // Перезаписать inode - родителя
     ext2_write_inode_metadata(inst, parent_inode, inode->inode);
     // Уменьшить количество ссылок на родительскую inode в VFS
     inode->hard_links --;
 
     // Обновить информацию о свободных папках в bgds
-    uint32_t new_inode_group = (dentry->d_inode->inode - 1) / inst->superblock->inodes_per_group;
-	inst->bgds[new_inode_group].used_dirs--;
+    uint32_t inode_group = (dentry->d_inode->inode - 1) / inst->superblock->inodes_per_group;
+	inst->bgds[inode_group].used_dirs--;
 	ext2_write_bgds(inst);
     
     // Освобождение

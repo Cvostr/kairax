@@ -28,7 +28,7 @@ void inode_close(struct inode* node)
 
         if (node->hard_links == 0) {
             //printk("Destroying inode %i\n", node->inode);
-            node->sb->operations->destroy_inode(node->sb, node);
+            node->sb->operations->destroy_inode(node);
         }
 
         superblock_remove_inode(node->sb, node);
