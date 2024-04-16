@@ -144,7 +144,7 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry**
 
     if (result_dentry) {
 
-        struct inode* result = result_dentry->d_inode;// superblock_get_inode(result_dentry->sb, result_dentry->d_inode->inode);
+        struct inode* result = result_dentry->d_inode;
 
         if (result) {
             // Увеличение счетчика, операции с ФС
