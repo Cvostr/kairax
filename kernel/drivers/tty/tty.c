@@ -36,20 +36,26 @@ void tty_init()
 
 int master_file_close(struct inode *inode, struct file *file)
 {
-
+    printk("tty: master close() not implemented!\n");
+    return -1;
 }
 
 int slave_file_close(struct inode *inode, struct file *file)
 {
-
+    printk("tty: slave close() not implemented!\n");
+    return -1;
 }
 
 int tty_create(struct file **master, struct file **slave)
 {
     struct pty* p_pty = kmalloc(sizeof(struct pty));
     memset(p_pty, 0, sizeof(struct pty));
+
     p_pty->master_to_slave = new_pipe();
+    atomic_inc(&p_pty->master_to_slave->ref_count);
+    
     p_pty->slave_to_master = new_pipe();
+    atomic_inc(&p_pty->slave_to_master->ref_count);
 
     struct file *fmaster = new_file();
     fmaster->flags = FILE_OPEN_MODE_READ_WRITE;

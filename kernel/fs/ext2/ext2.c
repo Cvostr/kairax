@@ -129,7 +129,8 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
             // Адрес доп. блока не задан - выделяем блок и задаем адрес
             uint64_t new_block_index = ext2_alloc_block(inst);
             
-            if (!new_block_index) {
+            if (new_block_index == 0) {
+                printk("Failed to allocate block!");
                 rc = -2;
                 goto exit;
             }
@@ -286,6 +287,7 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
 
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
+    //printk("Writing to block %i", inode_block_abs);
     return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
 }
 
@@ -349,6 +351,9 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     struct inode* result = ext2_inode_to_vfs_inode(instance, ext2_inode_root, 2);
 
     kfree(ext2_inode_root);
+
+    //printk("Block size %i\n", instance->block_size);
+    //printk("BPG %i\n", instance->superblock->blocks_per_group);
 
     // Данные суперблока
     sb->fs_info = instance;
@@ -492,11 +497,15 @@ exit:
 
 uint64_t ext2_alloc_block(ext2_instance_t* inst)
 {
-    uint8_t* buffer = (uint8_t*)kmalloc(inst->block_size);
-
     uint64_t bitmap_index = 0;
     uint64_t block_index = 0;
     uint64_t group_index = 0;
+
+    // Количество блоков в группе
+    uint32_t blocks_per_group = inst->superblock->blocks_per_group;
+
+    // Выделить временную память под буфер
+    uint8_t* buffer = (uint8_t*)kmalloc(inst->block_size);
 
     for (uint64_t bgd_i = 0; bgd_i < inst->bgds_blocks; bgd_i ++) {
         if (inst->bgds[bgd_i].free_blocks > 0) {
@@ -505,12 +514,16 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
 
             ext2_partition_read_block(inst, inst->bgds[bgd_i].block_bitmap, 1, (char*)kheap_get_phys_address(buffer));
 
-            while (buffer[bitmap_index / 8] & (1 << (bitmap_index % 8))) {
+            while ( ( buffer[bitmap_index / 8] & (1U << (bitmap_index % 8)) ) > 0) {
                 bitmap_index++;
             }
 
+            if (bitmap_index >= blocks_per_group) {
+                continue;
+            }
+
             group_index = bgd_i;
-            block_index = bgd_i * inst->superblock->blocks_per_group + bitmap_index;
+            block_index = bgd_i * blocks_per_group + bitmap_index;
             break;
         }
     }
@@ -519,6 +532,8 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
         // Не удалось найти свободный блок
         goto exit;
     }
+
+    //printk("block %i bitmap %i\n", block_index, bitmap_index);
 
     // Пометить блок в битмапе как занятый
     buffer[bitmap_index / 8] |= (1 << (bitmap_index % 8));
@@ -591,7 +606,6 @@ int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
 
     // Увеличить количество свободных блоков в суперблоке
     inst->superblock->free_blocks++;
-    //printk("FREED BLOCK, now %i\n", inst->superblock->free_blocks);
 
 exit:
     kfree(buffer);

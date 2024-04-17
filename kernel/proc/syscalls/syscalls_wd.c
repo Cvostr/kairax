@@ -60,7 +60,6 @@ int sys_set_working_dir(const char* buffer)
         } else {
             // Это не директория
             rc = -ERROR_NOT_A_DIRECTORY;
-            dentry_close(new_workdir);
         }
     } else {
         rc = -ERROR_NO_FILE;

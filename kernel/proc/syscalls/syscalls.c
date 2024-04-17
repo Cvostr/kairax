@@ -180,7 +180,6 @@ int sys_set_time_epoch(const struct timeval *tv)
         return -ERROR_INVALID_VALUE;
     }
 
-    //printk("SETTING TIME %i\n", tv->tv_sec);
     arch_sys_set_time_epoch(tv);
     return 0;
 }
@@ -323,9 +322,6 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
                     dentry_open(new_workdir);
                     new_process->pwd = new_workdir;
 
-                } else {
-                    // Это не директория - закрываем файл
-                    file_close(new_workdir);
                 }
             }
         }
