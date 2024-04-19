@@ -120,6 +120,9 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
 
             // Файл создан, открываем его
             inode = vfs_fopen(dir, path, &dentry);
+            if (inode == NULL) {
+                return NULL;
+            }
 
         } else {
 
