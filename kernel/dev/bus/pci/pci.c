@@ -193,9 +193,14 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 
 extern uint64_t arch_get_msi_address(uint64_t *data, size_t vector, uint32_t processor, uint8_t edgetrigger, uint8_t deassert);
 
+int pci_device_is_msi_capable(struct pci_device_info* device)
+{
+	return (device->status & PCI_STATUS_MSI_CAPABLE) == PCI_STATUS_MSI_CAPABLE;
+}
+
 int pci_device_set_msi_vector(struct device* device, uint32_t vector)
 {
-	if ((device->pci_info->status & PCI_STATUS_MSI_CAPABLE) != PCI_STATUS_MSI_CAPABLE) {
+	if (pci_device_is_msi_capable(device->pci_info) == 0) {
 		return -1;
 	}
 

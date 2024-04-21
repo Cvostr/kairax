@@ -76,12 +76,16 @@ struct hda_stream {
 
     uint32_t                bdl_num;
     struct HDA_BDL_ENTRY*   bdl;
+
+    spinlock_t              lock;
 };
 
 struct hda_widget {
 
     int type;
     struct hda_stream* ostream;
+
+    struct hda_dev* dev;
 
     // DACs, ADCs
     uint32_t connections_num;
@@ -183,7 +187,7 @@ struct hda_dev {
 #define HDA_SPDIF_OUT   4
 #define HDA_LINE_IN     8
 
-uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size);
+uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t offset, uint32_t size);
 void hda_stream_run(struct hda_dev* dev, struct hda_stream* stream);
 void hda_register_stream(struct hda_dev* dev, struct hda_stream* stream);
 

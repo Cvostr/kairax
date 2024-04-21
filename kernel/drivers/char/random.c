@@ -15,7 +15,7 @@ void random_init()
     rand_seed = ticks.tv_sec;
 
     random_fops.read = random_read;
-	devfs_add_char_device("random", &random_fops);
+	devfs_add_char_device("random", &random_fops, NULL);
 }
 
 int krand()

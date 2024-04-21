@@ -13,7 +13,7 @@ int init()
 {
 	printk("Hello from module %i\n", 123);
 
-	devfs_add_char_device("hellodev", &fops);
+	devfs_add_char_device("hellodev", &fops, NULL);
 	
 	return 0;
 }

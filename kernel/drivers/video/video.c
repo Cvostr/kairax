@@ -54,7 +54,7 @@ uint32_t vga_get_pitch()
 void vga_init_dev()
 {
     vga_disp_fops.write = vga_display_write;
-	devfs_add_char_device("display", &vga_disp_fops);
+	devfs_add_char_device("display", &vga_disp_fops, NULL);
 }
 
 void vga_draw_pixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b) 

@@ -7,3 +7,6 @@ all: hda.o
 
 hda.o: hda.c
 	$(COMPILER) $(CFLAGS) hda.c -o hda.ko
+
+clean:
+	find . -name "*.ko" -type f -delete

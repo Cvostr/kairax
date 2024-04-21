@@ -7,9 +7,30 @@
 #include "hda.h"
 #include "mem/iomem.h"
 #include "kairax/string.h"
-//#include "sound_data.h"
 
-#define BDL_NUM 200
+#define BDL_NUM 1
+#define BDL_SIZE 4096
+
+int added = 0;
+
+int fwrite(struct file *file, char* buffer, size_t count, size_t offset);
+
+struct file_operations output_widget_fops = {.write = fwrite};
+
+int fwrite(struct file *file, char* buffer, size_t count, size_t offset)
+{
+    int remain = count;
+    int written = 0;
+    struct hda_widget* wgt = file->inode->private_data;
+    
+    for (int i = 0; i < count / BDL_SIZE; i ++) {
+        acquire_spinlock(&wgt->ostream->lock);
+        hda_stream_write(wgt->ostream, buffer, 0, BDL_SIZE);
+        written += BDL_SIZE;
+    }
+
+	return 0;
+}
 
 struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, int type, uint16_t format) 
 {
@@ -77,6 +98,9 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, i
 
     printk("Stream initialized\n");
 
+    hda_outb(dev, SSYNC, 0xFFFFFFF);
+    hda_stream_run(dev, stream);
+
     return stream;
 }
 
@@ -105,23 +129,24 @@ void hda_register_stream(struct hda_dev* dev, struct hda_stream* stream)
     dev->streams[base + stream->index - 1] = stream;
 }
 
-uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t size)
+uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t offset, uint32_t size)
 {
-    uint32_t written = 0;
-    uint32_t written_in_bdl = 0;
-    uint32_t bdl_i = 0;
+    uint32_t written = offset;
+    uint32_t written_in_bdl = offset % BDL_SIZE;
+    uint32_t bdl_i = offset / BDL_SIZE;
     struct HDA_BDL_ENTRY* current_bdl = stream->bdl;
+
+    char *dst = vmm_get_virtual_address(current_bdl->paddr);
 
     for (uint32_t i = 0; (i < size) && (bdl_i < stream->bdl_num); i ++) {
 
-        char* dst = current_bdl->paddr;
-        dst = vmm_get_virtual_address(dst);
         dst[written_in_bdl++] = mem[written++];
 
         if (written_in_bdl >= current_bdl->length) {
             bdl_i++;
             current_bdl = &stream->bdl[bdl_i];
             written_in_bdl = 0;
+            dst = vmm_get_virtual_address(current_bdl->paddr);
         }
     }
 
@@ -326,11 +351,6 @@ int hda_device_probe(struct device *dev)
 
     printk("HDA device initialized\n");
 
-    // !!! DEMO !!!
-    //hda_stream_write(dev_data->streams[4], sound_data, sizeof(sound_data));
-    //hda_outb(dev_data, SSYNC, 1);
-    //hda_stream_run(dev_data, dev_data->streams[4]);
-
     return 0;
 }
 
@@ -393,6 +413,7 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
     struct hda_widget* widget = kmalloc(sizeof(struct hda_widget));
     memset(widget, 0, sizeof(struct hda_widget));
 
+    widget->dev = dev;
     widget->func_group_type = hda_codec_get_param(dev, codec, node, HDA_CODEC_FUNCTION_GROUP_TYPE);
     widget->caps = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_AUDIO_WIDGET_CAPS);
     widget->type = (widget->caps >> 20) & 0xF;
@@ -465,6 +486,12 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
 
             uint32_t amp = hda_codec_exec(dev, codec, node, HDA_VERB_GET_AMP_GAIN_MUTE, 0) | 0xb000 | 127;
             hda_codec_exec(dev, codec, node, HDA_VERB_SET_AMP_GAIN_MUTE, amp);
+
+            char name[6];
+            strcpy(name, "aud");
+            name[3] = (added++) + 0x30;
+            name[4] = 0;
+            devfs_add_char_device(name, &output_widget_fops, widget);
 
             break;
         case HDA_WIDGET_AUDIO_INPUT:
@@ -549,7 +576,8 @@ void hda_int_handler(void* regs, struct hda_dev* data)
 
         if ((streams_mask & 1) == 1) {
             struct hda_stream* stream = data->streams[current_bit_idx];
-                //printk("INT IN STREAM %i, BIT %i\n", stream->index, current_bit_idx);
+            //printk("INT IN STREAM %i, BIT %i\n", stream->index, current_bit_idx);
+            release_spinlock(&stream->lock);
             uint8_t stream_sts = hda_inb(data, stream->reg_base + ISTREAM_STS);
             hda_outb(data, stream->reg_base + ISTREAM_STS, stream_sts);
         }

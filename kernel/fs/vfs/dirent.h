@@ -1,7 +1,7 @@
 #ifndef _DIRENT_H
 #define _DIRENT_H
 
-#include "types.h"
+#include "kairax/types.h"
 #define MAX_DIRENT_NAME_LEN 260
 
 #define DT_UNKNOWN       0

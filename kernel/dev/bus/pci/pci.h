@@ -64,6 +64,8 @@ void pci_set_command_reg(struct pci_device_info* device, uint16_t flags);
 // Включить или выключить прерывания
 void pci_device_set_enable_interrupts(struct pci_device_info* device, int enable);
 
+int pci_device_is_msi_capable(struct pci_device_info* device);
+
 // Назначить устройству номер MSI прерывания
 // Включает MSI прерывания
 int pci_device_set_msi_vector(struct device* device, uint32_t vector);

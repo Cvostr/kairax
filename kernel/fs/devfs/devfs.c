@@ -72,8 +72,37 @@ struct inode* devfs_mount(drive_partition_t* drive, struct superblock* sb)
     return devfs_root_inode;
 }
 
-int devfs_add_char_device(const char* name, struct file_operations* fops)
+struct devfs_device* devfs_find_dev(const char* name)
 {
+    acquire_spinlock(&devfs_lock);
+
+    struct list_node* current = devfs_devices->head;
+    struct devfs_device* device = NULL;
+    struct devfs_device* result = NULL;
+
+    for (size_t i = 0; i < devfs_devices->size; i++) {
+        
+        device = (struct devfs_device*)current->element;
+
+        if (strcmp(device->dentry->name, name) == 0) {
+            result = device;
+            goto exit;
+        }
+
+        current = current->next;
+    }
+
+exit:
+    release_spinlock(&devfs_lock);
+    return result;
+}
+
+int devfs_add_char_device(const char* name, struct file_operations* fops, void* private_data)
+{
+    if (devfs_find_dev(name) != NULL) {
+        return ERROR_ALREADY_EXISTS;
+    }
+
     acquire_spinlock(&devfs_lock);
 
     struct devfs_device* device = new_devfs_device_struct();
@@ -91,6 +120,7 @@ int devfs_add_char_device(const char* name, struct file_operations* fops)
     device->inode->modify_time = current_time.tv_sec;
     device->inode->file_ops = fops;
     device->inode->operations = &dev_inode_ops;
+    device->inode->private_data = private_data;
     atomic_inc(&device->inode->reference_count);
 
     // Создание dentry
@@ -142,17 +172,18 @@ struct inode* devfs_read_node(struct superblock* sb, uint64_t ino_num)
     acquire_spinlock(&devfs_lock);
 
     struct list_node* current = devfs_devices->head;
-    struct devfs_device* device = (struct devfs_device*)current->element;
+    struct devfs_device* device = NULL;
 
     for (size_t i = 0; i < devfs_devices->size; i++) {
         
+        device = (struct devfs_device*)current->element;
+
         if (device->inode->inode == ino_num) {
             result = device->inode;
             goto exit;
         }
 
         current = current->next;
-        device = (struct devfs_device*)current->element;
     }
 
 exit:
@@ -166,24 +197,12 @@ uint64 devfs_find_dentry(struct superblock* sb, uint64_t parent_inode_index, con
         return WRONG_INODE_INDEX;
     }
 
-    uint64_t inode = 0;
-    acquire_spinlock(&devfs_lock);
+    uint64_t inode = WRONG_INODE_INDEX;
 
-    struct list_node* current = devfs_devices->head;
-    struct devfs_device* device = (struct devfs_device*)current->element;
-
-    for (size_t i = 0; i < devfs_devices->size; i++) {
-        
-        if (strcmp(device->dentry->name, name) == 0) {
-            inode = device->inode->inode;
-            goto exit;
-        }
-
-        current = current->next;
-        device = (struct devfs_device*)current->element;
+    struct devfs_device* dev = devfs_find_dev(name);
+    if (dev != NULL) {
+        inode = dev->inode->inode;
     }
 
-exit:
-    release_spinlock(&devfs_lock);
     return inode;
 }

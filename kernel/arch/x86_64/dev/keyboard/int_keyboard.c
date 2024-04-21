@@ -95,7 +95,7 @@ void init_ints_keyboard()
     int_keyb_fops.read = intk_f_read;
     int_keyb_fops.open = intk_f_open;
     int_keyb_fops.close = intk_f_close;
-	devfs_add_char_device("keyboard", &int_keyb_fops);
+	devfs_add_char_device("keyboard", &int_keyb_fops, NULL);
 }
 
 void keyboard_int_handler(interrupt_frame_t* frame, void* data)

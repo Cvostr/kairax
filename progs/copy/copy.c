@@ -3,7 +3,7 @@
 #include "unistd.h"
 #include "fcntl.h"
 
-#define REGION_LEN 9000
+#define REGION_LEN 4096 * 3
 char region[REGION_LEN];
 
 int main(int argc, char** argv) {

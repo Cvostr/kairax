@@ -1,8 +1,8 @@
 #ifndef KXMDK_FUNCTIONS_H
 #define KXMDK_FUNCTIONS_H
 
-#include "kairax/types.h"
 #include "mem/vmm.h"
+#include "fs/vfs/inode.h"
 
 #define PAGE_SIZE 4096
 
@@ -13,10 +13,6 @@ void kfree(void* mem);
 
 void* pmm_alloc_pages(uint32_t pages);
 void pmm_free_pages(void* addr, uint32_t pages);
-
-struct inode {
-    uint32_t    mode;       // Тип и разрешения
-};
 
 struct file {
     struct inode*           inode;
@@ -33,6 +29,6 @@ struct file_operations {
     int (*close) (struct inode *inode, struct file *file);
 };
 
-int devfs_add_char_device(const char* name, struct file_operations* fops);
+int devfs_add_char_device(const char* name, struct file_operations* fops, void* private_data);
 
 #endif

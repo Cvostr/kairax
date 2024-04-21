@@ -25,6 +25,7 @@ struct kernel_function functions[] = {
     KFUNCTION(pci_get_command_reg),
     KFUNCTION(pci_set_command_reg),
     KFUNCTION(pci_device_set_enable_interrupts),
+    KFUNCTION(pci_device_is_msi_capable),
     KFUNCTION(pci_device_set_msi_vector),
     KFUNCTION(map_io_region),
     KFUNCTION(unmap_io_region),
@@ -34,12 +35,15 @@ struct kernel_function functions[] = {
     KFUNCTION(pmm_free_pages),
     KFUNCTION(register_irq_handler),
     KFUNCTION(alloc_irq),
+    KFUNCTION(acquire_spinlock),
+    KFUNCTION(release_spinlock),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),
     KFUNCTION(strcpy),
     KFUNCTION(strcmp),
-    KFUNCTION(strlen)
+    KFUNCTION(strlen),
+    KFUNCTION(strcat)
 };
 
 void* kfunctions_get_by_name(const char* name)

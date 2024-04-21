@@ -1,8 +1,8 @@
 #ifndef _INODE_H
 #define _INODE_H
 
-#include "atomic.h"
-#include "types.h"
+#include "kairax/atomic.h"
+#include "kairax/types.h"
 #include "sync/spinlock.h"
 #include "dirent.h"
 #include "stat.h"
@@ -58,6 +58,8 @@ struct inode {
     struct file_operations*  file_ops;   
 
     spinlock_t      spinlock;
+
+    void*       private_data;
 };
 
 int inode_chmod(struct inode* node, uint32_t mode);

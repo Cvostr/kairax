@@ -1,7 +1,7 @@
 #ifndef _STAT_H
 #define _STAT_H
 
-#include "time.h"
+#include "kairax/time.h"
 
 struct stat {
     dev_t      st_dev;      /* ID of device containing file */

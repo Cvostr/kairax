@@ -8,7 +8,7 @@ struct file_operations zero_fops;
 void zero_init()
 {
     zero_fops.read = zero_read;
-	devfs_add_char_device("zero", &zero_fops);
+	devfs_add_char_device("zero", &zero_fops, NULL);
 }
 
 ssize_t zero_read (struct file* file, char* buffer, size_t size, loff_t offset)

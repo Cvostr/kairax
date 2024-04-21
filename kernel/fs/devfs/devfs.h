@@ -25,6 +25,6 @@ struct inode* devfs_read_node(struct superblock* sb, uint64_t ino_num);
 
 uint64 devfs_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type);
 
-int devfs_add_char_device(const char* name, struct file_operations* fops);
+int devfs_add_char_device(const char* name, struct file_operations* fops, void* private_data);
 
 #endif
