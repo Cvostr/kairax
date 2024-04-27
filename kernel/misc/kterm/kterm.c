@@ -23,7 +23,7 @@ void kterm_process_start()
 	// Добавить в список и назначить pid
     process_add_to_list(kterm_process);
 
-	struct thread* thr = create_kthread(kterm_process, kterm_main);
+	struct thread* thr = create_kthread(kterm_process, kterm_main, NULL);
 	scheduler_add_thread(thr);
 	process_add_to_list(thr);
 }
@@ -50,7 +50,7 @@ struct terminal_session* new_kterm_session(int create_console)
 	process_add_file_at(session->proc, slave_file, 1);
 	process_add_file_at(session->proc, slave_file, 2);
 
-	struct thread* thr = create_kthread(session->proc, bootshell);
+	struct thread* thr = create_kthread(session->proc, bootshell, NULL);
 	scheduler_add_thread(thr);
 	process_add_to_list(thr);
 

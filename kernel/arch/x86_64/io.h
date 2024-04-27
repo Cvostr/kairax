@@ -5,7 +5,7 @@
 
 static inline void outl(uint16_t port, uint32_t val)
 {
-    asm volatile("outl %%eax, %%dx" :: "d" (port), "a"(val));
+    asm volatile("outl %%eax, %%dx" :: "dN" (port), "a"(val));
 }
 
 static inline void outb(uint16_t port, uint8_t val)

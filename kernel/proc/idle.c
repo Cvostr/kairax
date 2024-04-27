@@ -14,5 +14,5 @@ void init_idle_process()
 
 struct thread* create_idle_thread()
 {
-    return create_kthread(idle_process, x64_idle_routine);
+    return create_kthread(idle_process, x64_idle_routine, NULL);
 }

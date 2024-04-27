@@ -6,12 +6,13 @@
 #include "cpu/gdt.h"
 #include "x64_context.h"
 #include "kstdlib.h"
+#include "proc/elf_process_loader.h"
 
 struct x64_uthread {
     struct x64_uthread* this;
 };
 
-struct thread* create_kthread(struct process* process, void (*function)(void))
+struct thread* create_kthread(struct process* process, void (*function)(void), void* arg)
 {
     if (!process || !function) {
         return NULL;
@@ -32,6 +33,8 @@ struct thread* create_kthread(struct process* process, void (*function)(void))
     //Установить стек для потока
     ctx->rbp = (uint64_t)thread->stack_ptr;
     ctx->rsp = (uint64_t)thread->stack_ptr;
+    // Установка аргумента
+    ctx->rdi = (uint64_t)arg;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_KERNEL_DATA_SEG; //kernel data
     ctx->ds = (selector);

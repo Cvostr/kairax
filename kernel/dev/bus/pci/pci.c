@@ -164,8 +164,8 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 			//Чтение 32х битного указателя на структуру cardbus
 			device_desc->cardbus_ptr = i_pci_config_read32(bus, device, func, 0x28);
 
-			//uint16_t interrupts = i_pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
-			//device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
+			uint16_t interrupts = i_pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
+			device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
 			//device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
 			//Отключение прерываний у устройства
 			pci_device_set_enable_interrupts(device_desc, 0);

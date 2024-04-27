@@ -4,6 +4,7 @@
 #include "bus/pci/pci.h"
 #include "bus/usb/usb.h"
 #include "type/drive_device.h"
+#include "type/net_device.h"
 
 #define DEVICE_NAME_LEN     60
 
@@ -13,6 +14,7 @@
 #define DEVICE_TYPE_DRIVE_PARTITION 3
 #define DEVICE_TYPE_AUDIO_ENDPOINT  4
 #define DEVICE_TYPE_USB_CONTROLLER  5
+#define DEVICE_TYPE_NETWORK_ADAPTER 6
 
 #define DEVICE_BUS_NONE     0       
 #define DEVICE_BUS_PCI      1
@@ -36,7 +38,11 @@ struct device {
     union {
         struct pci_device_info* pci_info;
         struct usb_device_info* usb_info;
+    };
+
+    union {
         struct drive_device_info* drive_info;
+        struct net_device_info* net_info;
     };
 };
 

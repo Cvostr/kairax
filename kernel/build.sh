@@ -107,6 +107,9 @@ gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
 
+#generic net
+gcc $GCC_ARGS net/eth.c -o ./bin/eth.o
+gcc $GCC_ARGS net/arp.c -o ./bin/arp.o
 
 #generic ipc
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o

@@ -33,7 +33,7 @@ struct pci_device_info {
 
 	uint32_t 		cardbus_ptr;
 
-	//uint8_t 		interrupt_line;
+	uint8_t 		interrupt_line;
 	//uint8_t 		interrupt_pin;
 } PACKED;
 

@@ -9,6 +9,9 @@
 #include "mem/vmm.h"
 #include "mem/pmm.h"
 #include "dev/interrupts.h"
+#include "proc/thread.h"
+#include "proc/thread_scheduler.h"
+#include "net/eth.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -31,12 +34,17 @@ struct kernel_function functions[] = {
     KFUNCTION(unmap_io_region),
     KFUNCTION(vmm_get_virtual_address),
     KFUNCTION(vmm_get_physical_address),
+    KFUNCTION(pmm_alloc_page),
     KFUNCTION(pmm_alloc_pages),
     KFUNCTION(pmm_free_pages),
     KFUNCTION(register_irq_handler),
     KFUNCTION(alloc_irq),
     KFUNCTION(acquire_spinlock),
     KFUNCTION(release_spinlock),
+    KFUNCTION(create_kthread),
+    KFUNCTION(scheduler_add_thread),
+    KFUNCTION(create_new_process),
+    KFUNCTION(eth_handle_frame),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

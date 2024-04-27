@@ -1,9 +1,8 @@
 #ifndef _THREAD_H
 #define _THREAD_H
 
-#include "types.h"
+#include "kairax/types.h"
 #include "process.h"
-#include "elf_process_loader.h"
 
 #define STACK_SIZE 4096
 
@@ -34,6 +33,8 @@ struct thread {
     struct thread*      next_blocked_thread;
 };
 
+struct  aux_pair;
+
 struct main_thread_create_info {
     struct  aux_pair* auxv;
     size_t  aux_size;
@@ -43,7 +44,7 @@ struct main_thread_create_info {
 
 struct thread* new_thread(struct process* process);
 
-struct thread* create_kthread(struct process* process, void (*function)(void));
+struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
 struct thread* create_thread(struct process* process, void* entry, void* arg1, size_t stack_size, struct main_thread_create_info* info);
 
 void thread_become_zombie(struct thread* thread);
