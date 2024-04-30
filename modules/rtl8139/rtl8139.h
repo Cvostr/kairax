@@ -13,6 +13,7 @@
 #define RTL8139_CMD     0x37
 #define RTL8139_CAPR    0x38
 #define RTL8139_ISR     0x3E
+#define RTL8139_RXCONF  0x44
 
 #define RTL8139_RX_BUFFER_EMPTY 0x1
 

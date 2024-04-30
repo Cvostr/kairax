@@ -11,6 +11,7 @@
 #include "x64_context.h"
 #include "cpu/msr.h"
 #include "cpu/cpu_local_x64.h"
+#include "kairax/intctl.h"
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);

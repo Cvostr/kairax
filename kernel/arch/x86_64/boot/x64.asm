@@ -73,16 +73,6 @@ x64_lidt:
 	lidt  [rdi]
     ret
 
-global enable_interrupts 
-enable_interrupts:
-    sti
-    ret
-
-global disable_interrupts 
-disable_interrupts:
-    cli
-    ret
-
 x64_idle_routine:
     hlt
     jmp x64_idle_routine

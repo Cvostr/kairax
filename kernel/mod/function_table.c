@@ -12,6 +12,7 @@
 #include "proc/thread.h"
 #include "proc/thread_scheduler.h"
 #include "net/eth.h"
+#include "kairax/intctl.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -39,6 +40,8 @@ struct kernel_function functions[] = {
     KFUNCTION(pmm_free_pages),
     KFUNCTION(register_irq_handler),
     KFUNCTION(alloc_irq),
+    KFUNCTION(enable_interrupts),
+    KFUNCTION(disable_interrupts),
     KFUNCTION(acquire_spinlock),
     KFUNCTION(release_spinlock),
     KFUNCTION(create_kthread),

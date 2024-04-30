@@ -5,7 +5,8 @@ mkdir bin
 
 x64_SRC=./arch/x86_64
 STDC_PATH=./kairax
-GCC_ARGS="-nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
+GCC_DEFINES="-D__LITTLE_ENDIAN__ -DX86_64"
+GCC_ARGS="$GCC_DEFINES -nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
 
 nasm $NASM_ARGS $x64_SRC/boot/start.asm -o ./bin/start.o
@@ -34,6 +35,7 @@ gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exception
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
 gcc $GCC_ARGS $x64_SRC/interrupts/apic.c -o ./bin/apic.o
 gcc $GCC_ARGS $x64_SRC/interrupts/ioapic.c -o ./bin/ioapic.o
+gcc $GCC_ARGS $x64_SRC/interrupts/intctl_x64.c -o ./bin/intctl.o
 gcc $GCC_ARGS $x64_SRC/memory/paging.c -o ./bin/paging_x64.o
 gcc $GCC_ARGS $x64_SRC/memory/kernel_vmm.c -o ./bin/kernel_vmm.o
 gcc $GCC_ARGS $x64_SRC/memory/iomem.c -o ./bin/iomem.o

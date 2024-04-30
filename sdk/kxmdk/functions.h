@@ -3,6 +3,7 @@
 
 #include "mem/vmm.h"
 #include "fs/vfs/inode.h"
+#include "kairax/intctl.h"
 
 #define PAGE_SIZE 4096
 
@@ -40,6 +41,6 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
 
 void scheduler_add_thread(struct thread* thread);
 
-void eth_handle_frame(unsigned char* data, size_t len);
+void eth_handle_frame(struct device* dev, unsigned char* data, size_t len);
 
 #endif

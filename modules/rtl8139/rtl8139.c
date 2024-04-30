@@ -73,7 +73,7 @@ int rtl8139_device_probe(struct device *dev)
     outw(rtl_dev->io_addr + 0x3C, 0x0005);
 
     // AB + AM + APM + AAP + WRAP
-    outl(rtl_dev->io_addr + 0x44, 0xf | (1 << 7));
+    outl(rtl_dev->io_addr + RTL8139_RXCONF, 0xf | (1 << 7));
 
     // Включение rx + tx
     outb(rtl_dev->io_addr + RTL8139_CMD, 0x0C);
@@ -85,6 +85,8 @@ int rtl8139_device_probe(struct device *dev)
     struct net_device_info* net_dev = kmalloc(sizeof(struct net_device_info));
     memcpy(net_dev->mac, rtl_dev->mac, 6); 
     net_dev->tx = rtl8139_tx;
+    net_dev->mtu = 1500; // уточнить
+    net_dev->ipv4_addr = 15ULL << 24 | 2ULL << 16 | 10; // 10.0.2.15
 
     dev->dev_type = DEVICE_TYPE_NETWORK_ADAPTER;
     dev->dev_data = rtl_dev;
@@ -111,18 +113,14 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
         rx_buffer = rtl_dev->recv_buffer + ring_offset;
         rx_status = *((uint16_t*)rx_buffer);
         rx_len = *(((uint16_t*)rx_buffer) + 1);
-        rx_buffer = (((uint16_t*)rx_buffer) + 2);
+        rx_buffer = (char*) (((uint16_t*)rx_buffer) + 2);
 
         if (rx_status & (RTL8139_ISE | RTL8139_CRCERR | RTL8139_RUNT | RTL8139_LONG | RTL8139_BAD_ALIGN)) {
             printk("Bad packed received!\n");
         } else if (rx_status & RTL8139_OK) {
             printk("Pos %i Status %i, Len %i\n", rx_pos, rx_status, rx_len);
-/*
-            for (int i = 0; i < rx_len; i ++) {
-                printk("%c", rx_buffer[2 + i]);
-            }
-*/
-            eth_handle_frame(rx_buffer, rx_len);
+
+            eth_handle_frame(rtl_dev->dev, rx_buffer, rx_len);
         }
 
         rx_pos = (rx_pos + rx_len + 4 + 3) & (~3);

@@ -1,6 +1,6 @@
 #include "cmos.h"
 #include "io.h"
-#include "interrupts/intctl_x64.h"
+#include "kairax/intctl.h"
 
 // 0x59 -> 59
 unsigned short cmos_format(unsigned short value, int is_bcd)

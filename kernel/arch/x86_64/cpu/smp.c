@@ -11,7 +11,7 @@
 #include "msr.h"
 #include "interrupts/apic.h"
 #include "interrupts/idt.h"
-#include "interrupts/intctl_x64.h"
+#include "kairax/intctl.h"
 #include "cpuid.h"
 #include "dev/cmos/cmos.h"
 #include "proc/timer.h"

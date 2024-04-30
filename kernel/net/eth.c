@@ -1,17 +1,11 @@
 #include "eth.h"
+#include "arp.h"
+#include "ipv4.h"
+#include "kairax/in.h"
+#include "string.h"
+#include "mem/kheap.h"
 
-   uint16_t switch_endian16(uint16_t nb) {
-       return (nb>>8) | (nb<<8);
-   }
-   
-   uint32_t switch_endian32(uint32_t nb) {
-       return ((nb>>24)&0xff)      |
-              ((nb<<8)&0xff0000)   |
-              ((nb>>8)&0xff00)     |
-              ((nb<<24)&0xff000000);
-   }
-
-void eth_handle_frame(unsigned char* data, size_t len)
+void eth_handle_frame(struct device* dev, unsigned char* data, size_t len)
 {
     struct ethernet_frame* frame = (struct ethernet_frame*) data;
     printk("src: ");
@@ -22,6 +16,36 @@ void eth_handle_frame(unsigned char* data, size_t len)
     for (int i = 0; i < 6; i ++) {
         printk("%i ", frame->dest[i]);
     }    
-    printk("\ntype: %i\n", switch_endian16(frame->type));
+    
+    uint32_t type = ntohs(frame->type);
+    printk("\ntype: %i\n", type);
 
+/*
+    for (int i = 0; i < rx_len; i ++) {
+        printk("%c", rx_buffer[2 + i]);
+    }
+*/
+
+    switch (type)
+    {
+    case ETH_TYPE_ARP:
+        arp_handle_packet(dev, frame->payload);
+        break;
+    case ETH_TYPE_IPV4:
+        break;
+    default:
+        break;
+    }
+}
+
+void eth_send_frame(struct device* dev, unsigned char* data, size_t len, uint8_t* dest, int eth_type)
+{
+    size_t frame_length = sizeof(struct ethernet_frame) + len;
+    struct ethernet_frame* frame = kmalloc(frame_length);
+    memcpy(frame->src, dev->net_info->mac, 6);
+    memcpy(frame->dest, dest, 6);
+    frame->type = htons(eth_type);
+    memcpy(frame->payload, data, len);
+    dev->net_info->tx(dev, frame, frame_length);
+    kfree(frame);
 }

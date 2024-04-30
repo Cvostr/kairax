@@ -40,6 +40,7 @@
 #include "drivers/char/random.h"
 #include "misc/kterm/kterm.h"
 #include "misc/kterm/vgaterm.h"
+#include "kairax/intctl.h"
 
 extern struct vgaconsole* current_console;
 

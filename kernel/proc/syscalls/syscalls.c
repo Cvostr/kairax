@@ -13,6 +13,7 @@
 #include "ipc/pipe.h"
 #include "proc/timer.h"
 #include "drivers/tty/tty.h"
+#include "kairax/intctl.h"
 
 int sys_not_implemented()
 {
