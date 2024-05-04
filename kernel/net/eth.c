@@ -42,10 +42,10 @@ void eth_send_frame(struct device* dev, unsigned char* data, size_t len, uint8_t
 {
     size_t frame_length = sizeof(struct ethernet_frame) + len;
     struct ethernet_frame* frame = kmalloc(frame_length);
-    memcpy(frame->src, dev->net_info->mac, 6);
+    memcpy(frame->src, dev->nic->mac, 6);
     memcpy(frame->dest, dest, 6);
     frame->type = htons(eth_type);
     memcpy(frame->payload, data, len);
-    dev->net_info->tx(dev, frame, frame_length);
+    dev->nic->tx(dev, frame, frame_length);
     kfree(frame);
 }

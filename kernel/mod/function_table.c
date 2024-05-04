@@ -13,6 +13,7 @@
 #include "proc/thread_scheduler.h"
 #include "net/eth.h"
 #include "kairax/intctl.h"
+#include "dev/type/net_device.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -47,6 +48,8 @@ struct kernel_function functions[] = {
     KFUNCTION(create_kthread),
     KFUNCTION(scheduler_add_thread),
     KFUNCTION(create_new_process),
+    KFUNCTION(new_nic),
+    KFUNCTION(register_nic),
     KFUNCTION(eth_handle_frame),
     // kairax std
     KFUNCTION(memset),

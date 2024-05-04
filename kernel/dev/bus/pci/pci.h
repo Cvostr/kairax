@@ -43,6 +43,9 @@ struct pci_device_info {
 
 #define PCI_STATUS_MSI_CAPABLE			(1 << 4)
 
+#define PCI_VENDOR_ID	0
+#define PCI_PRODUCT_ID	2
+
 struct device;
 
 uint16_t i_pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);

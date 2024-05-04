@@ -1,9 +1,13 @@
-CFLAGS=-nostdlib -nostdinc -ffreestanding -I./include -I../sys -mcmodel=large
-COMPILER=gcc
+CFLAGS=-nostdlib -nostdinc -ffreestanding -std=c99 -fPIC -I../libc/include -I./include -I../sys
+CC=gcc
+ASM=nasm
 SRC_DIR=src
-OBJ_DIR=obj
+OBJ_DIR=obj \
+		obj/x64
 COMPILED_OBJS = obj/input.o \
-				obj/desktop.o
+				obj/desktop.o \
+				obj/netctl.o \
+				obj/x64/syscalls.o
 
 all: $(OBJ_DIR) libkairax
 
@@ -11,10 +15,13 @@ $(OBJ_DIR):
 	mkdir -p $@
 
 libkairax: $(COMPILED_OBJS)
-	$(CC) -nostdlib -mcmodel=large -shared -o libkairax.so $(COMPILED_OBJS)
+	$(CC) -fPIC -nostdlib -shared -o libkairax.so $(COMPILED_OBJS)
 
 clean:
 	rm -rf obj/*.o *.so *.a
 
 obj/%.o: $(SRC_DIR)/%.c
-	$(COMPILER) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
+
+obj/%.o: $(SRC_DIR)/%.asm
+	$(ASM) -felf64 $< -o $@

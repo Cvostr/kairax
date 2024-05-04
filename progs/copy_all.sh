@@ -10,3 +10,4 @@ sudo cp ./pwd/pwd.a /mnt/kxvol
 sudo cp ./mv/mv.a /mnt/kxvol
 sudo cp ./rm/rm.a /mnt/kxvol
 sudo cp ./rmdir/rmdir.a /mnt/kxvol
+sudo cp ./netctl/netctl.a /mnt/kxvol

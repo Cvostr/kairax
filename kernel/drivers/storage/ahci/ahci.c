@@ -179,8 +179,7 @@ int ahci_device_probe(struct device *dev)
 			struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
 			memset(drive_info, 0, sizeof(struct drive_device_info));
 			
-			struct device* drive_dev = kmalloc(sizeof(struct device));
-			memset(drive_dev, 0, sizeof(struct device));
+			struct device* drive_dev = new_device();
 			drive_dev->dev_type = DEVICE_TYPE_DRIVE;
 			drive_dev->dev_parent = dev;
 			drive_dev->dev_data = &controller->ports[i];

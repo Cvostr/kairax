@@ -23,6 +23,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x18, scheduler_yield),
     DEFINE_SYSCALL(0x23, sys_thread_sleep),
     DEFINE_SYSCALL(0x27, sys_get_process_id),
+    DEFINE_SYSCALL(0x29, sys_socket),
     DEFINE_SYSCALL(0x3C, sys_exit_process),
     DEFINE_SYSCALL(0xBA, sys_get_thread_id),
     DEFINE_SYSCALL(0x4F, sys_get_working_dir),
@@ -45,5 +46,6 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x300, sys_create_process),
     DEFINE_SYSCALL(0x301, sys_exit_thread),
     DEFINE_SYSCALL(0x302, sys_get_tick_count),
-    DEFINE_SYSCALL(0x303, sys_create_pty)
+    DEFINE_SYSCALL(0x303, sys_create_pty),
+    DEFINE_SYSCALL(0x304, sys_netctl)
 };

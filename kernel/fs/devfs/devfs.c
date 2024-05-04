@@ -80,7 +80,7 @@ struct devfs_device* devfs_find_dev(const char* name)
     struct devfs_device* device = NULL;
     struct devfs_device* result = NULL;
 
-    for (size_t i = 0; i < devfs_devices->size; i++) {
+    while (current != NULL) {
         
         device = (struct devfs_device*)current->element;
 

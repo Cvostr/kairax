@@ -5,4 +5,6 @@ void random_init();
 
 void zero_init();
 
+int krand();
+
 #endif

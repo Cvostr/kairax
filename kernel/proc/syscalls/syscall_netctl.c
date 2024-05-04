@@ -1,0 +1,66 @@
+#include "proc/syscalls.h"
+#include "dev/device.h"
+#include "dev/type/net_device.h"
+#include "kairax/errors.h"
+#include "kairax/string.h"
+
+#define IF_INDEX_UNKNOWN        -1
+
+#define OP_GET_ALL              1
+#define OP_SET_IPV4_ADDR        2
+#define OP_SET_IPV4_SUBNETMASK  3
+#define OP_SET_IPV4_GATEWAY     4
+#define OP_SET_IPV6_ADDR        5
+#define OP_SET_IPV6_GATEWAY     6
+
+struct netinfo {
+    char        nic_name[NIC_NAME_LEN];
+
+    uint8_t     mac[MAC_DEFAULT_LEN];
+    size_t      mtu;
+
+    uint32_t    ip4_addr;
+    uint32_t    ip4_subnet;
+    uint32_t    ip4_gateway;
+
+    uint16_t    ip6_addr[8];
+    uint16_t    ip6_gateway[8];
+};
+
+int sys_netctl(int op, int param, struct netinfo* netinfo)
+{
+    // проверить память netinfo
+
+    // получить объект nic по имени или индексу
+    struct nic* nic = NULL;
+    if (param == IF_INDEX_UNKNOWN) {
+        nic = get_nic_by_name(netinfo->nic_name);
+    } else {
+        nic = get_nic(param);
+    }
+
+    if (nic == NULL) {
+        return -ERROR_NO_FILE;
+    }
+    
+    switch (op) {
+        case OP_GET_ALL:
+            if (nic->dev != NULL) {
+                //memcpy(&netinfo->dev_id, &nic->dev->id, sizeof(guid_t));
+            }
+
+            strcpy(netinfo->nic_name, nic->name);
+            memcpy(netinfo->mac, nic->mac, MAC_DEFAULT_LEN);
+
+            netinfo->mtu = nic->mtu;
+            netinfo->ip4_addr = nic->ipv4_addr;
+            netinfo->ip4_subnet = nic->ipv4_subnet;
+            netinfo->ip4_gateway = nic->ipv4_gateway;
+            break;
+        case OP_SET_IPV4_ADDR:
+            nic->ipv4_addr = netinfo->ip4_addr;
+            break;
+    }
+
+    return 0;
+}

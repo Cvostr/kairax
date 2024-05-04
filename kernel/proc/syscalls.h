@@ -83,4 +83,10 @@ int sys_unload_module(const char* module_name);
 
 int sys_futex(void* futex, int op, int val, const struct timespec *timeout);
 
+struct netinfo;
+int sys_netctl(int op, int param, struct netinfo* netinfo);
+
+// ---- SOCKETS ---------
+int sys_socket(int domain, int type, int protocol);
+
 #endif

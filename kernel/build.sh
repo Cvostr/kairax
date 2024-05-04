@@ -69,6 +69,7 @@ gcc $GCC_ARGS dev/device_man.c -o ./bin/device_man.o
 gcc $GCC_ARGS dev/bus/pci/pci.c -o ./bin/pci.o
 gcc $GCC_ARGS dev/bus/usb/usb_xhci.c -o ./bin/usb_xhci.o
 gcc $GCC_ARGS dev/interrupts.c -o ./bin/interrupts.o
+gcc $GCC_ARGS dev/type/nic.c -o ./bin/nic.o
 
 #generic drivers
 gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o
@@ -105,6 +106,8 @@ gcc $GCC_ARGS proc/syscalls/syscall_wait.c -o ./bin/syscall_wait.o
 gcc $GCC_ARGS proc/syscalls/syscalls_wd.c -o ./bin/syscalls_wd.o
 gcc $GCC_ARGS proc/syscalls/syscalls_modules.c -o ./bin/syscalls_modules.o
 gcc $GCC_ARGS proc/syscalls/syscall_futex.c -o ./bin/syscall_futex.o
+gcc $GCC_ARGS proc/syscalls/syscalls_socket.c -o ./bin/syscalls_socket.o
+gcc $GCC_ARGS proc/syscalls/syscall_netctl.c -o ./bin/syscall_netctl.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
@@ -115,6 +118,7 @@ gcc $GCC_ARGS net/arp.c -o ./bin/arp.o
 
 #generic ipc
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o
+gcc $GCC_ARGS ipc/socket.c -o ./bin/socket.o
 
 #generic sync
 gcc $GCC_ARGS sync/semaphore.c -o ./bin/semaphore.o

@@ -42,6 +42,10 @@ cd rmdir
 make
 cd ..
 
+cd netctl
+make
+cd ..
+
 cd dynloader
 make
 cd ..

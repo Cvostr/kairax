@@ -1,6 +1,15 @@
 [BITS 64]
 [SECTION .text]
 
+%macro DEFINE_SYSCALL 2
+    global %1
+    %1:
+        mov rax, %2
+        mov r10, rcx
+        syscall
+        ret
+%endmacro
+
 global syscall_process_get_id
 global syscall_thread_get_id
 global syscall_get_working_dir
@@ -8,11 +17,7 @@ global syscall_set_working_dir
 global syscall_process_exit
 global syscall_sleep
 global syscall_process_exit
-global syscall_read
-global syscall_write
 global syscall_ioctl
-global syscall_open_file
-global syscall_close
 global syscall_rename
 global syscall_unlink
 global syscall_rmdir
@@ -38,26 +43,10 @@ global syscall_unload_module
 global syscall_sched_yield
 global syscall_futex
 
-syscall_read:
-    mov rax, 0x0
-    syscall
-    ret
-
-syscall_write:
-    mov rax, 0x1
-    syscall
-    ret
-
-syscall_open_file:
-    mov rax, 0x02
-    mov r10, rcx
-    syscall
-    ret
-
-syscall_close:
-    mov rax, 0x03
-    syscall
-    ret
+DEFINE_SYSCALL syscall_read,        0x0
+DEFINE_SYSCALL syscall_write,       0x1
+DEFINE_SYSCALL syscall_open_file,   0x2
+DEFINE_SYSCALL syscall_close,       0x3
 
 syscall_fdstat:
     mov rax, 0x05

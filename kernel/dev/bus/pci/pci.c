@@ -112,8 +112,8 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 		device_desc->device = device; //номер устройства
     	device_desc->function = func;
 
-    	device_desc->vendor_id = i_pci_config_read16(bus,device, func, 0); //Смещение 0, размер 2б - номер производителя
-    	device_desc->device_id = i_pci_config_read16(bus,device, func, 2); //Смещение 2, размер 2 - ID устройства
+    	device_desc->vendor_id = i_pci_config_read16(bus,device, func, PCI_VENDOR_ID); //Смещение 0, размер 2б - номер производителя
+    	device_desc->device_id = i_pci_config_read16(bus,device, func, PCI_PRODUCT_ID); //Смещение 2, размер 2 - ID устройства
 		device_desc->status = i_pci_config_read16(bus,device, func, 6); //Смещение 6, размер 2 - Статус
     	uint16_t devclass = i_pci_config_read16(bus,device, func, 10);  //Смещение 10, размер 2 (Класс - Подкласс)
     	device_desc->device_class = (uint8_t)((devclass >> 8) & 0xFF);		//Старшие 8 бит - класс
@@ -173,9 +173,7 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 
 		char* dev_basename = pci_get_device_name(device_desc->device_class, device_desc->device_subclass, device_desc->prog_if);
 
-		struct device* dev = kmalloc(sizeof(struct device));
-		memset(dev, 0, sizeof(struct device));
-
+		struct device* dev = new_device();
 		dev->dev_bus = DEVICE_BUS_PCI;
 		dev->pci_info = device_desc;
 

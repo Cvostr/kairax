@@ -5,10 +5,12 @@
 #include "bus/usb/usb.h"
 #include "type/drive_device.h"
 #include "type/net_device.h"
+#include "kairax/guid/guid.h"
 
-#define DEVICE_NAME_LEN     60
+#define DEVICE_NAME_LEN         60
 
 #define DEVICE_TYPE_UNKNOWN         0
+#define DEVICE_TYPE_ANY             0xFFFF
 #define DEVICE_TYPE_DISK_CONTROLLER 1
 #define DEVICE_TYPE_DRIVE           2
 #define DEVICE_TYPE_DRIVE_PARTITION 3
@@ -26,6 +28,7 @@
 
 struct device {
 
+    guid_t          id;
     int             dev_type;
     char            dev_name[DEVICE_NAME_LEN];
     int             dev_bus;    
@@ -42,9 +45,11 @@ struct device {
 
     union {
         struct drive_device_info* drive_info;
-        struct net_device_info* net_info;
+        struct nic* nic;
     };
 };
+
+struct device* new_device();
 
 int drive_device_read( struct device* drive,
                             uint64_t start_lba,

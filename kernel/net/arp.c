@@ -11,7 +11,7 @@ void arp_handle_packet(struct device* dev, unsigned char* data)
         
         if (ntohs(arph->ptype) == ARP_PTYPE_IPV4) {
             
-            if (arph->tpa == dev->net_info->ipv4_addr) {
+            if (arph->tpa == dev->nic->ipv4_addr) {
                 /*printk("ARP req, TPA :\n");
                 for (int i = 0; i < 4; i ++) {
                     printk("%i ", arph->tpa_a[i]);
@@ -23,8 +23,8 @@ void arp_handle_packet(struct device* dev, unsigned char* data)
                 resp.hlen = 6;  // Длина MAC
                 resp.plen = 4;  // Длина IP v4
                 resp.oper = htons(ARP_OPER_RESP); // Ответ
-                memcpy(resp.sha, dev->net_info->mac, 6);
-                memcpy(resp.spa, &dev->net_info->ipv4_addr, 4);
+                memcpy(resp.sha, dev->nic->mac, 6);
+                memcpy(resp.spa, &dev->nic->ipv4_addr, 4);
                 memcpy(resp.tha, arph->sha, 6);
                 memcpy(resp.tpa_a, arph->spa, 4);
 

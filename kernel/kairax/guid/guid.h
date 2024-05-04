@@ -1,7 +1,7 @@
 #ifndef _GUID_H
 #define _GUID_H
 
-#include "types.h"
+#include "kairax/types.h"
 
 typedef struct PACKED {
     uint32_t    d1;
@@ -14,5 +14,7 @@ typedef struct PACKED {
 int guid_cmp(guid_t* a, guid_t* b);
 
 int guid_is_zero(guid_t* a);
+
+void guid_generate(guid_t* a);
 
 #endif

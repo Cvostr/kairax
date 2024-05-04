@@ -59,9 +59,8 @@ int rtl8139_device_probe(struct device *dev)
     outb(rtl_dev->io_addr + RTL8139_CMD, 0x10);
     while( (inb(rtl_dev->io_addr + RTL8139_CMD) & 0x10) != 0);
 
-    for (int i = 0; i < 6; i ++) {
+    for (int i = 0; i < MAC_DEFAULT_LEN; i ++) {
         rtl_dev->mac[i] = inb(rtl_dev->io_addr + i);
-        //printk("%i ", rtl_dev->mac[i]);
     }    
 
     // Установка адреса receive buffer
@@ -82,15 +81,17 @@ int rtl8139_device_probe(struct device *dev)
     printk("IRQ %i\n", irq);
     register_irq_handler(irq, rtl8139_irq_handler, rtl_dev);
 
-    struct net_device_info* net_dev = kmalloc(sizeof(struct net_device_info));
-    memcpy(net_dev->mac, rtl_dev->mac, 6); 
+    struct nic* net_dev = new_nic();
+    memcpy(net_dev->mac, rtl_dev->mac, MAC_DEFAULT_LEN);
+    net_dev->dev = dev; 
     net_dev->tx = rtl8139_tx;
     net_dev->mtu = 1500; // уточнить
-    net_dev->ipv4_addr = 15ULL << 24 | 2ULL << 16 | 10; // 10.0.2.15
+    //net_dev->ipv4_addr = 15ULL << 24 | 2ULL << 16 | 10; // 10.0.2.15
+    register_nic(net_dev, "eth");
 
     dev->dev_type = DEVICE_TYPE_NETWORK_ADAPTER;
     dev->dev_data = rtl_dev;
-    dev->net_info = net_dev;
+    dev->nic = net_dev;
 
     struct process* proc = create_new_process(NULL);
     struct thread* thr = create_kthread(proc, routine, rtl_dev);
@@ -117,8 +118,22 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
 
         if (rx_status & (RTL8139_ISE | RTL8139_CRCERR | RTL8139_RUNT | RTL8139_LONG | RTL8139_BAD_ALIGN)) {
             printk("Bad packed received!\n");
+            rtl_dev->dev->nic->rx_errors++;
+
+            if (rx_status & (RTL8139_ISE | RTL8139_BAD_ALIGN))
+                rtl_dev->dev->nic->rx_frame_errors++;
+
+            if (rx_status & (RTL8139_LONG | RTL8139_RUNT))
+                rtl_dev->dev->nic->rx_overruns++;
+
+            // Realtek рекомендует сбрасывать
+            rtl_dev->rx_pos = 0;
+
         } else if (rx_status & RTL8139_OK) {
             printk("Pos %i Status %i, Len %i\n", rx_pos, rx_status, rx_len);
+
+            rtl_dev->dev->nic->rx_packets++;
+            rtl_dev->dev->nic->rx_bytes += rx_len;
 
             eth_handle_frame(rtl_dev->dev, rx_buffer, rx_len);
         }
