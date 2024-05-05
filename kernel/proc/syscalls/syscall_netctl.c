@@ -3,6 +3,7 @@
 #include "dev/type/net_device.h"
 #include "kairax/errors.h"
 #include "kairax/string.h"
+#include "cpu/cpu_local_x64.h"
 
 #define IF_INDEX_UNKNOWN        -1
 
@@ -30,6 +31,8 @@ struct netinfo {
 int sys_netctl(int op, int param, struct netinfo* netinfo)
 {
     // проверить память netinfo
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, netinfo, sizeof(struct netinfo))
 
     // получить объект nic по имени или индексу
     struct nic* nic = NULL;

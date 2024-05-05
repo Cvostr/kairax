@@ -8,6 +8,21 @@
 
 struct device;
 
+struct nic_stats {
+    uint64_t        rx_packets;
+    uint64_t        rx_bytes;
+    uint64_t        rx_errors;
+    uint64_t        rx_frame_errors;
+    uint64_t        rx_overruns;
+    uint64_t        rx_dropped;
+
+    uint64_t        tx_packets;
+    uint64_t        tx_bytes;
+    uint64_t        tx_errors;
+    uint64_t        tx_dropped;
+    uint64_t        tx_carrier;
+};
+
 struct nic {
 
     struct device*  dev;
@@ -22,17 +37,7 @@ struct nic {
     uint16_t        ipv6_addr[8];
     uint16_t        ipv6_gateway[8];
 
-    uint64_t        rx_packets;
-    uint64_t        rx_bytes;
-    uint64_t        rx_errors;
-    uint64_t        rx_frame_errors;
-    uint64_t        rx_overruns;
-    uint64_t        rx_dropped;
-
-    uint64_t        tx_packets;
-    uint64_t        tx_bytes;
-    uint64_t        tx_errors;
-    uint64_t        tx_dropped;
+    struct nic_stats stats;
 
     int (*tx) (struct device*, const unsigned char*, size_t);
 };

@@ -13,6 +13,7 @@
 #include "dev/device_drivers.h"
 #include "dev/device.h"
 #include "dev/interrupts.h"
+#include "dev/device_man.h"
 
 void ahci_controller_probe_ports(ahci_controller_t* controller){
 	// Виртуальный адрес HBA_MEMORY

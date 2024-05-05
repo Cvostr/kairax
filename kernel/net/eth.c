@@ -8,6 +8,7 @@
 void eth_handle_frame(struct device* dev, unsigned char* data, size_t len)
 {
     struct ethernet_frame* frame = (struct ethernet_frame*) data;
+    /*
     printk("src: ");
     for (int i = 0; i < 6; i ++) {
         printk("%i ", frame->src[i]);
@@ -16,15 +17,9 @@ void eth_handle_frame(struct device* dev, unsigned char* data, size_t len)
     for (int i = 0; i < 6; i ++) {
         printk("%i ", frame->dest[i]);
     }    
+    */
     
     uint32_t type = ntohs(frame->type);
-    printk("\ntype: %i\n", type);
-
-/*
-    for (int i = 0; i < rx_len; i ++) {
-        printk("%c", rx_buffer[2 + i]);
-    }
-*/
 
     switch (type)
     {
@@ -32,8 +27,10 @@ void eth_handle_frame(struct device* dev, unsigned char* data, size_t len)
         arp_handle_packet(dev, frame->payload);
         break;
     case ETH_TYPE_IPV4:
+        ip4_handle_packet(frame->payload);
         break;
     default:
+        printk("ETH type: %i\n", type);
         break;
     }
 }

@@ -6,8 +6,17 @@
 #define RX_BUFFER_SIZE (8192 + 1500 + 16)
 #define TX_BUFFERS      4
 
-#define RTL1839_TOK     0x04
-#define RTL1839_ROK     0x01
+#define RTL1839_RXOK        0x01
+#define RTL8139_RXERR       0x02
+#define RTL1839_TXOK        0x04
+#define RTL8139_TXERR       0x08
+
+#define RTL8139_TXSTAT_HOST_OWNS    0x00002000
+#define RTL8139_TXSTAT_UNDERRUN     0x00004000
+#define RTL8139_TXSTAT_OK           0x00008000
+#define RTL8139_TXSTAT_OUTOFWINDOW  0x20000000
+#define RTL8139_TXSTAT_ABORTED      0x40000000
+#define RTL8139_TXSTAT_CARRIER_LOST 0x80000000
 
 #define RTL8139_RBSTART 0x30
 #define RTL8139_CMD     0x37
@@ -33,7 +42,10 @@ struct rtl8139 {
     char* tx_buffers[TX_BUFFERS];
 
     uint16_t rx_pos;
-    uint8_t  tx_pos;
+    uint32_t  tx_pos;
+
+    // Позиция transmission в прерывании
+    uint32_t int_tx_pos;   
 };
 
 void rtl8139_rx(struct rtl8139* rtl_dev);
@@ -67,6 +79,15 @@ static inline uint16_t inw(uint16_t port)
 {
     uint16_t ret;
     asm ( "inw %%dx, %%ax"
+                   : "=a"(ret)
+                   : "d"(port) );
+    return ret;
+}
+
+static inline uint32_t inl(uint16_t port)
+{
+    uint32_t ret;
+    asm volatile ( "inl %%dx, %%eax"
                    : "=a"(ret)
                    : "d"(port) );
     return ret;

@@ -6,6 +6,7 @@
 
 #define ETH_TYPE_ARP    0x0806
 #define ETH_TYPE_IPV4   0x0800
+#define ETH_TYPE_IPV6   0x86DD
 
 struct ethernet_frame {
     uint8_t dest[6];

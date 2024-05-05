@@ -86,7 +86,6 @@ int rtl8139_device_probe(struct device *dev)
     net_dev->dev = dev; 
     net_dev->tx = rtl8139_tx;
     net_dev->mtu = 1500; // уточнить
-    //net_dev->ipv4_addr = 15ULL << 24 | 2ULL << 16 | 10; // 10.0.2.15
     register_nic(net_dev, "eth");
 
     dev->dev_type = DEVICE_TYPE_NETWORK_ADAPTER;
@@ -118,22 +117,22 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
 
         if (rx_status & (RTL8139_ISE | RTL8139_CRCERR | RTL8139_RUNT | RTL8139_LONG | RTL8139_BAD_ALIGN)) {
             printk("Bad packed received!\n");
-            rtl_dev->dev->nic->rx_errors++;
+            rtl_dev->dev->nic->stats.rx_errors++;
 
             if (rx_status & (RTL8139_ISE | RTL8139_BAD_ALIGN))
-                rtl_dev->dev->nic->rx_frame_errors++;
+                rtl_dev->dev->nic->stats.rx_frame_errors++;
 
             if (rx_status & (RTL8139_LONG | RTL8139_RUNT))
-                rtl_dev->dev->nic->rx_overruns++;
+                rtl_dev->dev->nic->stats.rx_overruns++;
 
             // Realtek рекомендует сбрасывать
             rtl_dev->rx_pos = 0;
 
         } else if (rx_status & RTL8139_OK) {
-            printk("Pos %i Status %i, Len %i\n", rx_pos, rx_status, rx_len);
+            //printk("Pos %i Status %i, Len %i\n", rx_pos, rx_status, rx_len);
 
-            rtl_dev->dev->nic->rx_packets++;
-            rtl_dev->dev->nic->rx_bytes += rx_len;
+            rtl_dev->dev->nic->stats.rx_packets++;
+            rtl_dev->dev->nic->stats.rx_bytes += rx_len;
 
             eth_handle_frame(rtl_dev->dev, rx_buffer, rx_len);
         }
@@ -151,16 +150,16 @@ int rtl8139_tx(struct device* dev, const unsigned char* buffer, size_t size)
     asm volatile("cli");
 
     uint32_t tx_pos = rtl_dev->tx_pos;
-    unsigned char* tx_buffer_virt = vmm_get_virtual_address(rtl_dev->tx_buffers[tx_pos]);
+
+    int descriptor = tx_pos % TX_BUFFERS;
+
+    unsigned char* tx_buffer_virt = vmm_get_virtual_address(rtl_dev->tx_buffers[descriptor]);
     memcpy(tx_buffer_virt, buffer, size);
 
-    outl(rtl_dev->io_addr + TSAD[tx_pos], rtl_dev->tx_buffers[tx_pos]);
-    outl(rtl_dev->io_addr + TSD[tx_pos], size);
+    outl(rtl_dev->io_addr + TSAD[descriptor], rtl_dev->tx_buffers[descriptor]);
+    outl(rtl_dev->io_addr + TSD[descriptor], size);
 
-    if ((++tx_pos) >= TX_BUFFERS) {
-        tx_pos = 0;
-    }
-    rtl_dev->tx_pos = tx_pos;
+    rtl_dev->tx_pos = tx_pos + 1;
 
     asm volatile("sti");
     return 0;
@@ -172,11 +171,32 @@ void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev)
 	outw(rtl_dev->io_addr + RTL8139_ISR, 0x05);
     //printk("rtl8139_irq_handler() %i\n", status);
 
-    if(status & RTL1839_TOK) {
-		// Sent
-        printk("Packed sent\n");
+    if (status & (RTL1839_TXOK | RTL8139_TXERR)) {
+
+        uint32_t int_tx_pos = rtl_dev->int_tx_pos;
+        while (rtl_dev->tx_pos > int_tx_pos) 
+        {
+            int descriptor_num = int_tx_pos % TX_BUFFERS;
+            int tx_status = inl(rtl_dev->io_addr + TSD[descriptor_num]);
+
+            if (tx_status & (RTL8139_TXSTAT_OUTOFWINDOW | RTL8139_TXSTAT_ABORTED)) {
+            
+                printk("Error sending packet, status: %i\n", tx_status);
+                rtl_dev->dev->nic->stats.tx_errors++;
+            } else {
+                // Sent
+                printk("Packed sent, status: %i\n", tx_status);
+
+                rtl_dev->dev->nic->stats.tx_packets++;
+                rtl_dev->dev->nic->stats.tx_bytes += tx_status & 0xFFF;
+            }
+
+            int_tx_pos++;
+        } 
+
+        rtl_dev->int_tx_pos = int_tx_pos;
 	}
-	if (status & RTL1839_ROK) {
+	if (status & RTL1839_RXOK) {
         //rtl8139_rx(rtl_dev);
 	}
 }
@@ -210,4 +230,4 @@ void exit(void)
 
 }
 
-DEFINE_MODULE("hda", init, exit)
+DEFINE_MODULE("rtl8139", init, exit)

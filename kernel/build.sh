@@ -115,6 +115,9 @@ gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
 #generic net
 gcc $GCC_ARGS net/eth.c -o ./bin/eth.o
 gcc $GCC_ARGS net/arp.c -o ./bin/arp.o
+gcc $GCC_ARGS net/ipv4.c -o ./bin/ipv4.o
+gcc $GCC_ARGS net/udp.c -o ./bin/udp.o
+gcc $GCC_ARGS net/tcp.c -o ./bin/tcp.o
 
 #generic ipc
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o
