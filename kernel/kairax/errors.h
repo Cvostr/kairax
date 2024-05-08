@@ -18,9 +18,11 @@
 #define ERROR_OTHER_DEVICE          18
 #define	ERROR_BUSY		            16
 #define ERROR_NOT_EMPTY             90
+#define ERROR_NOT_SOCKET            108
 
 #define	EAGAIN                      11
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
+#define ENOTSOCK                    ERROR_NOT_SOCKET
 
 #endif

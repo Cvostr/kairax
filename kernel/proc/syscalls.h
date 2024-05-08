@@ -5,6 +5,7 @@
 #include "fs/vfs/dirent.h"
 #include "process.h"
 #include "kairax/time.h"
+#include "kairax/in.h"
 
 #define VALIDATE_NULL_POINTER(base) if (base == 0) {return -ERROR_INVALID_VALUE;}
 #define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,base,len) == 0) {return -ERROR_INVALID_VALUE;}
@@ -88,5 +89,11 @@ int sys_netctl(int op, int param, struct netinfo* netinfo);
 
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
+
+int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+
+ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 
 #endif

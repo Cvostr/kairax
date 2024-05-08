@@ -44,6 +44,9 @@ typedef long int time_t;
 typedef signed long 		suseconds_t;
 typedef signed long 		useconds_t;
 
+typedef unsigned int        socklen_t;
+typedef unsigned short 		sa_family_t;
+
 typedef struct {
 	int counter;
 } atomic_t;

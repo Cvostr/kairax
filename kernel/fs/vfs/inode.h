@@ -30,6 +30,7 @@ struct file_operations;
 #define INODE_FLAG_BLOCKDEVICE 0x6000
 #define INODE_FLAG_PIPE        0x1000
 #define INODE_FLAG_SYMLINK     0xA000
+#define INODE_FLAG_SOCKET      0xC000
 
 #define WRONG_INODE_INDEX       UINT64_MAX
 

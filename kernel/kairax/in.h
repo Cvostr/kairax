@@ -26,4 +26,9 @@ static inline uint16_t htons(uint16_t val)
     return ntohs(val);
 } 
 
+struct sockaddr {
+    sa_family_t sa_family;
+    char sa_data[14];
+};
+
 #endif

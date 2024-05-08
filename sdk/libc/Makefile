@@ -43,6 +43,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys/wait.o \
 				obj/sys/reboot.o \
 				obj/sys/futex.o \
+				obj/sys/socket.o \
 				obj/time.o \
 				obj/gmtime_r.o \
 				obj/timegm.o \

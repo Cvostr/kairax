@@ -39,4 +39,11 @@ extern void syscall_thread_exit(int code);
 extern unsigned long long int syscall_get_ticks_count();
 extern int syscall_sched_yield();
 
+// --- SOCKET ---
+extern int syscall_socket(int domain, int type, int protocol);
+
+extern int syscall_sendto(int sockfd, const void *msg, unsigned long long len, int flags, const void* to, unsigned int tolen);
+
+extern long long syscall_recvfrom(int sockfd, void* buf, unsigned long long len, int flags, const void* src_addr, unsigned int* addrlen);
+
 #endif
