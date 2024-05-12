@@ -15,6 +15,7 @@
 #define OP_SET_IPV4_GATEWAY     4
 #define OP_SET_IPV6_ADDR        5
 #define OP_SET_IPV6_GATEWAY     6
+#define OP_UPDATE_FLAGS         7
 
 struct netinfo {
     char        nic_name[NIC_NAME_LEN];

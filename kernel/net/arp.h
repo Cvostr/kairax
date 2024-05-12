@@ -2,7 +2,7 @@
 #define _ARP_H
 
 #include "kairax/types.h"
-#include "dev/device.h"
+#include "dev/type/net_device.h"
 
 #define ARP_HTYPE_ETHERNET 0x0001
 
@@ -27,6 +27,6 @@ struct arp_header {
     };
 } PACKED;
 
-void arp_handle_packet(struct device* dev, unsigned char* data);
+void arp_handle_packet(struct nic* nic, unsigned char* data);
 
 #endif

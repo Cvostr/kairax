@@ -46,9 +46,9 @@ struct nic {
 
     struct nic_stats stats;
 
-    int (*tx) (struct device*, const unsigned char*, size_t);
-    int (*up) (struct device*);
-    int (*down) (struct device*);
+    int (*tx) (struct nic*, const unsigned char*, size_t);
+    int (*up) (struct nic*);
+    int (*down) (struct nic*);
 };
 
 struct nic* new_nic();

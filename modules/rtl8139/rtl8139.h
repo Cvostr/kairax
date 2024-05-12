@@ -21,8 +21,13 @@
 #define RTL8139_RBSTART 0x30
 #define RTL8139_CMD     0x37
 #define RTL8139_CAPR    0x38
+#define RTL8139_INTR    0x3C
 #define RTL8139_ISR     0x3E
 #define RTL8139_RXCONF  0x44
+
+#define RTL8139_CMD_TX_ENB  0x4
+#define RTL8139_CMD_RX_ENB  0x8
+#define RTL8139_CMD_RESET   0x10
 
 #define RTL8139_RX_BUFFER_EMPTY 0x1
 
@@ -35,6 +40,7 @@
 
 struct rtl8139 {
     struct device* dev;
+    struct nic* nic;
     uint32_t io_addr;
     uint8_t mac[6];
     
@@ -49,10 +55,10 @@ struct rtl8139 {
 };
 
 void rtl8139_rx(struct rtl8139* rtl_dev);
-int rtl8139_tx(struct device* dev, const unsigned char* buffer, size_t size);
+int rtl8139_tx(struct nic* nic, const unsigned char* buffer, size_t size);
 
-int rtl8139_up(struct device* dev);
-int rtl8139_down(struct device* dev);
+int rtl8139_up(struct nic* nic);
+int rtl8139_down(struct nic* nic);
 
 static inline void outb(uint16_t port, uint8_t val)
 {

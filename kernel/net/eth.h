@@ -15,8 +15,8 @@ struct ethernet_frame {
     uint8_t payload[];
 } PACKED;
 
-void eth_handle_frame(struct device* dev, unsigned char* data, size_t len);
+void eth_handle_frame(struct nic* nic, unsigned char* data, size_t len);
 
-void eth_send_frame(struct device* dev, unsigned char* data, size_t len, uint8_t* dest, int eth_type);
+void eth_send_frame(struct nic* nic, unsigned char* data, size_t len, uint8_t* dest, int eth_type);
 
 #endif

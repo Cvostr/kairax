@@ -13,6 +13,7 @@
 #define OP_SET_IPV4_GATEWAY     4
 #define OP_SET_IPV6_ADDR        5
 #define OP_SET_IPV6_GATEWAY     6
+#define OP_UPDATE_FLAGS         7
 
 struct netinfo {
     char        nic_name[NIC_NAME_LEN];
@@ -64,6 +65,20 @@ int sys_netctl(int op, int param, struct netinfo* netinfo)
             break;
         case OP_SET_IPV4_ADDR:
             nic->ipv4_addr = netinfo->ip4_addr;
+            break;
+        case OP_UPDATE_FLAGS:
+
+            if ((nic->flags & NIC_FLAG_UP) != (netinfo->flags & NIC_FLAG_UP)) {
+                // Бит UP флагов сменился
+                if ((netinfo->flags & NIC_FLAG_UP) == NIC_FLAG_UP) {
+                    nic->up(nic);
+                } else {
+                    nic->down(nic);
+                }
+            }
+
+            nic->flags = netinfo->flags;
+
             break;
     }
 

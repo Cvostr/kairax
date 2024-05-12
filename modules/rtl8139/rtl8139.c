@@ -56,8 +56,8 @@ int rtl8139_device_probe(struct device *dev)
     // Включение
     outb(rtl_dev->io_addr + 0x52, 0x0);
     // Сброс
-    outb(rtl_dev->io_addr + RTL8139_CMD, 0x10);
-    while( (inb(rtl_dev->io_addr + RTL8139_CMD) & 0x10) != 0);
+    outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_RESET);
+    while( (inb(rtl_dev->io_addr + RTL8139_CMD) & RTL8139_CMD_RESET) != 0);
 
     for (int i = 0; i < MAC_DEFAULT_LEN; i ++) {
         rtl_dev->mac[i] = inb(rtl_dev->io_addr + i);
@@ -69,31 +69,31 @@ int rtl8139_device_probe(struct device *dev)
     memset(rtl_dev->recv_buffer, 0, PAGE_SIZE * 3);
 
     // ISR + IMR
-    outw(rtl_dev->io_addr + 0x3C, 0x0005);
+    outw(rtl_dev->io_addr + RTL8139_INTR, RTL1839_RXOK | RTL1839_TXOK);
 
     // AB + AM + APM + AAP + WRAP
     outl(rtl_dev->io_addr + RTL8139_RXCONF, 0xf | (1 << 7));
 
     // Включение rx + tx
-    outb(rtl_dev->io_addr + RTL8139_CMD, 0x0C);
+    outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
 
     int irq = dev->pci_info->interrupt_line;
     printk("IRQ %i\n", irq);
     register_irq_handler(irq, rtl8139_irq_handler, rtl_dev);
 
-    struct nic* net_dev = new_nic();
-    memcpy(net_dev->mac, rtl_dev->mac, MAC_DEFAULT_LEN);
-    net_dev->dev = dev; 
-    net_dev->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST;
-    net_dev->tx = rtl8139_tx;
-    net_dev->up = rtl8139_up;
-    net_dev->down = rtl8139_down;
-    net_dev->mtu = 1500; // уточнить
-    register_nic(net_dev, "eth");
+    rtl_dev->nic = new_nic();
+    memcpy(rtl_dev->nic->mac, rtl_dev->mac, MAC_DEFAULT_LEN);
+    rtl_dev->nic->dev = dev; 
+    rtl_dev->nic->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST;
+    rtl_dev->nic->tx = rtl8139_tx;
+    rtl_dev->nic->up = rtl8139_up;
+    rtl_dev->nic->down = rtl8139_down;
+    rtl_dev->nic->mtu = 1500; // уточнить
+    register_nic(rtl_dev->nic, "eth");
 
     dev->dev_type = DEVICE_TYPE_NETWORK_ADAPTER;
     dev->dev_data = rtl_dev;
-    dev->nic = net_dev;
+    dev->nic = rtl_dev->nic;
 
     struct process* proc = create_new_process(NULL);
     struct thread* thr = create_kthread(proc, routine, rtl_dev);
@@ -102,15 +102,25 @@ int rtl8139_device_probe(struct device *dev)
     return 0;
 }
 
-int rtl8139_up(struct device* dev)
+int rtl8139_up(struct nic* nic)
 {
+    //printk("RTL8139: up\n");
     // todo: implement
+    struct rtl8139* rtl_dev = (struct rtl8139*) nic->dev->dev_data;
+    outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
+    // ISR + IMR
+    outw(rtl_dev->io_addr + RTL8139_INTR, RTL1839_RXOK | RTL1839_TXOK);
     return 0;
 }
 
-int rtl8139_down(struct device* dev)
+int rtl8139_down(struct nic* nic)
 {
+    //printk("RTL8139: down\n");
     // todo: implement
+    struct rtl8139* rtl_dev = (struct rtl8139*) nic->dev->dev_data;
+    outb(rtl_dev->io_addr + RTL8139_CMD, 0x0);
+    // ISR + IMR
+    outw(rtl_dev->io_addr + RTL8139_INTR, 0x0);
     return 0;
 }
 
@@ -149,7 +159,7 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
             rtl_dev->dev->nic->stats.rx_packets++;
             rtl_dev->dev->nic->stats.rx_bytes += rx_len;
 
-            eth_handle_frame(rtl_dev->dev, rx_buffer, rx_len);
+            eth_handle_frame(rtl_dev->nic, rx_buffer, rx_len);
         }
 
         rx_pos = (rx_pos + rx_len + 4 + 3) & (~3);
@@ -159,9 +169,9 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
     rtl_dev->rx_pos = rx_pos;
 }
 
-int rtl8139_tx(struct device* dev, const unsigned char* buffer, size_t size)
+int rtl8139_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 {
-    struct rtl8139* rtl_dev = (struct rtl8139*) dev->dev_data;
+    struct rtl8139* rtl_dev = (struct rtl8139*) nic->dev->dev_data;
     asm volatile("cli");
 
     uint32_t tx_pos = rtl_dev->tx_pos;

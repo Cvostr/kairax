@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 
         while ((rc = netctl(OP_GET_ALL, i++, &ninfo)) == 0) {
 
-            printf("%s: mtu %i\n", ninfo.nic_name, ninfo.mtu);
+            printf("%s: mtu %i flags %i\n", ninfo.nic_name, ninfo.mtu, ninfo.flags  );
             printf("\tIPv4 ");
             print_ipv4(ninfo.ip4_addr);
             printf(" netmask ");
@@ -53,12 +53,16 @@ int main(int argc, char** argv)
 
         }
         
-    } else if (argc > 3) {
+    } else if (argc >= 3) {
         char* ifname = argv[1];
         char* action = argv[2];
 
         strncpy(ninfo.nic_name, ifname, NIC_NAME_LEN);
         if (strcmp(action, "setip4") == 0) {
+            if (argc < 4) {
+                printf("Address not specified!\n");
+                return -1;
+            }
             // Устанавливаем IPv4
             int ip4[4];
             sscanf(argv[3], "%i.%i.%i.%i", &ip4[0], &ip4[1], &ip4[2], &ip4[3]);
@@ -76,6 +80,19 @@ int main(int argc, char** argv)
             if (rc != 0) {
                 printf("Error on netctl(), rc = %i\n", rc);
             }
+        } else if (strcmp(action, "up") == 0) {
+
+            // Получить текущие флаги устройства
+            rc = netctl(OP_GET_ALL, -1, &ninfo);
+            ninfo.flags |= 1;
+            // Обновить флаги
+            rc = netctl(OP_UPDATE_FLAGS, -1, &ninfo);
+        } else if (strcmp(action, "down") == 0) {
+            // Получить текущие флаги устройства
+            rc = netctl(OP_GET_ALL, -1, &ninfo);
+            ninfo.flags &= ~(1);
+            // Обновить флаги
+            rc = netctl(OP_UPDATE_FLAGS, -1, &ninfo);
         }
 
     } else {
