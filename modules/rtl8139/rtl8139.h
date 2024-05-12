@@ -51,6 +51,9 @@ struct rtl8139 {
 void rtl8139_rx(struct rtl8139* rtl_dev);
 int rtl8139_tx(struct device* dev, const unsigned char* buffer, size_t size);
 
+int rtl8139_up(struct device* dev);
+int rtl8139_down(struct device* dev);
+
 static inline void outb(uint16_t port, uint8_t val)
 {
     asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );

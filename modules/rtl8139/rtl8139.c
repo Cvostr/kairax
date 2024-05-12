@@ -84,7 +84,10 @@ int rtl8139_device_probe(struct device *dev)
     struct nic* net_dev = new_nic();
     memcpy(net_dev->mac, rtl_dev->mac, MAC_DEFAULT_LEN);
     net_dev->dev = dev; 
+    net_dev->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST;
     net_dev->tx = rtl8139_tx;
+    net_dev->up = rtl8139_up;
+    net_dev->down = rtl8139_down;
     net_dev->mtu = 1500; // уточнить
     register_nic(net_dev, "eth");
 
@@ -96,6 +99,18 @@ int rtl8139_device_probe(struct device *dev)
     struct thread* thr = create_kthread(proc, routine, rtl_dev);
     scheduler_add_thread(thr);
 
+    return 0;
+}
+
+int rtl8139_up(struct device* dev)
+{
+    // todo: implement
+    return 0;
+}
+
+int rtl8139_down(struct device* dev)
+{
+    // todo: implement
     return 0;
 }
 

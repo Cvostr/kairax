@@ -110,7 +110,7 @@ void* list_get(list_t* list, size_t index)
     if (list == NULL)
         return NULL;
 
-    if (index > list->size)
+    if (index >= list->size)
         return NULL;
 
     struct list_node* current = list->head;

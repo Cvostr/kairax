@@ -92,8 +92,8 @@ int sys_socket(int domain, int type, int protocol);
 
 int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
-int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr* to, socklen_t tolen);
 
-ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* from, socklen_t* addrlen);
 
 #endif

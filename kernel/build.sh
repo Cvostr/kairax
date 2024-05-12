@@ -118,10 +118,13 @@ gcc $GCC_ARGS net/arp.c -o ./bin/arp.o
 gcc $GCC_ARGS net/ipv4.c -o ./bin/ipv4.o
 gcc $GCC_ARGS net/udp.c -o ./bin/udp.o
 gcc $GCC_ARGS net/tcp.c -o ./bin/tcp.o
+gcc $GCC_ARGS net/route.c -o ./bin/route.o
+gcc $GCC_ARGS net/loopback.c -o ./bin/loopback.o
 
 #generic ipc
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o
 gcc $GCC_ARGS ipc/socket.c -o ./bin/socket.o
+gcc $GCC_ARGS ipc/local_socket.c -o ./bin/local_socket.o
 
 #generic sync
 gcc $GCC_ARGS sync/semaphore.c -o ./bin/semaphore.o

@@ -6,6 +6,11 @@
 #define NIC_NAME_LEN    12
 #define MAC_DEFAULT_LEN 6
 
+#define NIC_FLAG_UP         0x1
+#define NIC_FLAG_BROADCAST  0x2
+#define NIC_FLAG_MULTICAST  0x4
+#define NIC_FLAG_LOOPBACK   0x8
+
 struct device;
 
 struct nic_stats {
@@ -27,6 +32,8 @@ struct nic {
 
     struct device*  dev;
     char            name[NIC_NAME_LEN];
+    uint32_t        flags;
+
     uint8_t         mac[MAC_DEFAULT_LEN];
     size_t          mtu;
     
@@ -40,6 +47,8 @@ struct nic {
     struct nic_stats stats;
 
     int (*tx) (struct device*, const unsigned char*, size_t);
+    int (*up) (struct device*);
+    int (*down) (struct device*);
 };
 
 struct nic* new_nic();

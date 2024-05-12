@@ -18,6 +18,7 @@
 
 struct netinfo {
     char        nic_name[NIC_NAME_LEN];
+    uint32_t    flags;
 
     uint8_t     mac[MAC_DEFAULT_LEN];
     size_t      mtu;

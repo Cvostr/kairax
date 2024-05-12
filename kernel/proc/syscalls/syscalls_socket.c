@@ -13,10 +13,19 @@ int sys_socket(int domain, int type, int protocol)
     fsock->inode = (struct inode*) sock;
     inode_open(fsock->inode, 0);
 
-    sock->type = type;
+    int rc = socket_init(sock, domain, type, protocol);
+    if (rc != 0) {
+        // destroy socket
+        goto exit;
+    }
+    
+    rc = process_add_file(process, fsock);
+    if (rc != 0) {
+        // destroy socket
+        goto exit;
+    }
 
-    int rc = process_add_file(process, fsock);
-
+exit:
     return rc;
 }
 
@@ -48,7 +57,11 @@ int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, to, tolen);
+
+    if (to != NULL) {
+        // Если адрес задан, то проверить его
+        VALIDATE_USER_POINTER(process, to, tolen);
+    }
 
     struct file* file = process_get_file(process, sockfd);
 
@@ -68,11 +81,20 @@ exit:
     return rc;
 }
 
-ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
+ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* from, socklen_t* addrlen)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, src_addr, sizeof(struct sockaddr));
+
+    if (addrlen != NULL) {
+        // Если выход addrlen задан, то проверить его
+        VALIDATE_USER_POINTER(process, addrlen, sizeof(socklen_t));
+    }
+
+    if (from != NULL) {
+        // Если адрес задан, то проверить его
+        VALIDATE_USER_POINTER(process, from, sizeof(struct sockaddr));
+    }
 
     struct file* file = process_get_file(process, sockfd);
 
@@ -80,6 +102,13 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
         rc = -ERROR_BAD_FD;
         goto exit;
     }
+
+    if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
+        rc = -ERROR_NOT_SOCKET;
+        goto exit;
+    }
+
+    rc = socket_recvfrom((struct socket*) file->inode, buf, len, flags, from, addrlen);
 
 exit:
     return rc;

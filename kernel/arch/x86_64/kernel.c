@@ -163,6 +163,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_ints_keyboard();
 
 	usb_init();
+
+	loopback_init();
 	
 	struct device* dev = NULL;
     int i = 0;

@@ -16,6 +16,7 @@
 
 struct netinfo {
     char        nic_name[NIC_NAME_LEN];
+    uint32_t    flags;
 
     uint8_t     mac[MAC_DEFAULT_LEN];
     size_t      mtu;
@@ -55,6 +56,7 @@ int sys_netctl(int op, int param, struct netinfo* netinfo)
             strcpy(netinfo->nic_name, nic->name);
             memcpy(netinfo->mac, nic->mac, MAC_DEFAULT_LEN);
 
+            netinfo->flags = nic->flags;
             netinfo->mtu = nic->mtu;
             netinfo->ip4_addr = nic->ipv4_addr;
             netinfo->ip4_subnet = nic->ipv4_subnet;

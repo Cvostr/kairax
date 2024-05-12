@@ -32,6 +32,10 @@ extern uint16_t ntohs (uint16_t nshort);
 extern uint32_t htonl (uint32_t hlong);
 extern uint16_t htons (uint16_t hshort);
 
+#define IPPROTO_ICMP    1
+#define IPPROTO_TCP     6
+#define IPPROTO_UDP     17
+
 #ifdef __cplusplus
 }
 #endif
