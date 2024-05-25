@@ -81,3 +81,8 @@ ssize_t socket_recvfrom(struct socket* sock, void* buf, size_t len, int flags, s
 {
     return sock->ops->recvfrom(sock, buf, len, flags, src_addr, addrlen);
 }
+
+int socket_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
+{
+    return sock->ops->setsockopt(sock, level, optname, optval, optlen);
+}

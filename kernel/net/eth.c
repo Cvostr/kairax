@@ -1,33 +1,39 @@
 #include "eth.h"
 #include "arp.h"
-#include "ipv4.h"
+#include "ipv4/ipv4.h"
 #include "kairax/in.h"
 #include "string.h"
 #include "mem/kheap.h"
 
-void eth_handle_frame(struct nic* nic, unsigned char* data, size_t len)
+int mac_is_broadcast(uint8_t* mac) 
 {
-    struct ethernet_frame* frame = (struct ethernet_frame*) data;
-    /*
-    printk("src: ");
-    for (int i = 0; i < 6; i ++) {
-        printk("%i ", frame->src[i]);
-    }    
-    printk("\ndest: ");
-    for (int i = 0; i < 6; i ++) {
-        printk("%i ", frame->dest[i]);
-    }    
-    */
+    for (int i = 0; i < MAC_DEFAULT_LEN; i ++) {
+        if (mac[i] != 0xFF) 
+            return 0;
+    }
+
+    return 1;
+}
+
+void eth_handle_frame(struct net_buffer* nbuffer)
+{
+    struct ethernet_frame* frame = (struct ethernet_frame*) nbuffer->cursor;
+    nbuffer->link_header = frame;
+
+    if (memcmp(frame->dest, nbuffer->netdev->mac, MAC_DEFAULT_LEN) != 0 && !mac_is_broadcast(frame->dest)) {
+        return;
+    }
     
     uint32_t type = ntohs(frame->type);
+    net_buffer_shift(nbuffer, sizeof(struct ethernet_frame));
 
     switch (type)
     {
     case ETH_TYPE_ARP:
-        arp_handle_packet(nic, frame->payload);
+        arp_handle_packet(nbuffer);
         break;
     case ETH_TYPE_IPV4:
-        ip4_handle_packet(frame->payload);
+        ip4_handle_packet(nbuffer);
         break;
     default:
         printk("ETH type: %i\n", type);

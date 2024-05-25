@@ -164,7 +164,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	usb_init();
 
-	loopback_init();
+	net_init();
 	
 	struct device* dev = NULL;
     int i = 0;

@@ -113,13 +113,16 @@ gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
 
 #generic net
+gcc $GCC_ARGS net/net.c -o ./bin/net.o
 gcc $GCC_ARGS net/eth.c -o ./bin/eth.o
 gcc $GCC_ARGS net/arp.c -o ./bin/arp.o
-gcc $GCC_ARGS net/ipv4.c -o ./bin/ipv4.o
-gcc $GCC_ARGS net/udp.c -o ./bin/udp.o
-gcc $GCC_ARGS net/tcp.c -o ./bin/tcp.o
+gcc $GCC_ARGS net/ipv4/ipv4.c -o ./bin/ipv4.o
+gcc $GCC_ARGS net/ipv4/af_inet.c -o ./bin/af_inet.o
+gcc $GCC_ARGS net/ipv4/udp.c -o ./bin/udp.o
+gcc $GCC_ARGS net/ipv4/tcp.c -o ./bin/tcp.o
 gcc $GCC_ARGS net/route.c -o ./bin/route.o
 gcc $GCC_ARGS net/loopback.c -o ./bin/loopback.o
+gcc $GCC_ARGS net/net_buffer.c -o ./bin/net_buffer.o
 
 #generic ipc
 gcc $GCC_ARGS ipc/pipe.c -o ./bin/pipe.o

@@ -8,14 +8,29 @@ int socket(int domain, int type, int protocol)
     __set_errno(syscall_socket(domain, type, protocol));
 }
 
-int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-
+    __set_errno(syscall_bind(sockfd, addr, addrlen));
 }
 
-int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
+int listen(int sockfd, int backlog)
 {
+    __set_errno(syscall_listen(sockfd, backlog));
+}
 
+int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen)
+{
+    __set_errno(syscall_setsockopt(s, level, optname, optval, optlen));
+}
+
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    __set_errno(syscall_accept(sockfd, addr, addrlen));
+}
+
+int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    __set_errno(syscall_connect(sockfd, addr, addrlen));
 }
 
 int send(int sockfd, const void* buf, size_t n, int flags)

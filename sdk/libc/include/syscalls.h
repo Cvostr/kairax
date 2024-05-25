@@ -41,9 +41,12 @@ extern int syscall_sched_yield();
 
 // --- SOCKET ---
 extern int syscall_socket(int domain, int type, int protocol);
-
+extern int syscall_bind(int sockfd, const void *addr, unsigned int addrlen);
+extern int syscall_listen(int sockfd, int backlog);
+extern int syscall_accept(int sockfd, void *addr, unsigned int *addrlen);
+extern int syscall_connect(int sockfd, const void *serv_addr, unsigned int addrlen);
 extern int syscall_sendto(int sockfd, const void *msg, unsigned long long len, int flags, const void* to, unsigned int tolen);
-
 extern long long syscall_recvfrom(int sockfd, void* buf, unsigned long long len, int flags, const void* src_addr, unsigned int* addrlen);
+extern int syscall_setsockopt(int s, int level, int optname, const void *optval, unsigned int optlen);
 
 #endif

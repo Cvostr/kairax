@@ -3,6 +3,7 @@
 
 #include "kairax/types.h"
 #include "dev/device.h"
+#include "net_buffer.h"
 
 #define ETH_TYPE_ARP    0x0806
 #define ETH_TYPE_IPV4   0x0800
@@ -15,7 +16,7 @@ struct ethernet_frame {
     uint8_t payload[];
 } PACKED;
 
-void eth_handle_frame(struct nic* nic, unsigned char* data, size_t len);
+void eth_handle_frame(struct net_buffer* nbuffer);
 
 void eth_send_frame(struct nic* nic, unsigned char* data, size_t len, uint8_t* dest, int eth_type);
 

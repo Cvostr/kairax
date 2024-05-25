@@ -39,6 +39,10 @@ struct msghdr {
 
 int socket(int domain, int type, int protocol);
 
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+int listen(int sockfd, int backlog);
+
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 
 int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen);
@@ -50,6 +54,8 @@ int sendto(int sockfd, const void *msg, size_t len, int flags, const struct sock
 ssize_t recv(int sockfd, void* buf, size_t len, int flags);
 
 ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+
+int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen);
 
 #ifdef __cplusplus
 }

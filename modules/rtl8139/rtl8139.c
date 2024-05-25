@@ -159,7 +159,8 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
             rtl_dev->dev->nic->stats.rx_packets++;
             rtl_dev->dev->nic->stats.rx_bytes += rx_len;
 
-            eth_handle_frame(rtl_dev->nic, rx_buffer, rx_len);
+            struct net_buffer* nb = new_net_buffer(rx_buffer, rx_len, rtl_dev->nic);
+            eth_handle_frame(nb);
         }
 
         rx_pos = (rx_pos + rx_len + 4 + 3) & (~3);

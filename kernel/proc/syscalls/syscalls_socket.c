@@ -29,6 +29,45 @@ exit:
     return rc;
 }
 
+int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    
+}
+
+int sys_listen(int sockfd, int backlog)
+{
+
+}
+
+int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+
+}
+
+int sys_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen)
+{
+    int rc = -1;
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, optval, optlen);
+
+    struct file* file = process_get_file(process, sockfd);
+
+    if (file == NULL) {
+        rc = -ERROR_BAD_FD;
+        goto exit;
+    }
+
+    if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
+        rc = -ERROR_NOT_SOCKET;
+        goto exit;
+    }
+
+    rc = socket_setsockopt((struct socket*) file->inode, level, optname, optval, optlen);
+
+exit:
+    return rc;
+}
+
 int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
     int rc = -1;

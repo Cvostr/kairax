@@ -90,6 +90,14 @@ int sys_netctl(int op, int param, struct netinfo* netinfo);
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
 
+int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+int sys_listen(int sockfd, int backlog);
+
+int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+
+int sys_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+
 int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
 int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr* to, socklen_t tolen);

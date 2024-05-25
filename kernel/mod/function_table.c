@@ -14,6 +14,7 @@
 #include "net/eth.h"
 #include "kairax/intctl.h"
 #include "dev/type/net_device.h"
+#include "net/net_buffer.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -51,6 +52,7 @@ struct kernel_function functions[] = {
     KFUNCTION(new_nic),
     KFUNCTION(register_nic),
     KFUNCTION(eth_handle_frame),
+    KFUNCTION(new_net_buffer),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

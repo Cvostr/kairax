@@ -5,7 +5,8 @@
 int loopback_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 {
     // todo : плохо
-    eth_handle_frame(nic, buffer, size);
+    struct net_buffer* nb = new_net_buffer(buffer, size, nic);
+    eth_handle_frame(nb);
     return 0;
 }
 
