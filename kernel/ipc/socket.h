@@ -38,21 +38,10 @@ struct protocol {
     struct socket_ops* ops;
 };
 
-struct socket_prot_ops {
-    int	(*connect) (struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
-    int (*bind) (struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
-    int (*listen) (struct socket* sock, int backlog);
-    int (*recvfrom) (struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
-    int (*sendto) (struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
-    int (*setsockopt) (struct socket *sock, int level, int optname, const void *optval, unsigned int optlen);
-
-    //int	(*sendmsg) (struct socket* sock, struct msghdr* m, int flags);
-    //int	(*recvmsg) (struct socket* sock, struct msghdr* msg, int flags);
-};
-
 #define SOCKET_STATE_UNCONNECTED    1
 
 struct socket_data;
+struct socket_prot_ops;
 
 struct socket {
     struct inode ino;
@@ -70,6 +59,18 @@ struct socket {
     struct socket_prot_ops* ops;
 };
 
+struct socket_prot_ops {
+    int	(*connect) (struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
+    int (*bind) (struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
+    int (*listen) (struct socket* sock, int backlog);
+    int (*recvfrom) (struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+    int (*sendto) (struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+    int (*setsockopt) (struct socket *sock, int level, int optname, const void *optval, unsigned int optlen);
+
+    //int	(*sendmsg) (struct socket* sock, struct msghdr* m, int flags);
+    //int	(*recvmsg) (struct socket* sock, struct msghdr* msg, int flags);
+};
+
 struct socket_family {
     int family;
     int (*create) (struct socket*, int type, int protocol);
@@ -82,6 +83,8 @@ struct socket* new_socket();
 int socket_init(struct socket* sock, int domain, int type, int protocol);
 
 int socket_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
+
+int socket_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
 
 int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 

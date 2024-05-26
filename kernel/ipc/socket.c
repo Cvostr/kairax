@@ -72,6 +72,11 @@ int socket_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len
     return sock->ops->connect(sock, saddr, sockaddr_len);
 }
 
+int socket_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)
+{
+    return sock->ops->bind(sock, addr, addrlen);
+}
+
 int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     return sock->ops->sendto(sock, msg, len, flags, to, tolen);

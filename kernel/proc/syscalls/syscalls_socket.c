@@ -31,7 +31,26 @@ exit:
 
 int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-    
+    int rc = -1;
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, addr, addrlen);
+
+    struct file* file = process_get_file(process, sockfd);
+
+    if (file == NULL) {
+        rc = -ERROR_BAD_FD;
+        goto exit;
+    }
+
+    if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
+        rc = -ERROR_NOT_SOCKET;
+        goto exit;
+    }
+
+    rc = socket_bind((struct socket*) file->inode, addr, addrlen);
+
+exit:
+    return rc;
 }
 
 int sys_listen(int sockfd, int backlog)

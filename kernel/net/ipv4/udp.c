@@ -17,9 +17,15 @@ void udp_ip4_init()
 }
 
 struct socket_prot_ops ipv4_dgram_ops = {
+    .bind = sock_udp4_bind,
     .recvfrom = sock_udp4_recvfrom,
     .sendto = sock_udp4_sendto
 };
+
+int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)
+{
+
+}
 
 int sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
