@@ -221,6 +221,14 @@ int main(int argc, char** argv)
         printf("Failed rmdir() for %s, errno = %i\n", testdir, errno);
         return 28;
     }
+    
+    // ------------------------------
+    printf("Test 12: lseek() with incorrect fd\n");
+    rc = lseek(121, 1, 1);
+    if (errno == EBADF) { 
+        printf("Incorrect errno, expected %i, got %i\n", EBADF, errno);
+        return 29;
+    }
 
     return 0;
 }

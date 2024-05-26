@@ -127,7 +127,7 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
 
         if (!inode->blocks[EXT2_DIRECT_BLOCKS]) {
             // Адрес доп. блока не задан - выделяем блок и задаем адрес
-            uint64_t new_block_index = ext2_alloc_block(inst);
+            uint32_t new_block_index = ext2_alloc_block(inst);
             
             if (new_block_index == 0) {
                 printk("Failed to allocate block!");
@@ -185,7 +185,7 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
 
         uint32_t saved_block = ((uint32_t*)buffer)[c];
         // Считать блок по адресу
-        ext2_partition_read_block(inst, ((uint32_t*)buffer)[c], 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block(inst, saved_block, 1, (char*)kheap_get_phys_address(buffer));
 
         // Записать адрес блока в дополнительный блок
         ((uint32_t*)buffer)[d] = abs_block;
@@ -276,18 +276,18 @@ uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 
 uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer)
 {
+    uint32_t blksize512 = inst->block_size / 512;
     // Если пытаемся записать в невыделенный номер блока
     // Расширить размер inode
-    while (inode_block >= inode->num_blocks / (inst->block_size / 512)) {
+    while (inode_block >= inode->num_blocks / blksize512) {
         // Выделить блок
-		ext2_alloc_inode_block(inst, inode, inode_num, inode->num_blocks / (inst->block_size / 512));
+		ext2_alloc_inode_block(inst, inode, inode_num, inode->num_blocks / blksize512);
         // Обновить данные inode
 		ext2_inode(inst, inode, inode_num);
 	}
 
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
-    //printk("Writing to block %i", inode_block_abs);
     return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
 }
 
@@ -438,8 +438,6 @@ void ext2_purge_inode(struct inode* inode)
     ext2_rem_inode->hard_links = 0;
     ext2_rem_inode->mode = 0;
 
-    //printk("INODE %i SIZE %i BLOCKS %i\n", inode->inode, ext2_rem_inode->size, ext2_rem_inode->num_blocks);
-
     // Освобождение direct блоков
     for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
         uint32_t block_idx = ext2_rem_inode->blocks[block_i];
@@ -547,6 +545,9 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
     inst->superblock->free_blocks--;
     ext2_rewrite_superblock(inst);
 
+    memset(buffer, 0, inst->block_size);
+    ext2_partition_write_block(inst, block_index, 1, (uint8_t*)kheap_get_phys_address(buffer));
+
 exit:
     kfree(buffer);
     return block_index;
@@ -624,10 +625,11 @@ int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t 
     ext2_inode_add_block(inst, inode, node_num, new_block, block_index);
 
     // Обновим количество блоков, занимаемых inode
-    uint32_t blocks_count = (block_index + 1) * (inst->block_size / 512);
-    if (inode->num_blocks < blocks_count) {
-        inode->num_blocks = blocks_count;
-    }
+    //uint32_t blocks_count = (block_index + 1) * (inst->block_size / 512);
+    //if (inode->num_blocks < blocks_count) {
+    //    inode->num_blocks = blocks_count;
+    //}
+    inode->num_blocks += (inst->block_size / 512);
 
     // Перезаписать inode
     ext2_write_inode_metadata(inst, inode, node_num);

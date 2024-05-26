@@ -36,6 +36,8 @@ int sys_rmdir(const char* path);
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags);
 
+int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
+
 off_t sys_file_seek(int fd, off_t offset, int whence); 
 
 int sys_fcntl(int fd, int cmd, long arg);

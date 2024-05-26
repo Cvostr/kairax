@@ -214,7 +214,6 @@ int sys_readdir(int fd, struct dirent* dirent)
         // Вызов readdir из файла   
         rc = file_readdir(file, dirent);
     } else {
-        
         rc = -ERROR_BAD_FD;
     }
 
@@ -247,6 +246,8 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 
     if (file != NULL) {
         result = file_seek(file, offset, whence);
+    } else {
+        result = -ERROR_BAD_FD;
     }
 
     return result;
@@ -364,6 +365,13 @@ exit:
     DENTRY_CLOSE_SAFE(target_dentry);
 
     return rc;
+}
+
+int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    return -1;
 }
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)
