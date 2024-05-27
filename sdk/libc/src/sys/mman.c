@@ -1,9 +1,9 @@
-#include "mman.h"
+#include "sys/mman.h"
 #include "errno.h"
 #include "stdint.h"
 #include "syscalls.h"
 
-void* mmap(void* addr, size_t length, int protection, int flags)
+void* mmap(void* addr, size_t length, int protection, int flags, int fd, int offset)
 {
     void* result = syscall_process_map_memory(addr, length, protection, flags);
     int64_t rc = (int64_t) result;

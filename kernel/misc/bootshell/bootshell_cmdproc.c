@@ -127,6 +127,7 @@ void bootshell_process_cmd(char* cmdline)
             printf_stdout("Error loading module : %i\n", -rc);
         }
 
+        file_close(mod_file);
         kfree(image_data);
     }
     if(strcmp(cmd, "unlmod") == 0) {

@@ -15,3 +15,6 @@ ld -melf_x86_64 $LD_ARGS -o fs.a fs.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -ler
 
 gcc $ARGS pipe.c -o pipe.o
 ld -melf_x86_64 $LD_ARGS -o pipe.a pipe.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS mem.c -o mem.o
+ld -melf_x86_64 $LD_ARGS -o mem.a mem.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

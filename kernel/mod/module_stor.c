@@ -37,6 +37,11 @@ struct module* mstor_new_module(uint64_t size, const char* name)
     return mod;
 }
 
+void free_module(struct module* module)
+{
+    kfree(module);
+}
+
 int mstor_register_module(struct module* module)
 {
     int rc = -1;

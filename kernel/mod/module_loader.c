@@ -67,6 +67,7 @@ int module_load(const char* image, size_t size)
 
     rc = mstor_register_module(mod);
     if (rc != 0) {
+        free_module(mod);
         goto exit;
     }
 

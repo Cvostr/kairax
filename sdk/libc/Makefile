@@ -36,7 +36,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \
-				obj/mman.o \
+				obj/sys/mman.o \
 				obj/fcntl.o \
 				obj/sys/stat.o \
 				obj/sys/ioctl.o \

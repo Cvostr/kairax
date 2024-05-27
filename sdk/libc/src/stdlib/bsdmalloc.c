@@ -57,7 +57,7 @@ __RCSID("$NetBSD: malloc.c,v 1.2 2003/08/07 16:42:01 agc Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <mman.h>
+#include <sys/mman.h>
 
 /*
  * The overhead on a block is at least 4 bytes.  When free, this space
@@ -167,7 +167,7 @@ botch(s)
 #endif
 
 void* sbrk(int len) {
-	char *mm = mmap(NULL, len, PROT_READ | PROT_WRITE, 0);
+	char *mm = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
 	memset(mm, 0, len);
     return mm;
 }

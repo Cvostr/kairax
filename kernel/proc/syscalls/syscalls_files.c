@@ -16,7 +16,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     struct dentry* dir_dentry = NULL;
     struct process* process = cpu_get_current_thread()->process;
 
-    //VALIDATE_USER_POINTER(process, path, strlen(path))
+    VALIDATE_USER_POINTER(process, path, strlen(path))
 
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
@@ -115,9 +115,12 @@ exit:
 ssize_t sys_read_file(int fd, char* buffer, size_t size)
 {
     ssize_t bytes_read = -1;
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
 
-    //VALIDATE_USER_POINTER(process, buffer, size)
+    if (thread->is_userspace) {
+        VALIDATE_USER_POINTER(process, buffer, size)
+    }
 
     struct file* file = process_get_file(process, fd);
 
@@ -135,9 +138,12 @@ exit:
 ssize_t sys_write_file(int fd, const char* buffer, size_t size)
 {
     ssize_t bytes_written = -1;
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
 
-    //VALIDATE_USER_POINTER(process, buffer, size)
+    if (thread->is_userspace) {
+        VALIDATE_USER_POINTER(process, buffer, size)
+    }
 
     struct file* file = process_get_file(process, fd);
 

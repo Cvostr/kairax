@@ -1,9 +1,12 @@
 #include "../syscalls.h"
 #include "mod/module_loader.h"
 #include "mod/module_stor.h"
+#include "cpu/cpu_local_x64.h"
 
 int sys_load_module(void* module_image, size_t image_size)
 {
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, module_image, image_size)
     return module_load(module_image, image_size);
 }
 
