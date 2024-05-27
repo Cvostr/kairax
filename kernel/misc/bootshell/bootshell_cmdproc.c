@@ -17,7 +17,8 @@
 #include "stdio.h"
 
 #include "proc/syscalls.h"
-
+#include "mod/module_loader.h"
+#include "mod/module_stor.h"
 
 void cd(const char* path) 
 {         
@@ -122,7 +123,7 @@ void bootshell_process_cmd(char* cmdline)
         char* image_data = kmalloc(size);
         file_read(mod_file, size, image_data);
 
-        int rc = sys_load_module(image_data, size);
+        int rc = module_load(image_data, size);
         if (rc < 0) {
             printf_stdout("Error loading module : %i\n", -rc);
         }

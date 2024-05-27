@@ -26,12 +26,14 @@ void inode_close(struct inode* node)
 
     if (atomic_dec_and_test(&node->reference_count)) {
 
-        if (node->hard_links == 0) {
-            //printk("Destroying inode %i\n", node->inode);
-            node->sb->operations->destroy_inode(node);
-        }
+        if (node->sb != NULL) {
+            if (node->hard_links == 0) {
+                //printk("Destroying inode %i\n", node->inode);
+                node->sb->operations->destroy_inode(node);
+            }
 
-        superblock_remove_inode(node->sb, node);
+            superblock_remove_inode(node->sb, node);
+        }
         kfree(node);
     } else {
         //release_spinlock(&node->spinlock);

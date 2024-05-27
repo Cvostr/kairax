@@ -5,6 +5,7 @@
 #include "atomic.h"
 #include "sync/spinlock.h"
 #include "fs/vfs/file.h"
+#include "fs/vfs/inode.h"
 
 #define PIPE_SIZE 4096
 

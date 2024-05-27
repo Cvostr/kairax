@@ -56,4 +56,8 @@ struct nic* get_nic(int index);
 struct nic* get_nic_by_name(const char* name);
 int register_nic(struct nic* nic, const char* name_prefix);
 
+int nic_set_addr_ip4(struct nic* nic, uint32_t addr);
+int nic_set_subnetmask_ip4(struct nic* nic, uint32_t subnet);
+int nic_set_flags(struct nic* nic, uint32_t flags);
+
 #endif

@@ -251,7 +251,16 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
     struct file* file = process_get_file(process, fd);
 
     if (file != NULL) {
+
+        if (file->inode != NULL) {
+            if (((file->inode->mode & INODE_FLAG_PIPE) == INODE_FLAG_PIPE) ||
+                ((file->inode->mode & INODE_FLAG_SOCKET) == INODE_FLAG_SOCKET)) {
+                return -ESPIPE;
+            }
+        }
+
         result = file_seek(file, offset, whence);
+
     } else {
         result = -ERROR_BAD_FD;
     }

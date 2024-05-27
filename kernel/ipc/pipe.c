@@ -33,26 +33,31 @@ void free_pipe(struct pipe* pipe)
 
 int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, struct file* write_file)
 {
+    struct inode* ino = kmalloc(sizeof(struct inode));
+    memset(ino, 0, sizeof(struct inode));
+    ino->mode = INODE_FLAG_PIPE;
+
     read_file->private_data = pipe;
-    read_file->mode = INODE_FLAG_PIPE;
     read_file->flags = flags | FILE_OPEN_MODE_READ_ONLY;
     read_file->pos = 0;
     read_file->dentry = NULL;
-    read_file->inode = NULL;
+    read_file->inode = ino;
     read_file->ops = &pipe_fops_read;
     pipe->nreadfds++;
 
     write_file->private_data = pipe;
-    write_file->mode = INODE_FLAG_PIPE;
     write_file->flags = flags | FILE_OPEN_MODE_WRITE_ONLY;
     write_file->pos = 0;
     write_file->dentry = NULL;
-    write_file->inode = NULL;
+    write_file->inode = ino;
     write_file->ops = &pipe_fops_write;
     pipe->nwritefds++;
 
     atomic_inc(&pipe->ref_count);
     atomic_inc(&pipe->ref_count);
+
+    inode_open(ino, 0);
+    inode_open(ino, 0);
 
     return 0;
 }
@@ -129,7 +134,6 @@ ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, lof
 int pipe_file_close(struct inode *inode, struct file *file)
 {
     struct pipe* p = (struct pipe*) file->private_data;
-    file->private_data = NULL;
     
     if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
 

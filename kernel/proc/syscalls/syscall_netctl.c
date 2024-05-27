@@ -35,6 +35,7 @@ int sys_netctl(int op, int param, struct netinfo* netinfo)
     // проверить память netinfo
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, netinfo, sizeof(struct netinfo))
+    int rc = 0;
 
     // получить объект nic по имени или индексу
     struct nic* nic = NULL;
@@ -64,23 +65,15 @@ int sys_netctl(int op, int param, struct netinfo* netinfo)
             netinfo->ip4_gateway = nic->ipv4_gateway;
             break;
         case OP_SET_IPV4_ADDR:
-            nic->ipv4_addr = netinfo->ip4_addr;
+            rc = nic_set_addr_ip4(nic, netinfo->ip4_addr);
+            break;
+        case OP_SET_IPV4_SUBNETMASK:
+            rc = nic_set_subnetmask_ip4(nic, netinfo->ip4_subnet);
             break;
         case OP_UPDATE_FLAGS:
-
-            if ((nic->flags & NIC_FLAG_UP) != (netinfo->flags & NIC_FLAG_UP)) {
-                // Бит UP флагов сменился
-                if ((netinfo->flags & NIC_FLAG_UP) == NIC_FLAG_UP) {
-                    nic->up(nic);
-                } else {
-                    nic->down(nic);
-                }
-            }
-
-            nic->flags = netinfo->flags;
-
+            rc = nic_set_flags(nic, netinfo->flags);
             break;
     }
 
-    return 0;
+    return rc;
 }

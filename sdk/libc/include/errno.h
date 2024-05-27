@@ -19,6 +19,7 @@ int* __errno_location();
 #define	EAGAIN                      11
 #define EISDIR                      21
 #define EINVAL                      22
+#define	ESPIPE		                29
 #define ENOTSOCK                    108
 #define ETIMEDOUT                   116
 #define	EBUSY                       16

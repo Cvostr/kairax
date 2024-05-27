@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "kairax/list/list.h"
 #include "kairax/string.h"
+#include "kairax/errors.h"
 
 list_t nic_list = {0,};
 spinlock_t nic_lock = 0;
@@ -78,4 +79,44 @@ int register_nic(struct nic* nic, const char* name_prefix)
 exit:
     release_spinlock(&nic_lock);
     return 0;
+}
+
+int nic_set_addr_ip4(struct nic* nic, uint32_t addr)
+{
+    if (nic->flags & NIC_FLAG_LOOPBACK) {
+        return -ERROR_WRONG_FUNCTION;
+    }
+
+    nic->ipv4_addr = addr;
+
+    return 0;
+}
+
+int nic_set_subnetmask_ip4(struct nic* nic, uint32_t subnet)
+{
+    if (nic->flags & NIC_FLAG_LOOPBACK) {
+        return -ERROR_WRONG_FUNCTION;
+    }
+
+    nic->ipv4_subnet = subnet;
+
+    return 0;
+}
+
+int nic_set_flags(struct nic* nic, uint32_t flags)
+{
+    if (nic->flags & NIC_FLAG_LOOPBACK) {
+        return -ERROR_WRONG_FUNCTION;
+    }
+
+    if ((nic->flags & NIC_FLAG_UP) != (flags & NIC_FLAG_UP)) {
+        // Бит UP флагов сменился
+        if ((flags & NIC_FLAG_UP) == NIC_FLAG_UP) {
+            nic->up(nic);
+        } else {
+            nic->down(nic);
+        }
+    }
+
+    nic->flags = flags;
 }
