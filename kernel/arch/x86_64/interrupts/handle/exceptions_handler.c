@@ -9,8 +9,6 @@
 #include "mem/pmm.h"
 #include "memory/kernel_vmm.h"
 
-void exception_handler(interrupt_frame_t* frame); //; прототип
-
 char const *exception_message[33] =
 {
     "Division By Zero",
@@ -48,18 +46,12 @@ char const *exception_message[33] =
     "Reserved"
 };
 
-void register_exceptions_handlers(){
-	for(int i = 0; i < 32; i ++){
-		register_interrupt_handler(i, exception_handler, NULL);
-	}
-}
-
 void exception_handler(interrupt_frame_t* frame)
 {
     uint64_t cr2, cr3;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
 
-    if (frame->int_no == 0xE && (frame->error_code & 0b0001) == 0) {
+    if (frame->int_no == EXCEPTION_PAGE_FAULT && (frame->error_code & 0b0001) == 0) {
 
         // Page Fault
         if (cr2 >= 0 && cr2 <= USERSPACE_MAX_ADDR) {

@@ -105,9 +105,6 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args[1]);
     }
-    if(strcmp(cmd, "sleep") == 0) {
-        sys_thread_sleep(3, 0);
-    }
     if(strcmp(cmd, "dentry") == 0) {
         dentry_debug_tree();
     }

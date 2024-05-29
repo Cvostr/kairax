@@ -59,8 +59,6 @@ struct file* new_file();
 
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode);
 
-struct file* file_clone(struct file* original);
-
 void file_acquire(struct file* file);
 void file_close(struct file* file);
 

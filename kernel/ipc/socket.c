@@ -19,8 +19,6 @@ struct socket* new_socket()
     struct socket* result = kmalloc(sizeof(struct socket));
     memset(result, 0, sizeof(struct socket));
 
-    result->ino.mode = INODE_FLAG_SOCKET;
-
     return result;
 }
 

@@ -23,6 +23,8 @@ int sys_not_implemented()
 int sys_pipe(int* pipefd, int flags)
 {
     struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, pipefd, sizeof(int*) * 2);
+
     struct pipe* ppe = new_pipe();
 
     struct file* pread_file = new_file();

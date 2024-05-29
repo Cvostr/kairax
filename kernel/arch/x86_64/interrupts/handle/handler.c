@@ -9,11 +9,16 @@ void (*interrupt_handlers[256])(interrupt_frame_t*, void*);
 void* interrupt_datas[256];
 
 void init_interrupts_handler(){
-	register_exceptions_handlers();
+	
 }
 
 void int_handler(interrupt_frame_t* frame) 
 {
+	if (frame->int_no < 0x20) {
+		exception_handler(frame);
+		return;
+	}
+
 	void (*handler)() = interrupt_handlers[frame->int_no];
 
 	if (handler)

@@ -145,25 +145,6 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     return file;
 }
 
-struct file* file_clone(struct file* original)
-{
-    struct file* file = new_file();
-    file->inode = original->inode;
-    file->dentry = original->dentry;
-    file->ops = original->ops;
-    file->private_data = original->private_data;
-
-    if (file->inode) {
-        inode_open(file->inode, 0);
-    }
-
-    if (file->dentry) {
-        dentry_open(file->dentry);
-    }
-    
-    return file;
-}
-
 ssize_t file_read(struct file* file, size_t size, char* buffer)
 {
     ssize_t read = -1;

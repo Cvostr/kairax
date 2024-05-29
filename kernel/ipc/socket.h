@@ -2,7 +2,6 @@
 #define _SOCKET_H
 
 #include "kairax/in.h"
-#include "fs/vfs/inode.h"
 
 #define AF_LOCAL    1
 #define AF_INET     2
@@ -44,7 +43,6 @@ struct socket_data;
 struct socket_prot_ops;
 
 struct socket {
-    struct inode ino;
     
     int type;
     int protocol;
