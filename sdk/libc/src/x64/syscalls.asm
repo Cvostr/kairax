@@ -20,13 +20,11 @@ global syscall_set_file_mode
 global syscall_create_thread
 global syscall_create_process
 global syscall_create_directory
-global syscall_process_map_memory
 global syscall_process_unmap_memory
 global syscall_get_time_epoch
 global syscall_set_time_epoch
 global syscall_thread_exit
 global syscall_get_ticks_count
-global syscall_load_module
 global syscall_unload_module
 
 DEFINE_SYSCALL syscall_read,        0x0
@@ -36,6 +34,8 @@ DEFINE_SYSCALL syscall_close,       0x3
 DEFINE_SYSCALL syscall_fdstat,      0x5
 DEFINE_SYSCALL syscall_wait,        0x7
 DEFINE_SYSCALL syscall_file_seek,   0x8
+DEFINE_SYSCALL syscall_map_memory,  0x9
+DEFINE_SYSCALL syscall_protect_memory,  0xA
 DEFINE_SYSCALL syscall_ioctl,       0x10
 DEFINE_SYSCALL syscall_create_pipe, 0x16
 DEFINE_SYSCALL syscall_sched_yield, 0x18
@@ -55,13 +55,9 @@ DEFINE_SYSCALL syscall_readdir,     0x59
 DEFINE_SYSCALL syscall_mount,       0xA5
 DEFINE_SYSCALL syscall_poweroff,    0xA9
 
-DEFINE_SYSCALL syscall_futex,       0xCA
+DEFINE_SYSCALL syscall_load_module, 0xAF
 
-syscall_process_map_memory:
-    mov rax, 0x9
-    mov r10, rcx
-    syscall
-    ret
+DEFINE_SYSCALL syscall_futex,       0xCA
 
 syscall_process_unmap_memory:
     mov rax, 0xB
@@ -101,12 +97,6 @@ syscall_create_directory:
     
 syscall_set_file_mode:
     mov rax, 0x5A
-    mov r10, rcx
-    syscall
-    ret
-
-syscall_load_module:
-    mov rax, 0xAF
     mov r10, rcx
     syscall
     ret

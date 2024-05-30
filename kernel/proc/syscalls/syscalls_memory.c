@@ -9,13 +9,17 @@
 #include "kstdlib.h"
 #include "string.h"
 
-void* sys_memory_map(void* address, uint64_t length, int protection, int flags)
+void* sys_memory_map(void* address, uint64_t length, int protection, int flags, int fd, int offset)
 {
     //printf("ADDR %s ", ulltoa(address, 16));
     //printf_stdout("SZ %s\n", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
 
     if (length == 0) {
+        return (void*)-ERROR_INVALID_VALUE;
+    }
+
+    if (address + length >= USERSPACE_MAX_ADDR) {
         return (void*)-ERROR_INVALID_VALUE;
     }
 
@@ -76,6 +80,14 @@ exit:
 
 int sys_memory_protect(void* address, uint64_t length, int protection)
 {
+    // ONLY implemented non conditional
+    // TODO : implement splitting
+    struct process* process = cpu_get_current_thread()->process;
+
+    protection |= PAGE_PROTECTION_USER;
+
+    vm_table_protect_region(process->vmemory_table, address, length, protection);
+
     // TODO: Реализовать
     return -1;
 }

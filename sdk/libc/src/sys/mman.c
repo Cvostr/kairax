@@ -5,14 +5,19 @@
 
 void* mmap(void* addr, size_t length, int protection, int flags, int fd, int offset)
 {
-    void* result = syscall_process_map_memory(addr, length, protection, flags);
+    void* result = syscall_map_memory(addr, length, protection, flags, fd, offset);
     int64_t rc = (int64_t) result;
     if (rc < 0) { 
         errno = -rc; 
-        return (void*)-1;
+        return MAP_FAILED;
     }
     
     return result;
+}
+
+int mprotect (void *addr, size_t length, int protection)
+{
+    __set_errno(syscall_protect_memory(addr, length, protection));
 }
 
 int munmap(void* addr, size_t length)

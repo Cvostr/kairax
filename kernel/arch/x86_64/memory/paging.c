@@ -25,20 +25,27 @@ void* arch_new_vm_table()
     return new_page_table();
 }
 
-int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
+uint64_t x86_64_prot_2_flags(int protection) 
 {
     uint64_t flags = PAGE_PRESENT;
 
-    if (prot & PAGE_PROTECTION_WRITE_ENABLE) {
+    if (protection & PAGE_PROTECTION_WRITE_ENABLE) {
         flags |= PAGE_WRITABLE;
     }
 
-    if (prot & PAGE_PROTECTION_USER) {
+    if (protection & PAGE_PROTECTION_USER) {
         flags |= PAGE_USER_ACCESSIBLE;
     }
 
-    if ((prot & PAGE_PROTECTION_EXEC_ENABLE) == 0)
+    if ((protection & PAGE_PROTECTION_EXEC_ENABLE) == 0)
         flags |= PAGE_EXEC_DISABLE;
+
+    return flags;
+}
+
+int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
+{
+    uint64_t flags = x86_64_prot_2_flags(prot);
 
     return map_page_mem(arch_table, vaddr, physaddr, flags);
 }
@@ -98,8 +105,9 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
 void arch_vm_unmap(void* arch_table, uint64_t vaddr)
 {
     uintptr_t phys = 0;
-    unmap_page1(arch_table, vaddr, &phys);
-    pmm_free_page(phys);
+    int rc = unmap_page1(arch_table, vaddr, &phys);
+    if (rc == 0)
+        pmm_free_page(phys);
 }
 
 //Удалить виртуальную страницу
@@ -236,10 +244,19 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 {
     int rc = 0;
     physical_addr_t phys_addr = get_physical_address(root, virtual_addr);
-    unmap_page(root, virtual_addr);
-	map_page_mem(root, virtual_addr, phys_addr, flags);
+    int mr = unmap_page(root, virtual_addr);
+    if (mr == 0)
+	    map_page_mem(root, virtual_addr, phys_addr, flags);
 
     return 0;
+}
+
+void arch_vm_protect(void* arch_table, uint64_t vaddr, int protection)
+{
+    uint64_t flags = x86_64_prot_2_flags(protection);
+    page_table_t* root = (page_table_t*) arch_table;
+
+    set_page_flags(root, vaddr, flags);
 }
 
 virtual_addr_t get_first_free_pages(page_table_t* root, uint64_t pages_count)

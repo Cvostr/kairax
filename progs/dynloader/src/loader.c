@@ -12,6 +12,8 @@ uint64_t            args_info[2];
 uint64_t            aux_vector[20];
 struct object_data* root;
 
+#define MAP_ANONYMOUS	0x20
+
 #define DIRFD_IS_FD  0x1000
 #define FILE_OPEN_MODE_READ_ONLY    00000000
 
@@ -53,7 +55,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     }
 
     // Выделить память под файл
-    char* file_buffer = syscall_process_map_memory(NULL, file_stat.st_size, PAGE_PROTECTION_WRITE_ENABLE, 0);
+    char* file_buffer = syscall_map_memory(NULL, file_stat.st_size, PAGE_PROTECTION_WRITE_ENABLE, MAP_ANONYMOUS, -1, 0);
     memset(file_buffer, 0, file_stat.st_size);
 
     // Чтение файла
@@ -70,11 +72,11 @@ struct object_data* load_object_data_fd(int fd, int shared) {
 
 struct object_data* load_object_data(char* data, int shared) {
 
-    struct object_data* obj_data = (struct object_data*) syscall_process_map_memory(
+    struct object_data* obj_data = (struct object_data*) syscall_map_memory(
                                             NULL,
                                             sizeof(struct object_data),
                                             PAGE_PROTECTION_WRITE_ENABLE,
-                                            0);
+                                            MAP_ANONYMOUS, -1, 0);
 
     memset(obj_data, 0, sizeof(struct object_data));
 
@@ -100,11 +102,11 @@ struct object_data* load_object_data(char* data, int shared) {
         }
 
         // Выделить память под код
-        obj_data->base = (uint64_t)syscall_process_map_memory(
+        obj_data->base = (uint64_t)syscall_map_memory(
             SO_BASE,
             obj_data->size,
             PAGE_PROTECTION_WRITE_ENABLE | PAGE_PROTECTION_EXEC_ENABLE,
-            0);
+            MAP_ANONYMOUS, -1, 0);
 
         // Расположить код в памяти
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
@@ -116,12 +118,21 @@ struct object_data* load_object_data(char* data, int shared) {
                 uint64_t end_aligned = align(vaddr + pehentry->p_memsz, PAGE_SIZE);
                 uint64_t aligned_size = end_aligned - vaddr_aligned;
 
-                // Выделить память по адресу
-                //syscall_process_map_memory(vaddr, aligned_size, PROTECTION_WRITE_ENABLE | PROTECTION_EXEC_ENABLE, 0);
+                int protection = 0;
+                if (pehentry->flags & ELF_SEGMENT_FLAG_EXEC) {
+                    protection |= PAGE_PROTECTION_EXEC_ENABLE;
+                }
+
+                if (pehentry->flags & ELF_SEGMENT_FLAG_WRITE) {
+                    protection |= PAGE_PROTECTION_WRITE_ENABLE;
+                }
+                
                 // Заполнить выделенную память нулями
                 memset((void*) vaddr, 0, pehentry->p_memsz);
                 // Копировать фрагмент программы в память
-                memcpy((void*) vaddr, data + pehentry->p_offset, pehentry->p_filesz);  
+                memcpy((void*) vaddr, data + pehentry->p_offset, pehentry->p_filesz); 
+                // Защитить память
+                syscall_protect_memory((void*) vaddr, pehentry->p_memsz, protection); 
             }
         }
     }
@@ -135,7 +146,7 @@ struct object_data* load_object_data(char* data, int shared) {
         if (strcmp(section_name, ".dynamic") == 0) {
 
             // Сохранить все данные секции
-            obj_data->dynamic_section = syscall_process_map_memory(NULL, sehentry->size, PAGE_PROTECTION_WRITE_ENABLE, 0);
+            obj_data->dynamic_section = syscall_map_memory(NULL, sehentry->size, PAGE_PROTECTION_WRITE_ENABLE, MAP_ANONYMOUS, -1, 0);
             memcpy(obj_data->dynamic_section, data + sehentry->offset, sehentry->size);
             obj_data->dynamic_sec_size = sehentry->size;
 
@@ -155,43 +166,43 @@ struct object_data* load_object_data(char* data, int shared) {
             }
         } else if (strcmp(section_name, ".dynsym") == 0) {
             
-            obj_data->dynsym = (struct elf_symbol*)syscall_process_map_memory(
+            obj_data->dynsym = (struct elf_symbol*)syscall_map_memory(
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                0);
+                MAP_ANONYMOUS, -1, 0);
 
             memcpy(obj_data->dynsym, data + sehentry->offset, sehentry->size);
 
             obj_data->dynsym_size = sehentry->size;
 
         } else if (strcmp(section_name, ".dynstr") == 0) {
-            obj_data->dynstr = (struct elf_symbol*)syscall_process_map_memory(
+            obj_data->dynstr = (struct elf_symbol*)syscall_map_memory(
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                0);
+                MAP_ANONYMOUS, -1, 0);
 
             memcpy(obj_data->dynstr, data + sehentry->offset, sehentry->size);
 
             obj_data->dynstr_size = sehentry->size;
 
         } else if (strcmp(section_name, ".rela.plt") == 0) {
-            obj_data->plt_rela = (struct elf_rela*)syscall_process_map_memory(
+            obj_data->plt_rela = (struct elf_rela*)syscall_map_memory(
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                0);
+                MAP_ANONYMOUS, -1, 0);
                 
             memcpy(obj_data->plt_rela, data + sehentry->offset, sehentry->size);
 
             obj_data->plt_rela_size = sehentry->size;
         } else if (strcmp(section_name, ".rela.dyn") == 0) {
-            obj_data->rela = (struct elf_rela*) syscall_process_map_memory(
+            obj_data->rela = (struct elf_rela*) syscall_map_memory(
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                0);
+                MAP_ANONYMOUS, -1, 0);
 
             memcpy(obj_data->rela, data + sehentry->offset, sehentry->size);
             obj_data->rela_size = sehentry->size;
@@ -273,7 +284,7 @@ struct object_data* load_object_data(char* data, int shared) {
                 }
 
                 // Копировать
-                memcpy(obj_data->base + sym->value, dep->base + dep_symbol->value, dep_symbol->size);
+                memcpy((void*)obj_data->base + sym->value, (void*)dep->base + dep_symbol->value, dep_symbol->size);
 
                 break;
             case R_X86_64_GLOB_DAT:

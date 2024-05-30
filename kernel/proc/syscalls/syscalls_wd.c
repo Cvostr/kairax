@@ -12,7 +12,12 @@ int sys_get_working_dir(char* buffer, size_t size)
 {
     int rc = 0;
     size_t reqd_size = 0;
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
+
+    if (thread->is_userspace) {
+        VALIDATE_USER_POINTER(process, buffer, size)
+    }
 
     acquire_spinlock(&process->pwd_lock);
     if (process->pwd) {

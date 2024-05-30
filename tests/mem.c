@@ -8,29 +8,70 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#define MMAP_PORTION 100
+
 int main(int argc, char** argv)
 {
     printf("Test 1: File read to mmaped mem\n");
     int fd = open("/dev/zero", O_RDONLY, 0);
-    char* buff = mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    char* buff = mmap(NULL, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
     if (buff == NULL) {
         printf("Failed mmap(), error %i\n", errno);
         return 1;
     }
-    int rc = read(fd, buff, 100);
+    int rc = read(fd, buff, MMAP_PORTION);
     if (rc == -1) {
         printf("Failed read(), error %i\n", errno);
         return 2;
     }
 
+    int testsize = 1024 * 1024;
+    printf("Test 2: mmap and munmap\n");
+    buff = mmap(NULL, testsize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    rc = munmap(buff, testsize);
+    if (rc == -1) {
+        printf("Failed munmap(), error %i\n", errno);
+        return 3;
+    }
 
-    char* addr = 0xFFFFFFFF80000000;
-    printf("Test 2: File read to kernel upper mem\n");
+    printf("Test 3: unmap() with incorrect addr\n");
+    rc = munmap(0xFFFFFFFF, testsize);
+    if (rc == 0) {
+        printf("Successful munmap on 0xFFFFFFFF\n");
+        return 4;
+    }
+
+    char* addr = (char*)0xFFFFFFFF80000000;
+    printf("Test 4: File read to kernel upper mem\n");
     rc = read(fd, addr, 10000);
     if (rc == 0) {
         printf("Successful read to kernel memory, kernel is now broken\n");
-        return 3;
+        return 5;
     }
+
+    printf("Test 5: getcwd() to kernel upper mem\n");
+    char* strr = getcwd(addr, 10000);
+    if (strr != NULL) {
+        printf("Successful read to kernel memory, kernel is now broken\n");
+        return 5;
+    }
+
+    printf("Test 6: mmap() to kernel upper mem\n");
+    char* brc = mmap(addr, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    if (brc != MAP_FAILED) {
+        printf("Successful mmap()\n");
+        return 6;
+    }
+    if (errno != EINVAL) {
+        printf("Incorrect errno(), expected %i, got %i\n", EINVAL, errno);
+        return 6;
+    }
+
+    printf("Test 7: Read larger data\n");
+
+    sleep(1);
+
+    rc = read(fd, buff, MMAP_PORTION * 1024);
 
     return 0;
 }

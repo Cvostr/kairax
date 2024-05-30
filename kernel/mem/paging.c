@@ -53,6 +53,17 @@ void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64
     release_spinlock(&table->lock);
 }
 
+void vm_table_protect_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int protection)
+{
+    acquire_spinlock(&table->lock);
+
+    for (uint64_t addr = virtual_addr; addr < virtual_addr + length; addr += PAGE_SIZE) {
+        arch_vm_protect(table->arch_table, addr, protection);
+    }
+
+    release_spinlock(&table->lock);
+}
+
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr)
 {
     acquire_spinlock(&table->lock);

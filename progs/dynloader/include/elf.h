@@ -123,6 +123,10 @@ struct elf_rela {
 #define ELF_SEGMENT_TYPE_INTERP     3
 #define ELF_SEGMENT_TYPE_NOTE       4
 
+#define ELF_SEGMENT_FLAG_EXEC       1
+#define ELF_SEGMENT_FLAG_WRITE      2
+#define ELF_SEGMENT_FLAG_READ       4
+
 #define ELF64_SYM_BIND(i) ((i) >> 4)
 #define ELF64_SYM_TYPE(i) ((i) & 0xF)
 
