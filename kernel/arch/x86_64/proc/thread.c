@@ -44,6 +44,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
     ctx->cs = GDT_BASE_KERNEL_CODE_SEG;
     //Состояние
     thread->state = STATE_RUNNABLE;
+    thread->timeslice = 2;
 
     return thread;
 }

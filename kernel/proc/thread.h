@@ -29,6 +29,7 @@ struct thread {
     void*               context;
     int                 is_userspace;
     void*               wait_handle;
+    int                 timeslice;
     // Следующий поток при блокировке на семафоре
     struct thread*      next_blocked_thread;
 };

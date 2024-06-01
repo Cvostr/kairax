@@ -18,6 +18,8 @@ extern void scheduler_exit(thread_frame_t* ctx);
 int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
+#define DEFAULT_TIMESLICE 3
+
 void scheduler_yield(int save_context)
 {
     // Выключение прерываний
@@ -46,6 +48,11 @@ int scheduler_handler(thread_frame_t* frame)
     // Сохранить состояние 
     if (previous_thread != NULL && frame) {
 
+        if (--previous_thread->timeslice <= 0) {
+            frame->rflags |= 0x200;
+            scheduler_exit(frame);
+        }
+
         // Сохранить указатель на контекст
         previous_thread->context = frame;
 
@@ -62,6 +69,7 @@ int scheduler_handler(thread_frame_t* frame)
     // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
     new_thread->state = STATE_RUNNING;
+    new_thread->timeslice = DEFAULT_TIMESLICE;
 
     // Получить данные процесса, с которым связан поток
     struct process* process = new_thread->process;
@@ -80,7 +88,6 @@ int scheduler_handler(thread_frame_t* frame)
             cpu_set_fs_base(new_thread->tls + process->tls_size);
         }
     }
-
     
     // Сохранить указатель на новый поток в локальной структуре ядра
     cpu_set_current_thread(new_thread);
