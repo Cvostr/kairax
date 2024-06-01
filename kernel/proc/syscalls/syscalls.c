@@ -20,6 +20,12 @@ int sys_not_implemented()
     return -ERROR_WRONG_FUNCTION;
 }
 
+int sys_yield()
+{
+    struct thread* thr = cpu_get_current_thread();
+    scheduler_yield(TRUE);
+}
+
 int sys_pipe(int* pipefd, int flags)
 {
     struct process* process = cpu_get_current_thread()->process;

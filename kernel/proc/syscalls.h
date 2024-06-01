@@ -12,6 +12,8 @@
 
 int sys_not_implemented();
 
+int sys_yield();
+
 int sys_open_file(int dirfd, const char* path, int flags, int mode);
 
 int sys_mkdir(int dirfd, const char* path, int mode);

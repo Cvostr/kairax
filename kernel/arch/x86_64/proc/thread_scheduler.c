@@ -18,12 +18,17 @@ extern void scheduler_exit(thread_frame_t* ctx);
 int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
-#define DEFAULT_TIMESLICE 3
+#define DEFAULT_TIMESLICE 2
 
 void scheduler_yield(int save_context)
 {
     // Выключение прерываний
     disable_interrupts();
+
+    struct thread* thr = cpu_get_current_thread();
+    if (thr != NULL) {
+        thr->timeslice = 0;
+    }
 
     if (save_context) {
         scheduler_yield_entry();
@@ -48,7 +53,7 @@ int scheduler_handler(thread_frame_t* frame)
     // Сохранить состояние 
     if (previous_thread != NULL && frame) {
 
-        if (--previous_thread->timeslice <= 0) {
+        if ((--previous_thread->timeslice) > 0) {
             frame->rflags |= 0x200;
             scheduler_exit(frame);
         }
