@@ -60,7 +60,25 @@ exit:
 
 int sys_listen(int sockfd, int backlog)
 {
+    int rc = -1;
+    struct process* process = cpu_get_current_thread()->process;
 
+    struct file* file = process_get_file(process, sockfd);
+
+    if (file == NULL) {
+        rc = -ERROR_BAD_FD;
+        goto exit;
+    }
+
+    if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
+        rc = -ERROR_NOT_SOCKET;
+        goto exit;
+    }
+
+    // 
+
+exit:
+    return rc;
 }
 
 int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)

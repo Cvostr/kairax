@@ -120,6 +120,10 @@ printf_nextchar:
                 case 'b':
                     base = 2;
                     goto printf_numeric;
+                case 'p':
+                    pad_char = '0';
+                    longnum = 2;
+                    width = 16;
                 case 'X':
                     uppercase = 1;
                 case 'x':

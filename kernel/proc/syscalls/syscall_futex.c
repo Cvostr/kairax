@@ -18,7 +18,6 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout)
             return -EAGAIN;
         }
 
-        //printk("----- SLP --------- %i\n", futex_physaddr);
         scheduler_sleep(futex_physaddr, NULL);
        
     } else if (op == FUTEX_WAKE) {

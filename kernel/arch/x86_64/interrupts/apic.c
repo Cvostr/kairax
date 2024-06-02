@@ -6,8 +6,10 @@
 #include "kstdlib.h"
 #include "dev/cmos/cmos.h"
 #include "dev/hpet/hpet.h"
+#include "kairax/intctl.h"
 
 #define NANOSECONDS_PER_SECOND 1000000000
+#define LAPIC_TIMER_IRQ 0x20
 
 void* local_apic_addr = NULL;   // Общий адрес для всех ядер
 
@@ -43,12 +45,13 @@ uint32_t lapic_read(uint32_t reg)
 
 int lapic_timer_calibrate(int freq)
 {
+    int divisor = 0x3;
     if (!hpet_is_available()) {
         printk("ERROR: lapic_timer_calibrate() : HPET is not available!\n");
         return -1;
     }
 
-    lapic_write(LAPIC_REG_TIMER_DIV, 0x3);         // set divisor 16
+    lapic_write(LAPIC_REG_TIMER_DIV, divisor);         // set divisor
     lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);   // set timer counter
     
     hpet_nanosleep(NANOSECONDS_PER_SECOND / 1000);
@@ -57,8 +60,8 @@ int lapic_timer_calibrate(int freq)
 
     uint32_t calibration = 0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT);
     
-    lapic_write(LAPIC_REG_LVT_TIMER, 0x20 | LAPIC_TIMER_PERIODIC);
-    lapic_write(LAPIC_REG_TIMER_DIV, 0x3);         // 16
+    lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_TIMER_IRQ | LAPIC_TIMER_PERIODIC);
+    lapic_write(LAPIC_REG_TIMER_DIV, divisor);
     lapic_write(LAPIC_REG_TIMER_INITCNT, calibration);
 
     return 0;

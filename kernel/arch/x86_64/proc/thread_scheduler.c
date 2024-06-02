@@ -53,8 +53,10 @@ int scheduler_handler(thread_frame_t* frame)
     // Сохранить состояние 
     if (previous_thread != NULL && frame) {
 
+        // Разрешить прерывания
+        frame->rflags |= 0x200;
+
         if ((--previous_thread->timeslice) > 0) {
-            frame->rflags |= 0x200;
             scheduler_exit(frame);
         }
 
@@ -82,6 +84,7 @@ int scheduler_handler(thread_frame_t* frame)
 
     // Разрешить прерывания
     thread_frame->rflags |= 0x200;
+
     if (new_thread->is_userspace) {
         // Обновить данные об указателях на стек
         cpu_set_kernel_stack(new_thread->kernel_stack_ptr + PAGE_SIZE);

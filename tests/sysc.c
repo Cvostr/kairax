@@ -49,13 +49,14 @@ int main(int argc, char** argv) {
         testmem = malloc(120);
         memset(testmem, 0, 120);
         sprintf(testmem, "String in malloced memory %i %c", 12, 'a');
-        printf("%s 0x%x \n", testmem, testmem);
+        printf("%s 0x%x 0x%p\n", testmem, testmem, testmem);
     }
 
     char bf[100];
     __dtostr(1.5, bf, 100, 10, 6, 0);
 
     char* a = malloc(10);
+    printf("Mallocated to %p\n", a);
     char b[10];
     int nv;
     int xv;
@@ -98,6 +99,10 @@ int main(int argc, char** argv) {
     printf("RESULT IS %s\n", buff);
 
     FILE* tsf = fopen("bugaga.txt", "r");
+    if (tsf == NULL) {
+        printf("ERR: tsf null\n");
+        return 1;
+    }
     char* buffer = malloc(20);
     int readed = 0;
     while ((readed = fread(buffer, 1, 20, tsf)) > 0) {
