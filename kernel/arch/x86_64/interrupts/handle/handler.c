@@ -4,6 +4,7 @@
 #include "exceptions_handler.h"
 #include "../apic.h"
 #include "../ioapic.h"
+#include "kairax/signal.h"
 
 void (*interrupt_handlers[256])(interrupt_frame_t*, void*);
 void* interrupt_datas[256];
@@ -16,6 +17,11 @@ void int_handler(interrupt_frame_t* frame)
 {
 	if (frame->int_no < 0x20) {
 		exception_handler(frame);
+	
+		if (frame->cs == 0x23) {
+			process_handle_signals();
+		}
+
 		return;
 	}
 
@@ -23,6 +29,10 @@ void int_handler(interrupt_frame_t* frame)
 
 	if (handler)
 		handler(frame, interrupt_datas[frame->int_no]);
+
+	if (frame->cs == 0x23) {
+		process_handle_signals();
+	}
 
 	if (frame->int_no >= 0x20) {
 		lapic_eoi();

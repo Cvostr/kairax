@@ -21,6 +21,7 @@
 #define ERROR_NOT_SOCKET            108
 
 #define	EAGAIN                      11
+#define	ENOMEM                      12
 #define	ESPIPE		                29
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY

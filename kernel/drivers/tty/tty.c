@@ -3,6 +3,7 @@
 #include "ipc/pipe.h"
 #include "sync/spinlock.h"
 #include "string.h"
+#include "proc/syscalls.h"
 
 struct file_operations tty_master_fops;
 struct file_operations tty_slave_fops;
@@ -17,6 +18,8 @@ struct pty {
 
     char buffer[PTY_LINE_MAX_BUFFER_SIZE];
     int buffer_pos;
+
+    int foreground_pg;
 };
 
 #define MAX_PTY_COUNT 64
@@ -32,6 +35,7 @@ void tty_init()
     tty_slave_fops.close = slave_file_close;
     tty_slave_fops.read = slave_file_read;
     tty_slave_fops.write = slave_file_write;
+    tty_slave_fops.ioctl = tty_ioctl;
 }
 
 int master_file_close(struct inode *inode, struct file *file)
@@ -100,6 +104,19 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
     return pipe_read(p_pty->master_to_slave, buffer, count, 0);
 }
 
+int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
+{
+    struct pty *p_pty = (struct pty *) file->private_data;
+
+    switch (request) {
+        case TIOCSPGRP:
+            p_pty->foreground_pg = arg;
+            break;
+    }
+
+    return 0;
+}
+
 char crlf[2] = {'\r', '\n'};
 char remove[3] = {'\b', ' ', '\b'};
 char ETX[3] = {'^', 'C'};
@@ -157,6 +174,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             case 0x3: // ETX
                 pipe_write(p_pty->slave_to_master, ETX, 2); // ^C
                 // todo : сигнал завершения процесса
+                sys_send_signal(p_pty->foreground_pg, SIGINT);
                 break;
             default:
                 // Добавить символ в буфер

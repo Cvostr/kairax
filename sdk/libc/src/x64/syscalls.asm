@@ -14,8 +14,6 @@ global syscall_process_get_id
 global syscall_thread_get_id
 global syscall_get_working_dir
 global syscall_set_working_dir
-global syscall_process_exit
-global syscall_process_exit
 global syscall_set_file_mode
 global syscall_create_thread
 global syscall_create_process
@@ -48,6 +46,8 @@ DEFINE_SYSCALL syscall_recvfrom,    0x2D
 DEFINE_SYSCALL syscall_bind,        0x31
 DEFINE_SYSCALL syscall_listen,      0x32
 DEFINE_SYSCALL syscall_setsockopt,  0x36
+DEFINE_SYSCALL syscall_process_exit, 0x3C
+DEFINE_SYSCALL syscall_kill,        0x3E
 DEFINE_SYSCALL syscall_rename,      0x52
 DEFINE_SYSCALL syscall_rmdir,       0x54
 DEFINE_SYSCALL syscall_unlink,      0x57
@@ -106,10 +106,6 @@ syscall_unload_module:
     mov r10, rcx
     syscall
     ret
-
-syscall_process_exit:
-    mov rax, 0x3C
-    syscall
 
 syscall_create_thread:
     mov rax, 0x2FF

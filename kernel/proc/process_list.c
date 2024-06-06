@@ -63,3 +63,16 @@ int process_list_is_dentry_used_as_cwd(struct dentry* dentry)
     release_spinlock(&process_lock);
     return rc;
 }
+
+void plist_debug() 
+{
+    for (int pid = 0; pid < MAX_PROCESSES; pid ++) {
+
+        struct process* proc = processes[pid];
+
+        if (proc != NULL) {
+            
+            printk("\"%s\": pid: %i\n", proc->name, proc->pid);           
+        }
+    }
+}

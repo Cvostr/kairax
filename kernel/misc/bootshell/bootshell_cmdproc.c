@@ -111,6 +111,16 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmd, "inode") == 0) {
         debug_print_inodes(vfs_get_root_dentry()->sb);
     }
+    if(strcmp(cmd, "ps") == 0) {
+        plist_debug();
+    }
+    if(strcmp(cmd, "kill") == 0) {
+        pid_t pid = atoi(args[1]);
+        int rc = sys_send_signal(pid, SIGKILL);
+        if (rc < 0) {
+            printf_stdout("Error : %i\n", -rc);
+        }
+    }
     if(strcmp(cmd, "insmod") == 0) {
         struct file* mod_file = file_open(NULL, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
         if (mod_file == NULL) {
@@ -147,6 +157,8 @@ void bootshell_process_cmd(char* cmdline)
         if (rc < 0) {
             printf_stdout("Error creating process : %i\n", -rc);
         }
+
+        sys_ioctl(0, 0x5410, rc);
 
         int status = 0;
         sys_wait(rc, &status, 0);

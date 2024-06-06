@@ -6,6 +6,7 @@
 #include "fs/vfs/stat.h"
 #include "mem/paging.h"
 #include "process_list.h"
+#include "kairax/signal.h"
 
 #define MAX_DESCRIPTORS         64
 #define PROCESS_MAX_ARGS        65535
@@ -39,6 +40,10 @@ struct process {
     char                name[30];
     // Процесс - родитель
     struct process*     parent;
+    // Сигналы
+    sigset_t            pending_signals;
+    sigset_t            blocked_signals;
+    spinlock_t          sighandler_lock;
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     uint64_t            threads_stack_top;
@@ -137,5 +142,7 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
 int process_handle_page_fault(struct process* process, uint64_t address);
 
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
+
+int process_send_signal(struct process* process, int signal);
 
 #endif

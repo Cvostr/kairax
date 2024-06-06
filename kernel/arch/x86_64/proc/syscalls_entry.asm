@@ -4,6 +4,7 @@
 [SECTION .text]
 
 extern syscalls_table
+extern process_handle_signals
 global syscall_entry_x64
 
 %macro push_regs 0
@@ -71,6 +72,7 @@ syscall_entry_x64:
     mov rcx, r10
     call syscalls_table[rax * 8]
     mov [rsp + RAX_OFFSET], rax
+    call process_handle_signals
 
 syscalls_exit:
     cli                 ; Выключение прерываний

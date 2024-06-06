@@ -5,4 +5,6 @@ int isalpha(int character);
 
 int isdigit(int character);
 
+int isspace(int c);
+
 #endif

@@ -30,6 +30,10 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
     // Сформировать регион
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    if (range == NULL) {
+        return -ENOMEM;
+    }
+    
     range->base = (uint64_t) address;
     range->length = length;
     range->protection = protection | PAGE_PROTECTION_USER;
