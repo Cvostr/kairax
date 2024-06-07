@@ -4,6 +4,10 @@
 #include "sys/cdefs.h"
 #include "sys/types.h"
 
+#define	SIG_BLOCK     0		 
+#define	SIG_UNBLOCK   1		 
+#define	SIG_SETMASK   2
+
 #define SIGHUP		 1
 #define SIGINT		 2
 #define SIGQUIT		 3
@@ -21,9 +25,14 @@
 
 __BEGIN_DECLS
 
-int raise (int sig) __THROW;
+typedef unsigned long sigset_t;
+
+int raise(int sig) __THROW;
 int kill(pid_t pid, int sig) __THROW;
-//int sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW;
+
+int sigaddset(sigset_t *set, int sig) __THROW;
+int sigdelset(sigset_t *set, int sig) __THROW;
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW;
 
 __END_DECLS
 

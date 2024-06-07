@@ -32,7 +32,7 @@
 
 #define SIGNALS         32
 
-typedef unsigned int sigset_t;
+typedef unsigned long sigset_t;
 
 union __sigval
 {

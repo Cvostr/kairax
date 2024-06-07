@@ -33,9 +33,11 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/strtol.o \
 				obj/stdlib/dtostr.o \
 				obj/stdlib/rand.o \
+				obj/stdlib/abort.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \
+				obj/assert.o \
 				obj/signal.o \
 				obj/sys/mman.o \
 				obj/fcntl.o \

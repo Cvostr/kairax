@@ -43,6 +43,7 @@ extern int rand_r(unsigned int *seed);
 extern void srand(unsigned int seed);
 
 extern void exit(int status);
+extern void abort();
 extern int system(const char *command);
 
 #ifdef __cplusplus

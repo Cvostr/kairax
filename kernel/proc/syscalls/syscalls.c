@@ -205,15 +205,27 @@ int sys_send_signal(pid_t pid, int signal)
 {
     struct process* proc = process_get_by_id(pid);
 
+    if (signal > SIGNALS) {
+        return -ERROR_INVALID_VALUE;
+    }
+
     if (proc == NULL) {
+        return -1;
+    }
+
+    if (proc->type != OBJECT_TYPE_PROCESS) {
         return -1;
     }
 
     return process_send_signal(proc, signal);
 }
 
-int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset)
+int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigsetsize)
 {
+    if (sigsetsize != sizeof(sigset_t)) {
+        return -ERROR_INVALID_VALUE;
+    }
+    
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, set, sizeof(sigset_t))
     if (oldset != NULL) {
@@ -289,7 +301,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     }
     struct file* stderr = process_get_file(process, info->stderr);
     if (stderr != NULL) {
-        process_add_file_at(new_process, stderr, 0);
+        process_add_file_at(new_process, stderr, 2);
     }
     // -----------
 

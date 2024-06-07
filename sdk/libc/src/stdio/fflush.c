@@ -25,7 +25,7 @@ int fflush_unlocked(FILE *stream)
     if (stream == NULL) {
         fflush(stdout);
         // todo : fflush all
-        //return 0;
+        return 0;
     }
 
     if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT) {

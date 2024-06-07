@@ -52,6 +52,7 @@ DEFINE_SYSCALL syscall_rename,      0x52
 DEFINE_SYSCALL syscall_rmdir,       0x54
 DEFINE_SYSCALL syscall_unlink,      0x57
 DEFINE_SYSCALL syscall_readdir,     0x59
+DEFINE_SYSCALL syscall_sigprocmask, 0x7E
 DEFINE_SYSCALL syscall_mount,       0xA5
 DEFINE_SYSCALL syscall_poweroff,    0xA9
 

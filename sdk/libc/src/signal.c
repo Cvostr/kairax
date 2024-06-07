@@ -12,3 +12,32 @@ int kill(pid_t pid, int sig)
 {
     __set_errno(syscall_kill(pid, sig));
 }
+
+int sigaddset (sigset_t *set, int sig)
+{
+    if ((sig < 1)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    *set |= (1ULL << sig);
+
+    return 0; 
+}
+
+int sigdelset(sigset_t *set, int sig)
+{
+    if ((sig < 1)) {
+        errno = EINVAL;
+        return -1;
+    }
+    
+    *set &= ~(1ULL << sig);
+
+    return 0; 
+}
+
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+    __set_errno(syscall_sigprocmask(how, set, oldset, sizeof(sigset_t)));
+}

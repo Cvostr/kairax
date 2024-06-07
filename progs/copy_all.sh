@@ -11,3 +11,4 @@ sudo cp ./mv/mv.a /mnt/kxvol
 sudo cp ./rm/rm.a /mnt/kxvol
 sudo cp ./rmdir/rmdir.a /mnt/kxvol
 sudo cp ./netctl/netctl.a /mnt/kxvol
+sudo cp ./kill/kill.a /mnt/kxvol

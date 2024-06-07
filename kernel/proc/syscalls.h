@@ -111,7 +111,7 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
 
 // ----- SIGNALS -------
 
-int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset);
+int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigsetsize);
 
 int sys_send_signal(pid_t pid, int signal);
 

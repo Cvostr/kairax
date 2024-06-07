@@ -129,13 +129,13 @@ void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
 
         switch (chr) {
             case '\n':
-                pipe_write(p_pty->slave_to_master, crlf, 2);
+                pipe_write(p_pty->slave_to_master, crlf, sizeof(crlf));
                 break;
             default:
                 pipe_write(p_pty->slave_to_master, &chr, 1);
         }
         i++;
-    }
+    }   
 }
 
 void pty_linebuffer_append(struct pty* p_pty, char c)
@@ -168,12 +168,11 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                 if (p_pty->buffer_pos > 0) {
                     p_pty->buffer_pos--;
                     // BKSP + SPACE + BKSP
-                    pipe_write(p_pty->slave_to_master, remove, 3);
+                    pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
                 }
                 break;
             case 0x3: // ETX
-                pipe_write(p_pty->slave_to_master, ETX, 2); // ^C
-                // todo : сигнал завершения процесса
+                pipe_write(p_pty->slave_to_master, ETX, sizeof(ETX)); // ^C
                 sys_send_signal(p_pty->foreground_pg, SIGINT);
                 break;
             default:
