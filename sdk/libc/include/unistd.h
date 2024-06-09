@@ -1,12 +1,11 @@
 #ifndef _UNISTD_H
 #define _UNISTD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "sys/types.h"
 #include "stddef.h"
+#include "sys/cdefs.h"
+
+__BEGIN_DECLS
 
 #ifndef _STDIO_H
 #define SEEK_SET    0
@@ -18,9 +17,11 @@ extern "C" {
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
-pid_t getpid();
+pid_t getpid(void);
 
-pid_t gettid();
+pid_t getppid(void);
+
+pid_t gettid(void);
 
 ssize_t read(int fd, char* buffer, size_t size);
 
@@ -45,8 +46,6 @@ int pipe(int pipefd[2]);
 
 void _exit(int status);
 
-#ifdef __cplusplus
-}
-#endif
+__END_DECLS
 
 #endif

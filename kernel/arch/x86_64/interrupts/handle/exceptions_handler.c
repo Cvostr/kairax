@@ -115,8 +115,17 @@ void exception_handler(interrupt_frame_t* frame)
     if (frame->cs == 0x23) {
         // Исключение произошло в пользовательском процессе
         // Завершаем процесс
+        int rc = -1;
+        switch (frame->int_no) {
+            case EXCEPTION_PAGE_FAULT:
+                rc = 128 + SIGSEGV;
+                break;
+            case EXCEPTION_INVALID_OPCODE:
+                rc = 128 + SIGILL;
+                break;
+        }
         printf("Process terminated!\n");
-        sys_exit_process(-1);
+        sys_exit_process(rc);
 
     } else {
         printf("Kernel terminated. Please reboot your computer\n");

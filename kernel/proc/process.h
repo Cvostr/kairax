@@ -40,6 +40,8 @@ struct process {
     char                name[30];
     // Процесс - родитель
     struct process*     parent;
+    //
+    uid_t               user_id;
     // Сигналы
     sigset_t            pending_signals;
     sigset_t            blocked_signals;

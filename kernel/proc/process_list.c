@@ -53,6 +53,10 @@ int process_list_is_dentry_used_as_cwd(struct dentry* dentry)
 
         if (proc != NULL) {
             
+            if (proc->type != OBJECT_TYPE_PROCESS) {
+                continue;
+            }
+
             if (proc->pwd == dentry) {
                 rc = 1;
                 break;

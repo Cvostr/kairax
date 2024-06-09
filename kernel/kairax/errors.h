@@ -1,11 +1,12 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H
 
+#define ERROR_NO_FILE               2
 #define ERROR_ARGS_BUFFER_BIG       7
 #define ERROR_BAD_EXEC_FORMAT       8
 #define ERROR_BAD_FD                9
 #define	ERROR_NO_CHILD		        10
-#define ERROR_NO_FILE               2
+#define ERROR_NO_MEMORY             12
 #define ERROR_IS_DIRECTORY          21
 #define ERROR_INVALID_VALUE         22
 #define ERROR_NOT_A_DIRECTORY       20        
@@ -20,8 +21,9 @@
 #define ERROR_NOT_EMPTY             90
 #define ERROR_NOT_SOCKET            108
 
+#define	EINTR                       4
 #define	EAGAIN                      11
-#define	ENOMEM                      12
+#define	ENOMEM                      ERROR_NO_MEMORY
 #define	ESPIPE		                29
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY

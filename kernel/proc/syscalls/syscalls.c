@@ -79,6 +79,19 @@ pid_t sys_get_process_id()
     return process->pid;
 }
 
+pid_t sys_get_parent_process_id()
+{
+    struct process* process = cpu_get_current_thread()->process;
+    struct process* parent = process->parent;
+
+    if (parent == NULL) {
+        // ну мало ли
+        return -1;
+    }
+
+    return parent->pid;
+}
+
 pid_t sys_get_thread_id()
 {
     struct thread* current_thread = cpu_get_current_thread();
@@ -203,11 +216,11 @@ uint64_t sys_get_tick_count()
 
 int sys_send_signal(pid_t pid, int signal)
 {
-    struct process* proc = process_get_by_id(pid);
-
-    if (signal > SIGNALS) {
+    if (signal < 0 || signal > SIGNALS) {
         return -ERROR_INVALID_VALUE;
     }
+
+    struct process* proc = process_get_by_id(pid);
 
     if (proc == NULL) {
         return -1;
@@ -225,11 +238,11 @@ int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigs
     if (sigsetsize != sizeof(sigset_t)) {
         return -ERROR_INVALID_VALUE;
     }
-    
+
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, set, sizeof(sigset_t))
+    VALIDATE_USER_POINTER(process, set, sigsetsize)
     if (oldset != NULL) {
-        VALIDATE_USER_POINTER(process, oldset, sizeof(sigset_t))
+        VALIDATE_USER_POINTER(process, oldset, sigsetsize)
         *oldset = process->blocked_signals;
     }
 

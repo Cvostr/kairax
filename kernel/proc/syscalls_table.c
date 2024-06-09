@@ -44,6 +44,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x59, sys_readdir),
     DEFINE_SYSCALL(0x5A, sys_set_mode),
     DEFINE_SYSCALL(0x60, sys_get_time_epoch),
+    DEFINE_SYSCALL(0x6E, sys_get_parent_process_id),
     DEFINE_SYSCALL(0x7E, sys_sigprocmask),
     DEFINE_SYSCALL(0xA4, sys_set_time_epoch),
     DEFINE_SYSCALL(0xA5, sys_mount),

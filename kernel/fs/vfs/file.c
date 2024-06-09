@@ -57,8 +57,8 @@ char* format_path(const char* path)
     return result;
 }
 
-void split_path(const char* path, char** directory_path_ptr, char** filename_ptr) {
-    //printf("ORIG %s\n", path);
+void split_path(const char* path, char** directory_path_ptr, char** filename_ptr) 
+{
     // Поиск разделителя файла
     char* last_slash = strrchr(path, '/');
 

@@ -22,6 +22,7 @@ int main() {
 
     int counter = 0;
     printf("PID : %i\n", getpid());
+    printf("PPID : %i\n", getppid());
     
     getcwd(buff, 220);
     printf("CWD : %s\n", buff);

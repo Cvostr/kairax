@@ -20,6 +20,7 @@ void kterm_process_start()
 {
     // Первоначальный процесс kterm
 	kterm_process = create_new_process(NULL);
+	strcpy(kterm_process->name, "kterm");
 	// Добавить в список и назначить pid
     process_add_to_list(kterm_process);
 
@@ -43,6 +44,7 @@ struct terminal_session* new_kterm_session(int create_console)
 
 	// Процесс shell
 	session->proc = create_new_process(kterm_process);
+	strcpy(session->proc->name, "bootshell");
 	// Добавить в список и назначить pid
     process_add_to_list(session->proc);
 	// Переопределить каналы

@@ -4,12 +4,17 @@
 #include "time.h"
 #include "fcntl.h"
 
-pid_t getpid()
+pid_t getpid(void)
 {
-    return syscall_process_get_id();
+    return syscall_getpid();
 }
 
-pid_t gettid()
+pid_t getppid(void)
+{
+    return syscall_getppid();
+}
+
+pid_t gettid(void)
 {
     return syscall_thread_get_id();
 }

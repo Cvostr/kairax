@@ -162,6 +162,18 @@ void bootshell_process_cmd(char* cmdline)
 
         int status = 0;
         sys_wait(rc, &status, 0);
+        
+        if (status > 128) {
+            int sig = status - 128;
+            switch (sig) {
+                case SIGABRT:
+                    printk("Aborted\n");
+                    break;
+                case SIGSEGV:
+                    printk("Segmentation fault\n");
+                    break;
+            }
+        }
     }
     else if (strcmp(cmdline, "mounts") == 0) {
         struct superblock* sb = NULL;
