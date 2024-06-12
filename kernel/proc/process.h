@@ -41,7 +41,7 @@ struct process {
     // Процесс - родитель
     struct process*     parent;
     //
-    uid_t               user_id;
+    uid_t               uid;
     // Сигналы
     sigset_t            pending_signals;
     sigset_t            blocked_signals;

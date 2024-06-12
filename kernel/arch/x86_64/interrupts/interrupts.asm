@@ -23,18 +23,14 @@ isr_entry:
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
-    pushsg
-    ; Переключение на сегмент ядра
-    mov ax, KERNEL_DATA_SEG
-    mov ds, ax
-    mov es, ax
+    ;pushsg
     ; Перейти к обработчику
     mov rdi, rsp
     cld
     call int_handler
 
     ; Извлечь значения сегментных регистров es, ds
-    popsg
+    ;popsg
     ; Извлечь 64 битные регистры из стека
     popaq
 
@@ -64,18 +60,18 @@ isr_32:
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
-    pushsg
+    ;pushsg
     ; Переключение на сегмент ядра
-    mov ax, KERNEL_DATA_SEG
-    mov ds, ax
-    mov es, ax
+    ;mov ax, KERNEL_DATA_SEG
+    ;mov ds, ax
+    ;mov es, ax
     ; Перейти к обработчику
     mov rdi, rsp
     cld
     call timer_int_handler
     ; Переключение задачи не произошло - возвращаемся назад
     ; Извлечь значения сегментных регистров es, ds
-    popsg
+    ;popsg
     ; Извлечь 64 битные регистры из стека
     popaq
 

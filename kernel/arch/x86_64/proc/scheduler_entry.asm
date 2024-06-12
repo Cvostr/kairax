@@ -15,11 +15,7 @@ scheduler_entry:
     ; Поместить все 64-битные регистры в стек
     pushaq
     ; Поместить сегментные регистры в стек
-    pushsg
-    ; переключение на сегмент ядра
-    mov ax, KERNEL_DATA_SEG
-    mov ds, ax
-    mov es, ax
+    ;pushsg
 
     ; Переход в код планировщика
     mov rdi, rsp
@@ -29,7 +25,7 @@ global scheduler_exit
 scheduler_exit:
     mov rsp, rdi
     ; Извлечь значения сегментных регистров es, ds
-    popsg
+    ;popsg
     ; Извлечь значения основных регистров
     popaq
     ; swapgs если необходимо сменить кольцо
