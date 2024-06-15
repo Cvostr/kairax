@@ -3,6 +3,7 @@
 
 #include "dev/bus/pci/pci.h"
 #include "types.h"
+#include "sync/spinlock.h"
 
 #define NVME_CMD_IO_READ    0x02
 #define NVME_CMD_IO_WRITE   0x01
@@ -29,30 +30,51 @@ struct nvme_cmd_rw {
     uint16_t    block_count;
 } PACKED;
 
+#define IDCMD_NAMESPACE 0
+#define IDCMD_CONTROLLER 1
+#define IDCMD_NAMESPACE_LIST 2
+
 struct nvme_cmd_id {
     uint32_t    id_type;    //  0 - namespace, 1 - controller, 2 - namespace list.
 } PACKED;
 
 struct nvme_command {
-    uint32_t    cmd;
+    
+    union {
+        uint32_t    cmd;
+
+        struct {
+            uint8_t     opcode;
+            uint8_t     fuse : 2;
+            uint8_t     reserved0 : 4;
+            uint8_t     prp_sgl : 2;
+            uint16_t    cmd_id;
+        } __attribute__((packed));
+    };
+
     uint32_t    namespace_id;
     uint32_t    reserved[2];
     uint64_t    metadata_ptr;
     uint64_t    prp[2];
 
     union {
-        struct nvme_cmd_rw rwcmd;
-        struct nvme_cmd_id idcmd;
+        uint32_t            cmdspec[6];
+        struct nvme_cmd_id  idcmd;
+        struct nvme_cmd_rw  rwcmd;
     };
 } PACKED;
 
-struct nvme_compl_entry {
+struct nvme_completion {
     uint32_t res;
     uint32_t reserved;
     uint16_t subm_queue_head;
     uint16_t subm_queue_id;
-    uint16_t cmd_id;
-    uint16_t status;
+    
+    struct{
+		uint32_t cmd_id : 16; // Id of the command being completed
+		uint32_t phase_tag : 1; // DWORD 3, Changed when a completion queue entry is new
+		uint32_t status : 15; // DWORD 3, Status of command being completed
+	} __attribute__((packed));
 } PACKED;
 
 struct nvme_lbaf {
@@ -89,16 +111,17 @@ struct nvme_namespace_id {
     uint16_t    ns_pda;
     uint16_t    ns_ows;
     uint16_t    ns_mssrl;
-    uint16_t    ns_mcl;
+    uint32_t    ns_mcl;
     uint8_t     ns_msrc;
+    uint8_t     reserved[11];
     uint32_t    ns_anagrpid;
-    uint16_t    reserved;
+    uint8_t     reserved2[3];
     uint8_t     ns_attributes;
     uint16_t    ns_nvmsetid;
     uint16_t    ns_endgid;
     uint8_t     ns_guid[16];
     uint8_t     ns_eui64[8];
-    struct nvme_lbaf lbafs[64];
+    struct nvme_lbaf lbafs[16];
     // TODO: Add vendor specific
 };
 
@@ -187,25 +210,50 @@ struct nvme_controller_id {
     uint16_t    copy_desc_format;
     uint32_t    sgls;
 
-    uint32_t unused6[1401];
-    uint8_t vs[1024];
+    //uint32_t unused6[1401];
+    //uint8_t vs[1024];
 };
 
 struct nvme_queue {
     volatile struct nvme_command *submit;
-    volatile struct nvme_compl_entry *completion;
+    volatile struct nvme_completion *completion;
+    uint16_t    next_cmd_id;
+    spinlock_t  queue_lock;
+    size_t      slots;
+    uint16_t    submit_tail;
+    uint16_t    complete_head;
+
+    uint32_t*   submission_doorbell;
+    uint32_t*   completion_doorbell; 
 };
 
-struct nvme_device {
-    struct pci_device_info*    pci_device;
-    struct nvme_bar0*   bar0;
-    size_t              stride;
-    size_t              queues_num;
+void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl);
+
+struct nvme_controller {
+    struct pci_device_info*     pci_device;
+    struct nvme_bar0*           bar0;
+    int                         index;
+    size_t                      stride;
+    size_t                      queues_num;
+
+    struct nvme_controller_id   controller_id;
 
     struct nvme_queue* admin_queue;
 };
 
-struct nvme_queue* nvme_create_queue(size_t slots);
+struct nvme_namespace {
+
+    struct nvme_controller* controller;
+    uint32_t    namespace_id;
+
+    uint8_t     lba_size;
+    uint64_t    block_size;
+    size_t      disk_size;
+};
+
+struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32_t id, struct nvme_namespace_id* nsid);
+
+struct nvme_queue* nvme_create_queue(struct nvme_controller* controller, uint32_t id, size_t slots);
 
 void init_nvme();
 
