@@ -7,6 +7,7 @@
 #include "dev/cmos/cmos.h"
 #include "dev/hpet/hpet.h"
 #include "kairax/intctl.h"
+#include "proc/timer.h"
 
 #define NANOSECONDS_PER_SECOND 1000000000
 #define LAPIC_TIMER_IRQ 0x20
@@ -51,18 +52,23 @@ int lapic_timer_calibrate(int freq)
         return -1;
     }
 
+    int sleep_time = NANOSECONDS_PER_SECOND / 20;
+
     lapic_write(LAPIC_REG_TIMER_DIV, divisor);         // set divisor
     lapic_write(LAPIC_REG_TIMER_INITCNT, 0xFFFFFFFF);   // set timer counter
     
-    hpet_nanosleep(NANOSECONDS_PER_SECOND / 1000);
+    hpet_nanosleep(sleep_time);
 
     lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_TIMER_MASKED);
 
     uint32_t calibration = 0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURCNT);
+    calibration /= (TIMER_FREQUENCY / 20);
     
     lapic_write(LAPIC_REG_LVT_TIMER, LAPIC_TIMER_IRQ | LAPIC_TIMER_PERIODIC);
     lapic_write(LAPIC_REG_TIMER_DIV, divisor);
     lapic_write(LAPIC_REG_TIMER_INITCNT, calibration);
+
+    //printk("CALIB : %i\n", calibration);
 
     return 0;
 }

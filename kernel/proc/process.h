@@ -16,6 +16,7 @@ struct mmap_range {
     uint64_t        base;
     uint64_t        length;
     int             protection;
+    int             flags;
 };
 
 #define STATE_RUNNING                  0    // Работает
@@ -48,7 +49,6 @@ struct process {
     spinlock_t          sighandler_lock;
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
-    uint64_t            threads_stack_top;
     // Рабочая папка
     spinlock_t          pwd_lock;
     struct dentry*      pwd;
@@ -107,7 +107,7 @@ uintptr_t        process_brk(struct process* process, uint64_t addr);
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags);
 
-void* process_alloc_stack_memory(struct process* process, size_t stack_size);
+void* process_alloc_stack_memory(struct process* process, size_t stack_size, int need_map);
 
 int process_is_userspace_region(struct process* process, uintptr_t base, size_t len);
 

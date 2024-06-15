@@ -24,6 +24,7 @@
 #define	EINTR                       4
 #define	EAGAIN                      11
 #define	ENOMEM                      ERROR_NO_MEMORY
+#define EINVAL                      ERROR_INVALID_VALUE
 #define	ESPIPE		                29
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY

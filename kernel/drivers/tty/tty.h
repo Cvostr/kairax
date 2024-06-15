@@ -4,6 +4,7 @@
 #include "fs/vfs/file.h"
 #include "fs/vfs/inode.h"
 
+#define TCGETS      0x5401
 #define TIOCSPGRP	0x5410
 
 struct pty;

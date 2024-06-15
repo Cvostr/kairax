@@ -67,7 +67,18 @@ int main(int argc, char** argv)
         return 6;
     }
 
-    printf("Test 7: Read larger data\n");
+    printf("Test 7: mmap() non anonimous with bad fd\n");
+    brc = mmap(NULL, MMAP_PORTION, PROT_READ | PROT_WRITE, 0, -1, 0);
+    if (brc != MAP_FAILED) {
+        printf("Successful mmap()\n");
+        return 7;
+    }
+    if (errno != EBADF) {
+        printf("Incorrect errno(), expected %i, got %i\n", EBADF, errno);
+        return 8;
+    }
+
+    printf("Test 8: Read larger data\n");
 
     sleep(1);
 

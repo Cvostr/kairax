@@ -14,6 +14,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     //printf("ADDR %s ", ulltoa(address, 16));
     //printf_stdout("SZ %s\n", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
+    struct file* file = NULL;
 
     if (length == 0) {
         return (void*)-ERROR_INVALID_VALUE;
@@ -21,6 +22,15 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
     if (address + length >= USERSPACE_MAX_ADDR) {
         return (void*)-ERROR_INVALID_VALUE;
+    }
+
+    if ((flags & MAP_ANONYMOUS) == 0) 
+    {
+        file = process_get_file(process, fd);  
+
+        if (file == NULL) {
+            return (void*)-ERROR_BAD_FD;
+        }  
     }
 
     length = align(length, PAGE_SIZE);
@@ -37,6 +47,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     range->base = (uint64_t) address;
     range->length = length;
     range->protection = protection | PAGE_PROTECTION_USER;
+    range->flags = flags;
 
     process_add_mmap_region(process, range);
 

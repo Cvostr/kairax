@@ -5,9 +5,6 @@
 
 typedef struct PACKED {
 
-    //uint16_t es; 
-    //uint16_t ds;
-
     uint64_t r15;
     uint64_t r14;
     uint64_t r13;

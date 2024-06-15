@@ -3,6 +3,8 @@
 #include "errno.h"
 #include "time.h"
 #include "fcntl.h"
+#include "termios.h"
+#include "sys/ioctl.h"
 
 pid_t getpid(void)
 {
@@ -82,6 +84,16 @@ ssize_t read(int fd, char* buffer, size_t size)
 ssize_t write(int fd, const char* buffer, size_t size)
 {
     __set_errno(syscall_write(fd, buffer, size));
+}
+
+int isatty(int fd)
+{
+    struct termios trm;
+    int errno_saved = errno;
+    int istty = ioctl(fd, TCGETS, (unsigned long long) &trm) == 0;
+    errno = errno_saved;
+
+    return istty;
 }
 
 void _exit(int status)

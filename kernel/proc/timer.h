@@ -3,7 +3,7 @@
 
 #include "kairax/time.h"
 
-#define TIMER_FREQUENCY 1000
+#define TIMER_FREQUENCY 500
 
 struct event_timer {
     void* handle; // Для ожиданий потоков

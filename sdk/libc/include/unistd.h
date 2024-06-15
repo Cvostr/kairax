@@ -44,6 +44,8 @@ int chdir(const char* path);
 
 int pipe(int pipefd[2]);
 
+int isatty(int fd);
+
 void _exit(int status);
 
 __END_DECLS

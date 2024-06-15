@@ -50,6 +50,7 @@ void exception_handler(interrupt_frame_t* frame)
 {
     uint64_t cr2, cr3;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
+    asm volatile ("mov %%cr3, %%rax\n mov %%rax, %0" : "=m" (cr3));
 
     if (frame->int_no == EXCEPTION_PAGE_FAULT && (frame->error_code & 0b0001) == 0) {
 
@@ -74,8 +75,6 @@ void exception_handler(interrupt_frame_t* frame)
         }
     }
 
-    asm volatile ("mov %%cr3, %%rax\n mov %%rax, %0" : "=m" (cr3));
-
     printf("Exception occured 0x%s (%s)\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);
     printf("ERR = %s\n", ulltoa(frame->error_code, 16));
@@ -99,15 +98,17 @@ void exception_handler(interrupt_frame_t* frame)
         printf("%s ", ulltoa(*(ip++), 16));
     }
     
-    printf("\nSTACK TRACE: \n");
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
-    for (int i = -3; i < 25; i ++) {
-        uintptr_t value = *(stack_ptr - i);
-        if (i == 0) {
-            printf(" | ");
-        }
-        //if(value > KERNEL_TEXT_OFFSET)
+    int show_stack = 1;
+    if (cpu_get_current_vm_table() != NULL) {
+        show_stack = vm_is_mapped(cpu_get_current_vm_table(), stack_ptr);
+    }
+    if (show_stack) {
+        printf("\nSTACK TRACE: \n");
+        for (int i = 0; i < 25; i ++) {
+            uintptr_t value = *(stack_ptr - i);
             printf("%s ", ulltoa(value, 16));
+        }
     }
     
     printf("\n");

@@ -112,6 +112,11 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
         case TIOCSPGRP:
             p_pty->foreground_pg = arg;
             break;
+        case TCGETS:
+            // todo: implement returning termios
+            break;
+        default:
+            return -EINVAL;
     }
 
     return 0;

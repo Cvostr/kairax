@@ -1,4 +1,4 @@
-"C:\Program Files\qemu\qemu-system-x86_64w" -monitor stdio -m 1G -d int -smp 4 ^
+"C:\Program Files\qemu\qemu-system-x86_64w" -monitor stdio -m 1G -d int -smp 2 ^
 -drive id=disk,file=drive.img,if=none,format=raw ^
 -drive id=bootdisk,file=kairax.iso,if=none ^
 -device ahci,id=ahci ^

@@ -23,7 +23,6 @@ struct process*  create_new_process(struct process* parent)
     atomic_inc(&process->vmemory_table->refs);
 
     process->brk = 0x0;
-    process->threads_stack_top = align_down(USERSPACE_MAX_ADDR, PAGE_SIZE);
     
     // Создать список потоков
     process->threads = create_list();
@@ -195,29 +194,32 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     return 0;
 }
 
-void* process_alloc_stack_memory(struct process* process, size_t stack_size)
+void* process_alloc_stack_memory(struct process* process, size_t stack_size, int need_map)
 {
-    // Добавляем защитную страницу после вершины стека
-    process->threads_stack_top -= PAGE_SIZE;
-    // Выравнивание размера стека
-    stack_size = align(stack_size, PAGE_SIZE);
+    // Создаем внизу защитную область в размере страницы
+    // Чтобы при попытке взаимодействия завершить программу с SIGSEGV
+    // Выравнивание размера стека с прибавлением размера "защиты"
+    stack_size = align(stack_size, PAGE_SIZE) + PAGE_SIZE;
+    
     // Начало памяти под стек
-    uint64_t mem_begin = process->threads_stack_top - stack_size;
+    uint64_t mem_begin = process_get_free_addr(process, stack_size, align_down(USERSPACE_MMAP_ADDR, PAGE_SIZE));
 
     // Добавить диапазон памяти к процессу
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     range->base = mem_begin;
     range->length = stack_size;
     range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
+    range->flags = MAP_STACK;
     process_add_mmap_region(process, range);
 
-    for (uintptr_t address = mem_begin; address < mem_begin + stack_size; address += PAGE_SIZE) {
-        vm_table_map(process->vmemory_table, address, pmm_alloc_page(), range->protection);
+    if (need_map == TRUE) {
+        for (uintptr_t address = mem_begin + PAGE_SIZE; address < mem_begin + stack_size; address += PAGE_SIZE) {
+            vm_table_map(process->vmemory_table, address, pmm_alloc_page(), range->protection);
+        }
     }
 
-    void* result = (void*)process->threads_stack_top;
-    process->threads_stack_top -= stack_size;
-
+    // Результат - вершина стека
+    void* result = mem_begin + stack_size;
     return result;
 }
 
@@ -508,18 +510,29 @@ int process_send_signal(struct process* process, int signal)
 
 int process_handle_page_fault(struct process* process, uint64_t address)
 {
-    acquire_spinlock(&process->mmap_lock);
+    if (try_acquire_spinlock(&process->mmap_lock)) {
     
-    struct mmap_range* range = process_get_region_by_addr(process, address);
-    if (range == NULL) {
-        return 0;
+        struct mmap_range* range = process_get_region_by_addr(process, address);
+        if (range == NULL) {
+            return 0;
+        }
+
+        // Выровнять таблицу вниз
+        uint64_t aligned_address = align_down(address, PAGE_SIZE);
+
+        if ((range->flags & MAP_STACK) == MAP_STACK && aligned_address == range->base) {
+            // Защитная страница стека, чтобы вызвать SIGSEGV при переполнении 
+            return 0;
+        }
+
+        // Выделить страницу
+        int rc = vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
+
+        release_spinlock(&process->mmap_lock);
+        return 1;
     }
 
-    // Выделить страницу
-    uint64_t aligned_address = align_down(address, PAGE_SIZE);
-    int rc = vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
-
-    release_spinlock(&process->mmap_lock);
+    // Дождемся разблокировки  
     return 1;
 }
 

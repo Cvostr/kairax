@@ -37,8 +37,6 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
     ctx->rdi = (uint64_t)arg;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_KERNEL_DATA_SEG; //kernel data
-    //ctx->ds = (selector);
-    //ctx->es = (selector);
     ctx->ss = (selector);
     //поток в пространстве ядра
     ctx->cs = GDT_BASE_KERNEL_CODE_SEG;
@@ -64,7 +62,8 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
     // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
     // Выделить место под стек в памяти процесса
-    thread->stack_ptr = process_alloc_stack_memory(process, stack_size);
+    int map_stack = (info != NULL) ? TRUE : FALSE;
+    thread->stack_ptr = process_alloc_stack_memory(process, stack_size, map_stack);
     // Выделить память под стек ядра
     thread->kernel_stack_ptr = P2V(pmm_alloc_page());
     memset(thread->kernel_stack_ptr, 0, PAGE_SIZE);
@@ -100,8 +99,6 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
     ctx->rdi = (uint64_t)arg1;
     //Назначить сегмент из GDT
     uint32_t selector = GDT_BASE_USER_DATA_SEG; // сегмент данных пользователя
-    //ctx->ds = (selector);
-    //ctx->es = (selector);
     ctx->ss = (selector) | 0b11;
     //поток в пространстве ядра
     ctx->cs = GDT_BASE_USER_CODE_SEG | 0b11;    // сегмент кода пользователя

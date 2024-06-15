@@ -3,6 +3,7 @@
 
 #define MAX_ADDRESS             0xffffffffffffffff
 
+#define USERSPACE_MMAP_ADDR     0x7fcc372d7000ULL
 #define USERSPACE_MAX_ADDR      0x00007FFFFFFFFFFF
 
 #define KERNEL_TEXT_OFFSET      0xFFFFFFFF80000000           //После этого адреса начинается область памяти ядра

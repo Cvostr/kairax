@@ -9,6 +9,9 @@
 #define PAGE_PROTECTION_EXEC_ENABLE     0x04
 #define PAGE_PROTECTION_USER            0x08
 
+#define MAP_ANONYMOUS	0x20
+#define MAP_STACK	    0x20000
+
 #define PAGING_ERROR_ALREADY_MAPPED       0x10
 #define ERR_NO_PAGE_PRESENT               0x11
 

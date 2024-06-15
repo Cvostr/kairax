@@ -18,7 +18,7 @@ extern void scheduler_exit(thread_frame_t* ctx);
 int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
-#define DEFAULT_TIMESLICE 2
+#define DEFAULT_TIMESLICE 3
 
 void scheduler_yield(int save_context)
 {
