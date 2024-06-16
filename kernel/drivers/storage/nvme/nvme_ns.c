@@ -20,3 +20,13 @@ struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32
 
     return ns;
 }
+
+int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count, unsigned char* out)
+{
+
+}
+
+int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count, const unsigned char* out)
+{
+
+}

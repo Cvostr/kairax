@@ -10,22 +10,142 @@
 
 int nvme_next_ctrlr_index = 0;
 
-struct nvme_queue* nvme_create_queue(struct nvme_controller* controller, uint32_t id, size_t slots)
+uint32_t* nvme_calc_submission_doorbell_addr(struct nvme_controller* controller, int id)
+{
+	return (uint32_t*) (((uintptr_t) controller->bar0) + 0x1000 + (2 * id) * (4 << controller->stride));
+}
+
+uint32_t* nvme_calc_completion_doorbell_addr(struct nvme_controller* controller, int id)
+{
+	return (uint32_t*) (((uintptr_t) controller->bar0) + 0x1000 + (2 * id + 1) * (4 << controller->stride));
+}
+
+struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, size_t slots)
 {
 	struct nvme_queue* queue = kmalloc(sizeof(struct nvme_queue));
 	memset(queue, 0, sizeof(struct nvme_queue));
 	queue->slots = slots;
 
-	uint32_t submit_reqd_size = align(sizeof(struct nvme_command) * slots, PAGE_SIZE);
-	queue->submit = map_io_region(pmm_alloc_pages(submit_reqd_size / PAGE_SIZE), submit_reqd_size);
+	// Выделить страницы под команды
+	uint32_t reqd_size = align(sizeof(struct nvme_command) * slots, PAGE_SIZE);
+	uint32_t reqd_pages = reqd_size / PAGE_SIZE;
+	queue->submit = map_io_region(pmm_alloc_pages(reqd_pages), reqd_size);
 	memset(queue->submit, 0, sizeof(struct nvme_command) * slots);
 
-	uint32_t compl_reqd_size = align(sizeof(struct nvme_completion) * slots, PAGE_SIZE);
-	queue->completion = map_io_region(pmm_alloc_pages(compl_reqd_size / PAGE_SIZE), compl_reqd_size);
+	// Выделить страницы под completion
+	reqd_size = align(sizeof(struct nvme_completion) * slots, PAGE_SIZE);
+	reqd_pages = reqd_size / PAGE_SIZE;
+	queue->completion = map_io_region(pmm_alloc_pages(reqd_pages), reqd_size);
 	memset(queue->completion, 0, sizeof(struct nvme_completion) * slots);
 
-	queue->submission_doorbell = ((uintptr_t) controller->bar0) + 0x1000 + (2 * id) * (4 << controller->stride);
-	queue->completion_doorbell = ((uintptr_t) controller->bar0) + 0x1000 + (2 * id + 1) * (4 << controller->stride);
+	queue->submission_doorbell = nvme_calc_submission_doorbell_addr(controller, 0);
+	queue->completion_doorbell = nvme_calc_completion_doorbell_addr(controller, 0);
+
+	return queue;
+}
+
+int nvme_allocate_io_queues(struct nvme_controller* controller, int count, int* allocated)
+{
+	// подготавливаем структуры команды и ожидания
+	struct nvme_command set_features_cmd;
+    memset(&set_features_cmd, 0, sizeof(struct nvme_command));
+	set_features_cmd.opcode = NVME_CMD_SET_FEATURES;
+
+	struct nvme_completion completion;
+	memset(&completion, 0, sizeof(struct nvme_completion));
+
+	set_features_cmd.setfeatures.feature_id = 0x7;
+	set_features_cmd.setfeatures.spc11 = count << 16 | count;
+
+	nvme_queue_submit_wait(controller->admin_queue, &set_features_cmd, &completion);
+
+	if (completion.status > 0) {
+		printk("NVME: Controller Allocating queues failed! status = %i\n", completion.status);
+		return -1;
+	}
+
+	int compl_queues_allocated = (completion.res >> 16) & 0xffff; // High word
+    int submission_queues_allocated = completion.res & 0xffff; 
+
+	*allocated = MIN(compl_queues_allocated, submission_queues_allocated) + 1; 
+
+	return 0;
+}
+
+struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size_t slots)
+{
+	struct nvme_queue* queue = kmalloc(sizeof(struct nvme_queue));
+	memset(queue, 0, sizeof(struct nvme_queue));
+	queue->slots = slots;
+
+	// Ищем свободный номер очереди
+	int queue_id = -1;		// 1 - ...
+	for (int i = 0; i < controller->allocated_io_queues; i ++) 
+	{
+		if (controller->io_queues[i] == NULL) {
+			queue_id = i + 1;
+			break;
+		}
+	}
+
+	if (queue_id == -1) {
+		printk("Queue limit exceed\n");
+		return NULL;
+	}
+
+	printk("Queue id %i\n", queue_id);
+	queue->id = queue_id;
+
+	// подготавливаем структуры команды и ожидания
+	struct nvme_command create_queue_cmd;
+    memset(&create_queue_cmd, 0, sizeof(struct nvme_command));
+
+	struct nvme_completion create_queue_completion;
+	memset(&create_queue_completion, 0, sizeof(struct nvme_completion));
+
+	// Выделить страницы под команды
+	uint32_t reqd_size = align(sizeof(struct nvme_command) * slots, PAGE_SIZE);
+	uint32_t reqd_pages = reqd_size / PAGE_SIZE;
+	char* submit_queue_phys = pmm_alloc_pages(reqd_pages);
+	queue->submit = map_io_region(submit_queue_phys, reqd_size);
+	memset(queue->submit, 0, sizeof(struct nvme_command) * slots);
+
+	// Выделить страницы под completion
+	reqd_size = align(sizeof(struct nvme_completion) * slots, PAGE_SIZE);
+	reqd_pages = reqd_size / PAGE_SIZE;
+	char* complete_queue_phys = pmm_alloc_pages(reqd_pages);
+	queue->completion = map_io_region(complete_queue_phys, reqd_size);
+	memset(queue->completion, 0, sizeof(struct nvme_completion) * slots);
+
+	// Сначала создаем completion queue
+	create_queue_cmd.opcode = NVME_CMD_CREATE_IO_COMPLETION_QUEUE;
+	create_queue_cmd.iocqcreate.contiguous = 1;
+	create_queue_cmd.iocqcreate.queue_id = queue_id;
+	create_queue_cmd.iocqcreate.queue_size = slots - 1;
+	create_queue_cmd.prp[0] = complete_queue_phys;
+
+	nvme_queue_submit_wait(controller->admin_queue, &create_queue_cmd, &create_queue_completion);
+
+	if (create_queue_completion.status > 0) {
+		printk("NVME: Failed creating IO complete queue(%i)! status = %i\n", queue_id, create_queue_completion.status);
+		return NULL;
+	}
+
+	// Создаем submission queue
+	create_queue_cmd.opcode = NVME_CMD_CREATE_IO_SUBMISSION_QUEUE;
+	create_queue_cmd.iosqcreate.contiguous = 1;
+	create_queue_cmd.iosqcreate.queue_id = queue_id;
+	create_queue_cmd.iosqcreate.queue_size = slots - 1;
+	create_queue_cmd.iosqcreate.completion_queue_id = queue_id;
+	create_queue_cmd.prp[0] = submit_queue_phys;
+
+	nvme_queue_submit_wait(controller->admin_queue, &create_queue_cmd, &create_queue_completion);
+
+	if (create_queue_completion.status > 0) {
+		printk("NVME: Failed creating IO submit queue(%i)! status = %i\n", queue_id, create_queue_completion.status);
+		return NULL;
+	}
+
 
 	return queue;
 }
@@ -57,17 +177,25 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 	while ((device->bar0->status) & (1 << 0));
 
+	int min_page_size = 0x1000 << ((device->bar0->cap >> 48) & 0xF);
+	int max_page_size = 0x1000 << ((device->bar0->cap >> 52) & 0xF);
+
+	if (min_page_size > PAGE_SIZE || max_page_size < PAGE_SIZE) {
+		printk("NVME: Controller has incorrect page size range (%i - %i)\n", min_page_size, max_page_size);
+		return 0;
+	}
+
 	device->stride 		= (((device->bar0->cap) >> 32) & 0xf);
-	device->queues_num 	= device->bar0->cap & 0xFFFF;
-	//printf("NVME: stride %i, queues %i\n", device->stride, device->queues_num);
+	device->queue_entries_num 	= (device->bar0->cap & 0xFFFF); // Значение, начинающееся с нуля
+	printf("NVME: stride %i, queue_entries %i\n", device->stride, device->queue_entries_num);
 
 	// Создание admin queue
-	device->admin_queue = nvme_create_queue(device, 0, device->queues_num);
+	device->admin_queue = nvme_create_admin_queue(device, device->queue_entries_num);
 	// Установка адресов admin queue
 	device->bar0->a_submit_queue = (uint64_t)V2P(device->admin_queue->submit);
 	device->bar0->a_compl_queue = (uint64_t)V2P(device->admin_queue->completion);
 
-	uint32_t aqa = device->queues_num - 1;
+	uint32_t aqa = device->queue_entries_num - 1;
 	aqa |= aqa << 16;
 	//aqa |= aqa << 16;
 	device->bar0->aqa = aqa;
@@ -98,9 +226,28 @@ int nvme_ctlr_device_probe(struct device *dev)
 	printk("NVME: Ctrlr name: '%s'\n", device->controller_id.model);
 	//printk("Num namespaces: %i\n", device->controller_id.namespaces_num);
 
+	int check1 = device->controller_id.controller_type == NVME_CONTROLLER_TYPE_IO;
+	int check2 = device->controller_id.controller_type == NVME_CONTROLLER_TYPE_NOT_REPORTED;
+	if (!(check1 || check2)) {
+		printk("NVME: Controller has incorrect type (%i) !\n", device->controller_id.controller_type);
+		return 0;
+	}
+
 	if (device->controller_id.namespaces_num == 0) {
 		printk("NVME: Controller has no namespaces\n");
 		return 0;
+	}
+
+	// Выделить на контроллере требуемое количество очередей (0 - ...)
+	nvme_allocate_io_queues(device, NVME_CONTROLLER_MAX_IO_QUEUES, &device->allocated_io_queues);
+	printk("NVME: Allocated queues: %i\n", device->allocated_io_queues);
+
+	device->io_queues = kmalloc(device->allocated_io_queues * sizeof(struct nvme_queue*));
+
+	int i = 0;
+	for (i = 0; i < device->allocated_io_queues; i ++) {
+		struct nvme_queue* queue = nvme_create_io_queue(device, device->queue_entries_num);
+		device->io_queues[queue->id - 1] = queue;
 	}
 
 	char* ns_identity_buffer = pmm_alloc_page();
@@ -114,7 +261,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 	struct nvme_completion completion;
 
-	for (int i = 0; i < device->controller_id.namespaces_num; i ++) 
+	for (i = 0; i < device->controller_id.namespaces_num; i ++) 
 	{
 		identify_cmd.namespace_id = i + 1;
 		memset(&completion, 0, sizeof(struct nvme_completion));

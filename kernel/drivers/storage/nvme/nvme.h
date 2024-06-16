@@ -5,9 +5,19 @@
 #include "types.h"
 #include "sync/spinlock.h"
 
+// IO Commands
+#define NVME_CMD_IO_FLUSH   0x0
 #define NVME_CMD_IO_READ    0x02
 #define NVME_CMD_IO_WRITE   0x01
-#define NVME_CMD_IDENTIFY   0x06
+
+// Admin Commands
+#define NVME_CMD_DELETE_IO_SUBMISSION_QUEUE 0x0
+#define NVME_CMD_CREATE_IO_SUBMISSION_QUEUE 0x1
+#define NVME_CMD_GET_LOG_PAGE               0x2
+#define NVME_CMD_DELETE_IO_COMPLETION_QUEUE 0x4
+#define NVME_CMD_CREATE_IO_COMPLETION_QUEUE 0x5
+#define NVME_CMD_IDENTIFY                   0x6
+#define NVME_CMD_SET_FEATURES               0x9
 
 struct nvme_bar0 {
     uint64_t    cap;
@@ -38,6 +48,43 @@ struct nvme_cmd_id {
     uint32_t    id_type;    //  0 - namespace, 1 - controller, 2 - namespace list.
 } PACKED;
 
+struct nvme_create_io_completion_queue_command {
+    uint16_t    queue_id;
+    uint16_t    queue_size;
+
+    struct {
+			uint32_t contiguous : 1;
+			uint32_t interrupt : 1; 
+			uint32_t reserved : 14;
+			uint32_t irq : 16;
+	} PACKED;
+
+} PACKED;
+
+struct nvme_create_io_submission_queue_command {
+    uint16_t    queue_id;
+    uint16_t    queue_size;
+
+    struct {
+            uint32_t contiguous : 1;
+			uint32_t priority : 2;
+			uint32_t reserved : 13;
+			uint32_t completion_queue_id : 16;
+	} PACKED;
+    
+} PACKED;
+
+struct nvme_set_features_command {
+
+    uint8_t     feature_id;
+    uint32_t    reserved : 23;
+    uint32_t    save : 1;
+
+    uint32_t spc11;
+	uint32_t spc12;
+	uint32_t spc13;
+} PACKED;
+
 struct nvme_command {
     
     union {
@@ -49,7 +96,7 @@ struct nvme_command {
             uint8_t     reserved0 : 4;
             uint8_t     prp_sgl : 2;
             uint16_t    cmd_id;
-        } __attribute__((packed));
+        } PACKED;
     };
 
     uint32_t    namespace_id;
@@ -61,6 +108,9 @@ struct nvme_command {
         uint32_t            cmdspec[6];
         struct nvme_cmd_id  idcmd;
         struct nvme_cmd_rw  rwcmd;
+        struct nvme_create_io_completion_queue_command iocqcreate;
+        struct nvme_create_io_submission_queue_command iosqcreate;
+        struct nvme_set_features_command setfeatures;
     };
 } PACKED;
 
@@ -124,6 +174,11 @@ struct nvme_namespace_id {
     struct nvme_lbaf lbafs[16];
     // TODO: Add vendor specific
 };
+
+#define NVME_CONTROLLER_TYPE_NOT_REPORTED 0
+#define NVME_CONTROLLER_TYPE_IO         1
+#define NVME_CONTROLLER_TYPE_DISCOVERY  2
+#define NVME_CONTROLLER_TYPE_ADMIN      3
 
 struct nvme_controller_id {
     uint16_t    vid;
@@ -214,31 +269,39 @@ struct nvme_controller_id {
     //uint8_t vs[1024];
 };
 
-struct nvme_queue {
-    volatile struct nvme_command *submit;
-    volatile struct nvme_completion *completion;
+struct nvme_queue 
+{
+    uint32_t    id;
     uint16_t    next_cmd_id;
     spinlock_t  queue_lock;
     size_t      slots;
+
     uint16_t    submit_tail;
     uint16_t    complete_head;
 
     uint32_t*   submission_doorbell;
     uint32_t*   completion_doorbell; 
+
+    volatile struct nvme_command *submit;
+    volatile struct nvme_completion *completion;
 };
 
 void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl);
+
+#define NVME_CONTROLLER_MAX_IO_QUEUES 32
 
 struct nvme_controller {
     struct pci_device_info*     pci_device;
     struct nvme_bar0*           bar0;
     int                         index;
     size_t                      stride;
-    size_t                      queues_num;
+    size_t                      queue_entries_num;
 
     struct nvme_controller_id   controller_id;
+    struct nvme_queue*          admin_queue;
 
-    struct nvme_queue* admin_queue;
+    int                         allocated_io_queues;  
+    struct nvme_queue**         io_queues;
 };
 
 struct nvme_namespace {
@@ -252,8 +315,14 @@ struct nvme_namespace {
 };
 
 struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32_t id, struct nvme_namespace_id* nsid);
+int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count, unsigned char* out);
+int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count, const unsigned char* out);
 
-struct nvme_queue* nvme_create_queue(struct nvme_controller* controller, uint32_t id, size_t slots);
+
+int nvme_allocate_io_queues(struct nvme_controller* controller, int count, int* allocated);
+
+struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, size_t slots);
+struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size_t slots);
 
 void init_nvme();
 
