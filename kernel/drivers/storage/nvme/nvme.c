@@ -25,6 +25,7 @@ struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, s
 	struct nvme_queue* queue = kmalloc(sizeof(struct nvme_queue));
 	memset(queue, 0, sizeof(struct nvme_queue));
 	queue->slots = slots;
+	queue->awaited_phase_flag = 1;
 
 	// Выделить страницы под команды
 	uint32_t reqd_size = align(sizeof(struct nvme_command) * slots, PAGE_SIZE);
@@ -77,6 +78,7 @@ struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size
 	struct nvme_queue* queue = kmalloc(sizeof(struct nvme_queue));
 	memset(queue, 0, sizeof(struct nvme_queue));
 	queue->slots = slots;
+	queue->awaited_phase_flag = 1;
 
 	// Ищем свободный номер очереди
 	int queue_id = -1;		// 1 - ...
@@ -93,7 +95,7 @@ struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size
 		return NULL;
 	}
 
-	printk("Queue id %i\n", queue_id);
+	//printk("NVME: Queue id %i\n", queue_id);
 	queue->id = queue_id;
 
 	// подготавливаем структуры команды и ожидания
@@ -146,6 +148,8 @@ struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size
 		return NULL;
 	}
 
+	queue->submission_doorbell = nvme_calc_submission_doorbell_addr(controller, queue_id);
+	queue->completion_doorbell = nvme_calc_completion_doorbell_addr(controller, queue_id);
 
 	return queue;
 }
@@ -164,6 +168,8 @@ int nvme_ctlr_device_probe(struct device *dev)
 	device->index = nvme_next_ctrlr_index++;
 	device->pci_device = device_desc;
 	device->bar0 = (struct nvme_bar0*) map_io_region(device_desc->BAR[0].address, device_desc->BAR[0].size);
+	//pmm_set_mem_region(device_desc->BAR[0].address, device_desc->BAR[0].size);
+	printk("BAR0 %s SIZE %i\n", ulltoa(device_desc->BAR[0].address, 16), device_desc->BAR[0].size);
 
 	pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			
@@ -186,7 +192,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 	}
 
 	device->stride 		= (((device->bar0->cap) >> 32) & 0xf);
-	device->queue_entries_num 	= (device->bar0->cap & 0xFFFF); // Значение, начинающееся с нуля
+	device->queue_entries_num 	= (device->bar0->cap & 0xFFFF) + 1; // Значение, начинающееся с нуля
 	printf("NVME: stride %i, queue_entries %i\n", device->stride, device->queue_entries_num);
 
 	// Создание admin queue
@@ -284,21 +290,23 @@ int nvme_ctlr_device_probe(struct device *dev)
 		memset(drive_info, 0, sizeof(struct drive_device_info));
 		drive_info->nbytes = ns->disk_size;
 		drive_info->sectors = drive_info->nbytes / ns->block_size; // ? 
+		drive_info->uses_lba48 = 1; // ???
+
+		drive_info->read = nvme_read_lba;
+		drive_info->write = nvme_write_lba;
 
 		strcpy(drive_info->blockdev_name, "nvme");
 		strcat(drive_info->blockdev_name, itoa(device->index, 10));
 		strcat(drive_info->blockdev_name, "n");
 		strcat(drive_info->blockdev_name, itoa(ns->namespace_id, 10));
 
-		/*struct device* drive_dev = new_device();
+		struct device* drive_dev = new_device();
 		drive_dev->dev_type = DEVICE_TYPE_DRIVE;
 		drive_dev->dev_parent = dev;
 		drive_dev->dev_data = ns;
 		drive_dev->drive_info = drive_info;
-		
-		drive_info->uses_lba48 = 1;*/
-		//drive_info->write = ahci_port_write_lba;
-		//drive_info->read = ahci_port_read_lba;
+
+		register_device(drive_dev);
 	}
 
 	pmm_free_page(ns_identity_buffer);
@@ -334,6 +342,12 @@ int nvme_controller_identify(struct nvme_controller* controller)
 	return 0;
 }
 
+struct nvme_queue* nvme_ctrlr_acquire_queue(struct nvme_controller* controller)
+{
+	// TODO: блокировка, выбор многих
+	return controller->io_queues[0];
+}
+
 void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl)
 {
 	cmd->cmd_id = queue->next_cmd_id++;
@@ -350,8 +364,7 @@ void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, 
 
 	*queue->submission_doorbell = queue->submit_tail;
 
-	int complflag = 0;
-	while (complflag = !(queue->completion[queue->complete_head].phase_tag)) {
+	while (queue->awaited_phase_flag == !(queue->completion[queue->complete_head].phase_tag)) {
 		asm volatile ("nop");
 	}
 
@@ -360,6 +373,8 @@ void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, 
 
 	if (++queue->complete_head >= queue->slots) {
         queue->complete_head = 0;
+		// Идем на новый круг, теперь ожидаем инвертированный phase tag
+		queue->awaited_phase_flag = !queue->awaited_phase_flag;
     }
 
     *queue->completion_doorbell = queue->complete_head;

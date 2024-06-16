@@ -35,9 +35,10 @@ struct nvme_bar0 {
     uint64_t    a_compl_queue;
 } PACKED;
 
-struct nvme_cmd_rw {
+struct nvme_cmd_read {
     uint64_t    start_lba;
     uint16_t    block_count;
+    uint8_t     reserved;
 } PACKED;
 
 #define IDCMD_NAMESPACE 0
@@ -107,7 +108,7 @@ struct nvme_command {
     union {
         uint32_t            cmdspec[6];
         struct nvme_cmd_id  idcmd;
-        struct nvme_cmd_rw  rwcmd;
+        struct nvme_cmd_read  rdcmd;
         struct nvme_create_io_completion_queue_command iocqcreate;
         struct nvme_create_io_submission_queue_command iosqcreate;
         struct nvme_set_features_command setfeatures;
@@ -282,11 +283,11 @@ struct nvme_queue
     uint32_t*   submission_doorbell;
     uint32_t*   completion_doorbell; 
 
+    int awaited_phase_flag;
+
     volatile struct nvme_command *submit;
     volatile struct nvme_completion *completion;
 };
-
-void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl);
 
 #define NVME_CONTROLLER_MAX_IO_QUEUES 32
 
@@ -312,7 +313,18 @@ struct nvme_namespace {
     uint8_t     lba_size;
     uint64_t    block_size;
     size_t      disk_size;
+
+    char*       buffer_phys;
+    char*       buffer;
+
+    spinlock_t  lock;
 };
+
+int nvme_read_lba(struct device* dev, uint64_t start, uint64_t count, unsigned char *buf);
+int nvme_write_lba(struct device* dev, uint64_t start, uint64_t count, const unsigned char *buf);
+
+void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl);
+int nvme_controller_identify(struct nvme_controller* controller);
 
 struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32_t id, struct nvme_namespace_id* nsid);
 int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count, unsigned char* out);
@@ -323,6 +335,7 @@ int nvme_allocate_io_queues(struct nvme_controller* controller, int count, int* 
 
 struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, size_t slots);
 struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size_t slots);
+struct nvme_queue* nvme_ctrlr_acquire_queue(struct nvme_controller* controller);
 
 void init_nvme();
 

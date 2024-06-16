@@ -19,9 +19,12 @@ drive_partition_t* new_drive_partition_header()
     return result;
 }
 
-void add_partitions_from_device(struct device* device){
+void add_partitions_from_device(struct device* device)
+{
     char* first_sector = kmalloc(512);
+    memset(first_sector, 0, 512);
     char* second_sector = kmalloc(512);
+    memset(second_sector, 0, 512);
 
     drive_device_read(device, 0, 1, (char*)vmm_get_physical_address((physical_addr_t)first_sector));
     drive_device_read(device, 1, 1, (char*)vmm_get_physical_address((physical_addr_t)second_sector));
