@@ -197,7 +197,7 @@ void bootshell_process_cmd(char* cmdline)
     if(strcmp(cmdline, "list partitions") == 0){
         for(int i = 0; i < get_partitions_count(); i ++){
             drive_partition_t* partition = get_partition(i);
-            printf_stdout("Partition Name %s, Index : %i, Start : %i, Size : %i\n", partition->name, partition->index,
+            printf_stdout("Partition %s, Start : %i, Size : %i\n", partition->name,
                                                                         partition->start_lba, partition->sectors);
 	    }
     }

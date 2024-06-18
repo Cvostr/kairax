@@ -52,6 +52,10 @@ int socket_init(struct socket* sock, int domain, int type, int protocol)
     }
     release_spinlock(&sock_families_lock);
 
+    if (chosen == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
     // Создать сокет указанного семейства
     int rc = chosen->create(sock, type, protocol);
     if (rc != 0) {

@@ -225,7 +225,7 @@ int main(int argc, char** argv)
     // ------------------------------
     printf("Test 12: lseek() with incorrect fd\n");
     rc = lseek(121, 1, 1);
-    if (errno == EBADF) { 
+    if (errno != EBADF) { 
         printf("Incorrect errno, expected %i, got %i\n", EBADF, errno);
         return 29;
     }

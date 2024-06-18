@@ -14,14 +14,19 @@ int* __errno_location();
 #define ERROR_NOT_A_DIRECTORY       20        
 #define ERROR_TOO_MANY_OPEN_FILES   24
 
+#define	EPERM		                1
 #define	ENOENT                      2
 #define	EBADF		                9
+#define	ECHILD		                10
 #define	EAGAIN                      11
+#define	EACCES		                13
+#define	EBUSY                       16
+#define	ENOTDIR		                20
 #define EISDIR                      21
 #define EINVAL                      22
 #define	ESPIPE		                29
 #define ENOTSOCK                    108
 #define ETIMEDOUT                   116
-#define	EBUSY                       16
+
 
 #endif

@@ -10,6 +10,7 @@ extern "C" {
 #include "stdint.h"
 
 #define AF_LOCAL    1
+#define AF_UNIX     AF_LOCAL
 #define AF_INET     2
 #define AF_INET6    10
 

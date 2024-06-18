@@ -2,6 +2,7 @@
 #include "fs/vfs/vfs.h"
 #include "cpu/cpu_local_x64.h"
 #include "ipc/socket.h"
+#include "mem/kheap.h"
 
 int sys_socket(int domain, int type, int protocol)
 {
@@ -166,6 +167,9 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
+
+    if (len < 0)
+		return -EINVAL;
 
     if (addrlen != NULL) {
         // Если выход addrlen задан, то проверить его

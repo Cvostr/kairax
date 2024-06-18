@@ -168,8 +168,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 	device->index = nvme_next_ctrlr_index++;
 	device->pci_device = device_desc;
 	device->bar0 = (struct nvme_bar0*) map_io_region(device_desc->BAR[0].address, device_desc->BAR[0].size);
-	//pmm_set_mem_region(device_desc->BAR[0].address, device_desc->BAR[0].size);
-	printk("BAR0 %s SIZE %i\n", ulltoa(device_desc->BAR[0].address, 16), device_desc->BAR[0].size);
+	//printk("BAR0 %s SIZE %i\n", ulltoa(device_desc->BAR[0].address, 16), device_desc->BAR[0].size);
 
 	pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 			
@@ -288,8 +287,8 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 		struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
 		memset(drive_info, 0, sizeof(struct drive_device_info));
-		drive_info->nbytes = ns->disk_size;
-		drive_info->sectors = drive_info->nbytes / ns->block_size; // ? 
+		drive_info->nbytes = ns->disk_size * ns->block_size;
+		drive_info->sectors = ns->disk_size; // ? 
 		drive_info->uses_lba48 = 1; // ???
 
 		drive_info->read = nvme_read_lba;
@@ -339,6 +338,8 @@ int nvme_controller_identify(struct nvme_controller* controller)
 	memcpy(&controller->controller_id, P2V(identity_buffer), sizeof(struct nvme_controller_id));
 	pmm_free_page(identity_buffer);
 
+	controller->controller_id.model[39] = 0;
+
 	return 0;
 }
 
@@ -362,6 +363,7 @@ void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, 
         queue->submit_tail = 0;
     }
 
+	// Запуск команды на исполнение
 	*queue->submission_doorbell = queue->submit_tail;
 
 	while (queue->awaited_phase_flag == !(queue->completion[queue->complete_head].phase_tag)) {

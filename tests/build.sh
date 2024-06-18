@@ -21,3 +21,6 @@ ld -melf_x86_64 $LD_ARGS -o mem.a mem.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -l
 
 gcc $ARGS assert.c -o assert.o
 ld -melf_x86_64 $LD_ARGS -o assert.a assert.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS unixsock.c -o unixsock.o
+ld -melf_x86_64 $LD_ARGS -o unixsock.a unixsock.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

@@ -41,6 +41,18 @@ struct nvme_cmd_read {
     uint8_t     reserved;
 } PACKED;
 
+struct nvme_cmd_write {
+    uint64_t    start_lba;
+    uint16_t    block_count;
+    uint8_t     reserved : 4;
+    uint8_t     dtype : 4;
+    uint8_t     stc : 1;
+    uint8_t     reserved2 : 1;
+    uint8_t     prinfo : 4;
+    uint8_t     fua : 1;
+    uint8_t     lr : 1;
+} PACKED;
+
 #define IDCMD_NAMESPACE 0
 #define IDCMD_CONTROLLER 1
 #define IDCMD_NAMESPACE_LIST 2
@@ -109,6 +121,7 @@ struct nvme_command {
         uint32_t            cmdspec[6];
         struct nvme_cmd_id  idcmd;
         struct nvme_cmd_read  rdcmd;
+        struct nvme_cmd_write wrcmd;
         struct nvme_create_io_completion_queue_command iocqcreate;
         struct nvme_create_io_submission_queue_command iosqcreate;
         struct nvme_set_features_command setfeatures;

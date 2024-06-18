@@ -55,6 +55,8 @@ extern int fflush(FILE *stream);
 int remove(const char *pathname);
 int rename(const char *oldpath, const char *newpath);
 
+void perror(const char *s);
+
 int fseek(FILE *stream, long offset, int whence);
 long ftell(FILE *stream);
 int fileno(FILE *stream);

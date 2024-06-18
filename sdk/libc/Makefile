@@ -26,6 +26,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/scanf_generic.o \
 				obj/stdio/put.o \
 				obj/stdio/get.o \
+				obj/stdio/perror.o \
 				obj/stdlib/bsdmalloc.o \
 				obj/stdlib/stdlib.o \
 				obj/stdlib/abs.o \
