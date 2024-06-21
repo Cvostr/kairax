@@ -33,8 +33,7 @@ void free_pipe(struct pipe* pipe)
 
 int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, struct file* write_file)
 {
-    struct inode* ino = kmalloc(sizeof(struct inode));
-    memset(ino, 0, sizeof(struct inode));
+    struct inode* ino = new_vfs_inode();
     ino->mode = INODE_FLAG_PIPE;
 
     read_file->private_data = pipe;

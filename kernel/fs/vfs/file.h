@@ -6,6 +6,7 @@
 #include "sync/spinlock.h"
 #include "dentry.h"
 #include "errors.h"
+#include "mem/vm_area.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    00000000
 #define FILE_OPEN_MODE_WRITE_ONLY   00000001
@@ -33,6 +34,7 @@ struct file_operations {
     ssize_t (*write) (struct file* file, const char* buffer, size_t count, loff_t offset);
     struct dirent* (*readdir)(struct file* file, uint32_t index);
     int (*ioctl)(struct file* file, uint64_t request, uint64_t arg);
+    int (*mmap)(struct file* file, struct mmap_range *area);
 
     int (*open) (struct inode *inode, struct file *file);
     int (*close) (struct inode *inode, struct file *file);

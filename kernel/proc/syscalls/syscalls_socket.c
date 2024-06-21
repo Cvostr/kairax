@@ -11,8 +11,7 @@ int sys_socket(int domain, int type, int protocol)
 
     struct socket* sock = new_socket();
 
-    struct inode* ino = kmalloc(sizeof(struct inode));
-    memset(ino, 0, sizeof(struct inode));
+    struct inode* ino = new_vfs_inode();
     ino->mode = INODE_FLAG_SOCKET;
     inode_open(ino, 0);
 

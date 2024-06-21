@@ -11,10 +11,9 @@
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags, int fd, int offset)
 {
-    //printf("ADDR %s ", ulltoa(address, 16));
-    //printf_stdout("SZ %s\n", ulltoa(length, 16));
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
+    int res = 0;
 
     if (length == 0) {
         return (void*)-ERROR_INVALID_VALUE;
@@ -31,6 +30,10 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
         if (file == NULL) {
             return (void*)-ERROR_BAD_FD;
         }  
+
+        if (file->ops->mmap == NULL) {
+            return -1; // todo : уточнить
+        }
     }
 
     length = align(length, PAGE_SIZE);
@@ -49,12 +52,18 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     range->protection = protection | PAGE_PROTECTION_USER;
     range->flags = flags;
 
+    if (file != NULL) 
+    {
+        res = file->ops->mmap(file, range);
+        if (res != 0) 
+        {
+            kfree(range);
+            return (void*) res;
+        }
+    }
+
     process_add_mmap_region(process, range);
 
-    //NOT IMPLEMENTED FOR FILE MAP
-    //TODO: IMPLEMENT
-
-    //printf_stdout(" FOUND ADDR %s\n", ulltoa(address, 16));
     return address;
 }
 

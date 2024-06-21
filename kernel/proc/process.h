@@ -7,17 +7,11 @@
 #include "mem/paging.h"
 #include "process_list.h"
 #include "kairax/signal.h"
+#include "mem/vm_area.h"
 
 #define MAX_DESCRIPTORS         64
 #define PROCESS_MAX_ARGS        65535
 #define PROCESS_MAX_ARGS_SIZE   (128ULL * 1024 * 1024)
-
-struct mmap_range {
-    uint64_t        base;
-    uint64_t        length;
-    int             protection;
-    int             flags;
-};
 
 #define STATE_RUNNING                  0    // Работает
 #define STATE_RUNNABLE                 1

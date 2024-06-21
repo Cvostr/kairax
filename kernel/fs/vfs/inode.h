@@ -64,6 +64,8 @@ struct inode {
     void*       private_data;
 };
 
+struct inode* new_vfs_inode();
+
 int inode_chmod(struct inode* node, uint32_t mode);
 
 void inode_open(struct inode* node, uint32_t flags);

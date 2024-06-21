@@ -5,8 +5,6 @@
 #include "drivers/storage/partitions/storage_partitions.h"
 #include "filesystems.h"
 
-struct inode* new_vfs_inode();
-
 struct dirent* new_vfs_dirent();
 
 struct dentry* get_mount_dentry(const char* mount_path);
