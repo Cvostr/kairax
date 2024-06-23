@@ -93,9 +93,15 @@ void exception_handler(interrupt_frame_t* frame)
     printf("CR3 = %s\n", ulltoa(cr3, 16));
 
     uint8_t* ip = (uint8_t*) frame->rip;
-    printf("INSTR: ");
-    for (int i = 0; i < 8; i ++) {
-        printf("%s ", ulltoa(*(ip++), 16));
+    int show_instr = 1;
+    if (cpu_get_current_vm_table() != NULL) {
+        show_instr = vm_is_mapped(cpu_get_current_vm_table(), ip);
+    }
+        if (show_instr == 1) {
+        printf("INSTR: ");
+        for (int i = 0; i < 8; i ++) {
+            printf("%s ", ulltoa(*(ip++), 16));
+        }
     }
     
     uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;

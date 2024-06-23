@@ -103,6 +103,19 @@ struct thread* scheduler_get_next_runnable_thread()
 {
     struct thread* new_thread = NULL;
 
+/*
+    int runnable = 0;
+    for (uint64 i = 0; i < MAX_THREADS; i ++) {
+        if (sched_threads[i] != NULL) {
+            if (sched_threads[i]->state == STATE_RUNNABLE)
+                runnable++;
+        }
+    }
+
+    if (runnable == 0) {
+        return cpu_get_idle_thread();
+    }*/
+
     while (1) {
         
         current_thread ++;

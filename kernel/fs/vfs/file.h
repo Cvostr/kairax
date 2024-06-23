@@ -75,6 +75,9 @@ off_t file_seek(struct file* file, off_t offset, int whence);
 int file_readdir(struct file* file, struct dirent* dirent);
 
 char* format_path(const char* path);
+
+// Делит путь на имя файла и директории
+// Указатель filename_ptr берется из path
 void split_path(const char* path, char** directory_path_ptr, char** filename_ptr);
 
 #endif

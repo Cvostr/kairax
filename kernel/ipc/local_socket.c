@@ -2,6 +2,9 @@
 #include "socket.h"
 #include "mem/kheap.h"
 #include "kairax/errors.h"
+#include "list/list.h"
+#include "kairax/string.h"
+#include "fs/vfs/file.h"
 
 struct socket_family local_sock_family = {
     .family = AF_LOCAL,
@@ -10,6 +13,8 @@ struct socket_family local_sock_family = {
 
 struct socket_prot_ops local_stream_ops = {
     .bind = sock_local_bind,
+    .listen = sock_local_listen,
+    .accept = sock_local_accept,
     .sendto = sock_local_sendto,
     .recvfrom = sock_local_recvfrom
 };
@@ -19,6 +24,8 @@ struct socket_prot_ops local_dgram_ops = {
     .sendto = sock_local_sendto,
     .recvfrom = sock_local_recvfrom
 };
+
+list_t local_sockets = {0};
 
 int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)
 {
@@ -31,7 +38,38 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
     }
 
     int namelen = addrlen - sizeof(sa_family_t);
+
+    if (namelen < 1) {
+        return -EINVAL;
+    }
+
+    struct sockaddr_un* addr_un = (struct sockaddr_un*) addr;
+    struct local_socket* lsock = sock->data;
+
+    printk("Opening file %s\n", addr_un->sun_path);
+
+    if (addr_un->sun_path[0] == 0 && (namelen - 1) > 0) {
+        // без ФС
+        //strcpy(lsock->path, addr_un->sun_path + 1);
+        //list_add(&local_sockets, lsock); 
+    } else {
+        // Открыть файл в ядре
+        struct file* file = file_open(NULL, addr_un->sun_path, FILE_OPEN_FLAG_CREATE, 0);
+        if (file == NULL) {
+            return -1;
+        }
+    }
     
+    return 0;
+}
+
+int sock_local_listen(struct socket* sock, int backlog)
+{
+    return 0;
+}
+
+int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr)
+{
     return 0;
 }
 

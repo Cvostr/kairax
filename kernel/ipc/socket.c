@@ -19,6 +19,8 @@ struct socket* new_socket()
     struct socket* result = kmalloc(sizeof(struct socket));
     memset(result, 0, sizeof(struct socket));
 
+    result->ino.mode = INODE_FLAG_SOCKET;
+
     return result;
 }
 
@@ -76,7 +78,29 @@ int socket_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len
 
 int socket_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)
 {
+    if (sock->ops->bind == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
     return sock->ops->bind(sock, addr, addrlen);
+}
+
+int socket_listen(struct socket* sock, int backlog)
+{
+    if (sock->ops->listen == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    return sock->ops->listen(sock, backlog);
+}
+
+int socket_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr)
+{
+    if (sock->ops->accept == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    return sock->ops->accept(sock, newsock, addr);
 }
 
 int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)

@@ -191,7 +191,7 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
     }
 
     if (path[0] == '/') {
-        // Путь абсолюютный - ищем относительно корня
+        // Путь абсолютный - ищем относительно корня
         parent = root_dentry;
         path++;
     } else if (parent == NULL) {
