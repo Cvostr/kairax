@@ -251,6 +251,34 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
     return 0;
 }
 
+int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_range* area, int cow)
+{
+    uint64_t flags = x86_64_prot_2_flags(area->protection);
+
+    /*if (cow) {
+        // Для COW, только чтение, даже если право на запись было
+        flags &= PAGE_WRITABLE;
+    }
+
+    printk("COW %i ", cow);
+
+    for (uintptr_t address = area->base; address < area->base + area->length; address += PAGE_SIZE) 
+    {
+        physical_addr_t paddr = get_physical_address(src, address);
+        map_page_mem(dest, address, paddr, flags);
+    }*/
+
+    for (uintptr_t address = area->base; address < align(area->base + area->length, PAGE_SIZE); address += PAGE_SIZE) 
+    {
+        physical_addr_t paddr = get_physical_address(src, address);
+        char* newp = pmm_alloc_page();
+        memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
+        map_page_mem(dest, address, newp, flags);
+    }
+
+    return 0;
+}
+
 void arch_vm_protect(void* arch_table, uint64_t vaddr, int protection)
 {
     uint64_t flags = x86_64_prot_2_flags(protection);

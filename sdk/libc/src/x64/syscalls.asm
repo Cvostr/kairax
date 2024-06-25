@@ -46,6 +46,8 @@ DEFINE_SYSCALL syscall_recvfrom,    0x2D
 DEFINE_SYSCALL syscall_bind,        0x31
 DEFINE_SYSCALL syscall_listen,      0x32
 DEFINE_SYSCALL syscall_setsockopt,  0x36
+DEFINE_SYSCALL syscall_fork,        0x39
+DEFINE_SYSCALL syscall_vfork,       0x3A
 DEFINE_SYSCALL syscall_process_exit, 0x3C
 DEFINE_SYSCALL syscall_kill,        0x3E
 DEFINE_SYSCALL syscall_rename,      0x52

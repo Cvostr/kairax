@@ -110,6 +110,7 @@ gcc $GCC_ARGS proc/syscalls/syscalls_modules.c -o ./bin/syscalls_modules.o
 gcc $GCC_ARGS proc/syscalls/syscall_futex.c -o ./bin/syscall_futex.o
 gcc $GCC_ARGS proc/syscalls/syscalls_socket.c -o ./bin/syscalls_socket.o
 gcc $GCC_ARGS proc/syscalls/syscall_netctl.c -o ./bin/syscall_netctl.o
+gcc $GCC_ARGS proc/syscalls/syscall_fork.c -o ./bin/syscall_fork.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o

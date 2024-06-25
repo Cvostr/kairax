@@ -31,6 +31,8 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x31, sys_bind),
     DEFINE_SYSCALL(0x32, sys_listen),
     DEFINE_SYSCALL(0x36, sys_setsockopt),
+    DEFINE_SYSCALL(0x39, sys_fork),
+    DEFINE_SYSCALL(0x3A, sys_vfork),
     DEFINE_SYSCALL(0x3C, sys_exit_process),
     DEFINE_SYSCALL(0x3E, sys_send_signal),
     DEFINE_SYSCALL(0xBA, sys_get_thread_id),

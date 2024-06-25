@@ -168,13 +168,12 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 {
     // Выравнивание
     uintptr_t start_aligned = align_down(start, PAGE_SIZE); // выравнивание в меньшую сторону
-    uintptr_t size_aligned = align(size, PAGE_SIZE); //выравнивание в большую сторону
     uintptr_t end_addr = align(start + size, PAGE_SIZE);
 
     // Добавить диапазон
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     range->base = start_aligned;
-    range->length = size_aligned;
+    range->length = end_addr - start_aligned;
     range->protection = flags;
     process_add_mmap_region(process, range);
 

@@ -7,6 +7,10 @@ extern long long syscall_read(int fd, char* buffer, unsigned long long size);
 extern long long syscall_write(int fd, const char* buffer, unsigned long long size);
 extern int syscall_ioctl(int fd, unsigned long long request, unsigned long long arg);
 extern int syscall_readdir(int fd, void* buffer);
+
+extern long long syscall_fork(void);
+extern long long syscall_vfork(void);
+
 extern long syscall_getpid();
 extern long syscall_getppid();
 extern long syscall_thread_get_id();
