@@ -12,6 +12,7 @@
 
 pid_t sys_fork() 
 {
+    size_t i;
     struct process* process = cpu_get_current_thread()->process;
 
     // Создать новый процесс
@@ -28,7 +29,7 @@ pid_t sys_fork()
 
     // Добавить файловые дескрипторы
     acquire_spinlock(&process->fd_lock);
-    for (int i = 0; i < MAX_DESCRIPTORS; i ++) 
+    for (i = 0; i < MAX_DESCRIPTORS; i ++) 
     {
         struct file* fl = process->fds[i];
         if (fl != NULL) {
@@ -37,11 +38,10 @@ pid_t sys_fork()
     }
     release_spinlock(&process->fd_lock);
 
-    // Склонировать таблицу виртуальной памяти ядра
-    new_process->vmemory_table = clone_kernel_vm_table();
-
+    // Копирование регионов памяти
     acquire_spinlock(&process->mmap_lock);
-    for (size_t i = 0; i < list_size(process->mmap_ranges); i ++) {
+    for (i = 0; i < list_size(process->mmap_ranges); i ++) 
+    {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
         
         struct mmap_range* new_range = kmalloc(sizeof(struct mmap_range));
@@ -51,9 +51,9 @@ pid_t sys_fork()
 
         page_table_mmap_fork(
             process->vmemory_table->arch_table, 
-            new_process->vmemory_table->arch_table, new_range, !is_shared);//!());
+            new_process->vmemory_table->arch_table, new_range, !is_shared);
 
-        process_add_mmap_region(new_process, range);
+        process_add_mmap_region(new_process, new_range);
     }
     release_spinlock(&process->mmap_lock);
 
@@ -67,8 +67,8 @@ pid_t sys_fork()
     syscall_frame_t* syscall_frame = this_core->kernel_stack;
     syscall_frame = syscall_frame - 1;
 
-    // Создание главного потока
-    struct thread* thr = create_thread(new_process, syscall_frame->rcx, 0, 0, NULL);
+    // Создание главного потока без стека, т.к стек установим дальше
+    struct thread* thr = create_thread(new_process, syscall_frame->rcx, 0, -1, NULL);
     thread_frame_t* ctx = thr->context;
 
     ctx->rax = 0;   

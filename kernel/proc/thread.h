@@ -5,6 +5,7 @@
 #include "process.h"
 
 #define STACK_SIZE 4096
+#define STACK_MAX_SIZE 65536
 
 struct thread {
     // Тип объекта
@@ -46,7 +47,8 @@ struct main_thread_create_info {
 struct thread* new_thread(struct process* process);
 
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
-struct thread* create_thread(struct process* process, void* entry, void* arg1, size_t stack_size, struct main_thread_create_info* info);
+struct thread* create_thread(struct process* process, void* entry, void* arg1, int stack_size, struct main_thread_create_info* info);
+void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_info* info);
 
 void thread_become_zombie(struct thread* thread);
 void thread_destroy(struct thread* thread);

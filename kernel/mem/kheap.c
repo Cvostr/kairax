@@ -108,11 +108,13 @@ void* kmalloc(uint64_t size)
                 kheap.tail = new_item;
             
             current_item->next = new_item;
+
+            // Обновляем размер после деления
+            current_item->size = size;
         }
 
         // Текущий блок теперь используется
         current_item->free = 0;
-        current_item->size = size;
 
         result = current_item + 1;
     }

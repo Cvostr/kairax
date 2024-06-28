@@ -106,8 +106,9 @@ void arch_vm_unmap(void* arch_table, uint64_t vaddr)
 {
     uintptr_t phys = 0;
     int rc = unmap_page1(arch_table, vaddr, &phys);
-    if (rc == 0)
+    if (rc == 0) {
         pmm_free_page(phys);
+    }
 }
 
 //Удалить виртуальную страницу

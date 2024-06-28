@@ -10,6 +10,7 @@ extern int syscall_readdir(int fd, void* buffer);
 
 extern long long syscall_fork(void);
 extern long long syscall_vfork(void);
+extern int syscall_execve(const char *filename, char *const argv [], char *const envp[]); 
 
 extern long syscall_getpid();
 extern long syscall_getppid();

@@ -12,6 +12,14 @@ int main(int argc, char** argv)
     pid_t r = fork();
     if (r == 0) {
         printf("CHILD %i\n", getpid());
+
+        char* args[3];
+        args[0] = "ls.a";
+        args[1] = "-a";
+        args[2] = NULL;
+
+        int rc = execve("/ls.a", args, NULL);
+        printf("exec() :%i\n", rc);
         return 22;
     } else if (r > 0) {
         printf("PARENT, child: %i\n", r);

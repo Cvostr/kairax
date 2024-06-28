@@ -21,6 +21,8 @@ pid_t fork(void);
 
 pid_t vfork(void);
 
+int execve(const char *filename, char *const argv [], char *const envp[]);  
+
 pid_t getpid(void);
 
 pid_t getppid(void);

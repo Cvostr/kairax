@@ -47,11 +47,13 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
     return thread;
 }
 
-struct thread* create_thread(struct process* process, void* entry, void* arg1, size_t stack_size, struct main_thread_create_info* info)
+struct thread* create_thread(struct process* process, void* entry, void* arg1, int stack_size, struct main_thread_create_info* info)
 {
     if (!process) {
         return NULL;
     }
+
+    int create_stack = stack_size >= 0;
 
     if (stack_size < STACK_SIZE) {
         stack_size = STACK_SIZE;
@@ -61,9 +63,13 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
     struct thread* thread = new_thread(process);
     // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
-    // Выделить место под стек в памяти процесса
-    int map_stack = (info != NULL) ? TRUE : FALSE;
-    thread->stack_ptr = process_alloc_stack_memory(process, stack_size, map_stack);
+
+    if (create_stack) {
+        // Выделить место под стек в памяти процесса
+        int map_stack = (info != NULL) ? TRUE : FALSE;
+        thread->stack_ptr = process_alloc_stack_memory(process, stack_size, map_stack);
+    }
+    
     // Выделить память под стек ядра
     thread->kernel_stack_ptr = P2V(pmm_alloc_page());
     memset(thread->kernel_stack_ptr, 0, PAGE_SIZE);
@@ -106,29 +112,45 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, s
     thread->state = STATE_RUNNABLE;
 
     if (info) {
-        uint64_t* stack_new_pos = (uint64_t*) (thread->stack_ptr);
-
-        // Поместить в стек argc
-        stack_new_pos -= 1;
-        vm_memcpy(process->vmemory_table, stack_new_pos, &info->argc, sizeof(int));
-
-        // Поместить в стек argv
-        stack_new_pos -= 1;
-        vm_memcpy(process->vmemory_table, stack_new_pos, &info->argv, sizeof(char*));
-
-        // Поместить в стек aux вектор
-        for (size_t i = 0; i < info->aux_size; i ++) {
-            struct aux_pair* aux_cur = &info->auxv[i];
-            // ключ
-            stack_new_pos -= 1;
-            vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->pval, sizeof(uint64_t));
-            // значение
-            stack_new_pos -= 1;
-            vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->type, sizeof(uint64_t));
-        }
-
-        ctx->rsp = (uint64_t)stack_new_pos;
+        thread_add_main_thread_info(thread, info);
     }
 
     return thread;
+}
+
+void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_info* info)
+{
+    struct process* process = thread->process;
+    thread->stack_ptr = process_alloc_stack_memory(process, STACK_SIZE, 1);
+
+    thread_add_main_thread_info(thread, info);
+}
+
+void thread_add_main_thread_info(struct thread* thread, struct main_thread_create_info* info)
+{
+    uint64_t* stack_new_pos = (uint64_t*) (thread->stack_ptr);
+    struct process* process = thread->process;
+
+    // Поместить в стек argc
+    stack_new_pos -= 1;
+    vm_memcpy(process->vmemory_table, stack_new_pos, &info->argc, sizeof(int));
+
+    // Поместить в стек argv
+    stack_new_pos -= 1;
+    vm_memcpy(process->vmemory_table, stack_new_pos, &info->argv, sizeof(char*));
+
+    // Поместить в стек aux вектор
+    for (size_t i = 0; i < info->aux_size; i ++) {
+        struct aux_pair* aux_cur = &info->auxv[i];
+        // ключ
+        stack_new_pos -= 1;
+        vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->pval, sizeof(uint64_t));
+        // значение
+        stack_new_pos -= 1;
+        vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->type, sizeof(uint64_t));
+    }
+
+    thread_frame_t* ctx = (thread_frame_t*)thread->context;
+    ctx->rsp = (uint64_t)stack_new_pos;
+    thread->stack_ptr = ctx->rsp;
 }

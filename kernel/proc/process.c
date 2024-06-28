@@ -172,6 +172,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
     // Добавить диапазон
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    memset(range, 0, sizeof(struct mmap_range));
     range->base = start_aligned;
     range->length = end_addr - start_aligned;
     range->protection = flags;
@@ -231,6 +232,7 @@ uintptr_t process_brk(struct process* process, uint64_t addr)
 
     // Добавить диапазон памяти к процессу
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    memset(range, 0, sizeof(struct mmap_range));
     range->base = process->brk;
     range->length = uaddr - process->brk;
     range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
