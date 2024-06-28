@@ -106,8 +106,9 @@ void arch_vm_unmap(void* arch_table, uint64_t vaddr)
 {
     uintptr_t phys = 0;
     int rc = unmap_page1(arch_table, vaddr, &phys);
-    if (rc == 0)
+    if (rc == 0) {
         pmm_free_page(phys);
+    }
 }
 
 //Удалить виртуальную страницу
@@ -247,6 +248,34 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
     int mr = unmap_page(root, virtual_addr);
     if (mr == 0)
 	    map_page_mem(root, virtual_addr, phys_addr, flags);
+
+    return 0;
+}
+
+int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_range* area, int cow)
+{
+    uint64_t flags = x86_64_prot_2_flags(area->protection);
+
+    /*if (cow) {
+        // Для COW, только чтение, даже если право на запись было
+        flags &= PAGE_WRITABLE;
+    }
+
+    printk("COW %i ", cow);
+
+    for (uintptr_t address = area->base; address < area->base + area->length; address += PAGE_SIZE) 
+    {
+        physical_addr_t paddr = get_physical_address(src, address);
+        map_page_mem(dest, address, paddr, flags);
+    }*/
+
+    for (uintptr_t address = area->base; address < align(area->base + area->length, PAGE_SIZE); address += PAGE_SIZE) 
+    {
+        physical_addr_t paddr = get_physical_address(src, address);
+        char* newp = pmm_alloc_page();
+        memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
+        map_page_mem(dest, address, newp, flags);
+    }
 
     return 0;
 }

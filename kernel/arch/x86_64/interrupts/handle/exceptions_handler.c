@@ -46,6 +46,8 @@ char const *exception_message[33] =
     "Reserved"
 };
 
+//#define PAGE_PROTECTION_VIOLATION
+
 void exception_handler(interrupt_frame_t* frame)
 {
     uint64_t cr2, cr3;

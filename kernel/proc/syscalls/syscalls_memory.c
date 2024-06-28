@@ -43,6 +43,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
     // Сформировать регион
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    memset(range, 0, sizeof(struct mmap_range));
     if (range == NULL) {
         return -ENOMEM;
     }

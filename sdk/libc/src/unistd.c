@@ -6,6 +6,21 @@
 #include "termios.h"
 #include "sys/ioctl.h"
 
+pid_t fork(void)
+{
+    __set_errno(syscall_fork());
+}
+
+pid_t vfork(void)
+{
+    __set_errno(syscall_vfork());
+}
+
+int execve(const char *filename, char *const argv [], char *const envp[])
+{
+    __set_errno(syscall_execve(filename, argv, envp));
+}
+
 pid_t getpid(void)
 {
     return syscall_getpid();

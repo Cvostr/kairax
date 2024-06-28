@@ -58,6 +58,10 @@ pid_t sys_get_thread_id();
 
 void sys_exit_process(int code);
 
+pid_t sys_fork();
+pid_t sys_vfork();
+int sys_execve(const char *filename, char *const argv [], char *const envp[]);  
+
 void sys_exit_thread(int code);
 
 int sys_thread_sleep(time_t tv_sec, long int tv_nsec);

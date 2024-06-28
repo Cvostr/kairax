@@ -4,6 +4,7 @@
 #include "types.h"
 #include "mem_layout.h"
 #include "mem/paging.h"
+#include "mem/vm_area.h"
 
 #define PAGE_PRESENT 		    0x1
 #define PAGE_WRITABLE 		    0x2
@@ -29,6 +30,7 @@
 #define GET_1_LEVEL_PAGE_INDEX(x) ((((uint64_t)(x)) >> 0x0C) & INDEX_MASK) 
 #define GET_PAGE_OFFSET(x)        ((uint64_t)(x) & (0xFFF)) 
 #define GET_PAGE_FRAME(x)         (void*)((uint64_t)(x) & ~(PAGE_EXEC_DISABLE | 0xFFF))
+#define GET_PAGE_FLAGS(x)         ((uint64_t)(x) & (PAGE_EXEC_DISABLE | 0xFFF)) 
 
 typedef uintptr_t virtual_addr_t;
 typedef uintptr_t physical_addr_t;
@@ -50,6 +52,8 @@ int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
 
 int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
+
+int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_range* area, int cow);
 
 // Уничтожить страницы в таблице виртуальной памяти
 void destroy_page_table(table_entry_t* entries, int level, uint64_t mask);
