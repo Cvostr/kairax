@@ -32,16 +32,20 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         return -1;
     }
 
-    while (argv[argc] != NULL) {
-        argc++;
-    }
-    if (argc > PROCESS_MAX_ARGS) {
-        // Слишком много аргументов, выйти с ошибкой
-        return -E2BIG;
+    if (argv != NULL) {
+        while (argv[argc] != NULL) {
+            argc++;
+        }
+        if (argc > PROCESS_MAX_ARGS) {
+            // Слишком много аргументов, выйти с ошибкой
+            return -E2BIG;
+        }
     }
 
-    while (envp[envc] != NULL) {
-        envc++;
+    if (envp != NULL) {
+        while (envp[envc] != NULL) {
+            envc++;
+        }
     }
 
     // Открыть исполняемый файл
