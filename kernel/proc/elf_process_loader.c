@@ -5,6 +5,34 @@
 #include "mem/kheap.h"
 #include "kairax/errors.h"
 
+int elf_get_loader_path(char* image, char* interp_path)
+{
+    if (interp_path) {
+        interp_path[0] = '\0';
+    }
+
+    struct elf_header* elf_header = (struct elf_header*)image;
+
+    for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
+        struct elf_program_header_entry* pehentry = elf_get_program_entry(image, i);
+
+
+        if (pehentry->type == ELF_SEGMENT_TYPE_INTERP && interp_path) {
+            size_t path_size = pehentry->p_filesz;
+            
+            if (path_size > INTERP_PATH_MAX_LEN) {
+                path_size = INTERP_PATH_MAX_LEN;
+            }
+            
+            strncpy(interp_path, image + pehentry->p_offset, path_size);
+            return 1;
+        }
+    }
+
+    // Информация о загрузчике не найдена
+    return 0;
+}
+
 int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip, char* interp_path)
 {
     struct elf_header* elf_header = (struct elf_header*)image;

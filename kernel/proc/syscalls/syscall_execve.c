@@ -15,6 +15,9 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     int argc = 0;
     int envc = 0;
     int i;
+    size_t fsize;
+    char* process_image_data = NULL;
+    char* loader_image_data = NULL;
     char interp_path[INTERP_PATH_MAX_LEN];
     void* program_start_ip = NULL;
     void* loader_start_ip = NULL;
@@ -32,16 +35,13 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     while (argv[argc] != NULL) {
         argc++;
     }
+    if (argc > PROCESS_MAX_ARGS) {
+        // Слишком много аргументов, выйти с ошибкой
+        return -E2BIG;
+    }
 
     while (envp[envc] != NULL) {
         envc++;
-    }
-
-    // Сохраняем значения аргументов в память ядра, т.к ниже мы уничтожим адресное пространство процесса
-    char** argvk = kmalloc(argc * sizeof(char*));
-    for (i = 0; i < argc; i ++) {
-        argvk[i] = kmalloc(strlen(argv[i]) + 1);
-        strcpy(argvk[i], argv[i]);
     }
 
     // Открыть исполняемый файл
@@ -51,7 +51,6 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         // Файл не найден
         return -ERROR_NO_FILE;
     }
-
     if ( (file->inode->mode & INODE_TYPE_DIRECTORY)) {
         // Мы пытаемся открыть директорию - выходим
         file_close(file);
@@ -59,21 +58,62 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     // Чтение исполняемого файла
-    size_t size = file->inode->size;
-    char* image_data = kmalloc(size);
-    file_read(file, size, image_data);
+    fsize = file->inode->size;
+    process_image_data = kmalloc(fsize);
+    file_read(file, fsize, process_image_data);
 
     // Проверка заголовка
-    struct elf_header* elf_header = (struct elf_header*) image_data;
+    struct elf_header* elf_header = (struct elf_header*) process_image_data;
     if (!elf_check_signature(elf_header)) 
     {
-        kfree(image_data);
+        kfree(process_image_data);
         file_close(file);
         return -ERROR_BAD_EXEC_FORMAT;
     }
 
+    // Вытащить путь к загрузчику
+    int need_ld = elf_get_loader_path(process_image_data, interp_path);
+
+    // Нужен загрузчик
+    if (interp_path[0] == '\0') {
+        strcpy(interp_path, "/loader.elf");
+    }
+
+
+    // Пытаемся открыть файл динамического линковщика
+    struct file* loader_file = file_open(NULL, interp_path, FILE_OPEN_MODE_READ_ONLY, 0);
+    if (loader_file == NULL) {
+        // Загрузчик не найден
+        kfree(process_image_data);
+        file_close(file);
+        return -ERROR_NO_FILE;
+    }
+    // Проверим, не является ли файл линковщика директорией?
+    if ( (loader_file->inode->mode & INODE_TYPE_DIRECTORY)) {
+        // Мы пытаемся открыть директорию - выходим
+        kfree(process_image_data);
+        file_close(loader_file);
+        file_close(file);
+        return -ERROR_IS_DIRECTORY;
+    }
+    // Выделение памяти и чтение линковщика
+    fsize = loader_file->inode->size;
+    loader_image_data = kmalloc(fsize);
+    file_read(loader_file, fsize, loader_image_data);
+    file_close(loader_file);
+
+
     // TODO: копирование ENV
 
+    // Сохраняем значения аргументов в память ядра, т.к ниже мы уничтожим адресное пространство процесса
+    char** argvk = kmalloc(argc * sizeof(char*));
+    for (i = 0; i < argc; i ++) {
+        argvk[i] = kmalloc(strlen(argv[i]) + 1);
+        strcpy(argvk[i], argv[i]);
+    }
+
+    // ------------ ТОЧКА НЕВОЗВРАТА --------------------
+    // Все необходимые проверки должны быть сделаны до этого момента, потому что потом возвращаться будет некуда
     // Уничтожение неразделяемых регионов адресного пространства процесса
     struct list_node* current_area_node = process->mmap_ranges->head;
     struct list_node* next = current_area_node;
@@ -85,10 +125,10 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         struct mmap_range* range = (struct mmap_range*) current_area_node->element;
 
         // Является ли регион разделяемым?
-        int is_shared = (range->flags & MAP_SHARED) == MAP_SHARED;
+        int shared = (range->flags & MAP_SHARED) == MAP_SHARED;
 
         // Сносим все регионы, которые не являются разделяемыми
-        if (!is_shared) {
+        if (!shared) {
             list_remove(process->mmap_ranges, range);
             vm_table_unmap_region(process->vmemory_table, range->base, range->length);
             kfree(range);
@@ -107,67 +147,24 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     kfree(process->tls);
 
     // Попытаемся загрузить файл программы
-    pid_t rc = elf_load_process(process, image_data, 0, &program_start_ip, interp_path);
-    kfree(image_data);
+    pid_t rc = elf_load_process(process, process_image_data, 0, &program_start_ip, interp_path);
+    kfree(process_image_data);
 
-    // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз
+    // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз, но НЕ ЗАКРЫВАЕМ ЕГО
     file->pos = 0;
-    // Файл не закрываем
-
-    if (rc != 0) {
-        // Ошибка загрузки
-        file_close(file);
-        return rc;
-    }
-
-    if (interp_path[0] == '\0') {
-        strcpy(interp_path, "/loader.elf");
-    }
-
-    // Этап загрузки динамического линковщика
-    struct file* loader_file = file_open(NULL, interp_path, FILE_OPEN_MODE_READ_ONLY, 0);
-    if (loader_file == NULL) {
-        // Загрузчик не найден
-        file_close(file);
-        return -ERROR_NO_FILE;
-    }
-
-    // Проверим, не является ли файл загрузчика директорией?
-    if ( (loader_file->inode->mode & INODE_TYPE_DIRECTORY)) {
-        // Мы пытаемся открыть директорию - выходим
-        file_close(loader_file);
-        file_close(file);
-        return -ERROR_IS_DIRECTORY;
-    }
-
-    // Выделение памяти и чтение линковщика
-    size = loader_file->inode->size;
-    image_data = kmalloc(size);
-    file_read(loader_file, size, image_data);
-    file_close(loader_file);
 
     // Смещение в адресном пространстве процесса, по которому будет помещен загрузчик
     uint64_t loader_offset = process->brk + PAGE_SIZE;
 
     // Загрузить линковщик в адресное пространство процесса
-    rc = elf_load_process(process, image_data, loader_offset, &loader_start_ip, NULL);
-    kfree(image_data);
+    rc = elf_load_process(process, loader_image_data, loader_offset, &loader_start_ip, NULL);
+    kfree(loader_image_data);
 
-    if (rc != 0) {
-        // Ошибка загрузки
-        //free_process(new_process);
-        return rc;
-    }
 
     char* argvm = NULL;
     if (argv) {
-            
         // Загрузить аргументы в адресное пространство процесса
         rc = process_load_arguments(process, argc, argvk, &argvm);
-        if (rc != 0) {
-            //free_process(new_process);
-            //goto exit;
-        }
     }
 
     // Формируем auxiliary вектор

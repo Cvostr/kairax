@@ -74,20 +74,7 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
     thread->kernel_stack_ptr = P2V(pmm_alloc_page());
     memset(thread->kernel_stack_ptr, 0, PAGE_SIZE);
 
-    if (process->tls) {
-        // TLS должно также включать в себя
-        size_t required_tls_size = process->tls_size + sizeof(struct x64_uthread);
-        // Выделить память и запомнить адрес начала TLS
-        thread->tls = (void*)process_brk(process, process->brk + required_tls_size) - required_tls_size;
-        // Копировать данные TLS из процесса
-        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
-
-        struct x64_uthread uthread;
-        uthread.this = thread->tls + process->tls_size;
-
-        // Копировать данные структуры
-        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
-    }
+    thread_create_tls(thread);
 
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
@@ -123,7 +110,28 @@ void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_
     struct process* process = thread->process;
     thread->stack_ptr = process_alloc_stack_memory(process, STACK_SIZE, 1);
 
+    thread_create_tls(thread);
+
     thread_add_main_thread_info(thread, info);
+}
+
+void thread_create_tls(struct thread* thread)
+{
+    struct process* process = thread->process;
+    if (process->tls) {
+        // TLS должно также включать в себя
+        size_t required_tls_size = process->tls_size + sizeof(struct x64_uthread);
+        // Выделить память и запомнить адрес начала TLS
+        thread->tls = (void*)process_brk(process, process->brk + required_tls_size) - required_tls_size;
+        // Копировать данные TLS из процесса
+        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
+
+        struct x64_uthread uthread;
+        uthread.this = thread->tls + process->tls_size;
+
+        // Копировать данные структуры
+        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
+    }
 }
 
 void thread_add_main_thread_info(struct thread* thread, struct main_thread_create_info* info)

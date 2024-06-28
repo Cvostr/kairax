@@ -25,6 +25,7 @@ struct aux_pair {
 };
 
 #define INTERP_PATH_MAX_LEN 64
+int elf_get_loader_path(char* image, char* interp_path);
 
 int elf_load_process(struct process* process, char* image, uint64_t offset, void** entry_ip, char* interp_path);
 

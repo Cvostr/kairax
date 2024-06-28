@@ -96,5 +96,5 @@ pid_t sys_fork()
 
 pid_t sys_vfork() 
 {
-    return -1;
+    return sys_fork();
 }

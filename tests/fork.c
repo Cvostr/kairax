@@ -3,6 +3,7 @@
 #include "string.h"
 #include "unistd.h"
 #include "sys/wait.h"
+#include "errno.h"
 
 int main(int argc, char** argv) 
 {
@@ -12,6 +13,8 @@ int main(int argc, char** argv)
     pid_t r = fork();
     if (r == 0) {
         printf("CHILD %i\n", getpid());
+        int errntest = errno;
+        errno = 123;
 
         char* args[3];
         args[0] = "ls.a";
