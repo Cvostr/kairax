@@ -60,10 +60,15 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         file_close(file);
         return -ERROR_IS_DIRECTORY;
     }
+    //TODO: проверить атрибут исполнения
 
     // Чтение исполняемого файла
     fsize = file->inode->size;
     process_image_data = kmalloc(fsize);
+    if (process_image_data == NULL) {
+        file_close(file);
+        return -ENOMEM;
+    }
     file_read(file, fsize, process_image_data);
 
     // Проверка заголовка
@@ -103,17 +108,27 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     // Выделение памяти и чтение линковщика
     fsize = loader_file->inode->size;
     loader_image_data = kmalloc(fsize);
+    if (loader_image_data == NULL) {
+        kfree(process_image_data);
+        file_close(loader_file);
+        file_close(file);
+        return -ENOMEM;
+    }
     file_read(loader_file, fsize, loader_image_data);
     file_close(loader_file);
-
-
-    // TODO: копирование ENV
 
     // Сохраняем значения аргументов в память ядра, т.к ниже мы уничтожим адресное пространство процесса
     char** argvk = kmalloc(argc * sizeof(char*));
     for (i = 0; i < argc; i ++) {
         argvk[i] = kmalloc(strlen(argv[i]) + 1);
         strcpy(argvk[i], argv[i]);
+    }
+
+    // Сохраняем значения ENV в память ядра, т.к ниже мы уничтожим адресное пространство процесса
+    char** envpk = kmalloc(envc * sizeof(char*));
+    for (i = 0; i < envc; i ++) {
+        envpk[i] = kmalloc(strlen(envp[i]) + 1);
+        strcpy(envpk[i], envp[i]);
     }
 
     // ------------ ТОЧКА НЕВОЗВРАТА --------------------
@@ -205,4 +220,10 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
     kfree(argvk);
 
+    for (i = 0; i < envc; i ++) {
+        kfree(envpk[i]);
+    }
+    kfree(envpk);
+
+    return 0;
 }
