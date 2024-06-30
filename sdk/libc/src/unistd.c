@@ -21,6 +21,21 @@ int execve(const char *filename, char *const argv [], char *const envp[])
     __set_errno(syscall_execve(filename, argv, envp));
 }
 
+uid_t getuid(void)
+{
+    __set_errno(syscall_getuid());
+}
+
+uid_t geteuid(void)
+{
+    __set_errno(syscall_geteuid());
+}
+
+int setuid(uid_t uid)
+{
+    __set_errno(syscall_setuid(uid));
+}
+
 pid_t getpid(void)
 {
     return syscall_getpid();

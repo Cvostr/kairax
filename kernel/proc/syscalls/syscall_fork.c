@@ -27,6 +27,13 @@ pid_t sys_fork()
         dentry_open(new_process->pwd);
     }
 
+    // Процесс наследует блокированные сигналы
+    new_process->blocked_signals = process->blocked_signals;
+
+    // Процесс наследует ID пользователя
+    new_process->uid = process->uid;
+    new_process->euid = process->euid;
+
     // Добавить файловые дескрипторы
     acquire_spinlock(&process->fd_lock);
     for (i = 0; i < MAX_DESCRIPTORS; i ++) 

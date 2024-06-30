@@ -14,6 +14,9 @@ extern int syscall_execve(const char *filename, char *const argv [], char *const
 
 extern long syscall_getpid();
 extern long syscall_getppid();
+extern unsigned int syscall_getuid(void);
+extern unsigned int syscall_geteuid(void);
+extern int syscall_setuid(unsigned int uid);
 extern long syscall_thread_get_id();
 extern int syscall_sleep(long long sec, long long nsec);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);

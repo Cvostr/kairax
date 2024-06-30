@@ -10,12 +10,17 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EPERM, "Operation not permitted"),
     DEFINE_ERROR(ENOENT, "No such file or directory"),
     // ...
+    DEFINE_ERROR(E2BIG, "Arg list too long"),
+    DEFINE_ERROR(ENOEXEC, "Exec format error"),
     DEFINE_ERROR(EBADF, "Bad file number"),
     DEFINE_ERROR(ECHILD, "No child processes"),
+    DEFINE_ERROR(ENOMEM, "Out of memory"),
     DEFINE_ERROR(EACCES, "Permission denied"),
+    DEFINE_ERROR(EEXIST, "File exists"),
     DEFINE_ERROR(ENOTDIR, "Not a directory"),
     DEFINE_ERROR(EISDIR, "Is a directory"),
-    DEFINE_ERROR(EINVAL, "Invalid argument")
+    DEFINE_ERROR(EINVAL, "Invalid argument"),
+    DEFINE_ERROR(EMFILE, "Too many open files")
 };
 
 int max_descs = sizeof(__errors_descriptions) / sizeof(char*);

@@ -23,6 +23,10 @@ pid_t vfork(void);
 
 int execve(const char *filename, char *const argv [], char *const envp[]);  
 
+uid_t getuid(void);
+uid_t geteuid(void);
+int setuid(uid_t uid);
+
 pid_t getpid(void);
 
 pid_t getppid(void);

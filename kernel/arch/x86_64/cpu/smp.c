@@ -112,10 +112,10 @@ int smp_init()
     uint64_t vmem_offset = (uint64_t)&ap_vmem - (uint64_t)&ap_trampoline;
     uint32_t* vmem_addr = P2V(trampoline_addr + vmem_offset);
     // Записать адрес таблицы
-    *vmem_addr = (uint32_t)V2P(ap_bootstrap_vm);
+    *vmem_addr = (uint32_t) V2P(ap_bootstrap_vm);
 
     // Страница для временных GDT
-    char* bootstrap_page = (char*)pmm_alloc_page();
+    uintptr_t bootstrap_page = (uintptr_t) pmm_alloc_page();
     map_page_mem(ap_bootstrap_vm, bootstrap_page, bootstrap_page, PAGE_PRESENT | PAGE_WRITABLE);
 
     // замапить страницу с трамплином на 0x1000

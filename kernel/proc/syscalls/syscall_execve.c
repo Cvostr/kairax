@@ -88,7 +88,6 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         strcpy(interp_path, "/loader.elf");
     }
 
-
     // Пытаемся открыть файл динамического линковщика
     struct file* loader_file = file_open(NULL, interp_path, FILE_OPEN_MODE_READ_ONLY, 0);
     if (loader_file == NULL) {

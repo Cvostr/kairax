@@ -53,3 +53,7 @@ cd ..
 cd dynloader
 make
 cd ..
+
+cd rxsh
+make
+cd ..

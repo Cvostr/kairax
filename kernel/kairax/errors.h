@@ -21,6 +21,7 @@
 #define ERROR_NOT_EMPTY             90
 #define ERROR_NOT_SOCKET            108
 
+#define	EPERM                       1
 #define	EINTR                       4
 #define	E2BIG                       7
 #define	EAGAIN                      11
