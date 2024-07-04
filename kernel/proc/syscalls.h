@@ -101,6 +101,9 @@ uid_t sys_getuid(void);
 uid_t sys_geteuid(void);
 int sys_setuid(uid_t uid);
 
+int sys_dup(int oldfd);
+int sys_dup2(int oldfd, int newfd);
+
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
 

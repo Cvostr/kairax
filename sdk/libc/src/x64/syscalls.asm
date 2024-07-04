@@ -36,6 +36,10 @@ DEFINE_SYSCALL syscall_protect_memory,  0xA
 DEFINE_SYSCALL syscall_ioctl,       0x10
 DEFINE_SYSCALL syscall_create_pipe, 0x16
 DEFINE_SYSCALL syscall_sched_yield, 0x18
+
+DEFINE_SYSCALL syscall_dup,         0x20
+DEFINE_SYSCALL syscall_dup2,        0x21
+
 DEFINE_SYSCALL syscall_sleep,       0x23
 DEFINE_SYSCALL syscall_getpid,      0x27
 DEFINE_SYSCALL syscall_socket,      0x29

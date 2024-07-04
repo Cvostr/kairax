@@ -9,6 +9,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(0x0, "Success"),
     DEFINE_ERROR(EPERM, "Operation not permitted"),
     DEFINE_ERROR(ENOENT, "No such file or directory"),
+    DEFINE_ERROR(ESRCH, "No such process"),
     // ...
     DEFINE_ERROR(E2BIG, "Arg list too long"),
     DEFINE_ERROR(ENOEXEC, "Exec format error"),

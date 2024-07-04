@@ -227,7 +227,7 @@ int sys_send_signal(pid_t pid, int signal)
     struct process* proc = process_get_by_id(pid);
 
     if (proc == NULL) {
-        return -1;
+        return -ESRCH;
     }
 
     if (proc->type != OBJECT_TYPE_PROCESS) {

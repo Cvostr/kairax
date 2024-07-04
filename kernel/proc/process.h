@@ -57,6 +57,7 @@ struct process {
     spinlock_t          children_lock;
     // Указатели на открытые файловые дескрипторы
     struct file*        fds[MAX_DESCRIPTORS];
+    unsigned long       close_on_exec[MAX_DESCRIPTORS / 64];
     spinlock_t          fd_lock;
     // начальные данные для TLS
     char*               tls;

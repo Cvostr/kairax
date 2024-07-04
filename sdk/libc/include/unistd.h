@@ -23,6 +23,9 @@ pid_t vfork(void);
 
 int execve(const char *filename, char *const argv [], char *const envp[]);  
 
+int dup(int oldfd);
+int dup2(int oldfd, int newfd);
+
 uid_t getuid(void);
 uid_t geteuid(void);
 int setuid(uid_t uid);

@@ -12,6 +12,9 @@ extern long long syscall_fork(void);
 extern long long syscall_vfork(void);
 extern int syscall_execve(const char *filename, char *const argv [], char *const envp[]); 
 
+extern int syscall_dup(int oldfd);
+extern int syscall_dup2(int oldfd, int newfd);
+
 extern long syscall_getpid();
 extern long syscall_getppid();
 extern unsigned int syscall_getuid(void);

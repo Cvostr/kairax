@@ -21,6 +21,16 @@ int execve(const char *filename, char *const argv [], char *const envp[])
     __set_errno(syscall_execve(filename, argv, envp));
 }
 
+int dup(int oldfd)
+{
+    __set_errno(syscall_dup(oldfd));
+}
+
+int dup2(int oldfd, int newfd)
+{
+    __set_errno(syscall_dup2(oldfd, newfd));
+}
+
 uid_t getuid(void)
 {
     __set_errno(syscall_getuid());
