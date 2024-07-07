@@ -31,6 +31,7 @@ int* __errno_location();
 #define EINVAL                      22
 #define	EMFILE		                24
 #define	ESPIPE		                29
+#define	ENOSYS		                38
 #define ENOTSOCK                    108
 #define ETIMEDOUT                   116
 

@@ -43,7 +43,7 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
 
 off_t sys_file_seek(int fd, off_t offset, int whence); 
 
-int sys_fcntl(int fd, int cmd, long arg);
+int sys_fcntl(int fd, int cmd, unsigned long long arg);
 
 int sys_pipe(int* pipefd, int flags);
 

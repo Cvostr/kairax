@@ -38,7 +38,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x3B, sys_execve),
     DEFINE_SYSCALL(0x3C, sys_exit_process),
     DEFINE_SYSCALL(0x3E, sys_send_signal),
-    DEFINE_SYSCALL(0xBA, sys_get_thread_id),
+    DEFINE_SYSCALL(0x48, sys_fcntl),
     DEFINE_SYSCALL(0x4F, sys_get_working_dir),
     DEFINE_SYSCALL(0x50, sys_set_working_dir),
     DEFINE_SYSCALL(0x52, sys_rename),
@@ -59,6 +59,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0xA9, sys_poweroff),
     DEFINE_SYSCALL(0xAF, sys_load_module),
     DEFINE_SYSCALL(0xB0, sys_unload_module),
+    DEFINE_SYSCALL(0xBA, sys_get_thread_id),
     DEFINE_SYSCALL(0xCA, sys_futex),
 
     DEFINE_SYSCALL(0x2FF, sys_create_thread),

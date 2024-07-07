@@ -22,6 +22,9 @@
 #define OBJECT_TYPE_PROCESS   1
 #define OBJECT_TYPE_THREAD    2
 
+typedef unsigned long long CLOEXEC_INT_TYPE;
+#define CLOEXEC_INT_SIZE    sizeof(CLOEXEC_INT_TYPE)
+
 struct process {
     // Тип объекта
     int                 type;
@@ -57,7 +60,7 @@ struct process {
     spinlock_t          children_lock;
     // Указатели на открытые файловые дескрипторы
     struct file*        fds[MAX_DESCRIPTORS];
-    unsigned long       close_on_exec[MAX_DESCRIPTORS / 64];
+    CLOEXEC_INT_TYPE    close_on_exec[MAX_DESCRIPTORS / CLOEXEC_INT_SIZE];
     spinlock_t          fd_lock;
     // начальные данные для TLS
     char*               tls;
@@ -142,5 +145,8 @@ int process_handle_page_fault(struct process* process, uint64_t address);
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
 
 int process_send_signal(struct process* process, int signal);
+
+void process_set_cloexec(struct process* process, int fd, int value);
+int process_get_cloexec(struct process* process, int fd);
 
 #endif

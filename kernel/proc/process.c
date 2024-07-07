@@ -366,9 +366,15 @@ int process_close_file(struct process* process, int fd)
 
     struct file* file = process->fds[fd];
 
-    if (file != NULL) {
+    if (file != NULL) 
+    {
+        // Закрыть объект открытого файла
         file_close(file);
+        // Снимаем CLOEXEC
+        process_set_cloexec(process, fd, 0);
+        // Освобождаем номер дескриптора
         process->fds[fd] = NULL;
+        // Выход
         goto exit;
     } else {
         rc = -ERROR_BAD_FD;
@@ -535,6 +541,26 @@ int process_handle_page_fault(struct process* process, uint64_t address)
 
     // Дождемся разблокировки  
     return 1;
+}
+
+void process_set_cloexec(struct process* process, int fd, int value)
+{
+    int lindex = fd / CLOEXEC_INT_SIZE;
+    int fdindex = fd % CLOEXEC_INT_SIZE;
+
+    if (value == 0) {
+        // Снять старый бит
+        process->close_on_exec[lindex] &= ~(1ULL << fdindex); 
+    } else {
+        process->close_on_exec[lindex] |= (1ULL << fdindex);
+    }
+}
+
+int process_get_cloexec(struct process* process, int fd)
+{
+    int lindex = fd / CLOEXEC_INT_SIZE;
+    int fdindex = fd % CLOEXEC_INT_SIZE;
+    return (process->close_on_exec[lindex] >> fdindex) & 1;
 }
 
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result)

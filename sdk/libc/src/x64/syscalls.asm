@@ -55,6 +55,7 @@ DEFINE_SYSCALL syscall_vfork,       0x3A
 DEFINE_SYSCALL syscall_execve,      0x3B
 DEFINE_SYSCALL syscall_process_exit, 0x3C
 DEFINE_SYSCALL syscall_kill,        0x3E
+DEFINE_SYSCALL syscall_fcntl,       0x48
 DEFINE_SYSCALL syscall_rename,      0x52
 DEFINE_SYSCALL syscall_rmdir,       0x54
 DEFINE_SYSCALL syscall_unlink,      0x57

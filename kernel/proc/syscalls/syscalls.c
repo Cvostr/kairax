@@ -59,6 +59,11 @@ int sys_create_pty(int *master_fd, int *slave_fd)
 
 int sys_poweroff(int cmd)
 {
+    struct process* process = cpu_get_current_thread()->process;
+    if (process->euid != 0) {
+        return -EPERM;
+    }
+
     switch (cmd) {
         case 0x30:
             acpi_poweroff();

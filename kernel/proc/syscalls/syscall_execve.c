@@ -155,6 +155,17 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         current_area_node = next;
     }
 
+    for (i = 0; i < MAX_DESCRIPTORS; i ++)
+    {
+        if (process->fds[i] != NULL) {
+
+            if (process_get_cloexec(process, i) == 1) {
+                process_close_file(process, i);
+                //printk("--- CLOSED --- \n");
+            }
+        }
+    }
+
     // Обнуление указателя на вершину кучи
     process->brk = 0;
 

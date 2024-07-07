@@ -34,6 +34,9 @@ pid_t sys_fork()
     new_process->uid = process->uid;
     new_process->euid = process->euid;
 
+    // Скопировать флаги CLOEXEC
+    memcpy(new_process->close_on_exec, process->close_on_exec, sizeof(process->close_on_exec));
+
     // Добавить файловые дескрипторы
     acquire_spinlock(&process->fd_lock);
     for (i = 0; i < MAX_DESCRIPTORS; i ++) 

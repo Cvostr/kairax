@@ -53,6 +53,12 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     // Добавить файл к процессу
     fd = process_add_file(process, file);
 
+    // Если передан флаг O_CLOEXEC, надо взвести бит дескриптора
+    if ((flags & O_CLOEXEC) == O_CLOEXEC) 
+    {
+        process_set_cloexec(process, fd, 1);
+    }
+
     if (fd < 0) {
         // Не получилось привязать дескриптор к процессу, закрыть файл
         file_close(file);

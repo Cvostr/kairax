@@ -128,11 +128,14 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
 
             return NULL;
         }
+    } else if ((flags & O_EXCL) == O_EXCL) {
+        // вернуть код ошибки
+        printk("--- O_EXCL\n");
     }
 
     struct file* file = new_file();
     file->inode = inode;
-    file->mode = mode;
+    //file->mode = mode;  
     file->flags = flags;
     file->pos = 0;
     file->dentry = dentry;
