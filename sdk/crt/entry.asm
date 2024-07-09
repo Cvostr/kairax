@@ -5,6 +5,7 @@ extern main
 global _start
 
 _start:
+    mov [__environ], rdx
     call main
     mov rdi, rax    ; Поместить возвращаемое значение как первый аргумент
     ; Завершить процесс

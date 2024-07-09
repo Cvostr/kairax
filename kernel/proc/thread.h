@@ -42,6 +42,7 @@ struct main_thread_create_info {
     size_t  aux_size;
     int argc;
     char* argv;
+    char* envp;
 };
 
 struct thread* new_thread(struct process* process);

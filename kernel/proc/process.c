@@ -102,29 +102,16 @@ void process_become_zombie(struct process* process)
     free_vm_table(process->vmemory_table);
 }
 
-int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem)
+int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem, int add_null)
 {
-    int rc = -1;
-    // Проверить количество аргументов
-    if (argc > PROCESS_MAX_ARGS) {
-        // Слишком много аргументов, выйти с ошибкой
-        goto exit;
-    }
-            
+    int i;
     // Вычисляем память, необходимую под массив указателей + строки аргументов
-    size_t args_array_size = sizeof(char*) * argc;
+    size_t args_array_size = sizeof(char*) * (argc + add_null);
     size_t reqd_size = args_array_size;
 
     // Прибавляем длины строк аргументов
-    for (int i = 0; i < argc; i ++) {
+    for (i = 0; i < argc; i ++) {
         reqd_size += strlen(argv[i]) + 1;
-    }
-
-    // Проверка суммарного размера аргументов в памяти
-    if (reqd_size > PROCESS_MAX_ARGS_SIZE) {
-        // Суммарный размер аргуменов большой, выйти с ошибкой
-        rc = -ERROR_ARGS_BUFFER_BIG;
-        goto exit;
     }
 
     // Выделить память процесса под аргументы
@@ -134,7 +121,7 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
     off_t pointers_offset = 0;
     off_t args_offset = args_array_size;
 
-    for (int i = 0; i < argc; i ++) {
+    for (i = 0; i < argc; i ++) {
         // Длина строки аргумента с терминатором
         size_t arg_len = strlen(argv[i]) + 1;
 
@@ -150,9 +137,13 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
         pointers_offset += sizeof(char*);
     }
 
-    rc = 0;
-exit:
-    return rc;
+    if (add_null > 0)
+    {
+        uint64_t zero = 0;
+        vm_memcpy(process->vmemory_table, *args_mem + pointers_offset, &zero, sizeof(uint64_t));
+    }
+
+    return 0;
 }
 
 int process_is_userspace_region(struct process* process, uintptr_t base, size_t len)

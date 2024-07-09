@@ -42,6 +42,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \
+				obj/exec.o \
 				obj/assert.o \
 				obj/signal.o \
 				obj/sys/mman.o \

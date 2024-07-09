@@ -147,6 +147,10 @@ void thread_add_main_thread_info(struct thread* thread, struct main_thread_creat
     stack_new_pos -= 1;
     vm_memcpy(process->vmemory_table, stack_new_pos, &info->argv, sizeof(char*));
 
+    // Поместить в стек envp
+    stack_new_pos -= 1;
+    vm_memcpy(process->vmemory_table, stack_new_pos, &info->envp, sizeof(char*));
+
     // Поместить в стек aux вектор
     for (size_t i = 0; i < info->aux_size; i ++) {
         struct aux_pair* aux_cur = &info->auxv[i];

@@ -18,7 +18,7 @@ void thread_func(int * arg) {
     }
 }
 
-int main() {
+int main(int argc, char** argv, char** envp) {
 
     int counter = 0;
     printf("PID : %i\n", getpid());
@@ -26,6 +26,14 @@ int main() {
     
     getcwd(buff, 220);
     printf("CWD : %s\n", buff);
+
+    printf("ENVS : ENVP %p\n", envp);
+    if (envp) {
+    while (*envp) {
+        printf("%s\n", *envp);
+        envp++;
+    }
+    }
 
     int fd1 = open("/mydir/blabla", O_RDONLY, 0);
     int fd2 = open("/mydir", O_RDONLY, 0);

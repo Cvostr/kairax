@@ -8,7 +8,7 @@
 #include "align.h"
 #include "linker.h"
 
-uint64_t            args_info[2];
+uint64_t            args_info[3];
 uint64_t            aux_vector[20];
 struct object_data* root;
 
@@ -32,6 +32,7 @@ void loader() {
     int fd = aux_vector[AT_EXECFD];
     int argc = args_info[0];
     char** argv = (char**) args_info[1];
+    char** envp = (char**) args_info[2];
 
     // Загрузить главный объект
     root = load_object_data_fd(fd, 0);
@@ -42,8 +43,8 @@ void loader() {
     // Закрыть файл
     syscall_close(fd);
     
-    void (*func)(int, char**) = (void*) aux_vector[AT_ENTRY];
-    func(argc, argv);
+    void (*func)(int, char**, char**) = (void*) aux_vector[AT_ENTRY];
+    func(argc, argv, envp);
 }
 
 struct object_data* load_object_data_fd(int fd, int shared) {
@@ -321,9 +322,12 @@ void process_relocations(struct object_data* obj_data)
                     // todo : error
                 }
 
-                //*value = obj_data->base + sym->value;
                 *value = dep->base + dep_symbol->value;
                 break;
+            default: {
+                printf("Unsupported symbol type %i, name: %s\n", relocation_type, name);
+                break;
+            }
         }
     }
 }

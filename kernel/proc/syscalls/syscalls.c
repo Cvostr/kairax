@@ -284,6 +284,12 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     void* program_start_ip = NULL;
     void* loader_start_ip = NULL;
 
+    // Проверить количество аргументов
+    if (info->num_args > PROCESS_MAX_ARGS) {
+        // Слишком много аргументов, выйти с ошибкой
+        goto exit;
+    }
+
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry(process, dirfd, filepath, &dir_dentry);
 
@@ -409,7 +415,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
         // Загрузить аргументы в адресное пространство процесса
         argc = info->num_args;
-        rc = process_load_arguments(new_process, info->num_args, info->args, &argv);
+        rc = process_load_arguments(new_process, info->num_args, info->args, &argv, 0);
         if (rc != 0) {
             free_process(new_process);
             goto exit;
@@ -439,6 +445,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     main_thr_info.aux_size = 4;
     main_thr_info.argc = argc;
     main_thr_info.argv = argv;
+    main_thr_info.envp = NULL;
 
     // Создание главного потока
     struct thread* thr = create_thread(new_process, loader_start_ip, 0, 0, &main_thr_info);

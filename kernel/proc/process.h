@@ -115,7 +115,7 @@ struct file* process_get_file(struct process* process, int fd);
 
 // Загружает аргументы командной строки в адресное пространство процесса
 // args_mem - указатель на данные аргументов в адресном пространстве процесса
-int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem);
+int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem, int add_null);
 
 // Добавляет файл к процессу с первым свободным номером дескриптора
 // Повышает счетчик ссылок

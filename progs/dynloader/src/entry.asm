@@ -56,6 +56,10 @@ enter:
     ; Получение относительного адреса args массива
     lea rcx, [rel args_info]
 
+    ; Извлечение envp
+    pop rax
+    mov [rcx + 16], rax
+
     ; Извлечение argv
     pop rax
     mov [rcx + 8], rax

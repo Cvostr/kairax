@@ -16,6 +16,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     int envc = 0;
     int i;
     size_t fsize;
+    size_t summary_size = 0;
     char* process_image_data = NULL;
     char* loader_image_data = NULL;
     char interp_path[INTERP_PATH_MAX_LEN];
@@ -35,11 +36,18 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     if (argv != NULL) {
         while (argv[argc] != NULL) {
             argc++;
+            summary_size += strlen(argv[argc]) + 1;
         }
         if (argc > PROCESS_MAX_ARGS) {
             // Слишком много аргументов, выйти с ошибкой
             return -E2BIG;
         }
+    }
+
+    // Проверка суммарного размера аргументов в памяти
+    if (summary_size > PROCESS_MAX_ARGS_SIZE) {
+        // Суммарный размер аргуменов большой, выйти с ошибкой
+        return -ERROR_ARGS_BUFFER_BIG;
     }
 
     if (envp != NULL) {
@@ -155,6 +163,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         current_area_node = next;
     }
 
+    // Закрыть все файловые дескрипторы с флагом CLOSE ON EXEC
     for (i = 0; i < MAX_DESCRIPTORS; i ++)
     {
         if (process->fds[i] != NULL) {
@@ -190,9 +199,14 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 
 
     char* argvm = NULL;
+    char* envpm = NULL;
     if (argv) {
         // Загрузить аргументы в адресное пространство процесса
-        rc = process_load_arguments(process, argc, argvk, &argvm);
+        rc = process_load_arguments(process, argc, argvk, &argvm, 0);
+    }
+    if (envp) {
+        // Загрузить аргументы в адресное пространство процесса с добавлением NULL на конце массива
+        rc = process_load_arguments(process, envc, envpk, &envpm, 1);
     }
 
     // Формируем auxiliary вектор
@@ -210,6 +224,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     main_thr_info.aux_size = 4;
     main_thr_info.argc = argc;
     main_thr_info.argv = argvm;
+    main_thr_info.envp = envpm;
 
     // Пересоздание главного потока
     struct thread* thr = process->threads->head->element;

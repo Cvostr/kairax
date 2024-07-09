@@ -18,11 +18,6 @@ pid_t vfork(void)
     __set_errno(syscall_vfork());
 }
 
-int execve(const char *filename, char *const argv [], char *const envp[])
-{
-    __set_errno(syscall_execve(filename, argv, envp));
-}
-
 int dup(int oldfd)
 {
     __set_errno(syscall_dup(oldfd));
