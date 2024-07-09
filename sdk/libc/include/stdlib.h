@@ -46,6 +46,11 @@ extern void exit(int status);
 extern void abort();
 extern int system(const char *command);
 
+extern char *getenv(const char *name);
+extern int setenv(const char *name, const char *value, int overwrite);
+extern int unsetenv(const char *name);
+extern int putenv(char *string);
+
 #ifdef __cplusplus
 }
 #endif

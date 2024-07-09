@@ -214,6 +214,8 @@ char keyboard_get_key_ascii(char keycode)
         return '9';
     case KRXK_0:
         return '0';
+	case KRXK_PLUS:
+		return '=';
     case KRXK_MINUS:
         return '-';
     case KRXK_ENTER:

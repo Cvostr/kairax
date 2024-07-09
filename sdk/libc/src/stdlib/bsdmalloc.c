@@ -166,12 +166,6 @@ botch(s)
 #define	ASSERT(p)
 #endif
 
-void* sbrk(int len) {
-	char *mm = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
-	memset(mm, 0, len);
-    return mm;
-}
-
 void *calloc(size_t num, size_t size)
 {
 	return malloc(num * size);

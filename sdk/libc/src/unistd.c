@@ -5,6 +5,8 @@
 #include "fcntl.h"
 #include "termios.h"
 #include "sys/ioctl.h"
+#include "sys/mman.h"
+#include "string.h"
 
 pid_t fork(void)
 {
@@ -29,6 +31,14 @@ int dup(int oldfd)
 int dup2(int oldfd, int newfd)
 {
     __set_errno(syscall_dup2(oldfd, newfd));
+}
+
+void* sbrk(int len)
+{
+    // TODO: Should use syscall?
+    char *mm = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+	memset(mm, 0, len);
+    return mm;
 }
 
 uid_t getuid(void)

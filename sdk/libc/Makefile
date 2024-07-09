@@ -37,6 +37,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/rand.o \
 				obj/stdlib/abort.o \
 				obj/stdlib/system.o \
+				obj/stdlib/env.o \
+				obj/stdlib/putenv.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \

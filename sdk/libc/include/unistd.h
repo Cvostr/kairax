@@ -61,6 +61,8 @@ int isatty(int fd);
 
 void _exit(int status);
 
+void* sbrk(int len);
+
 __END_DECLS
 
 #endif

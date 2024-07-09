@@ -161,7 +161,6 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 
             if (process_get_cloexec(process, i) == 1) {
                 process_close_file(process, i);
-                //printk("--- CLOSED --- \n");
             }
         }
     }

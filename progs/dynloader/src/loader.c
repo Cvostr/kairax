@@ -36,6 +36,9 @@ void loader() {
     // Загрузить главный объект
     root = load_object_data_fd(fd, 0);
 
+    // Обработка перемещений
+    process_relocations(root);
+
     // Закрыть файл
     syscall_close(fd);
     
@@ -255,7 +258,22 @@ struct object_data* load_object_data(char* data, int shared) {
     }
 
     // Обработка перемещений
-    for (size_t i = 0; i < obj_data->rela_size / sizeof(struct elf_rela); i ++) {
+    //process_relocations(obj_data);
+
+    return obj_data;
+}
+
+void process_relocations(struct object_data* obj_data)
+{
+    size_t i;
+
+    for (i = 0; i < obj_data->dependencies_count; i ++) {
+        struct object_data* dependency = obj_data->dependencies[i];
+
+        process_relocations(dependency);
+    }
+
+    for (i = 0; i < obj_data->rela_size / sizeof(struct elf_rela); i ++) {
         // Указатель на перемещение
         struct elf_rela* rela = obj_data->rela + i;
         int relocation_type = ELF64_R_TYPE(rela->info);
@@ -264,6 +282,8 @@ struct object_data* load_object_data(char* data, int shared) {
         //printf("type %i, off %i, num %i\n", relocation_type, rela->offset, relocation_sym_index);
 
         struct elf_symbol* sym = (struct elf_symbol*) obj_data->dynsym + relocation_sym_index;
+        struct elf_symbol* dep_symbol = NULL;
+        struct object_data* dep = NULL;
         char* name = NULL;
 
         switch (relocation_type) {
@@ -275,8 +295,8 @@ struct object_data* load_object_data(char* data, int shared) {
                 // Скопировать содержимое символа
                 name = obj_data->dynstr + sym->name;
                 // Ищем символ в зависимостях
-                struct object_data* dep = NULL;
-                struct elf_symbol* dep_symbol = look_for_symbol(obj_data, name, &dep, MODE_LOOK_IN_DEPS);
+
+                dep_symbol = look_for_symbol(obj_data, name, &dep, MODE_LOOK_IN_DEPS);
 
                 if (dep_symbol == NULL) {
                     printf("Can't find symbol %s\n", name);
@@ -290,13 +310,22 @@ struct object_data* load_object_data(char* data, int shared) {
             case R_X86_64_GLOB_DAT:
                 // Записать адрес на символ в GOT
                 name = obj_data->dynstr + sym->name;
+                
+                dep_symbol = look_for_symbol(obj_data, name, &dep, MODE_LOOK_IN_CURRENT);
+                if (dep_symbol == NULL) {
+                    dep_symbol = look_for_symbol(root, name, &dep, MODE_LOOK_IN_CURRENT | MODE_LOOK_IN_DEPS);
+                }
+            
+                if (dep_symbol == NULL) {
+                    printf("Can't find symbol %s\n", name);
+                    // todo : error
+                }
 
-                *value = obj_data->base + sym->value;
+                //*value = obj_data->base + sym->value;
+                *value = dep->base + dep_symbol->value;
                 break;
         }
     }
-
-    return obj_data;
 }
 
 int open_shared_object_file(const char* fname)

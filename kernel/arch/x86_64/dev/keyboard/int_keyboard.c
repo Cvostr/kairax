@@ -216,11 +216,8 @@ short keycode_ps2_to_kairax(unsigned char keycode_ps2)
         case 0x0C:
             keycode = KRXK_MINUS;
             break;
-        case 0x8E:
-            state = KRXK_RELEASED;
-        case 0x0E:
-            keycode = KRXK_BKSP;
-            break;
+        DEFINE_KEY(0x0D, KRXK_PLUS)
+        DEFINE_KEY(0x0E, KRXK_BKSP)
         DEFINE_KEY(0x0F, KRXK_TAB)
         DEFINE_KEY(0x10, KRXK_Q)       
         DEFINE_KEY(0x11, KRXK_W)

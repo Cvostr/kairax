@@ -8,6 +8,7 @@
 #include "stdio.h"
 
 extern char curdir[512];
+extern char** __environ;
 
 void ast_exec_func(struct ast_node* node);
 
@@ -30,6 +31,20 @@ void ast_exec_func(struct ast_node* node)
         }
         list_node* next_arg = node->func_call.args.head->next;
         chdir(next_arg->element);
+    } else if (strcmp(func, "export") == 0) {
+
+        if (argc == 1) {
+            char** envp = __environ;
+            printf("environ %lu\n", __environ);
+            while (*envp) {
+                printf("%s\n", *envp);
+                envp++;
+            }
+            return;
+        }
+
+        list_node* next_arg = node->func_call.args.head->next;
+        putenv(next_arg->element);
     } else if (strcmp(func, "pwd") == 0) {
         printf("%s\n", curdir);
     } else if (strcmp(func, "exit") == 0) {
