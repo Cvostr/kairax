@@ -205,7 +205,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         rc = process_load_arguments(process, argc, argvk, &argvm, 0);
     }
     if (envp) {
-        // Загрузить аргументы в адресное пространство процесса с добавлением NULL на конце массива
+        // Загрузить env в адресное пространство процесса с добавлением NULL на конце массива
         rc = process_load_arguments(process, envc, envpk, &envpm, 1);
     }
 

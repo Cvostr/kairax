@@ -57,3 +57,7 @@ cd ..
 cd rxsh
 make
 cd ..
+
+cd env
+make
+cd ..

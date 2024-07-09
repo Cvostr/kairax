@@ -13,3 +13,4 @@ sudo cp ./rmdir/rmdir.a /mnt/kxvol
 sudo cp ./netctl/netctl.a /mnt/kxvol
 sudo cp ./kill/kill.a /mnt/kxvol
 sudo cp ./rxsh/rxsh.a /mnt/kxvol
+sudo cp ./env/env.a /mnt/kxvol
