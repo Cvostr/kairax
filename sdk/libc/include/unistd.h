@@ -23,6 +23,7 @@ pid_t vfork(void);
 
 int execve(const char *filename, char *const argv [], char *const envp[]);  
 int execv(const char *file, char *const argv[]);
+int execvp(const char *file, char *const argv[]);
 
 int dup(int oldfd);
 int dup2(int oldfd, int newfd);

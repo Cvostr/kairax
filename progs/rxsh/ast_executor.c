@@ -62,7 +62,7 @@ void ast_exec_func(struct ast_node* node)
                 strcpy(args[i], arg);
             }
             
-            int rc = execv(args[0], args);
+            int rc = execvp(args[0], args);
             perror("exec error");
             _exit(127);
         } else {

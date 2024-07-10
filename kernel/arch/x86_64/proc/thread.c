@@ -111,6 +111,8 @@ void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_
     thread->stack_ptr = process_alloc_stack_memory(process, STACK_SIZE, 1);
 
     thread_create_tls(thread);
+    // Надо сразу применить новый указатель TLS
+    cpu_set_fs_base(thread->tls + process->tls_size);
 
     thread_add_main_thread_info(thread, info);
 }

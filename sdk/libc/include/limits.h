@@ -24,4 +24,6 @@
 #define LLONG_MAX	LONG_MAX
 #define LLONG_MIN	(-1ll - LLONG_MAX)
 
+#define PATH_MAX    4096 
+
 #endif

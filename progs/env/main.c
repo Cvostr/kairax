@@ -15,11 +15,14 @@ int main(int argc, char** argv, char** envp)
         }
     }
 
-    while (*envp) {
-        printf("%s%c", *envp, divisor);
-        envp++;
+    if (envp) 
+    {
+        while (*envp) {
+            printf("%s%c", *envp, divisor);
+            envp++;
+        }
+        fflush(stdout);
     }
-    fflush(stdout);
 
     return 0;
 }
