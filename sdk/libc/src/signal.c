@@ -41,3 +41,8 @@ int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
     __set_errno(syscall_sigprocmask(how, set, oldset, sizeof(sigset_t)));
 }
+
+int sigpending(sigset_t *set)
+{
+    __set_errno(syscall_sigpending(set, sizeof(sigset_t)));
+}

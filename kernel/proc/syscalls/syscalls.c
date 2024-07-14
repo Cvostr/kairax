@@ -223,55 +223,6 @@ uint64_t sys_get_tick_count()
     return t;
 }
 
-int sys_send_signal(pid_t pid, int signal)
-{
-    if (signal < 0 || signal > SIGNALS) {
-        return -ERROR_INVALID_VALUE;
-    }
-
-    struct process* proc = process_get_by_id(pid);
-
-    if (proc == NULL) {
-        return -ESRCH;
-    }
-
-    if (proc->type != OBJECT_TYPE_PROCESS) {
-        return -1;
-    }
-
-    return process_send_signal(proc, signal);
-}
-
-int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigsetsize)
-{
-    if (sigsetsize != sizeof(sigset_t)) {
-        return -ERROR_INVALID_VALUE;
-    }
-
-    struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, set, sigsetsize)
-    if (oldset != NULL) {
-        VALIDATE_USER_POINTER(process, oldset, sigsetsize)
-        *oldset = process->blocked_signals;
-    }
-
-    switch (how) {
-        case SIG_SETMASK:
-            process->blocked_signals = *set;
-            break;
-        case SIG_BLOCK:
-            process->blocked_signals |= *set;
-            break;
-        case SIG_UNBLOCK:
-            process->blocked_signals &= ~(*set);
-            break;
-        default:
-            return -ERROR_INVALID_VALUE;
-    } 
-
-    return 0;
-}
-
 pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info)
 {
     struct process* process = cpu_get_current_thread()->process;

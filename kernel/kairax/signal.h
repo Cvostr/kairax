@@ -36,7 +36,7 @@
 #define SIGPROF         27
 #define SIGWINCH        28
 
-#define SIGUNUSED	31
+#define SIGUNUSED	    31
 
 #define SIGNALS         32
 
@@ -73,8 +73,15 @@ struct sigaction {
     void (*sa_sigaction)(int, siginfo_t *, void *);
     sigset_t sa_mask;
     int sa_flags;
-    void (*sa_restorer)(void);
+    void (*sa_trampoline)(void);
 };
+
+#define SA_RESTORER	    0x04000000
+#define SA_ONSTACK	    0x08000000
+#define SA_RESTART	    0x10000000
+#define SA_INTERRUPT	0x20000000 /* dummy -- ignored */
+#define SA_NODEFER	    0x40000000
+#define SA_RESETHAND	0x80000000
 
 void process_handle_signals();
 

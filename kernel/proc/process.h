@@ -45,6 +45,7 @@ struct process {
     sigset_t            pending_signals;
     sigset_t            blocked_signals;
     spinlock_t          sighandler_lock;
+    uintptr_t           sighandle_trampoline;
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     // Рабочая папка

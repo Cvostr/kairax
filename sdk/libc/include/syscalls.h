@@ -45,6 +45,7 @@ extern int syscall_set_time_epoch(const void *tv);
 extern int syscall_futex(int* addr, int op, int val, const void* timeout);
 extern int syscall_kill(long long pid, int sig);
 extern int syscall_sigprocmask(int how, const void* set, void *oldset, unsigned long long sigsetsize);
+extern int syscall_sigpending(const void *set, unsigned long long sigsetsize);
 
 extern int syscall_load_module(void* module_image, unsigned long long image_size);
 extern int syscall_unload_module(const char* module_name);
