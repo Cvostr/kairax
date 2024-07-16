@@ -503,6 +503,9 @@ int process_send_signal(struct process* process, int signal)
 
     process->pending_signals |= shifted;
 
+    if (process->main_thread->state == STATE_INTERRUPTIBLE_SLEEP)
+        scheduler_unblock(process->main_thread);
+
     return 0;
 }
 

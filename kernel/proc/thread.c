@@ -10,6 +10,10 @@ struct thread* new_thread(struct process* process)
     memset(thread, 0, sizeof(struct thread));
     thread->process = process;
     thread->type = OBJECT_TYPE_THREAD;
+
+    if (process->main_thread == NULL)
+        process->main_thread = thread;
+
     return thread;
 }
 

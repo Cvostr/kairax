@@ -51,6 +51,21 @@ int setuid(uid_t uid)
     __set_errno(syscall_setuid(uid));
 }
 
+gid_t getgid(void)
+{
+    __set_errno(syscall_getgid());
+}
+
+gid_t getegid(void)
+{
+    __set_errno(syscall_getegid());
+}
+
+int setgid(gid_t gid)
+{
+    __set_errno(syscall_setgid(gid));
+}
+
 pid_t getpid(void)
 {
     return syscall_getpid();

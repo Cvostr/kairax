@@ -265,7 +265,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
     // Создать новый процесс
     new_process = create_new_process(process);
-    strncpy(new_process->name, filepath, 30);
+    strncpy(new_process->name, filepath, PROCESS_NAME_MAX_LEN);
     // Добавить в список и назначить pid
     process_add_to_list(new_process);
 

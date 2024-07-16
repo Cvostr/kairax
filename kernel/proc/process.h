@@ -13,6 +13,8 @@
 #define PROCESS_MAX_ARGS        65535
 #define PROCESS_MAX_ARGS_SIZE   (128ULL * 1024 * 1024)
 
+#define PROCESS_NAME_MAX_LEN    40
+
 #define STATE_RUNNING                  0    // Работает
 #define STATE_RUNNABLE                 1
 #define STATE_INTERRUPTIBLE_SLEEP      2    // В ожидании ресурса
@@ -35,12 +37,15 @@ struct process {
     // Код выхода
     int                 code;
     // Название
-    char                name[30];
+    char                name[PROCESS_NAME_MAX_LEN];
     // Процесс - родитель
     struct process*     parent;
+    struct thread*      main_thread;
     //
     uid_t               uid;
     uid_t               euid;
+    gid_t               gid;
+    gid_t               egid;
     // Сигналы
     sigset_t            pending_signals;
     sigset_t            blocked_signals;

@@ -20,6 +20,9 @@ pid_t sys_fork()
     // Добавить в список и назначить pid
     process_add_to_list(new_process);
 
+    // Копировать имя
+    strncpy(new_process->name, process->name, PROCESS_NAME_MAX_LEN);
+
     // Назначение рабочей директории
     if (process->pwd != NULL)
     {
@@ -33,6 +36,9 @@ pid_t sys_fork()
     // Процесс наследует ID пользователя
     new_process->uid = process->uid;
     new_process->euid = process->euid;
+
+    new_process->gid = process->gid;
+    new_process->egid = process->egid;
 
     // Скопировать флаги CLOEXEC
     memcpy(new_process->close_on_exec, process->close_on_exec, sizeof(process->close_on_exec));

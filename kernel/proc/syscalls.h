@@ -101,6 +101,10 @@ uid_t sys_getuid(void);
 uid_t sys_geteuid(void);
 int sys_setuid(uid_t uid);
 
+gid_t sys_getgid(void);
+gid_t sys_getegid(void);
+int sys_setgid(gid_t gid);
+
 int sys_dup(int oldfd);
 int sys_dup2(int oldfd, int newfd);
 

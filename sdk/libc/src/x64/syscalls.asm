@@ -61,8 +61,11 @@ DEFINE_SYSCALL syscall_rmdir,       0x54
 DEFINE_SYSCALL syscall_unlink,      0x57
 DEFINE_SYSCALL syscall_readdir,     0x59
 DEFINE_SYSCALL syscall_getuid,      0x66
+DEFINE_SYSCALL syscall_getgid,      0x68
 DEFINE_SYSCALL syscall_setuid,      0x69
+DEFINE_SYSCALL syscall_setgid,      0x6A
 DEFINE_SYSCALL syscall_geteuid,     0x6B
+DEFINE_SYSCALL syscall_getegid,     0x6C
 DEFINE_SYSCALL syscall_getppid,     0x6E
 DEFINE_SYSCALL syscall_sigprocmask, 0x7E
 DEFINE_SYSCALL syscall_sigpending,  0x7F
