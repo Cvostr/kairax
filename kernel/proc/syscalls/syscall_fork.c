@@ -73,6 +73,9 @@ pid_t sys_fork()
     }
     release_spinlock(&process->mmap_lock);
 
+    // Перенос BRK, чтобы не замапить 0 адрес
+    new_process->brk = process->brk;
+
     // TLS
     new_process->tls_size = process->tls_size;
     new_process->tls = kmalloc(new_process->tls_size);

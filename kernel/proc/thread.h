@@ -31,6 +31,7 @@ struct thread {
     int                 is_userspace;
     void*               wait_handle;
     int                 timeslice;
+    sigset_t            pending_signals;
     // Следующий поток при блокировке на семафоре
     struct thread*      next_blocked_thread;
 };
@@ -53,5 +54,7 @@ void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_
 
 void thread_become_zombie(struct thread* thread);
 void thread_destroy(struct thread* thread);
+
+int thread_send_signal(struct thread* thread, int signal);
 
 #endif

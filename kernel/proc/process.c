@@ -490,25 +490,6 @@ exit:
     return result;
 }
 
-int process_send_signal(struct process* process, int signal)
-{
-    sigset_t shifted = 1 << signal;
-
-    int blocked = (process->blocked_signals & shifted) == shifted;
-    int nonmaskable = signal == SIGKILL || signal == SIGSTOP; 
-
-    if (blocked && !nonmaskable) {
-        return -1;
-    }
-
-    process->pending_signals |= shifted;
-
-    if (process->main_thread->state == STATE_INTERRUPTIBLE_SLEEP)
-        scheduler_unblock(process->main_thread);
-
-    return 0;
-}
-
 int process_handle_page_fault(struct process* process, uint64_t address)
 {
     if (try_acquire_spinlock(&process->mmap_lock)) {

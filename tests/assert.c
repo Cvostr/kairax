@@ -1,19 +1,44 @@
 #include "stdio.h"
 #include "assert.h"
 #include "string.h"
+#include "unistd.h"
+#include "sys/wait.h"
+#include "signal.h"
 
 int main(int argc, char** argv) {
 
-    if (argc == 2) {
-        if (strcmp(argv[1], "seg") == 0) {
-            *((char*) 0) = 1;
+    int rc = 0;
+    printf("SIGSEGV test on dereference of NULL\n");
+    pid_t pid = fork();
+    if (pid == 0) {
+        *((char*) 0) = 1;
+        printf("Something strange ...\n");
+        return -2;
+    } else {
+        waitpid(pid, &rc, 0);
+        printf("child code %i\n", rc);
+        if (rc != 128 + SIGSEGV)
+        {
+            printf("Incorrect result code %i\n", rc);
+            return -1;
         }
     }
 
-    printf("Kamikaze asserion test\n");
-    int i = 1000;
-    assert(i == 1);
+    printf("Asserion test\n");
 
-    printf("Assertion is missed!\n");
+    pid = fork();
+    if (pid == 0) {
+        int i = 1000;
+        assert(i == 1);
+    } else {
+        waitpid(pid, &rc, 0);
+        printf("child code %i\n", rc);
+        if (rc != (128 + SIGABRT))
+        {
+            printf("Incorrect result code %i\n", rc);
+            return -1;
+        }
+    }
+
     return -1;
 }

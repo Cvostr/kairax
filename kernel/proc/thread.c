@@ -28,3 +28,22 @@ void thread_destroy(struct thread* thread)
     pmm_free_page(V2P(thread->kernel_stack_ptr));
     kfree(thread);
 }
+
+int thread_send_signal(struct thread* thread, int signal)
+{
+    sigset_t shifted = 1 << signal;
+
+    int blocked = (thread->process->blocked_signals & shifted) == shifted;
+    int nonmaskable = signal == SIGKILL || signal == SIGSTOP; 
+
+    if (blocked && !nonmaskable) {
+        return -1;
+    }
+
+    thread->pending_signals |= shifted;
+
+    if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
+        scheduler_unblock(thread);
+
+    return 0;
+}

@@ -27,6 +27,12 @@
 typedef unsigned long long CLOEXEC_INT_TYPE;
 #define CLOEXEC_INT_SIZE    sizeof(CLOEXEC_INT_TYPE)
 
+struct proc_sigact
+{
+    uintptr_t handler;
+    int flags;  
+};
+
 struct process {
     // Тип объекта
     int                 type;
@@ -47,10 +53,10 @@ struct process {
     gid_t               gid;
     gid_t               egid;
     // Сигналы
-    sigset_t            pending_signals;
     sigset_t            blocked_signals;
-    spinlock_t          sighandler_lock;
+    //spinlock_t          sighandler_lock;
     uintptr_t           sighandle_trampoline;
+    struct proc_sigact  sigactions[SIGNALS];
     // Адрес, после которого загружен код программы и линковщика
     uint64_t            brk;
     // Рабочая папка
@@ -149,8 +155,6 @@ void* process_get_free_addr(struct process* process, size_t length, uintptr_t hi
 int process_handle_page_fault(struct process* process, uint64_t address);
 
 int process_create_thread(struct process* process, void* entry_ptr, void* arg, pid_t* tid, size_t stack_size);
-
-int process_send_signal(struct process* process, int signal);
 
 void process_set_cloexec(struct process* process, int fd, int value);
 int process_get_cloexec(struct process* process, int fd);

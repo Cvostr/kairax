@@ -23,6 +23,8 @@
 #define SIGTERM		15
 #define SIGUNUSED	31
 
+#define SA_SIGINFO	    0x00000004
+
 __BEGIN_DECLS
 
 typedef unsigned long sigset_t;
@@ -34,6 +36,8 @@ int sigaddset(sigset_t *set, int sig) __THROW;
 int sigdelset(sigset_t *set, int sig) __THROW;
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW;
 int sigpending(sigset_t *set) __THROW;
+
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
 
 __END_DECLS
 
