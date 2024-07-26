@@ -1,7 +1,7 @@
 #ifndef _OBJECT_DATA_H
 #define _OBJECT_DATA_H
 
-#include "elf.h"
+#include "_elf.h"
 
 #define OBJECT_NAME_LEN_MAX 50
 #define OBJECT_DEPENDENCIES_MAX 30

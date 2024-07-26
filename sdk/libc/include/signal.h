@@ -29,6 +29,40 @@ __BEGIN_DECLS
 
 typedef unsigned long sigset_t;
 
+union __sigval
+{
+    int __sival_int;
+    void *__sival_ptr;
+};
+
+typedef union __sigval __sigval_t;
+typedef __sigval_t sigval_t;
+
+typedef struct {
+    int      si_signo; 
+    int      si_errno; 
+    int      si_code;  
+    pid_t    si_pid;   
+    uid_t    si_uid;   
+    int      si_status;
+    clock_t  si_utime; 
+    clock_t  si_stime; 
+    sigval_t si_value; 
+    int      si_int;   
+    void *   si_ptr;   
+    void *   si_addr;  
+    int      si_band;  
+    int      si_fd;
+} siginfo_t;
+
+struct sigaction {
+    void (*sa_handler)(int);
+    void (*sa_sigaction)(int, siginfo_t *, void *);
+    sigset_t sa_mask;
+    int sa_flags;
+    void (*sa_trampoline)(void);
+};
+
 int raise(int sig) __THROW;
 int kill(pid_t pid, int sig) __THROW;
 

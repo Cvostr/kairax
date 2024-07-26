@@ -70,6 +70,28 @@ void clearerr(FILE *stream)
     mtx_unlock(&stream->_lock);
 }
 
+int fgetpos(FILE *stream, fpos_t *pos)
+{
+    long l = ftell(stream);
+    
+    if (l == -1) 
+    {
+        return -1;
+    }
+    
+    *pos = l;
+    
+    return 0;
+}
+
+int fsetpos(FILE *stream, fpos_t *pos)
+{
+    if (fseek(stream, *pos, SEEK_SET) == -1)
+        return -1;
+
+    return 0;
+}
+
 void clearerr_unlocked(FILE *stream)
 {
     stream->_flags &= ~(FSTREAM_ERROR | FSTREAM_EOF);

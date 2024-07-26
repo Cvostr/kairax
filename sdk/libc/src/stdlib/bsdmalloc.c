@@ -183,7 +183,7 @@ void *malloc(size_t nbytes)
 	 * align break pointer so all data will be page aligned.
 	 */
 	if (pagesz == 0) {
-		pagesz = n = 0x1000; //sysconf(_SC_PAGESIZE);
+		pagesz = n = sysconf(_SC_PAGESIZE);
 		ASSERT(pagesz > 0);
 		//op = (union overhead *)(void *)sbrk(0);
   		//n = n - sizeof (*op) - ((long)op & (n - 1));

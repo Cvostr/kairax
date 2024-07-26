@@ -28,5 +28,7 @@ typedef unsigned long 		ssize_t;
 typedef unsigned int        socklen_t;
 typedef unsigned short      sa_family_t;
 
+typedef long int            fpos_t;
+typedef unsigned long int   clock_t;
 
 #endif

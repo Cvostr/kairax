@@ -1,7 +1,7 @@
 #ifndef _LOADER_H
 #define _LOADER_H
 
-#include "include/elf.h"
+#include "_elf.h"
 
 struct object_data* load_object_data(char* data, int shared);
 

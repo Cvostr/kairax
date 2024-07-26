@@ -69,6 +69,10 @@ void _exit(int status);
 
 void* sbrk(int len);
 
+#define _SC_OPEN_MAX 4
+#define _SC_PAGESIZE 5
+long sysconf(int name);
+
 __END_DECLS
 
 #endif

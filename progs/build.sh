@@ -61,3 +61,7 @@ cd ..
 cd env
 make
 cd ..
+
+cd shutdown
+make
+cd ..

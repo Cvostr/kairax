@@ -1,4 +1,4 @@
-#include "elf.h"
+#include "_elf.h"
 #include "string.h"
 
 struct elf_section_header_entry* elf_get_section_entry(char* image, uint32_t section_index)

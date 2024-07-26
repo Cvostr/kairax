@@ -66,12 +66,31 @@ FILE *fopen(const char *restrict filename, const char *restrict mode)
 FILE *fdopen(int fd, const char* restrict mode)
 {
     int uflags = compute_flags(mode);
+
+    if (fd < 0) 
+    { 
+        errno = EBADF;
+        return NULL; 
+    }
+
     FILE* fil = malloc(sizeof(struct IO_FILE));
+    if (fil == NULL) 
+    {
+        errno = ENOMEM;
+        return NULL;
+    }
+
     memset(fil, 0, sizeof(struct IO_FILE));
 
     fil->_fileno = fd;
-    fil->_buffer = malloc(STDIO_BUFFER_LENGTH);
     fil->_buf_len = STDIO_BUFFER_LENGTH;
+    fil->_buffer = malloc(STDIO_BUFFER_LENGTH);
+    if (fil->_buffer == NULL)
+    {
+        free(fil);
+        errno = ENOMEM;
+        return NULL;
+    }
 
     switch (uflags & 3) {
         case O_RDWR:

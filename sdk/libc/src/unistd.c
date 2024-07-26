@@ -160,3 +160,15 @@ void _exit(int status)
 {
     syscall_process_exit(status);
 }
+
+long sysconf(int name)
+{
+    switch (name)
+    {
+        case _SC_PAGESIZE:
+            return 4096;
+    }
+
+    errno = ENOSYS;
+    return -1;
+}
