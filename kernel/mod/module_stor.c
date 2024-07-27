@@ -75,8 +75,17 @@ int mstor_destroy_module(const char* module_name)
     struct module* mod = mstor_get_module_with_name(module_name);
 
     if (mod == NULL) {
+        rc = -ENOENT;
         goto exit;
     } 
+
+    if (mod->state != MODULE_STATE_READY)
+    {
+        rc = -ERROR_BUSY;
+        goto exit;
+    }
+
+    mod->state = MODULE_STATE_DESTROYING; 
 
     // Вызов функции закрытия модуля
     if (mod->mod_destroy_routine)

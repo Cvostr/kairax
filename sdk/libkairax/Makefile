@@ -7,6 +7,7 @@ OBJ_DIR=obj \
 COMPILED_OBJS = obj/input.o \
 				obj/desktop.o \
 				obj/netctl.o \
+				obj/kernel.o \
 				obj/x64/syscalls.o
 
 all: $(OBJ_DIR) libkairax

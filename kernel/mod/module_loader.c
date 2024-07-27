@@ -61,6 +61,7 @@ int module_load(const char* image, size_t size)
     char* module_name = ((struct kxmodule_header*) (image + (uint64_t) module_header_ptr))->mod_name;
 
     struct module* mod = mstor_new_module(size, module_name);
+    mod->state = MODULE_STATE_LOADING;
     if (mod == NULL) {
         return -1;
     }
@@ -140,6 +141,8 @@ int module_load(const char* image, size_t size)
 
     if (mod->mod_init_routine)
         rc = mod->mod_init_routine();
+
+    mod->state = MODULE_STATE_READY; 
     
 exit:
     return rc;

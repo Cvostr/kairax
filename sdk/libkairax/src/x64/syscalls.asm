@@ -7,4 +7,6 @@
         ret
 %endmacro
 
-DEFINE_SYSCALL syscall_netctl, 0x304
+DEFINE_SYSCALL syscall_netctl,          0x304
+DEFINE_SYSCALL syscall_load_module,     0xAF
+DEFINE_SYSCALL syscall_unload_module,   0xB0

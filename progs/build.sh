@@ -65,3 +65,7 @@ cd ..
 cd shutdown
 make
 cd ..
+
+cd modctl
+make
+cd ..

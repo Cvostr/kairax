@@ -22,6 +22,7 @@
 #define ERROR_NOT_SOCKET            108
 
 #define	EPERM                       1
+#define	ENOENT                      ERROR_NO_FILE
 #define	ESRCH		                3
 #define	EINTR                       4
 #define	E2BIG                       7

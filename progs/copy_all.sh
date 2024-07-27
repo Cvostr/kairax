@@ -15,3 +15,4 @@ sudo cp ./kill/kill.a /mnt/kxvol
 sudo cp ./rxsh/rxsh.a /mnt/kxvol
 sudo cp ./env/env.a /mnt/kxvol
 sudo cp ./shutdown/shutdown.a /mnt/kxvol/bin
+sudo cp ./modctl/modctl.a /mnt/kxvol/bin

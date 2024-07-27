@@ -3,10 +3,15 @@
 
 #include "types.h"
 
+#define MODULE_STATE_LOADING 1
+#define MODULE_STATE_DESTROYING 2
+#define MODULE_STATE_READY 3
+
 struct module {
     char name[30];
     uint64_t offset;
     uint64_t size;
+    int state;
     int (*mod_init_routine)(void);
     void (*mod_destroy_routine)(void);
 };
