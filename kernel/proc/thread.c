@@ -24,6 +24,12 @@ void thread_become_zombie(struct thread* thread)
 
 void thread_destroy(struct thread* thread)
 {
+#ifdef X86_64
+    if (thread->fpu_context)
+    {
+        pmm_free_page(V2P(thread->fpu_context));
+    }
+#endif
     // освободить страницу с стеком ядра
     pmm_free_page(V2P(thread->kernel_stack_ptr));
     kfree(thread);

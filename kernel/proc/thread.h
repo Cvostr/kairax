@@ -34,6 +34,10 @@ struct thread {
     sigset_t            pending_signals;
     // Следующий поток при блокировке на семафоре
     struct thread*      next_blocked_thread;
+
+#ifdef X86_64
+    uint8_t*             fpu_context;
+#endif
 };
 
 struct  aux_pair;

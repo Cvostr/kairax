@@ -12,6 +12,7 @@
 #include "cpu/msr.h"
 #include "cpu/cpu_local_x64.h"
 #include "kairax/intctl.h"
+#include "kstdlib.h"
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
@@ -62,6 +63,10 @@ int scheduler_handler(thread_frame_t* frame)
 
         // Сохранить указатель на контекст
         previous_thread->context = frame;
+        
+        if (previous_thread->fpu_context) {
+            asm volatile("fxsave (%0) "::"r"(previous_thread->fpu_context));
+        }
 
         // Если процесс не блокировался - сменить состояние
         if (previous_thread->state == STATE_RUNNING)
@@ -95,6 +100,8 @@ int scheduler_handler(thread_frame_t* frame)
             // TLS, обязательно конец памяти
             cpu_set_fs_base(new_thread->tls + process->tls_size);
         }
+        if (new_thread->fpu_context)
+            asm volatile("FXRSTOR (%0) "::"r"(new_thread->fpu_context));
     }
     
     // Сохранить указатель на новый поток в локальной структуре ядра

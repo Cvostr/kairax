@@ -513,7 +513,7 @@ int process_handle_page_fault(struct process* process, uint64_t address)
         release_spinlock(&process->mmap_lock);
         return 1;
     }
-
+    printk("Locked in process_handle_page_fault()\n");
     // Дождемся разблокировки  
     return 1;
 }
