@@ -13,6 +13,9 @@ extern gdtptr_hh
 extern kmain
 extern x64_ltr
 global x64_idle_routine
+global x64_sse_enable
+global x64_osxsave_enable
+global x64_avx_enable
 
 [section .text] 
 
@@ -76,3 +79,34 @@ x64_lidt:
 x64_idle_routine:
     hlt
     jmp x64_idle_routine
+
+x64_sse_enable:
+    mov rax, cr0
+    and ax, 0xFFFB   
+    or ax, 0x2       
+    mov cr0, rax
+    
+    mov rax, cr4
+    or ax, 0x3 << 0x9   
+    mov cr4, rax
+	ret
+
+x64_osxsave_enable:
+    xor rax, rax
+    mov rax, cr4
+    or rax, 1 << 18
+    mov cr4, rax
+    ret
+
+x64_avx_enable:
+    push rcx
+    push rdx
+
+    xor rcx, rcx
+    xgetbv  ;  Чтение XCR0
+    or eax, 7 ; 111 (AVX, SSE, X87)
+    xsetbv ; Запись XCR0
+
+    pop rdx
+    pop rcx
+    ret

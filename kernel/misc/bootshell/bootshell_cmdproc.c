@@ -89,7 +89,8 @@ void bootshell_process_cmd(char* cmdline)
         int result = vfs_mount_fs("/", partition, "ext2");
         if (result < 0) {
             printf_stdout("ERROR: vfs_mount returned with code %i\n", result);
-        }else{
+            goto exit;
+        } else {
             printf_stdout("Successfully mounted!\n");
         }
 

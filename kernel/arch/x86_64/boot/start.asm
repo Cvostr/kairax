@@ -11,6 +11,9 @@ extern kmain
 extern init_x64
 global kernel_stack_top
 global p4_table
+extern x64_sse_enable
+extern x64_osxsave_enable
+extern x64_avx_enable
 
 global _start
 
@@ -23,10 +26,13 @@ _start:
 	call check_multiboot2			;Проверка multiboot2
 	call check_cpuid
 	call check_x64
-	call check_enable_sse
 
 	call beginning_memmap
 	call enable_long_mode_paging
+
+	call check_enable_sse
+	call check_enable_osxsave
+	call check_enable_avx
 
 	mov eax, K2P(gdtptr)
 	lgdt [eax]
@@ -82,19 +88,33 @@ check_enable_sse:
     mov eax, 0x1
     cpuid
     test edx, 1 << 25
-    jz no_sse ; если zf = 0, то sse не поддерживается
+    je no_sse ; если zf = 1, то sse не поддерживается
     
 	; Включение SSE
-    mov eax, cr0
-    and ax, 0xFFFB   
-    or ax, 0x2       
-    mov cr0, eax
-    mov eax, cr4
-    or ax, 0x3 << 0x9   
-    mov cr4, eax
+	call x64_sse_enable
 	ret
 no_sse:
     hlt
+
+check_enable_osxsave:
+	mov eax, 0x1
+    cpuid
+    test ecx, 1 << 26
+    je no_osxsave ; если zf = 1, то osxsave не поддерживается
+
+	call x64_osxsave_enable
+no_osxsave:
+	ret
+
+check_enable_avx:
+	mov eax, 0x1
+    cpuid
+    test ecx, 1 << 28
+    je no_avx ; если zf = 1, то avx не поддерживается
+
+	call x64_avx_enable
+no_avx:
+	ret
 
 beginning_memmap: ;Задает начальную конфигурацию для страничной памяти
 	mov eax, K2P(p3_table) ; В eax помещается адрес таблицы 3 уровня
