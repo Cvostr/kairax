@@ -30,10 +30,6 @@ _start:
 	call beginning_memmap
 	call enable_long_mode_paging
 
-	call check_enable_sse
-	call check_enable_osxsave
-	call check_enable_avx
-
 	mov eax, K2P(gdtptr)
 	lgdt [eax]
 
@@ -83,38 +79,6 @@ check_x64: ;Проверка, поддерживает ли процессор L
     ret
 no_x64:
 	hlt
-
-check_enable_sse:
-    mov eax, 0x1
-    cpuid
-    test edx, 1 << 25
-    je no_sse ; если zf = 1, то sse не поддерживается
-    
-	; Включение SSE
-	call x64_sse_enable
-	ret
-no_sse:
-    hlt
-
-check_enable_osxsave:
-	mov eax, 0x1
-    cpuid
-    test ecx, 1 << 26
-    je no_osxsave ; если zf = 1, то osxsave не поддерживается
-
-	call x64_osxsave_enable
-no_osxsave:
-	ret
-
-check_enable_avx:
-	mov eax, 0x1
-    cpuid
-    test ecx, 1 << 28
-    je no_avx ; если zf = 1, то avx не поддерживается
-
-	call x64_avx_enable
-no_avx:
-	ret
 
 beginning_memmap: ;Задает начальную конфигурацию для страничной памяти
 	mov eax, K2P(p3_table) ; В eax помещается адрес таблицы 3 уровня

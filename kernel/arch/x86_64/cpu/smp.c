@@ -1,4 +1,4 @@
-#include "smp.h"
+#include "cpu.h"
 #include "dev/acpi/acpi.h"
 #include "string.h"
 #include "mem/pmm.h"
@@ -58,6 +58,9 @@ void ap_init()
 
     // Переключаемся на основную виртуальную таблицу памяти ядра
     vmm_use_kernel_vm();
+
+    // Включение расширений FPU
+    fpu_init();
 
     curr_cpu_local->idle_thread = create_idle_thread();
 

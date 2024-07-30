@@ -122,6 +122,13 @@ void bootshell_process_cmd(char* cmdline)
             printf_stdout("Error : %i\n", -rc);
         }
     }
+    if(strcmp(cmd, "setuid") == 0) {
+        uid_t uid = atoi(args[1]);
+        int rc = sys_setuid(uid);
+        if (rc < 0) {
+            printf_stdout("Error : %i\n", -rc);
+        }
+    }
     if(strcmp(cmd, "insmod") == 0) {
         struct file* mod_file = file_open(NULL, args[1], FILE_OPEN_MODE_READ_ONLY, 0);
         if (mod_file == NULL) {

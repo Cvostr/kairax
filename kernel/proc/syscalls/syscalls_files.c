@@ -204,7 +204,14 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     }
 
     struct inode* inode = file->inode;
-    rc = inode_chmod(inode, mode);
+
+    if (inode->uid == process->euid || process->euid == 0)
+    {
+        rc = inode_chmod(inode, mode);
+    } else 
+    {
+        rc = -EPERM;
+    }
 
     if (close_at_end) {
         file_close(file);

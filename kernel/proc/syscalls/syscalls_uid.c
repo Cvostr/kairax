@@ -19,7 +19,7 @@ int sys_setuid(uid_t uid)
     struct process* process = cpu_get_current_thread()->process;
     if (uid != process->euid) 
     {
-        if (process->euid != 0) 
+        if (process->euid == 0) 
         {
             process->uid = uid;
             process->euid = uid;
@@ -47,7 +47,7 @@ int sys_setgid(gid_t gid)
 {
     struct process* process = cpu_get_current_thread()->process;
     
-    if (process->euid != 0) 
+    if (process->euid == 0) 
     {
         process->gid = gid;
         process->egid = gid;

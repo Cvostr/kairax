@@ -31,7 +31,7 @@
 #include "misc/bootshell/bootshell.h"
 #include "cpu/gdt.h"
 #include "cpu/msr.h"
-#include "cpu/smp.h"
+#include "cpu/cpu.h"
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
 #include "proc/timer.h"
@@ -111,6 +111,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	//printf("CMDLINE : %s\n", P2V(kboot_info->command_line));
 
 	int rc = 0;
+
+	if (rc = fpu_init() != 0) {
+		printk("FPU init error: %i", rc);
+		goto fatal_error;
+	}
 
 	printf("ACPI: Initialization ... ");
 	void* rsdp_ptr = kboot_info->rsdp_version > 0 ? kboot_info->rsdp_data : NULL;

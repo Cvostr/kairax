@@ -43,16 +43,16 @@ void ahci_int_handler(interrupt_frame_t* frame, void* data)
 		return;
 
 	//printk("AHCI %i\n", interrupt_pending);
-	/*for (int i = 0; i < 32; i++) {
+	for (int i = 0; i < 32; i++) {
 		if (interrupt_pending & (1 << i)) {
 			if (controller->ports[i].implemented) {
 				ahci_port_interrupt(&controller->ports[i]);
 			}
 		}
-	}*/
+	}
 
 	// Очистка прерывания
-	//controller->hba_mem->is = interrupt_pending;
+	controller->hba_mem->is = controller->hba_mem->is;
 }
 
 int ahci_controller_reset(ahci_controller_t* controller) 
