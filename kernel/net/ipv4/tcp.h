@@ -10,12 +10,22 @@ struct tcp_packet {
     uint16_t    dst_port;
     uint32_t    sn;
     uint32_t    ack;
-    uint8_t     header_len; // + reserved
-    uint8_t     flags;
+    uint16_t    hlen_flags;
     uint16_t    window_size;
     uint16_t    checksum;
     uint16_t    urgent_point;
 };
+
+#define TCP_FLAG_NULL   0
+#define TCP_FLAG_FIN    1
+#define TCP_FLAG_SYN    2
+#define TCP_FLAG_RST    4
+#define TCP_FLAG_PSH    8
+#define TCP_FLAG_ACK    16
+#define TCP_FLAG_URG    32
+#define TCP_FLAG_ECE    64
+#define TCP_FLAG_CWR    128
+#define TCP_FLAG_NS     256
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 

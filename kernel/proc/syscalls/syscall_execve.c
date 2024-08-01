@@ -177,6 +177,18 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         }
     }
 
+    // SETUID, SETGID
+    if ((file->inode->mode & INODE_MODE_SETUID) == INODE_MODE_SETUID)
+    {
+        process->uid = file->inode->uid;
+        process->euid = process->uid;
+    }
+    if ((file->inode->mode & INODE_MODE_SETGID) == INODE_MODE_SETGID)
+    {
+        process->gid = file->inode->gid;
+        process->egid = process->gid;
+    }
+
     // Обнуление указателя на вершину кучи
     process->brk = 0;
 
@@ -205,7 +217,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     char* envpm = NULL;
     if (argv) {
         // Загрузить аргументы в адресное пространство процесса
-        rc = process_load_arguments(process, argc, argvk, &argvm, 0);
+        rc = process_load_arguments(process, argc, argvk, &argvm, 1);
     }
     if (envp) {
         // Загрузить env в адресное пространство процесса с добавлением NULL на конце массива

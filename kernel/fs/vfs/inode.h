@@ -33,6 +33,9 @@ struct file_operations;
 #define INODE_FLAG_SYMLINK     0xA000
 #define INODE_FLAG_SOCKET      0xC000
 
+#define INODE_MODE_SETUID      04000
+#define INODE_MODE_SETGID      02000
+
 #define WRONG_INODE_INDEX       UINT64_MAX
 
 #define INODE_CLOSE_SAFE(x) if (x) {inode_close(x); x = 0;}

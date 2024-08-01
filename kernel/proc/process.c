@@ -203,6 +203,8 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size, int
     range->flags = MAP_STACK;
     process_add_mmap_region(process, range);
 
+    // Замапить страницы, если необходимо
+    // Пропускаем первую защитную страницу
     if (need_map == TRUE) {
         for (uintptr_t address = mem_begin + PAGE_SIZE; address < mem_begin + stack_size; address += PAGE_SIZE) {
             vm_table_map(process->vmemory_table, address, pmm_alloc_page(), range->protection);

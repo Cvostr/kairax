@@ -4,7 +4,7 @@
 #include "kairax/types.h"
 #include "process.h"
 
-#define STACK_SIZE 4096
+#define STACK_SIZE (4096 * 2)
 #define STACK_MAX_SIZE 65536
 
 struct thread {

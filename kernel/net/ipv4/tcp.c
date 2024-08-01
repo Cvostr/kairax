@@ -1,5 +1,6 @@
 #include "tcp.h"
 #include "ipv4.h"
+#include "kairax/in.h"
 
 struct ip4_protocol ip4_tcp_protocol = {
     .handler = tcp_ip4_handle
@@ -7,7 +8,13 @@ struct ip4_protocol ip4_tcp_protocol = {
 
 int tcp_ip4_handle(struct net_buffer* nbuffer)
 {
+    struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->cursor;
+    nbuffer->transp_header = tcp_packet;
 
+    uint16_t flags = ntohs(tcp_packet->hlen_flags);
+    flags &= 0b111111111;
+
+    printk("Src port: %i, dest port: %i, fl: %i\n", ntohs(tcp_packet->src_port), ntohs(tcp_packet->dst_port), flags);
 }
 
 struct socket_prot_ops ipv4_stream_ops = {

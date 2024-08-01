@@ -69,3 +69,7 @@ cd ..
 cd modctl
 make
 cd ..
+
+cd sudo
+make
+cd ..
