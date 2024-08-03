@@ -42,33 +42,37 @@ exit:
 
 int sys_set_working_dir(const char* buffer)
 {
-    int rc = 0;
     struct process* process = cpu_get_current_thread()->process;
     struct dentry* workdir_dentry = process->pwd != NULL ? process->pwd : NULL;
     struct dentry* new_workdir = vfs_dentry_traverse_path(workdir_dentry, buffer);
 
-    if (new_workdir) {
-        // Проверить тип (должна быть директория)
-        if ((new_workdir->flags & DENTRY_TYPE_DIRECTORY) == DENTRY_TYPE_DIRECTORY) {
-
-            acquire_spinlock(&process->pwd_lock);
-            //  Закрываем старый файл, если был
-            if (process->pwd) {
-                dentry_close(process->pwd);
-            }
-
-            // Увеличиваем счетчик ссылок и сохраняем
-            dentry_open(new_workdir);
-            process->pwd = new_workdir;
-
-            release_spinlock(&process->pwd_lock);
-        } else {
-            // Это не директория
-            rc = -ERROR_NOT_A_DIRECTORY;
-        }
-    } else {
-        rc = -ERROR_NO_FILE;
+    if (new_workdir == NULL) {
+        return -ENOENT;
     }
 
-    return rc;
+    // Проверить тип (должна быть директория)
+    if ((new_workdir->flags & DENTRY_TYPE_DIRECTORY) != DENTRY_TYPE_DIRECTORY) {
+        // Это не директория
+        return -ERROR_NOT_A_DIRECTORY;
+    }
+
+    // inode директории должно иметь права на исполнение
+    if (inode_check_perm(new_workdir->d_inode, process->euid, process->egid, S_IXUSR, S_IXGRP, S_IXOTH) == 0)
+    {
+        return -EACCES;
+    }
+    
+    acquire_spinlock(&process->pwd_lock);
+    // Закрываем старый файл, если был
+    if (process->pwd) {
+        dentry_close(process->pwd);
+    }
+
+    // Увеличиваем счетчик ссылок и сохраняем
+    dentry_open(new_workdir);
+    process->pwd = new_workdir;
+
+    release_spinlock(&process->pwd_lock);
+
+    return 0;
 }

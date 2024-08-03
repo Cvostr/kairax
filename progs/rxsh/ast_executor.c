@@ -24,13 +24,19 @@ void ast_exec_func(struct ast_node* node)
     list_node* cur_arg = node->func_call.args.head;
     int argc = node->func_call.args.size;
     char* func = cur_arg->element;
+    int rc = 0;
 
     if (strcmp(func, "cd") == 0) {
         if (argc == 1) {
             return;
         }
         list_node* next_arg = node->func_call.args.head->next;
-        chdir(next_arg->element);
+        rc = chdir(next_arg->element);
+        if (rc != 0)
+        {
+            perror("rxsh: cd");
+            return;
+        }
     } else if (strcmp(func, "export") == 0) {
 
         if (argc == 1) {
@@ -62,7 +68,7 @@ void ast_exec_func(struct ast_node* node)
                 strcpy(args[i], arg);
             }
             
-            int rc = execvp(args[0], args);
+            rc = execvp(args[0], args);
             perror("exec error");
             _exit(127);
         } else {
