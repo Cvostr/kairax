@@ -40,6 +40,27 @@ void inode_close(struct inode* node)
     }
 }
 
+int inode_check_perm(struct inode* ino, uid_t uid, gid_t gid, int ubit, int gbit, int obit)
+{
+    // root имеет полные права всегда
+    if (uid == 0)
+    {
+        return 1;
+    }
+
+    if (ino->uid == uid)
+    {
+        return (ino->mode & ubit) == ubit;
+    }
+
+    if (ino->gid == gid)
+    {
+        return (ino->mode & gbit) == gbit;
+    }
+
+    return (ino->mode & obit) == obit;
+}
+
 int inode_chmod(struct inode* node, uint32_t mode)
 {
     int rc = -1;

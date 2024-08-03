@@ -11,6 +11,7 @@
 
 int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 {
+    int rc;
     int fd;
     int argc = 0;
     int envc = 0;
@@ -22,6 +23,8 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     char interp_path[INTERP_PATH_MAX_LEN];
     void* program_start_ip = NULL;
     void* loader_start_ip = NULL;
+    struct file* exec_file = NULL;
+    struct file* loader_file = NULL;
 
     struct process* process = cpu_get_current_thread()->process;
 
@@ -57,35 +60,38 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     // Открыть исполняемый файл
-    struct file* file = file_open(process->pwd, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
-
-    if (file == NULL) {
+    exec_file = file_open(process->pwd, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
+    if (exec_file == NULL) {
         // Файл не найден
-        return -ERROR_NO_FILE;
+        rc = -ERROR_NO_FILE;
+        goto error;
     }
-    if ( (file->inode->mode & INODE_TYPE_DIRECTORY)) {
+    if ( (exec_file->inode->mode & INODE_TYPE_DIRECTORY)) {
         // Мы пытаемся открыть директорию - выходим
-        file_close(file);
-        return -ERROR_IS_DIRECTORY;
+        rc = -ERROR_IS_DIRECTORY;
+        goto error;
     }
-    //TODO: проверить атрибут исполнения
+    if (inode_check_perm(exec_file->inode, process->euid, process->egid, S_IXUSR, S_IXGRP, S_IXOTH) == 0)
+    {
+        rc = -EACCES;
+        goto error;
+    }
 
     // Чтение исполняемого файла
-    fsize = file->inode->size;
+    fsize = exec_file->inode->size;
     process_image_data = kmalloc(fsize);
     if (process_image_data == NULL) {
-        file_close(file);
-        return -ENOMEM;
+        rc = -ENOMEM;
+        goto error;
     }
-    file_read(file, fsize, process_image_data);
+    file_read(exec_file, fsize, process_image_data);
 
     // Проверка заголовка
     struct elf_header* elf_header = (struct elf_header*) process_image_data;
     if (!elf_check_signature(elf_header)) 
     {
-        kfree(process_image_data);
-        file_close(file);
-        return -ERROR_BAD_EXEC_FORMAT;
+        rc = -ERROR_BAD_EXEC_FORMAT;
+        goto error;
     }
 
     // Вытащить путь к загрузчику
@@ -97,30 +103,32 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     // Пытаемся открыть файл динамического линковщика
-    struct file* loader_file = file_open(NULL, interp_path, FILE_OPEN_MODE_READ_ONLY, 0);
+    loader_file = file_open(NULL, interp_path, FILE_OPEN_MODE_READ_ONLY, 0);
     if (loader_file == NULL) {
         // Загрузчик не найден
-        kfree(process_image_data);
-        file_close(file);
-        return -ERROR_NO_FILE;
+        rc = -ERROR_NO_FILE;
+        goto error;
     }
     // Проверим, не является ли файл линковщика директорией?
     if ( (loader_file->inode->mode & INODE_TYPE_DIRECTORY)) {
         // Мы пытаемся открыть директорию - выходим
-        kfree(process_image_data);
-        file_close(loader_file);
-        file_close(file);
-        return -ERROR_IS_DIRECTORY;
+        rc = -ERROR_IS_DIRECTORY;
+        goto error;
     }
+    if (inode_check_perm(loader_file->inode, process->euid, process->egid, S_IXUSR, S_IXGRP, S_IXOTH) == 0)
+    {
+        rc = -EACCES;
+        goto error;
+    }
+
     // Выделение памяти и чтение линковщика
     fsize = loader_file->inode->size;
     loader_image_data = kmalloc(fsize);
     if (loader_image_data == NULL) {
-        kfree(process_image_data);
-        file_close(loader_file);
-        file_close(file);
-        return -ENOMEM;
+        rc = -ENOMEM;
+        goto error;
     }
+    
     file_read(loader_file, fsize, loader_image_data);
     file_close(loader_file);
 
@@ -140,6 +148,16 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 
     // Меняем имя процесса, пока адресное пространство целое
     strncpy(process->name, filepath, PROCESS_NAME_MAX_LEN);
+    goto next;
+
+error:
+    if (exec_file) file_close(exec_file);
+    if (process_image_data) kfree(process_image_data);
+    if (loader_file) file_close(loader_file);
+    if (loader_image_data) kfree(loader_image_data);
+
+    return rc;
+next:
 
     // ------------ ТОЧКА НЕВОЗВРАТА --------------------
     // Все необходимые проверки должны быть сделаны до этого момента, потому что потом возвращаться будет некуда
@@ -178,14 +196,14 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     // SETUID, SETGID
-    if ((file->inode->mode & INODE_MODE_SETUID) == INODE_MODE_SETUID)
+    if ((exec_file->inode->mode & INODE_MODE_SETUID) == INODE_MODE_SETUID)
     {
-        process->uid = file->inode->uid;
+        process->uid = exec_file->inode->uid;
         process->euid = process->uid;
     }
-    if ((file->inode->mode & INODE_MODE_SETGID) == INODE_MODE_SETGID)
+    if ((exec_file->inode->mode & INODE_MODE_SETGID) == INODE_MODE_SETGID)
     {
-        process->gid = file->inode->gid;
+        process->gid = exec_file->inode->gid;
         process->egid = process->gid;
     }
 
@@ -193,17 +211,17 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     process->brk = 0;
 
     // Добавить файл к процессу
-    fd = process_add_file(process, file);
+    fd = process_add_file(process, exec_file);
 
     // Очистка информации о TLS
     kfree(process->tls);
 
     // Попытаемся загрузить файл программы
-    pid_t rc = elf_load_process(process, process_image_data, 0, &program_start_ip, interp_path);
+    rc = elf_load_process(process, process_image_data, 0, &program_start_ip, interp_path);
     kfree(process_image_data);
 
     // Сбрасываем позицию файла чтобы загрузчик мог его прочитать еще раз, но НЕ ЗАКРЫВАЕМ ЕГО
-    file->pos = 0;
+    exec_file->pos = 0;
 
     // Смещение в адресном пространстве процесса, по которому будет помещен загрузчик
     uint64_t loader_offset = process->brk + PAGE_SIZE;

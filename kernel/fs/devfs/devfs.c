@@ -17,6 +17,9 @@ list_t* devfs_devices;
 #define DEVFS_ROOT_INODE 2
 uint64_t inode_index = DEVFS_ROOT_INODE;
 
+#define DEVFS_INODE_DEFAULT_PERM 0666
+#define DEVFS_ROOT_INODE_DEFAULT_PERM   0755
+
 spinlock_t  devfs_lock;
 
 void devfs_init()
@@ -29,7 +32,7 @@ void devfs_init()
     // Заранее создать корневую inode
     devfs_root_inode = new_vfs_inode();
     devfs_root_inode->inode = inode_index++;                   
-    devfs_root_inode->mode = INODE_TYPE_DIRECTORY;
+    devfs_root_inode->mode = INODE_TYPE_DIRECTORY | DEVFS_ROOT_INODE_DEFAULT_PERM;
     devfs_root_inode->create_time = current_time.tv_sec;
     devfs_root_inode->access_time = current_time.tv_sec;
     devfs_root_inode->modify_time = current_time.tv_sec;
@@ -113,7 +116,7 @@ int devfs_add_char_device(const char* name, struct file_operations* fops, void* 
     // Создание inode
     device->inode = new_vfs_inode();
     device->inode->inode = inode_index++;                   
-    device->inode->mode = INODE_FLAG_CHARDEVICE;
+    device->inode->mode = INODE_FLAG_CHARDEVICE | DEVFS_INODE_DEFAULT_PERM;
     device->inode->sb = devfs_root_inode->sb;
     device->inode->create_time = current_time.tv_sec;
     device->inode->access_time = current_time.tv_sec;

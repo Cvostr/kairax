@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     DIR* dir = opendir(path);
 
     if (dirfd == -1) {
-        printf("Can't open %s", path);
+        printf("Can't open %s, errno=%i\n", path, errno);
         return 1;
     }
 
@@ -46,9 +46,11 @@ int main(int argc, char** argv) {
         
             struct tm* t = gmtime(&file_stat.st_ctim.tv_sec);
 
-            printf("%-4s %03o %9i %02i:%02i:%02i %i:%i:%i %s\n", 
+            printf("%-4s %03o %i %i %9i %02i:%02i:%02i %02i:%02i:%i %s\n", 
                 (dr->d_type == DT_REG) ? "FILE" : "DIR",
                 perm,
+                file_stat.st_uid,
+                file_stat.st_gid,
                 file_stat.st_size,
                 t->tm_hour, 
 				t->tm_min,

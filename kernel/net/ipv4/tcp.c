@@ -19,6 +19,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
 struct socket_prot_ops ipv4_stream_ops = {
     .connect = sock_tcp4_connect,
+    .accept = sock_tcp4_accept,
     .bind = sock_tcp4_bind,
     .recvfrom = sock_tcp4_recvfrom,
     .sendto = sock_tcp4_sendto
@@ -27,6 +28,11 @@ struct socket_prot_ops ipv4_stream_ops = {
 int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
 {
 
+}
+
+int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr)
+{
+    return 0;
 }
 
 int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)

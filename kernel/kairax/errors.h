@@ -28,6 +28,7 @@
 #define	E2BIG                       7
 #define	EAGAIN                      11
 #define	ENOMEM                      ERROR_NO_MEMORY
+#define	EACCES		                13
 #define EINVAL                      ERROR_INVALID_VALUE
 #define	ESPIPE		                29
 #define	ENOSPC                      ERROR_NO_SPACE

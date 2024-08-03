@@ -36,6 +36,19 @@ struct file_operations;
 #define INODE_MODE_SETUID      04000
 #define INODE_MODE_SETGID      02000
 
+#define S_IRWXU	    00700
+#define S_IRUSR	    00400	
+#define S_IWUSR	    00200	
+#define S_IXUSR	    00100
+#define S_IRWXG	    00070	
+#define S_IRGRP	    00040	
+#define S_IWGRP	    00020	
+#define S_IXGRP	    00010	
+#define S_IRWXO	    00007
+#define S_IROTH	    00004	
+#define S_IWOTH	    00002	
+#define S_IXOTH	    00001	
+
 #define WRONG_INODE_INDEX       UINT64_MAX
 
 #define INODE_CLOSE_SAFE(x) if (x) {inode_close(x); x = 0;}
@@ -68,6 +81,8 @@ struct inode {
 };
 
 struct inode* new_vfs_inode();
+
+int inode_check_perm(struct inode* ino, uid_t uid, gid_t gid, int ubit, int gbit, int obit);
 
 int inode_chmod(struct inode* node, uint32_t mode);
 

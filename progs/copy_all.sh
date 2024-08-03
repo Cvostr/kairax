@@ -1,4 +1,4 @@
-sudo cp ./ls/ls.a /mnt/kxvol/bin
+sudo cp ./ls/ls /mnt/kxvol/bin
 sudo cp ./chmod/chmod.a /mnt/kxvol/bin
 sudo cp ./copy/copy.a /mnt/kxvol
 sudo cp ./dynloader/loader.elf /mnt/kxvol

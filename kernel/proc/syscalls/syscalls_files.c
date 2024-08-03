@@ -46,6 +46,14 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
         return -ERROR_IS_DIRECTORY;
     }
 
+    // Проверка разрешений
+    if ( (file_allow_read(file) && inode_check_perm(file->inode, process->euid, process->egid, S_IRUSR, S_IRGRP, S_IROTH) == 0) ||
+        (file_allow_write(file) && inode_check_perm(file->inode, process->euid, process->egid, S_IWUSR, S_IWGRP, S_IWOTH) == 0) )
+    {
+        file_close(file);
+        return -EACCES;
+    }
+
     if ((file->inode->mode & INODE_TYPE_FILE) && (flags & FILE_OPEN_FLAG_TRUNCATE) && file_allow_write(file)) {
         inode_truncate(file->inode);
     }

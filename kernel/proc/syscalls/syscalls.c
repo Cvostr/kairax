@@ -272,6 +272,8 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     // Процесс наследует ID пользователя
     new_process->uid = process->uid;
     new_process->euid = process->euid;
+    new_process->gid = process->gid;
+    new_process->egid = process->egid;
 
     // TEMPORARY
     struct file* stdout = process_get_file(process, info->stdout);

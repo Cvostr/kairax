@@ -124,7 +124,11 @@ void bootshell_process_cmd(char* cmdline)
     }
     if(strcmp(cmd, "setuid") == 0) {
         uid_t uid = atoi(args[1]);
-        int rc = sys_setuid(uid);
+        int rc = sys_setgid(uid);
+        if (rc < 0) {
+            printf_stdout("Error : %i\n", -rc);
+        }
+        rc = sys_setuid(uid);
         if (rc < 0) {
             printf_stdout("Error : %i\n", -rc);
         }

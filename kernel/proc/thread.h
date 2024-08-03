@@ -17,7 +17,7 @@ struct thread {
     // Код выхода
     int                 code;
     // Имя потока
-    //char                name[30];
+    char                name[PROCESS_NAME_MAX_LEN];
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     // Адрес вершины стека ядра

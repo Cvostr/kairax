@@ -61,6 +61,11 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
 
     // Создать объект потока в памяти
     struct thread* thread = new_thread(process);
+
+    // Название потока
+    strcpy(thread->name, process->name);
+    strcat(thread->name, "#");
+
     // Данный поток работает в непривилегированном режиме
     thread->is_userspace = 1;
 
@@ -111,6 +116,11 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
 void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_info* info)
 {
     struct process* process = thread->process;
+
+    // Название потока
+    strcpy(thread->name, process->name);
+    strcat(thread->name, "#");
+
     thread->stack_ptr = process_alloc_stack_memory(process, STACK_SIZE, 1);
 
     thread_create_tls(thread);
