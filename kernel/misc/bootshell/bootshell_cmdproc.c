@@ -20,6 +20,14 @@
 #include "mod/module_loader.h"
 #include "mod/module_stor.h"
 
+#include "proc/thread.h"
+#include "kairax/kstdlib.h"
+
+#ifdef X86_64
+#include "proc/x64_context.h"
+#include "cpu/cpu_local_x64.h"
+#endif
+
 void cd(const char* path) 
 {         
     sys_set_working_dir(path);
@@ -114,6 +122,37 @@ void bootshell_process_cmd(char* cmdline)
     }
     if(strcmp(cmd, "ps") == 0) {
         plist_debug();
+    }
+    if(strcmp(cmd, "ctx") == 0) {
+        pid_t pid = atoi(args[1]);
+        struct thread* thr = process_get_by_id(pid);
+
+        if (thr->type != OBJECT_TYPE_THREAD) {
+            printk("Not a thread!\n");
+            goto exit;
+        }
+
+#ifdef X86_64
+        thread_frame_t* frame = (thread_frame_t*)thr->context;
+        printf("RDI = %s ", ulltoa(frame->rdi, 16));
+        printf("RSI = %s ", ulltoa(frame->rsi, 16));
+        printk("RIP = %s\n", ulltoa(frame->rip, 16));
+
+        uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
+        int show_stack = 1;
+        if (cpu_get_current_vm_table() != NULL) {
+            show_stack = vm_is_mapped(cpu_get_current_vm_table(), stack_ptr);
+        }
+        if (show_stack) {
+            printf("\nSTACK TRACE: \n");
+            for (int i = 0; i < 25; i ++) {
+                uintptr_t value = *(stack_ptr + i);
+                printf("%s ", ulltoa(value, 16));
+            }
+        }
+        
+        printf("\n");
+#endif    
     }
     if(strcmp(cmd, "kill") == 0) {
         pid_t pid = atoi(args[1]);

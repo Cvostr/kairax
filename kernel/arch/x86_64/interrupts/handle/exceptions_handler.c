@@ -99,7 +99,7 @@ void exception_handler(interrupt_frame_t* frame)
     if (cpu_get_current_vm_table() != NULL) {
         show_instr = vm_is_mapped(cpu_get_current_vm_table(), ip);
     }
-        if (show_instr == 1) {
+    if (show_instr == 1) {
         printf("INSTR: ");
         for (int i = 0; i < 8; i ++) {
             printf("%s ", ulltoa(*(ip++), 16));
@@ -114,7 +114,7 @@ void exception_handler(interrupt_frame_t* frame)
     if (show_stack) {
         printf("\nSTACK TRACE: \n");
         for (int i = 0; i < 25; i ++) {
-            uintptr_t value = *(stack_ptr - i);
+            uintptr_t value = *(stack_ptr + i);
             printf("%s ", ulltoa(value, 16));
         }
     }

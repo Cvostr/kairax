@@ -107,7 +107,10 @@ int scheduler_handler(thread_frame_t* frame)
     // Сохранить указатель на новый поток в локальной структуре ядра
     cpu_set_current_thread(new_thread);
 
-    process_handle_signals();
+    // Обработать сигналы, если процесс был в userspace
+    if (thread_frame->cs == 0x23) {
+        process_handle_signals();
+    }
 
      // Заменить таблицу виртуальной памяти процесса
     if (cpu_get_current_vm_table() != process->vmemory_table) {  
