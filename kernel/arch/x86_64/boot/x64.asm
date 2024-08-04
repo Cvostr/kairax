@@ -101,12 +101,14 @@ x64_osxsave_enable:
 x64_avx_enable:
     push rcx
     push rdx
+    push rax
 
     xor rcx, rcx
     xgetbv  ;  Чтение XCR0
     or eax, 7 ; 111 (AVX, SSE, X87)
     xsetbv ; Запись XCR0
 
+    pop rax
     pop rdx
     pop rcx
     ret

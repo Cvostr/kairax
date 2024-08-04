@@ -134,10 +134,25 @@ void thread_create_tls(struct thread* thread)
 {
     struct process* process = thread->process;
     if (process->tls) {
-        // TLS должно также включать в себя
+        // TLS должно также включать в себя struct x64_uthread
         size_t required_tls_size = process->tls_size + sizeof(struct x64_uthread);
-        // Выделить память и запомнить адрес начала TLS
-        thread->tls = (void*)process_brk(process, process->brk + required_tls_size) - required_tls_size;
+        size_t aligned_mem_size = align(required_tls_size, PAGE_SIZE);
+
+        // Выделить память под TLS
+        uint64_t mem_begin = process_get_free_addr(process, aligned_mem_size, align_down(USERSPACE_MMAP_ADDR, PAGE_SIZE));
+        // Добавить диапазон памяти к процессу
+        struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+        range->base = mem_begin;
+        range->length = aligned_mem_size;
+        range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
+        range->flags = 0;
+        process_add_mmap_region(process, range);
+        for (uintptr_t address = mem_begin; address < mem_begin + aligned_mem_size; address += PAGE_SIZE) {
+            vm_table_map(process->vmemory_table, address, pmm_alloc_page(), range->protection);
+        }
+
+        // Вычислить адрес начала TLS
+        thread->tls = mem_begin + aligned_mem_size - required_tls_size; 
         // Копировать данные TLS из процесса
         vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
 

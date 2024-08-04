@@ -35,3 +35,13 @@ int fpu_init()
 
     return 0;
 }
+
+void fpu_save(void* buffer)
+{
+    asm volatile("fxsave64 (%0) "::"r"(buffer));
+}
+
+void fpu_restore(void* buffer)
+{   
+    asm volatile("fxrstor64 (%0) "::"r"(buffer));
+}

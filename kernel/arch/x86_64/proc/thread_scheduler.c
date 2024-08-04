@@ -13,6 +13,7 @@
 #include "cpu/cpu_local_x64.h"
 #include "kairax/intctl.h"
 #include "kstdlib.h"
+#include "cpu/cpu.h"
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
@@ -65,7 +66,7 @@ int scheduler_handler(thread_frame_t* frame)
         previous_thread->context = frame;
         
         if (previous_thread->fpu_context) {
-            asm volatile("fxsave (%0) "::"r"(previous_thread->fpu_context));
+            fpu_save(previous_thread->fpu_context);
         }
 
         // Если процесс не блокировался - сменить состояние
@@ -101,7 +102,7 @@ int scheduler_handler(thread_frame_t* frame)
             cpu_set_fs_base(new_thread->tls + process->tls_size);
         }
         if (new_thread->fpu_context)
-            asm volatile("FXRSTOR (%0) "::"r"(new_thread->fpu_context));
+            fpu_restore(new_thread->fpu_context);
     }
     
     // Сохранить указатель на новый поток в локальной структуре ядра

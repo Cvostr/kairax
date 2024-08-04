@@ -218,22 +218,21 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size, int
 
 uintptr_t process_brk(struct process* process, uint64_t addr)
 {
-    uint64_t flags = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
-    uintptr_t uaddr = (uintptr_t)addr;
+    uint64_t protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
     //Выравнивание до размера страницы в большую сторону
-    uaddr += (PAGE_SIZE - (uaddr % PAGE_SIZE));
+    uintptr_t uaddr = align(addr, PAGE_SIZE);
 
     // Добавить диапазон памяти к процессу
     struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
     memset(range, 0, sizeof(struct mmap_range));
     range->base = process->brk;
     range->length = uaddr - process->brk;
-    range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
+    range->protection = protection;
     process_add_mmap_region(process, range);
 
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
     while ((uint64_t)uaddr > process->brk) {
-        vm_table_map(process->vmemory_table, process->brk, (physical_addr_t)pmm_alloc_page(), flags);
+        vm_table_map(process->vmemory_table, process->brk, (physical_addr_t)pmm_alloc_page(), protection);
         process->brk += PAGE_SIZE;
     }
 

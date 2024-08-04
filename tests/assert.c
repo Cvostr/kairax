@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     } else {
         waitpid(pid, &rc, 0);
         printf("child code %i\n", rc);
-        if (rc != 128 + SIGSEGV)
+        if (WSTOPSIG(rc) != SIGSEGV)
         {
             printf("Incorrect result code %i\n", rc);
             return -1;
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     } else {
         waitpid(pid, &rc, 0);
         printf("child code %i\n", rc);
-        if (rc != (128 + SIGABRT))
+        if (WSTOPSIG(rc) != SIGABRT)
         {
             printf("Incorrect result code %i\n", rc);
             return -1;
