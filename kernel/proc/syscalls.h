@@ -83,6 +83,7 @@ int sys_poweroff(int cmd);
 pid_t sys_wait(pid_t id, int* status, int options);
 
 int sys_get_time_epoch(struct timeval *tv);
+int sys_get_time_epoch_protected(struct timeval *tv);
 int sys_set_time_epoch(const struct timeval *tv);
 
 uint64_t sys_get_tick_count();

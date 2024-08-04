@@ -4,6 +4,8 @@
 #include "mem/kheap.h"
 #include "net/route.h"
 
+#define IPV4_LOGGING
+
 struct ip4_protocol* protocols[20] = {0,};
 
 void ip4_register_protocol(struct ip4_protocol* protocol, int proto)
@@ -38,17 +40,21 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 	int header_size = IP4_IHL(ip_packet->version_ihl) * 4;
 	net_buffer_shift(nbuffer, header_size);
 
+#ifdef IPV4_LOGGING
 	printk("IP4: Version: %i, Header len: %i, Protocol: %i\n", IP4_VERSION(ip_packet->version_ihl), IP4_IHL(ip_packet->version_ihl), ip_packet->protocol);
+#endif
 	uint16_t checksum = ipv4_calculate_checksum(ip_packet, header_size);
     if (checksum != ntohs(ip_packet->header_checksum)) {
         printk("INCORRECT HEADER, rec %i, calc %i\n", ntohs(ip_packet->header_checksum), checksum);
     }
 
+#ifdef IPV4_LOGGING
 	union ip4uni src;
 	src.val = ip_packet->src_ip; 
 	printk("IP4 source : %i.%i.%i.%i\n", src.array[0], src.array[1], src.array[2], src.array[3]);
 	src.val = ip_packet->dst_ip; 
 	printk("IP4 dest : %i.%i.%i.%i\n", src.array[0], src.array[1], src.array[2], src.array[3]);
+#endif
 
 	struct route4* route = route4_resolve(ip_packet->dst_ip);
 

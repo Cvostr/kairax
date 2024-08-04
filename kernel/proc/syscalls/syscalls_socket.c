@@ -102,9 +102,9 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
         goto exit;
     }
 
-    struct socket* newsock;
+    struct socket* newsock = NULL;
     rc = socket_accept((struct socket*) file->inode, &newsock, addrlen);
-    if (rc == 0) {
+    if (rc == 0 && newsock != NULL) {
         // Создаем файл из сокета и добавляем
         struct file* fsock = make_file_from_sock(newsock);
         rc = process_add_file(process, fsock);

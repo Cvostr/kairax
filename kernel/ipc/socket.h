@@ -61,6 +61,7 @@ struct socket {
 };
 
 struct socket_prot_ops {
+    int (*create) (struct socket* sock);
     int	(*connect) (struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
     int (*bind) (struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
     int (*listen) (struct socket* sock, int backlog);

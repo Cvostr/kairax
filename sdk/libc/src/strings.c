@@ -1,4 +1,5 @@
 #include "strings.h"
+#include "string.h"
 
 int strcasecmp(const char *__s1, const char *__s2)
 {
@@ -59,4 +60,9 @@ int strncasecmp(const char *__s1, const char *__s2, size_t __n)
     }
 
     return x1 - x2;
+}
+
+void bzero(void *s, size_t n)
+{
+    memset(s, 0, n);
 }

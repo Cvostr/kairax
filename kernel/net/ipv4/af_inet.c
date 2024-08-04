@@ -27,7 +27,7 @@ int ipv4_sock_create(struct socket* s, int type, int protocol)
             break;
     }
 
-    return 0;
+    return s->ops->create(s);
 }
 
 void ipv4_sock_init() 

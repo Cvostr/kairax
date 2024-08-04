@@ -193,11 +193,16 @@ void sys_exit_thread(int code)
     scheduler_yield(FALSE);
 }
 
+int sys_get_time_epoch_protected(struct timeval *tv)
+{
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, tv, sizeof(struct timeval))
+
+    return sys_get_time_epoch(tv);
+}
+
 int sys_get_time_epoch(struct timeval *tv)
 {
-    //struct process* process = cpu_get_current_thread()->process;
-    //VALIDATE_USER_POINTER(process, tv, sizeof(struct timeval))
-
     arch_sys_get_time_epoch(tv);
     return 0;
 }
