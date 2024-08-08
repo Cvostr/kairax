@@ -8,6 +8,7 @@ OBJ_DIRS =  obj \
 			obj/sys \
 			obj/threads \
 			obj/netinet \
+			obj/arpa \
 			obj/x64
 
 COMPILED_OBJS = obj/math.o \
@@ -41,6 +42,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/env.o \
 				obj/stdlib/putenv.o \
 				obj/netinet/in.o \
+				obj/arpa/inet.o \
 				obj/string.o \
 				obj/strings.o \
 				obj/unistd.o \

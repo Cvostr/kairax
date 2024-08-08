@@ -32,6 +32,7 @@ int socket_init(struct socket* sock, int domain, int type, int protocol)
     if (type < 0 || type >= SOCK_MAX)
 		return -ERROR_INVALID_VALUE;
 
+    sock->domain = domain;
     sock->type = type;
     sock->protocol = protocol;
 

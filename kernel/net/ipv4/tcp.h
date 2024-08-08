@@ -27,22 +27,6 @@ struct tcp_packet {
 #define TCP_FLAG_CWR    128
 #define TCP_FLAG_NS     256
 
-typedef uint32_t in_addr_t;
-typedef uint16_t in_port_t;
-struct in_addr {
-    in_addr_t s_addr;
-};
-struct sockaddr_in {
-    
-    sa_family_t sin_family;
-    in_port_t sin_port;
-    struct in_addr sin_addr;
-
-    unsigned char sin_zero[sizeof (struct sockaddr)
-			   - sizeof(sa_family_t)
-			   - sizeof (in_port_t)
-			   - sizeof (struct in_addr)];
-};
 
 struct tcp4_socket_data {
 

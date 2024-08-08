@@ -36,4 +36,7 @@ void* list_head(list_t* list);
 
 void* list_tail(list_t* list);
 
+void* list_get_first(list_t * list);
+void* list_dequeue(list_t * list);
+
 #endif

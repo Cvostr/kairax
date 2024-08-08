@@ -61,6 +61,21 @@ void list_remove(list_t* list, void* element)
     }
 }
 
+void* list_dequeue(list_t * list) 
+{
+    if (list == NULL)
+        return NULL;
+        
+	if (list->head == NULL) 
+        return NULL;
+
+	struct list_node* node = list->head;
+    void* elem = node->element;
+	list_unlink(list, node);
+    kfree(node);
+	return elem;
+}
+
 struct list_node* list_get_node(list_t* list, void* element)
 {
     if (list == NULL)
@@ -123,6 +138,17 @@ void* list_get(list_t* list, size_t index)
     }
     
     return current->element;
+}
+
+void* list_get_first(list_t * list)
+{
+    if (list == NULL)
+        return NULL;
+    
+    if (list->head == NULL)
+        return NULL;
+
+    return list->head->element;
 }
 
 void* list_head(list_t* list)

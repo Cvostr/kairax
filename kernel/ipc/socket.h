@@ -39,6 +39,7 @@ struct protocol {
 };
 
 #define SOCKET_STATE_UNCONNECTED    1
+#define SOCKET_STATE_LISTEN         2
 
 struct socket_data;
 struct socket_prot_ops;
@@ -47,6 +48,7 @@ struct socket {
     
     struct inode ino;
 
+    int domain;
     int type;
     int protocol;
 

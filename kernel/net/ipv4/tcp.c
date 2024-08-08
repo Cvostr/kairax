@@ -34,6 +34,12 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
     if ((flags & TCP_FLAG_SYN) == TCP_FLAG_SYN) {
+
+        if (sock->state != SOCKET_STATE_LISTEN) {
+            // ? CONNREFUSED?
+            return 1;
+        }
+
         // запрос соединения
         if (sock_data->backlog_tail == sock_data->backlog_sz) {
             // ? CONNREFUSED?
@@ -46,7 +52,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         sock_data->backlog[sock_data->backlog_tail].sin_port = src_port;
         sock_data->backlog_tail++;
 
-        scheduler_wakeup(sock_data->backlog, INT_MAX);
+        scheduler_wakeup(sock_data->backlog, 1);
     }
 }
 
@@ -63,6 +69,7 @@ struct socket_prot_ops ipv4_stream_ops = {
 int sock_tcp4_create (struct socket* sock)
 {
     sock->data = kmalloc(sizeof(struct tcp4_socket_data));
+    memset(sock->data, 0, sizeof(struct tcp4_socket_data));
     return 0;
 }
 
@@ -87,6 +94,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 	printk("Accepted client: IP4 : %i.%i.%i.%i\n", src.array[0], src.array[1], src.array[2], src.array[3]);
 
     // TODO: завершить handshake
+    //struct net_buffer* resp = new_net_buffer_out(4096, )
 
     return 0;
 }
@@ -115,6 +123,9 @@ int sock_tcp4_listen(struct socket* sock, int backlog)
     sock_data->backlog_head = -1;
     sock_data->backlog_tail = 0;
     sock_data->backlog = kmalloc(sizeof(struct sockaddr_in) * backlog);
+
+    sock->state = SOCKET_STATE_LISTEN;
+
     return 0;
 }
 
