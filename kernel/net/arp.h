@@ -20,7 +20,10 @@ struct arp_header {
     uint16_t    oper;
 
     uint8_t     sha[6];
-    uint8_t     spa[4];
+    union {
+        uint32_t    spa;
+        uint8_t     spa_a[4];
+    };
     uint8_t     tha[6];
     union {
         uint32_t    tpa;
@@ -29,5 +32,6 @@ struct arp_header {
 } PACKED;
 
 void arp_handle_packet(struct net_buffer* nbuffer);
+uint8_t* arp_cache_get_ip4(uint32_t addr);
 
 #endif

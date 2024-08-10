@@ -14,6 +14,8 @@ void random_init()
     timer_get_ticks(&ticks);
     rand_seed = ticks.tv_sec;
 
+    krand();
+
     random_fops.read = random_read;
 	devfs_add_char_device("random", &random_fops, NULL);
 }

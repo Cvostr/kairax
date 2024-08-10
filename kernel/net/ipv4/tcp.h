@@ -4,6 +4,7 @@
 #include "kairax/types.h"
 #include "net/net_buffer.h"
 #include "ipc/socket.h"
+#include "ipv4.h"
 
 struct tcp_packet {
     uint16_t    src_port;
@@ -14,6 +15,14 @@ struct tcp_packet {
     uint16_t    window_size;
     uint16_t    checksum;
     uint16_t    urgent_point;
+};
+
+struct tcp_checksum_proto {
+    uint32_t    src;
+    uint32_t    dest;
+    uint8_t     zero;
+    uint8_t     prot;
+    uint16_t    len;
 };
 
 #define TCP_FLAG_NULL   0
@@ -30,13 +39,20 @@ struct tcp_packet {
 
 struct tcp4_socket_data {
 
+    struct sockaddr_in addr;
+
+    uint32_t sn;
+    uint32_t ack;
+
     // Ожидаемые подключения
-    struct sockaddr_in *backlog;
+    struct net_buffer **backlog;
     int backlog_sz;
     int backlog_head;
     int backlog_tail;
     spinlock_t backlog_lock;
 };
+
+uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, unsigned char* payload, size_t payload_size);
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 

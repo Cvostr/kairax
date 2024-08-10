@@ -65,4 +65,6 @@ void ip4_handle_packet(struct net_buffer* nbuffer);
 
 void ip4_register_protocol(struct ip4_protocol* protocol, int proto);
 
+int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t prot);
+
 #endif

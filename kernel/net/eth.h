@@ -18,6 +18,6 @@ struct ethernet_frame {
 
 void eth_handle_frame(struct net_buffer* nbuffer);
 
-void eth_send_frame(struct nic* nic, unsigned char* data, size_t len, uint8_t* dest, int eth_type);
+int eth_send_nbuffer(struct net_buffer* nbuffer, uint8_t* dest, int type);
 
 #endif

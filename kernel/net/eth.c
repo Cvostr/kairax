@@ -5,6 +5,9 @@
 #include "string.h"
 #include "mem/kheap.h"
 
+//#define ETH_IN_LOGGING
+//#define ETH_OUT_LOGGING
+
 int mac_is_broadcast(uint8_t* mac) 
 {
     for (int i = 0; i < MAC_DEFAULT_LEN; i ++) {
@@ -20,11 +23,16 @@ void eth_handle_frame(struct net_buffer* nbuffer)
     struct ethernet_frame* frame = (struct ethernet_frame*) nbuffer->cursor;
     nbuffer->link_header = frame;
 
+#ifdef ETH_IN_LOGGING
+    printk("Eth: type: %i, src: %i %i %i %i %i %i\n", ntohs(frame->type), frame->src[0], frame->src[1], frame->src[2], frame->src[3], frame->src[4], frame->src[5]);
+    printk("               dest: %i %i %i %i %i %i\n", frame->dest[0], frame->dest[1], frame->dest[2], frame->dest[3], frame->dest[4], frame->dest[5]);
+#endif
+
     if (memcmp(frame->dest, nbuffer->netdev->mac, MAC_DEFAULT_LEN) != 0 && !mac_is_broadcast(frame->dest)) {
         return;
     }
     
-    uint32_t type = ntohs(frame->type);
+    uint16_t type = ntohs(frame->type);
     net_buffer_shift(nbuffer, sizeof(struct ethernet_frame));
 
     switch (type)
@@ -41,14 +49,19 @@ void eth_handle_frame(struct net_buffer* nbuffer)
     }
 }
 
-void eth_send_frame(struct nic* nic, unsigned char* data, size_t len, uint8_t* dest, int eth_type)
+int eth_send_nbuffer(struct net_buffer* nbuffer, uint8_t* dest, int type)
 {
-    size_t frame_length = sizeof(struct ethernet_frame) + len;
-    struct ethernet_frame* frame = kmalloc(frame_length);
-    memcpy(frame->src, nic->mac, 6);
-    memcpy(frame->dest, dest, 6);
-    frame->type = htons(eth_type);
-    memcpy(frame->payload, data, len);
-    nic->tx(nic, frame, frame_length);
-    kfree(frame);
+    uint8_t* src_mac = nbuffer->netdev->mac;
+#ifdef ETH_OUT_LOGGING
+    printk("Eth: type: %i, src: %i %i %i %i %i %i\n", ntohs(type), src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5]);
+    printk("               dest: %i %i %i %i %i %i\n", dest[0], dest[1], dest[2], dest[3], dest[4], dest[5]);
+#endif
+
+    struct ethernet_frame frame;
+    memcpy(&frame.src, src_mac, MAC_DEFAULT_LEN);
+    memcpy(&frame.dest, dest, MAC_DEFAULT_LEN);
+    frame.type = htons(type);
+    net_buffer_add_front(nbuffer, &frame, sizeof(struct ethernet_frame));
+
+    return nbuffer->netdev->tx(nbuffer->netdev, nbuffer->cursor, nbuffer->cur_len);
 }

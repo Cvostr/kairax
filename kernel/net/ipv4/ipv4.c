@@ -3,6 +3,8 @@
 #include "kairax/string.h"
 #include "mem/kheap.h"
 #include "net/route.h"
+#include "net/eth.h"
+#include "net/arp.h"
 
 #define IPV4_LOGGING
 
@@ -62,4 +64,49 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 	if (prot != NULL) {
 		prot->handler(nbuffer);
 	}
+}
+
+int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t prot)
+{
+	struct route4* route = route4_resolve(dest);
+
+	if (route == NULL) {
+#ifdef IPV4_LOGGING
+		printk("NO ROUTE!!!!\n");
+#endif
+		return -1;
+	}
+
+	size_t len = net_buffer_get_remain_len(nbuffer) + sizeof(struct ip4_packet);
+
+	struct ip4_packet pkt;
+	memset(&pkt, 0, sizeof(struct ip4_packet));
+	pkt.dst_ip = dest;
+	pkt.src_ip = src;
+#ifdef __LITTLE_ENDIAN__
+	pkt.version_ihl = (4 << 4) | (sizeof(struct ip4_packet) / 4);
+#else
+	pkt.version_ihl = ((sizeof(struct ip4_packet) / 4) << 4) | 4;
+#endif
+	pkt.protocol = prot;
+	pkt.size = htons(len);
+	pkt.ttl = 64;
+
+	pkt.header_checksum = htons(ipv4_calculate_checksum(&pkt, sizeof(struct ip4_packet)));
+
+	net_buffer_add_front(nbuffer, &pkt, sizeof(struct ip4_packet));
+	nbuffer->netdev = route->interface;
+
+	uint8_t* mac = arp_cache_get_ip4(dest);
+
+	if (mac == NULL) {
+#ifdef IPV4_LOGGING
+		printk("NO ARP!!!\n");
+#endif
+		return -1;
+	}
+
+	eth_send_nbuffer(nbuffer, mac, ETH_TYPE_IPV4);
+
+	return 0;
 }

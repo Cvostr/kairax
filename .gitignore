@@ -13,3 +13,4 @@ kernel/bin
 /.vscode
 *.vhdx
 *.elf
+*.pcap

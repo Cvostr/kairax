@@ -39,13 +39,21 @@ void arp_handle_packet(struct net_buffer* nbuffer)
                 resp.plen = 4;  // Длина IP v4
                 resp.oper = htons(ARP_OPER_RESP); // Ответ
                 memcpy(resp.sha, nic->mac, 6);
-                memcpy(resp.spa, &nic->ipv4_addr, 4);
+                memcpy(resp.spa_a, &nic->ipv4_addr, 4);
                 memcpy(resp.tha, arph->sha, 6);
-                memcpy(resp.tpa_a, arph->spa, 4);
+                memcpy(resp.tpa_a, arph->spa_a, 4);
 
                 net_buffer_close(nbuffer);
 
-                eth_send_frame(nic, &resp, sizeof(struct arp_header), resp.tha, ETH_TYPE_ARP);
+                struct net_buffer* response_nbuffer = new_net_buffer_out(512);
+                net_buffer_add_front(response_nbuffer, &resp, sizeof(struct arp_header));
+                response_nbuffer->netdev = nic;
+
+                // Послать ответ
+                eth_send_nbuffer(response_nbuffer, resp.tha, ETH_TYPE_ARP);
+
+                // Освободить буфер
+                net_buffer_close(response_nbuffer);
             }
         }
     } else if (oper == ARP_OPER_RESP) {
@@ -64,7 +72,7 @@ void arp_cache_add(uint32_t addr, uint8_t* mac)
 
     struct arp_v4_cache_entry* new_entry = kmalloc(sizeof(struct arp_v4_cache_entry));
     new_entry->addr = addr;
-    memset(new_entry->mac, mac, 6);
+    memcpy(new_entry->mac, mac, 6);
 
     acquire_spinlock(&arp_cache_lock);
     list_add(&arp_cache, new_entry);
@@ -90,4 +98,15 @@ struct arp_v4_cache_entry* get_arp_cache_entry(uint32_t addr)
     }
 
     return result;
+}
+
+uint8_t* arp_cache_get_ip4(uint32_t addr)
+{
+    struct arp_v4_cache_entry* entry = get_arp_cache_entry(addr);
+
+    if (entry == NULL) { // TODO: сделать запрос!!
+        return NULL;
+    }
+
+    return entry->mac;
 }
