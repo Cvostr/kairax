@@ -4,6 +4,7 @@
 #include "sys/stat.h"
 #include "errno.h"
 #include "process.h"
+#include "arpa/inet.h"
 
 char buff[220];
 
@@ -84,6 +85,10 @@ int main(int argc, char** argv, char** envp) {
     // ошибка
     close(123);
     printf("ERRNO = %i\n", errno);
+
+    printf("inet_addr: %u\n", inet_addr("10.0.2.2"));
+    printf("htonl: %u %u %u\n", 33685514, htonl(33685514), htonl(htonl(33685514)));
+    printf("htonl: %u %u %u\n", 167772674, htonl(167772674), htonl(htonl(167772674)));
 
     int send = 343;
     pid_t tpi = create_thread(thread_func, &send);

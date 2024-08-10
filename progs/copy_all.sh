@@ -16,6 +16,7 @@ sudo cp ./rxsh/rxsh.a /mnt/kxvol
 sudo cp ./env/env.a /mnt/kxvol/bin/env
 sudo cp ./shutdown/shutdown.a /mnt/kxvol/bin/shutdown
 sudo cp ./modctl/modctl.a /mnt/kxvol/bin/modctl
+sudo cp ./route/route.a /mnt/kxvol/bin/route
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo

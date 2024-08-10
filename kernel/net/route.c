@@ -38,3 +38,16 @@ struct route4* route4_resolve(uint32_t dest)
 
     return chosen;
 }
+
+struct route4* route4_get(uint32_t index)
+{
+    return list_get(&route_table4, index);
+}
+
+int route4_add(struct route4* route)
+{
+    // todo: проверка конфликтов
+    list_add(&route_table4, route);
+
+    return 0;
+}

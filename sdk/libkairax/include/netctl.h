@@ -3,11 +3,7 @@
 
 #include "stdint.h"
 #include "stddef.h"
-
-#define MAC_DEFAULT_LEN 6
-#define NIC_NAME_LEN    12
-
-#define IF_INDEX_UNKNOWN        -1
+#include "defs.h"
 
 #define OP_GET_ALL              1
 #define OP_SET_IPV4_ADDR        2

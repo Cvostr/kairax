@@ -3,8 +3,7 @@
 uint32_t ntohl(uint32_t nb) 
 {
 #ifdef __LITTLE_ENDIAN__
-    return ((nb >> 24) & 0xff) | ((nb << 8) & 0xff0000) |
-        ((nb >> 8) & 0xff00) | ((nb << 24) & 0xff000000);
+    return (nb >> 24) | ((nb & 0xff0000) >> 8) | ((nb & 0xff00) << 8) | (nb << 24);
 #else
     return nb;
 #endif

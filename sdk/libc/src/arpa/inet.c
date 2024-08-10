@@ -23,10 +23,10 @@ int inet_aton(const char* cp, struct in_addr* inp)
 
     inp->s_addr = htonl(ip);
 
-    return 0;
+    return 1;
 }
 
-unsigned long int inet_addr(const char* cp)
+in_addr_t inet_addr(const char* cp)
 {
     struct in_addr inaddr;
 
@@ -34,5 +34,5 @@ unsigned long int inet_addr(const char* cp)
         return inaddr.s_addr;
     }
 
-    return (unsigned long long) -1;
+    return (in_addr_t) -1;
 }

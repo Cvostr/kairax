@@ -73,3 +73,7 @@ cd ..
 cd sudo
 make
 cd ..
+
+cd route
+make
+cd ..

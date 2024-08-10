@@ -98,6 +98,9 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout);
 struct netinfo;
 int sys_netctl(int op, int param, struct netinfo* netinfo);
 
+struct route_info;
+int sys_routectl(int type, int action, int arg, struct route_info* route);
+
 uid_t sys_getuid(void);
 uid_t sys_geteuid(void);
 int sys_setuid(uid_t uid);

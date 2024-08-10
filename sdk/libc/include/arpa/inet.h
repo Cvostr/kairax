@@ -8,7 +8,7 @@
 __BEGIN_DECLS
 
 int inet_aton(const char* cp, struct in_addr* inp);
-unsigned long int inet_addr(const char* cp);
+in_addr_t inet_addr(const char* cp);
 
 __END_DECLS
 

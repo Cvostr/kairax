@@ -27,3 +27,6 @@ ld $LD_ARGS -o unixsock.a unixsock.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerr
 
 gcc $ARGS fork.c -o fork.o
 ld $LD_ARGS -o fork.a fork.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS qemunet.c -o qemunet.o
+ld $LD_ARGS -o qemunet.a qemunet.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
