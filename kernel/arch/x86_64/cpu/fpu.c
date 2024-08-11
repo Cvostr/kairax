@@ -1,6 +1,7 @@
 #include "cpu.h"
 #include "cpuid.h"
 #include "kairax/types.h"
+#include "kairax/stdio.h"
 
 extern void x64_sse_enable();
 extern void x64_osxsave_enable();

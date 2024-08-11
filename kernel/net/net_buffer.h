@@ -28,6 +28,8 @@ struct net_buffer {
     unsigned char* transp_header;
     unsigned char* payload;
 
+    size_t payload_size;
+
     atomic_t       refs;
 };
 

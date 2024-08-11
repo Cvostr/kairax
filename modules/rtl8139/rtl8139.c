@@ -8,6 +8,9 @@
 #include "kairax/string.h"
 #include "rtl8139.h"
 
+//#define LOG_ENABLED
+//#define ON_RECEIVE_LOG_ENABLED
+
 void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev);
 
 uint8_t TSAD[4] = {0x20, 0x24, 0x28, 0x2C};
@@ -26,9 +29,13 @@ int rtl8139_device_probe(struct device *dev)
     memset(rtl_dev, 0, sizeof(struct rtl8139));
     rtl_dev->dev = dev;
 
+    int rx_pages = 3;
+
     // Выделение 3х страниц для буфера приема
-    rtl_dev->recv_buffer = (char*) pmm_alloc_pages(3);
+    rtl_dev->recv_buffer = (char*) pmm_alloc_pages(rx_pages);
+#ifdef LOG_ENABLED
     printk("Receive buffer address: %i\n", rtl_dev->recv_buffer);
+#endif
 
     if (rtl_dev->recv_buffer == 0) {
         return -1;
@@ -37,6 +44,7 @@ int rtl8139_device_probe(struct device *dev)
     // Сетевая карта работает только с 32х битным адресом
     // Если в этой границе свободных страниц нет, то нам не повезло
     if (rtl_dev->recv_buffer >= 0xFFFFFFFF) {
+        pmm_free_pages(rtl_dev->recv_buffer, rx_pages);
         return -1;
     }
 
@@ -65,8 +73,10 @@ int rtl8139_device_probe(struct device *dev)
 
     // Установка адреса receive buffer
     outl(rtl_dev->io_addr + RTL8139_RBSTART, (uint32_t) rtl_dev->recv_buffer);
+    // Сохранение виртуального адреса receive buffer
     rtl_dev->recv_buffer = vmm_get_virtual_address(rtl_dev->recv_buffer);
-    memset(rtl_dev->recv_buffer, 0, PAGE_SIZE * 3);
+    // Зануляем
+    memset(rtl_dev->recv_buffer, 0, PAGE_SIZE * rx_pages);
 
     // ISR + IMR
     outw(rtl_dev->io_addr + RTL8139_INTR, RTL1839_RXOK | RTL1839_TXOK);
@@ -78,7 +88,9 @@ int rtl8139_device_probe(struct device *dev)
     outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
 
     int irq = dev->pci_info->interrupt_line;
+#ifdef LOG_ENABLED
     printk("IRQ %i\n", irq);
+#endif
     register_irq_handler(irq, rtl8139_irq_handler, rtl_dev);
 
     rtl_dev->nic = new_nic();
@@ -154,7 +166,9 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
             rtl_dev->rx_pos = 0;
 
         } else if (rx_status & RTL8139_OK) {
-            //printk("Pos %i Status %i, Len %i\n", rx_pos, rx_status, rx_len);
+#ifdef ON_RECEIVE_LOG_ENABLED
+            printk("8139: RX: P %i S %i L %i\n", rx_pos, rx_status, rx_len);
+#endif
 
             rtl_dev->dev->nic->stats.rx_packets++;
             rtl_dev->dev->nic->stats.rx_bytes += rx_len;
@@ -206,12 +220,14 @@ void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev)
             int tx_status = inl(rtl_dev->io_addr + TSD[descriptor_num]);
 
             if (tx_status & (RTL8139_TXSTAT_OUTOFWINDOW | RTL8139_TXSTAT_ABORTED)) {
-            
-                printk("Error sending packet, status: %i\n", tx_status);
+
+                printk("8139: Error sending packet, status: %i\n", tx_status);
                 rtl_dev->dev->nic->stats.tx_errors++;
             } else {
                 // Sent
-                printk("Packed sent, status: %i\n", tx_status);
+#ifdef LOG_ENABLED
+                printk("8139: Packed sent, status: %i\n", tx_status);
+#endif
 
                 rtl_dev->dev->nic->stats.tx_packets++;
                 rtl_dev->dev->nic->stats.tx_bytes += tx_status & 0xFFF;

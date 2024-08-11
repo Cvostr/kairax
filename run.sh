@@ -6,7 +6,7 @@ qemu-system-x86_64 -m 1G -d int \
 			-device nvme,serial=deadbeef,drive=disk \
 			-device ide-hd,drive=bootdisk,bus=ahci.1,bootindex=0 \
 			-device intel-hda -device hda-duplex \
-			-netdev user,id=n0,hostfwd=tcp::5555-:22 -device rtl8139,netdev=n0,mac=02:12:fe:f0:0d:01 \
+			-netdev user,id=n0,hostfwd=tcp::5555-:22,hostfwd=udp::5590-:22 -device rtl8139,netdev=n0,mac=02:12:fe:f0:0d:01 \
 			-object filter-dump,id=n0,netdev=n0,file=dump.pcap \
 			-device qemu-xhci \
 			-no-reboot \

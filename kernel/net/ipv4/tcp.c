@@ -113,7 +113,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     struct net_buffer* resp = new_net_buffer_out(4096);
 
     int flags = (TCP_FLAG_SYN | TCP_FLAG_ACK);
-
+    
     // Генерируем начальный SN
     client_sockdata->sn = krand();
     client_sockdata->ack = ntohl(tcpp->sn);
@@ -162,7 +162,6 @@ int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
     struct sockaddr_in* inetaddr = (struct sockaddr_in*) addr;
 
     uint16_t port = ntohs(inetaddr->sin_port);
-    //printk("Binding to port %i\n", port);
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     sock_data->addr.sin_port = port;
@@ -184,7 +183,7 @@ int sock_tcp4_listen(struct socket* sock, int backlog)
     return 0;
 }
 
-int sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
+ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
     return 0;
 }

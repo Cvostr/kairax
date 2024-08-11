@@ -30,3 +30,6 @@ ld $LD_ARGS -o fork.a fork.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
 gcc $ARGS qemunet.c -o qemunet.o
 ld $LD_ARGS -o qemunet.a qemunet.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS udpsrv.c -o udpsrv.o
+ld $LD_ARGS -o udpsrv.a udpsrv.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

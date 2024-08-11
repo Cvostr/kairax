@@ -73,7 +73,7 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     return 0;
 }
 
-int sock_local_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
+ssize_t sock_local_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
     return 0;
 }

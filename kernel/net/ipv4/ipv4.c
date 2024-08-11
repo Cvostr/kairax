@@ -6,7 +6,7 @@
 #include "net/eth.h"
 #include "net/arp.h"
 
-#define IPV4_LOGGING
+//#define IPV4_LOGGING
 
 struct ip4_protocol* protocols[20] = {0,};
 
@@ -77,12 +77,14 @@ int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t pr
 		return -1;
 	}
 
+	uint32_t src1 = route->interface->ipv4_addr;
+
 	size_t len = net_buffer_get_remain_len(nbuffer) + sizeof(struct ip4_packet);
 
 	struct ip4_packet pkt;
 	memset(&pkt, 0, sizeof(struct ip4_packet));
 	pkt.dst_ip = dest;
-	pkt.src_ip = src;
+	pkt.src_ip = htons(src1);
 #ifdef __LITTLE_ENDIAN__
 	pkt.version_ihl = (4 << 4) | (sizeof(struct ip4_packet) / 4);
 #else
