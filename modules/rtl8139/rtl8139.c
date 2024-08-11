@@ -82,7 +82,7 @@ int rtl8139_device_probe(struct device *dev)
     outw(rtl_dev->io_addr + RTL8139_INTR, RTL1839_RXOK | RTL1839_TXOK);
 
     // AB + AM + APM + AAP + WRAP
-    outl(rtl_dev->io_addr + RTL8139_RXCONF, 0xf | (1 << 7));
+    outl(rtl_dev->io_addr + RTL8139_RXCONF, 0xf | RTL8139_RX_WRAP);
 
     // Включение rx + tx
     outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
@@ -116,7 +116,9 @@ int rtl8139_device_probe(struct device *dev)
 
 int rtl8139_up(struct nic* nic)
 {
-    //printk("RTL8139: up\n");
+#ifdef LOG_ENABLED
+    printk("RTL8139: up\n");
+#endif
     // todo: implement
     struct rtl8139* rtl_dev = (struct rtl8139*) nic->dev->dev_data;
     outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
@@ -127,7 +129,9 @@ int rtl8139_up(struct nic* nic)
 
 int rtl8139_down(struct nic* nic)
 {
-    //printk("RTL8139: down\n");
+#ifdef LOG_ENABLED
+    printk("RTL8139: down\n");
+#endif
     // todo: implement
     struct rtl8139* rtl_dev = (struct rtl8139*) nic->dev->dev_data;
     outb(rtl_dev->io_addr + RTL8139_CMD, 0x0);
@@ -138,16 +142,15 @@ int rtl8139_down(struct nic* nic)
 
 void rtl8139_rx(struct rtl8139* rtl_dev)
 {
-    uint32_t ring_offset;
     char*   rx_buffer;
     uint16_t rx_status;
     uint16_t rx_len;
+    uint16_t payload_len;
     uint16_t rx_pos = rtl_dev->rx_pos; 
 
     while ((inb(rtl_dev->io_addr + RTL8139_CMD) & RTL8139_RX_BUFFER_EMPTY) == 0) 
     {
-        ring_offset = rx_pos % RX_BUFFER_SIZE;
-        rx_buffer = rtl_dev->recv_buffer + ring_offset;
+        rx_buffer = rtl_dev->recv_buffer + rx_pos;
         rx_status = *((uint16_t*)rx_buffer);
         rx_len = *(((uint16_t*)rx_buffer) + 1);
         rx_buffer = (char*) (((uint16_t*)rx_buffer) + 2);
@@ -165,19 +168,30 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
             // Realtek рекомендует сбрасывать
             rtl_dev->rx_pos = 0;
 
+            // Включение rx + tx
+            outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
+
         } else if (rx_status & RTL8139_OK) {
 #ifdef ON_RECEIVE_LOG_ENABLED
             printk("8139: RX: P %i S %i L %i\n", rx_pos, rx_status, rx_len);
 #endif
 
-            rtl_dev->dev->nic->stats.rx_packets++;
-            rtl_dev->dev->nic->stats.rx_bytes += rx_len;
+            payload_len = rx_len - 4; // Удаление длины CRC
 
-            struct net_buffer* nb = new_net_buffer(rx_buffer, rx_len, rtl_dev->nic);
+            rtl_dev->dev->nic->stats.rx_packets++;
+            rtl_dev->dev->nic->stats.rx_bytes += payload_len;
+
+            struct net_buffer* nb = new_net_buffer(rx_buffer, payload_len, rtl_dev->nic);
             eth_handle_frame(nb);
         }
 
         rx_pos = (rx_pos + rx_len + 4 + 3) & (~3);
+
+        // Так как включен WRAP можем просто вычесть 8192
+        if (rx_pos > RX_BUFFER_SIZE) {
+            rx_pos -= RX_BUFFER_SIZE;
+        }
+
         outw(rtl_dev->io_addr + RTL8139_CAPR, rx_pos - 0x10); 
     }
 
@@ -238,7 +252,7 @@ void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev)
 
         rtl_dev->int_tx_pos = int_tx_pos;
 	}
-	if (status & RTL1839_RXOK) {
+	if (status & (RTL1839_RXOK)) {
         //rtl8139_rx(rtl_dev);
 	}
 }

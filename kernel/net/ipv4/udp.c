@@ -45,9 +45,6 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
     release_spinlock(&sock_data->rx_queue_lock);
 
     scheduler_wakeup(&sock_data->rx_queue, 1);
-#ifdef UDP4_LOGGING
-    printk("UDP: EXIT\n");
-#endif
 }
 
 void udp_ip4_init()
@@ -96,7 +93,7 @@ int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
 
 ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
-    if (*addrlen != sizeof(struct sockaddr_in))
+    if (src_addr != NULL && *addrlen != sizeof(struct sockaddr_in))
     {
         return -EINVAL;
     }
@@ -126,15 +123,27 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     // Освобождение буфера
     net_buffer_close(nbuffer);
 
-    // Передаем информацию об отправителе
-    src_addr_in->sin_addr.s_addr = ip4p->src_ip;
-    src_addr_in->sin_port = udpp->src_port;
+    if (src_addr_in != NULL) {
+        // Передаем информацию об отправителе
+        src_addr_in->sin_addr.s_addr = ip4p->src_ip;
+        src_addr_in->sin_port = udpp->src_port;
+    }
 
     return len;
 }
 
 int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
+    if (to == NULL)
+    {
+        return -EINVAL;
+    }
+
+    if (tolen != sizeof(struct sockaddr_in))
+    {
+        return -EINVAL;
+    }
+
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     struct sockaddr_in* dest_addr_in = (struct sockaddr_in*) to;
 
@@ -150,10 +159,10 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 
     net_buffer_add_front(resp, &udphdr, sizeof(struct udp_packet));
 
-    ip4_send(resp, dest_addr_in->sin_addr.s_addr, 0xFFFFFFFF, IPV4_PROTOCOL_UDP);
+    int rc = ip4_send(resp, dest_addr_in->sin_addr.s_addr, 0xFFFFFFFF, IPV4_PROTOCOL_UDP);
     net_buffer_close(resp);
 
-    return 0;
+    return rc;
 }
 
 int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)

@@ -5,6 +5,7 @@
 #include "net/route.h"
 #include "net/eth.h"
 #include "net/arp.h"
+#include "kairax/errors.h"
 
 //#define IPV4_LOGGING
 
@@ -74,7 +75,7 @@ int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t pr
 #ifdef IPV4_LOGGING
 		printk("NO ROUTE!!!!\n");
 #endif
-		return -1;
+		return -ENETUNREACH;
 	}
 
 	uint32_t src1 = route->interface->ipv4_addr;
@@ -108,7 +109,5 @@ int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t pr
 		return -1;
 	}
 
-	eth_send_nbuffer(nbuffer, mac, ETH_TYPE_IPV4);
-
-	return 0;
+	return eth_send_nbuffer(nbuffer, mac, ETH_TYPE_IPV4);
 }

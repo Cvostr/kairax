@@ -35,4 +35,6 @@
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
 
+#define ENETUNREACH 114
+
 #endif

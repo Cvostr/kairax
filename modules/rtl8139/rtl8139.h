@@ -3,7 +3,8 @@
 
 #include "kairax/types.h"
 
-#define RX_BUFFER_SIZE (8192 + 1500 + 16)
+#define RX_BUFFER_SIZE 8192
+#define RX_BUFFER_WRAP (RX_BUFFER + 1500 + 16)
 #define TX_BUFFERS      4
 
 #define RTL1839_RXOK        0x01
@@ -37,6 +38,8 @@
 #define RTL8139_LONG        0x8
 #define RTL8139_RUNT        0x10
 #define RTL8139_ISE         0x20
+
+#define RTL8139_RX_WRAP     (1U << 7)
 
 struct rtl8139 {
     struct device* dev;
