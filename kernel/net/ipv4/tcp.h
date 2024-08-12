@@ -52,7 +52,7 @@ struct tcp4_socket_data {
     spinlock_t backlog_lock;
 };
 
-uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, unsigned char* payload, size_t payload_size);
+uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, unsigned char* payload, size_t payload_size);
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 

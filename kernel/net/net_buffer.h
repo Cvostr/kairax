@@ -28,6 +28,7 @@ struct net_buffer {
     unsigned char* transp_header;
     unsigned char* payload;
 
+    size_t netw_packet_size;       // Размер после заголовка сетевого уровня
     size_t payload_size;
 
     atomic_t       refs;

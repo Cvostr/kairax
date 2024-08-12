@@ -10,6 +10,7 @@
 
 //#define LOG_ENABLED
 //#define ON_RECEIVE_LOG_ENABLED
+#define FAILURE_LOG_ENABLED
 
 void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev);
 
@@ -155,8 +156,11 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
         rx_len = *(((uint16_t*)rx_buffer) + 1);
         rx_buffer = (char*) (((uint16_t*)rx_buffer) + 2);
 
-        if (rx_status & (RTL8139_ISE | RTL8139_CRCERR | RTL8139_RUNT | RTL8139_LONG | RTL8139_BAD_ALIGN)) {
+        if (rx_status & (RTL8139_ISE | RTL8139_CRCERR | RTL8139_RUNT | RTL8139_LONG | RTL8139_BAD_ALIGN)) 
+        {
+#ifdef FAILURE_LOG_ENABLED
             printk("Bad packed received!\n");
+#endif
             rtl_dev->dev->nic->stats.rx_errors++;
 
             if (rx_status & (RTL8139_ISE | RTL8139_BAD_ALIGN))
@@ -233,9 +237,11 @@ void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev)
             int descriptor_num = int_tx_pos % TX_BUFFERS;
             int tx_status = inl(rtl_dev->io_addr + TSD[descriptor_num]);
 
-            if (tx_status & (RTL8139_TXSTAT_OUTOFWINDOW | RTL8139_TXSTAT_ABORTED)) {
-
+            if (tx_status & (RTL8139_TXSTAT_OUTOFWINDOW | RTL8139_TXSTAT_ABORTED)) 
+            {
+#ifdef FAILURE_LOG_ENABLED
                 printk("8139: Error sending packet, status: %i\n", tx_status);
+#endif
                 rtl_dev->dev->nic->stats.tx_errors++;
             } else {
                 // Sent

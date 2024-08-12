@@ -43,6 +43,9 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 	int header_size = IP4_IHL(ip_packet->version_ihl) * 4;
 	net_buffer_shift(nbuffer, header_size);
 
+	// Рассчитаем размер пакета следующего уровня
+	nbuffer->netw_packet_size = ntohs(ip_packet->size) - header_size;
+
 #ifdef IPV4_LOGGING
 	printk("IP4: Version: %i, Header len: %i, Protocol: %i\n", IP4_VERSION(ip_packet->version_ihl), IP4_IHL(ip_packet->version_ihl), ip_packet->protocol);
 #endif
@@ -85,7 +88,7 @@ int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t pr
 	struct ip4_packet pkt;
 	memset(&pkt, 0, sizeof(struct ip4_packet));
 	pkt.dst_ip = dest;
-	pkt.src_ip = htons(src1);
+	pkt.src_ip = src1;
 #ifdef __LITTLE_ENDIAN__
 	pkt.version_ihl = (4 << 4) | (sizeof(struct ip4_packet) / 4);
 #else

@@ -16,6 +16,8 @@
 #define PORT 22
 #define BUFLEN 512
 
+int quiet = 0;
+
 void die(const char* message) {
     puts(message);
     exit(1);
@@ -23,6 +25,13 @@ void die(const char* message) {
 
 int main(int argc, char** argv) 
 {
+
+	for (int i = 0; i < argc; i ++) {
+		if (strcmp(argv[i], "q") == 0) {
+			quiet = 1;
+		}
+	}
+
     int sockfd = 0;
     ssize_t recv_len;
     char buf[BUFLEN];
@@ -47,8 +56,10 @@ int main(int argc, char** argv)
 
     while(1)
 	{
-		printf("Waiting for data...");
-		fflush(stdout);
+		if (quiet == 0) {
+			printf("Waiting for data...");
+			fflush(stdout);
+		}
 		
         memset(buf, 0, BUFLEN);
 
@@ -58,9 +69,12 @@ int main(int argc, char** argv)
 			die("recvfrom()");
 		}
 		
-		//print details of the client/peer and the data received
-		printf("Received packet from %s:%d\n", inet_ntoa(claddr.sin_addr), ntohs(claddr.sin_port));
-		printf("Data: '%s'\n" , buf);
+		if (quiet == 0) {
+
+			//print details of the client/peer and the data received
+			printf("Received packet from %s:%d\n", inet_ntoa(claddr.sin_addr), ntohs(claddr.sin_port));
+			printf("Data: '%s'\n" , buf);
+		}
 		
 		//now reply the client with the same data
 		if (sendto(sockfd, buf, recv_len, 0, (struct sockaddr*) &claddr, claddr_len) == -1)
