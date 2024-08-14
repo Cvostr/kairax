@@ -90,7 +90,8 @@ struct socket_prot_ops ipv4_stream_ops = {
     .bind = sock_tcp4_bind,
     .listen = sock_tcp4_listen,
     .recvfrom = sock_tcp4_recvfrom,
-    .sendto = sock_tcp4_sendto
+    .sendto = sock_tcp4_sendto,
+    .close = sock_tcp4_close
 };
 
 int sock_tcp4_create (struct socket* sock)
@@ -222,6 +223,11 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 }
 
 int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+{
+    return 0;
+}
+
+int sock_tcp4_close(struct socket* sock)
 {
     return 0;
 }

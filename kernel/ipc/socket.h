@@ -3,6 +3,7 @@
 
 #include "kairax/in.h"
 #include "fs/vfs/inode.h"
+#include "fs/vfs/file.h"
 
 #define AF_LOCAL    1
 #define AF_INET     2
@@ -62,6 +63,31 @@ struct socket {
     struct socket_prot_ops* ops;
 };
 
+#define SOL_SOCKET	1
+
+#define SO_DEBUG	1
+#define SO_REUSEADDR	2
+#define SO_TYPE		3
+#define SO_ERROR	4
+#define SO_DONTROUTE	5
+#define SO_BROADCAST	6
+#define SO_SNDBUF	7
+#define SO_RCVBUF	8
+#define SO_KEEPALIVE	9
+#define SO_OOBINLINE	10
+#define SO_NO_CHECK	11
+#define SO_PRIORITY	12
+#define SO_LINGER	13
+#define SO_BSDCOMPAT	14
+#define SO_REUSEPORT	15
+#define SO_PASSCRED	16
+#define SO_PEERCRED	17
+#define SO_RCVLOWAT	18
+#define SO_SNDLOWAT	19
+#define SO_RCVTIMEO	20
+#define SO_SNDTIMEO	21
+#define SO_BINDTODEVICE	25
+
 struct socket_prot_ops {
     int (*create) (struct socket* sock);
     int	(*connect) (struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
@@ -71,6 +97,7 @@ struct socket_prot_ops {
     int (*sendto) (struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
     int (*setsockopt) (struct socket *sock, int level, int optname, const void *optval, unsigned int optlen);
     int	(*accept) (struct socket *sock, struct socket **newsock, struct sockaddr *addr);
+    int	(*close) (struct socket *sock);
 
     //int	(*sendmsg) (struct socket* sock, struct msghdr* m, int flags);
     //int	(*recvmsg) (struct socket* sock, struct msghdr* msg, int flags);
@@ -100,5 +127,7 @@ int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, c
 ssize_t socket_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 
 int socket_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
+
+int socket_close(struct inode *inode, struct file *file);
 
 #endif

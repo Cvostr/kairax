@@ -42,6 +42,7 @@ extern "C" {
 #define SO_SNDLOWAT	19
 #define SO_RCVTIMEO	20
 #define SO_SNDTIMEO	21
+#define SO_BINDTODEVICE	25
 
 struct iovec {
     void *iov_base;

@@ -67,6 +67,8 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 	struct ip4_protocol* prot = protocols[ip_packet->protocol];
 	if (prot != NULL) {
 		prot->handler(nbuffer);
+	} else {
+		printk("No Handler for IPv4 type : %i\n", ip_packet->protocol);
 	}
 }
 

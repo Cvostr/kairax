@@ -8,4 +8,5 @@ void net_init()
 
     udp_ip4_init();
     tcp_ip4_init();
+    icmp_ip4_init();
 }

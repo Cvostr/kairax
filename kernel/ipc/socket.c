@@ -7,6 +7,10 @@
 list_t sock_families = {0,};
 spinlock_t sock_families_lock = 0;
 
+struct file_operations socket_fops = {
+    .close = socket_close
+};
+
 void register_sock_family(struct socket_family* family)
 {
     acquire_spinlock(&sock_families_lock);
@@ -20,6 +24,7 @@ struct socket* new_socket()
     memset(result, 0, sizeof(struct socket));
 
     result->ino.mode = INODE_FLAG_SOCKET;
+    result->ino.file_ops = &socket_fops;
 
     return result;
 }
@@ -116,5 +121,14 @@ ssize_t socket_recvfrom(struct socket* sock, void* buf, size_t len, int flags, s
 
 int socket_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
 {
+    if (sock->ops->setsockopt == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
     return sock->ops->setsockopt(sock, level, optname, optval, optlen);
+}
+
+int socket_close(struct inode *inode, struct file *file)
+{
+    struct socket* sock = (struct socket*) inode;
+    return sock->ops->close(sock);
 }

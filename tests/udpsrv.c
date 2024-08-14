@@ -17,6 +17,8 @@
 #define BUFLEN 512
 
 int quiet = 0;
+int msgs = 0;
+int limit = 0;
 
 void die(const char* message) {
     puts(message);
@@ -29,6 +31,9 @@ int main(int argc, char** argv)
 	for (int i = 0; i < argc; i ++) {
 		if (strcmp(argv[i], "q") == 0) {
 			quiet = 1;
+		}
+		if (strcmp(argv[i], "l") == 0) {
+			limit = 1;
 		}
 	}
 
@@ -69,6 +74,8 @@ int main(int argc, char** argv)
 			die("recvfrom()");
 		}
 		
+		msgs++;
+
 		if (quiet == 0) {
 
 			//print details of the client/peer and the data received
@@ -81,5 +88,12 @@ int main(int argc, char** argv)
 		{
 			die("sendto()");
 		}
+
+		if (limit == 1 && msgs == 2) {
+			close(sockfd);
+			return 0;
+		}
 	}
+
+	return 0;
 }

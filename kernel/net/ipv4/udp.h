@@ -17,6 +17,7 @@ struct udp_packet {
 
 struct udp4_socket_data {
 
+    struct nic* nic;
     uint16_t port;
 
     list_t rx_queue;
@@ -27,7 +28,6 @@ void udp_ip4_handle(struct net_buffer* nbuffer);
 
 void udp_ip4_init();
 
-// TODO: implement
 uint16_t udp4_calc_checksum(uint32_t src, uint32_t dest, struct udp_packet* header, unsigned char* payload, size_t payload_size);
 
 int sock_udp4_create(struct socket* sock);
@@ -35,5 +35,6 @@ int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
 ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
+int sock_udp4_close(struct socket* sock);
 
 #endif

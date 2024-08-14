@@ -6,6 +6,7 @@
 #include "kstdlib.h"
 
 //#define UDP4_LOGGING
+//#define UDP4_NO_LISTEN_LOG
 
 #define UDP_DEFAULT_RESPONSE_BUFLEN 4096
 
@@ -17,6 +18,7 @@ struct ip4_protocol ip4_udp_protocol = {
 
 void udp_ip4_handle(struct net_buffer* nbuffer)
 {
+    struct udp4_socket_data* sock_data = NULL;
     struct udp_packet* udphdr = (struct udp_packet*) nbuffer->cursor;
     nbuffer->transp_header = udphdr;
 
@@ -45,17 +47,27 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
     struct socket* sock = udp4_bindings[dst_port];
     if (sock == NULL)
     {
+#ifdef UDP4_NO_LISTEN_LOG
+        printk("No listening socket");
+#endif
         // ??? - реализовать
         return;
     }
 
-    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    if (sock->data != NULL) 
+    {
+        sock_data = (struct udp4_socket_data*) sock->data;
 
-    acquire_spinlock(&sock_data->rx_queue_lock);
-    list_add(&sock_data->rx_queue, nbuffer);
-    release_spinlock(&sock_data->rx_queue_lock);
+        acquire_spinlock(&sock_data->rx_queue_lock);
 
-    scheduler_wakeup(&sock_data->rx_queue, 1);
+        // Добавить буфер в очередь приема с увеличением количества ссылок
+        net_buffer_acquire(nbuffer);
+        list_add(&sock_data->rx_queue, nbuffer);
+        
+        release_spinlock(&sock_data->rx_queue_lock);
+
+        scheduler_wakeup(&sock_data->rx_queue, 1);
+    }
 }
 
 void udp_ip4_init()
@@ -70,6 +82,7 @@ struct socket_prot_ops ipv4_dgram_ops = {
     .recvfrom = sock_udp4_recvfrom,
     .sendto = sock_udp4_sendto,
     .setsockopt = sock_udp4_setsockopt,
+    .close = sock_udp4_close
 };
 
 int sock_udp4_create(struct socket* sock)
@@ -116,7 +129,7 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     acquire_spinlock(&sock_data->rx_queue_lock);
 
-    while (sock_data->rx_queue.size == 0) {
+    while (sock_data->rx_queue.head == NULL) {
         scheduler_sleep(&sock_data->rx_queue, &sock_data->rx_queue_lock);
     }
 
@@ -159,6 +172,7 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     struct sockaddr_in* dest_addr_in = (struct sockaddr_in*) to;
 
     struct net_buffer* resp = new_net_buffer_out(UDP_DEFAULT_RESPONSE_BUFLEN);
+    net_buffer_acquire(resp);
 
     net_buffer_add_front(resp, msg, len);
 
@@ -171,14 +185,61 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     net_buffer_add_front(resp, &udphdr, sizeof(struct udp_packet));
 
     int rc = ip4_send(resp, dest_addr_in->sin_addr.s_addr, 0xFFFFFFFF, IPV4_PROTOCOL_UDP);
+
+    // освобождение памяти, выделенной под буфер
     net_buffer_close(resp);
 
     return rc;
 }
 
+int sock_udp4_setsockopt_sol_socket(struct socket* sock, int optname, const void *optval, unsigned int optlen)
+{
+    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+
+    switch (optname) {
+        case SO_BINDTODEVICE:
+            sock_data->nic = get_nic_by_name(optval);
+            break;
+    }
+
+    return 0;
+}
+
 int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
 {
     printk("Setsockopt level:%i name:%i\n");
+    switch (level) {
+        case SOL_SOCKET:
+            return sock_udp4_setsockopt_sol_socket(sock, optname, optval, optlen);
+        
+    };
+    return 0;
+}
+
+int sock_udp4_close(struct socket* sock)
+{
+#ifdef UDP4_LOGGING
+    printk("UDP: close()\n");
+#endif
+    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    sock->data = NULL;
+
+    if (udp4_bindings[sock_data->port]) {
+        udp4_bindings[sock_data->port] = NULL;
+    }
+
+    acquire_spinlock(&sock_data->rx_queue_lock);
+    
+    struct net_buffer* nbuffer = NULL;
+    while ((nbuffer = list_dequeue(&sock_data->rx_queue)) != NULL)
+    {
+        net_buffer_close(nbuffer);
+    }
+    
+    release_spinlock(&sock_data->rx_queue_lock);
+
+    kfree(sock_data);
+
     return 0;
 }
 
