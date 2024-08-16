@@ -14,7 +14,7 @@ void icmp_ip4_handle(struct net_buffer* nbuffer)
     printk("ICMP packet received\n");
 #endif
     net_buffer_acquire(nbuffer);
-    net_buffer_close(nbuffer);
+    net_buffer_free(nbuffer);
 }
 
 void icmp_ip4_init()

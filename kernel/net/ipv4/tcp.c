@@ -91,7 +91,8 @@ struct socket_prot_ops ipv4_stream_ops = {
     .listen = sock_tcp4_listen,
     .recvfrom = sock_tcp4_recvfrom,
     .sendto = sock_tcp4_sendto,
-    .close = sock_tcp4_close
+    .close = sock_tcp4_close,
+    .setsockopt = sock_tcp4_setsockopt
 };
 
 int sock_tcp4_create (struct socket* sock)
@@ -103,6 +104,19 @@ int sock_tcp4_create (struct socket* sock)
 
 int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
 {
+    if (saddr->sa_family != AF_INET || sockaddr_len != sizeof(struct sockaddr_in))
+    {
+        return -EINVAL;
+    }
+
+    if (sock->state != SOCKET_STATE_DISCONNECTED) {
+        return -EINVAL;
+    }
+
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    memcpy(&sock_data->addr, saddr, sockaddr_len);
+    sock->state = SOCKET_STATE_CONNECTING;
+    
     return 0;   
 }
 
@@ -173,11 +187,11 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     net_buffer_add_front(resp, &pkt, sizeof(struct tcp_packet));
     
     // Освободить буфер с запросом SYN
-    net_buffer_close(syn_req);
+    net_buffer_free(syn_req);
 
     // Попытка отправить ответ
     ip4_send(resp, checksum_struct.dest, checksum_struct.src, IPV4_PROTOCOL_TCP);
-    net_buffer_close(resp);
+    net_buffer_free(resp);
 
     // TODO: завершить handshake - ожидание ACK
 
@@ -228,6 +242,11 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 }
 
 int sock_tcp4_close(struct socket* sock)
+{
+    return 0;
+}
+
+int sock_tcp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
 {
     return 0;
 }

@@ -20,6 +20,8 @@ int mac_is_broadcast(uint8_t* mac)
 
 void eth_handle_frame(struct net_buffer* nbuffer)
 {
+    net_buffer_acquire(nbuffer);
+
     struct ethernet_frame* frame = (struct ethernet_frame*) nbuffer->cursor;
     nbuffer->link_header = frame;
 
@@ -29,7 +31,7 @@ void eth_handle_frame(struct net_buffer* nbuffer)
 #endif
 
     if (memcmp(frame->dest, nbuffer->netdev->mac, MAC_DEFAULT_LEN) != 0 && !mac_is_broadcast(frame->dest)) {
-        return;
+        goto exit;
     }
     
     uint16_t type = ntohs(frame->type);
@@ -47,6 +49,9 @@ void eth_handle_frame(struct net_buffer* nbuffer)
         printk("ETH type: %i\n", type);
         break;
     }
+
+exit:
+    net_buffer_free(nbuffer);
 }
 
 int eth_send_nbuffer(struct net_buffer* nbuffer, uint8_t* dest, int type)

@@ -186,7 +186,9 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
             rtl_dev->dev->nic->stats.rx_bytes += payload_len;
 
             struct net_buffer* nb = new_net_buffer(rx_buffer, payload_len, rtl_dev->nic);
+            net_buffer_acquire(nb);
             eth_handle_frame(nb);
+            net_buffer_free(nb);
         }
 
         rx_pos = (rx_pos + rx_len + 4 + 3) & (~3);

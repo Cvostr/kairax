@@ -4,6 +4,7 @@
 #include "mem/kheap.h"
 #include "proc/thread_scheduler.h"
 #include "kstdlib.h"
+#include "net/route.h"
 
 //#define UDP4_LOGGING
 //#define UDP4_NO_LISTEN_LOG
@@ -145,7 +146,7 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     net_buffer_shift(nbuffer, len);
 
     // Освобождение буфера
-    net_buffer_close(nbuffer);
+    net_buffer_free(nbuffer);
 
     if (src_addr_in != NULL) {
         // Передаем информацию об отправителе
@@ -187,7 +188,7 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     int rc = ip4_send(resp, dest_addr_in->sin_addr.s_addr, 0xFFFFFFFF, IPV4_PROTOCOL_UDP);
 
     // освобождение памяти, выделенной под буфер
-    net_buffer_close(resp);
+    net_buffer_free(resp);
 
     return rc;
 }
@@ -233,7 +234,7 @@ int sock_udp4_close(struct socket* sock)
     struct net_buffer* nbuffer = NULL;
     while ((nbuffer = list_dequeue(&sock_data->rx_queue)) != NULL)
     {
-        net_buffer_close(nbuffer);
+        net_buffer_free(nbuffer);
     }
     
     release_spinlock(&sock_data->rx_queue_lock);

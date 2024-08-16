@@ -65,7 +65,7 @@ void net_buffer_acquire(struct net_buffer* nbuffer)
     atomic_inc(&nbuffer->refs);
 }
 
-void net_buffer_close(struct net_buffer* nbuffer)
+void net_buffer_free(struct net_buffer* nbuffer)
 {
     if (atomic_dec_and_test(&nbuffer->refs)) {
         kfree(nbuffer->buffer);

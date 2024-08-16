@@ -53,6 +53,8 @@ struct kernel_function functions[] = {
     KFUNCTION(register_nic),
     KFUNCTION(eth_handle_frame),
     KFUNCTION(new_net_buffer),
+    KFUNCTION(net_buffer_acquire),
+    KFUNCTION(net_buffer_free),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

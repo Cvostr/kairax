@@ -41,6 +41,9 @@ struct protocol {
 
 #define SOCKET_STATE_UNCONNECTED    1
 #define SOCKET_STATE_LISTEN         2
+#define SOCKET_STATE_CONNECTING     3
+#define SOCKET_STATE_CONNECTED      4
+#define SOCKET_STATE_DISCONNECTED   5
 
 struct socket_data;
 struct socket_prot_ops;

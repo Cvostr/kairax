@@ -32,6 +32,7 @@ void arp_handle_packet(struct net_buffer* nbuffer)
 
             if (arph->tpa == nic->ipv4_addr) {
 
+                // Формируем структуру ответа 
                 struct arp_header resp;
                 resp.htype = htons(ARP_HTYPE_ETHERNET);
                 resp.ptype = htons(ARP_PTYPE_IPV4);
@@ -43,8 +44,7 @@ void arp_handle_packet(struct net_buffer* nbuffer)
                 memcpy(resp.tha, arph->sha, 6);
                 memcpy(resp.tpa_a, arph->spa_a, 4);
 
-                net_buffer_close(nbuffer);
-
+                // Создаем netbuffer и добавляем к нему структуру ответа
                 struct net_buffer* response_nbuffer = new_net_buffer_out(512);
                 net_buffer_add_front(response_nbuffer, &resp, sizeof(struct arp_header));
                 response_nbuffer->netdev = nic;
@@ -52,8 +52,8 @@ void arp_handle_packet(struct net_buffer* nbuffer)
                 // Послать ответ
                 eth_send_nbuffer(response_nbuffer, resp.tha, ETH_TYPE_ARP);
 
-                // Освободить буфер
-                net_buffer_close(response_nbuffer);
+                // Освободить буфер ответа
+                net_buffer_free(response_nbuffer);
             }
         }
     } else if (oper == ARP_OPER_RESP) {
