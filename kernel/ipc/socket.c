@@ -23,6 +23,8 @@ struct socket* new_socket()
     struct socket* result = kmalloc(sizeof(struct socket));
     memset(result, 0, sizeof(struct socket));
 
+    result->state = SOCKET_STATE_UNCONNECTED;
+
     result->ino.mode = INODE_FLAG_SOCKET;
     result->ino.file_ops = &socket_fops;
 

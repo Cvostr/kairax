@@ -32,7 +32,10 @@ int* __errno_location();
 #define	EMFILE		                24
 #define	ESPIPE		                29
 #define	ENOSYS		                38
+#define EISCONN                     106
+#define ENOTCONN                    107
 #define ENOTSOCK                    108
+#define EHOSTUNREACH	            113
 #define ETIMEDOUT                   116
 
 

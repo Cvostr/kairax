@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <strings.h>
 #include <arpa/inet.h>
-#include<time.h>
+#include <time.h>
 
 #define PORT 22
 #define BUFLEN 512

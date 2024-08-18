@@ -9,6 +9,9 @@
 //#define UDP4_LOGGING
 //#define UDP4_NO_LISTEN_LOG
 
+#define UDP_DYNAMIC_PORT    49152
+#define UDP_PORTS           65536
+
 #define UDP_DEFAULT_RESPONSE_BUFLEN 4096
 
 struct socket** udp4_bindings;
@@ -16,6 +19,23 @@ struct socket** udp4_bindings;
 struct ip4_protocol ip4_udp_protocol = {
     .handler = udp_ip4_handle
 };
+
+int udp_ip4_alloc_dynamic_port(struct socket* sock)
+{
+    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    for (int port = UDP_DYNAMIC_PORT; port < UDP_PORTS; port ++)
+    {
+        if (udp4_bindings[port] == NULL)
+        {
+            // порт с порядком байтов хоста
+            sock_data->port = port;
+            udp4_bindings[port] = sock;
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 void udp_ip4_handle(struct net_buffer* nbuffer)
 {
@@ -171,6 +191,15 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     struct sockaddr_in* dest_addr_in = (struct sockaddr_in*) to;
+
+    if (sock_data->port == 0)
+    {
+        // Если порт не назначен - назначить случайный ephemeral
+        if (udp_ip4_alloc_dynamic_port(sock) == 0) {
+            // порты закончились
+            return -1; //  ???
+        }
+    }
 
     struct net_buffer* resp = new_net_buffer_out(UDP_DEFAULT_RESPONSE_BUFLEN);
     net_buffer_acquire(resp);

@@ -8,6 +8,9 @@ extern "C" {
 #include <sys/types.h>
 #include "stddef.h"
 
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
+
 float strtof(const char *nptr, char **endptr);
 double strtod(const char *nptr, char **endptr);
 long double strtold(const char *nptr, char **endptr);

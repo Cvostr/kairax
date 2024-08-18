@@ -6,12 +6,33 @@
 #include "proc/thread_scheduler.h"
 #include "string.h"
 #include "drivers/char/random.h"
+#include "net/route.h"
+
+#define TCP_MAX_PORT        65535
+#define TCP_PORTS           65536
+
+#define TCP_DYNAMIC_PORT    49152
+
+#define TCP_HEADER_LEN      (sizeof(struct tcp_packet))
+#define TCP_HEADER_SZ_VAL   ((TCP_HEADER_LEN / 4) << 12)
 
 struct ip4_protocol ip4_tcp_protocol = {
     .handler = tcp_ip4_handle
 };
 
-struct socket* tcp4_bindings[65536];
+struct socket_prot_ops ipv4_stream_ops = {
+    .create = sock_tcp4_create,
+    .connect = sock_tcp4_connect,
+    .accept = sock_tcp4_accept,
+    .bind = sock_tcp4_bind,
+    .listen = sock_tcp4_listen,
+    .recvfrom = sock_tcp4_recvfrom,
+    .sendto = sock_tcp4_sendto,
+    .close = sock_tcp4_close,
+    .setsockopt = sock_tcp4_setsockopt
+};
+
+struct socket* tcp4_bindings[TCP_PORTS];
 
 int tcp_ip4_handle(struct net_buffer* nbuffer)
 {
@@ -83,17 +104,21 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     }
 }
 
-struct socket_prot_ops ipv4_stream_ops = {
-    .create = sock_tcp4_create,
-    .connect = sock_tcp4_connect,
-    .accept = sock_tcp4_accept,
-    .bind = sock_tcp4_bind,
-    .listen = sock_tcp4_listen,
-    .recvfrom = sock_tcp4_recvfrom,
-    .sendto = sock_tcp4_sendto,
-    .close = sock_tcp4_close,
-    .setsockopt = sock_tcp4_setsockopt
-};
+int tcp_ip4_alloc_dynamic_port(struct socket* sock)
+{
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    for (int port = TCP_DYNAMIC_PORT; port < TCP_PORTS; port ++)
+    {
+        if (tcp4_bindings[port] == NULL)
+        {
+            sock_data->client_port = port;
+            tcp4_bindings[port] = sock;
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 int sock_tcp4_create (struct socket* sock)
 {
@@ -104,20 +129,76 @@ int sock_tcp4_create (struct socket* sock)
 
 int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
 {
+    int rc = 0;
     if (saddr->sa_family != AF_INET || sockaddr_len != sizeof(struct sockaddr_in))
     {
         return -EINVAL;
     }
 
-    if (sock->state != SOCKET_STATE_DISCONNECTED) {
-        return -EINVAL;
+    struct sockaddr_in* inetaddr = (struct sockaddr_in*) saddr;
+
+    if (sock->state != SOCKET_STATE_UNCONNECTED) {
+        return -EISCONN;
     }
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    if (tcp_ip4_alloc_dynamic_port(sock) == 0)
+    {
+        printk("TCP: port exhaust!\n");
+        // порты кончились
+        return -1;// ???
+    }
+    
+    union ip4uni src;
+	src.val = inetaddr->sin_addr.s_addr; 
+	printk("Connecting to: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3], inetaddr->sin_port);
+
     memcpy(&sock_data->addr, saddr, sockaddr_len);
     sock->state = SOCKET_STATE_CONNECTING;
+
+    // Маршрут назначения
+    struct route4* route = route4_resolve(inetaddr->sin_addr.s_addr);
+    if (route == NULL)
+    {
+        return -ENETUNREACH;
+    }
+/*
+    // Создать буфер запроса SYN
+    struct net_buffer* synrq = new_net_buffer_out(4096);
+    synrq->netdev = route->interface;
+
+    // Генерируем начальный SN
+    sock_data->sn = krand();
+    sock_data->ack = 0;
+
+    struct tcp_packet pkt;
+    memset(&pkt, 0, TCP_HEADER_LEN);
+    pkt.src_port = htons(sock_data->client_port);
+    pkt.dst_port = htons(inetaddr->sin_port);
+    pkt.ack = sock_data->ack;
+    pkt.sn = ntohl(sock_data->sn);
+    pkt.urgent_point = 0;
+    pkt.window_size = htons(65535);
+    pkt.hlen_flags = htons(TCP_FLAG_SYN | TCP_HEADER_SZ_VAL);
+    pkt.checksum = 0;
+
+    struct tcp_checksum_proto checksum_struct;
+    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
+    checksum_struct.dest = synrq->netdev->ipv4_addr;
+    checksum_struct.src = inetaddr->sin_addr.s_addr;
+    checksum_struct.prot = IPV4_PROTOCOL_TCP;
+    checksum_struct.len = htons(TCP_HEADER_LEN);
+    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
+
+    // Добавить заголовок TCP к буферу запроса
+    net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
+
+    // Попытка отправить ответ
+    rc = ip4_send(synrq, checksum_struct.dest, checksum_struct.src, IPV4_PROTOCOL_TCP);
+    net_buffer_free(synrq);*/
     
-    return 0;   
+    return rc;   
 }
 
 void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, struct ip4_packet* ip4p)
@@ -141,6 +222,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     // Создание сокета клиента
     struct socket* client_sock = new_socket();
+    client_sock->ops = &ipv4_stream_ops;
     struct tcp4_socket_data* client_sockdata = kmalloc(sizeof(struct tcp4_socket_data));
     memset(client_sockdata, 0, sizeof(struct tcp4_socket_data));
 
@@ -172,7 +254,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     pkt.sn = ntohl(client_sockdata->sn);
     pkt.urgent_point = 0;
     pkt.window_size = htons(65535);
-    pkt.hlen_flags = htons(flags | ((header_len / 4) << 12));
+    pkt.hlen_flags = htons(flags | TCP_HEADER_SZ_VAL);
     pkt.checksum = 0;
 
     struct tcp_checksum_proto checksum_struct;
@@ -233,16 +315,24 @@ int sock_tcp4_listen(struct socket* sock, int backlog)
 
 ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
+    if (sock->state != SOCKET_STATE_CONNECTED) {
+        return -ENOTCONN;
+    }
     return 0;
 }
 
 int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
+    printk("tcp: send()\n");
+    if (sock->state != SOCKET_STATE_CONNECTED) {
+        return -ENOTCONN;
+    }
     return 0;
 }
 
 int sock_tcp4_close(struct socket* sock)
 {
+    printk("tcp: close()\n");
     return 0;
 }
 
