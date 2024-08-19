@@ -4,6 +4,7 @@
 #include "kairax/types.h"
 #include "net/net_buffer.h"
 #include "kairax/in.h"
+#include "net/route.h"
 
 struct socket;
 
@@ -65,6 +66,6 @@ void ip4_handle_packet(struct net_buffer* nbuffer);
 
 void ip4_register_protocol(struct ip4_protocol* protocol, int proto);
 
-int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t prot);
+int ip4_send(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot);
 
 #endif

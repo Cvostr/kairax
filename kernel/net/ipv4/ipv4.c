@@ -2,7 +2,6 @@
 #include "kairax/in.h"
 #include "kairax/string.h"
 #include "mem/kheap.h"
-#include "net/route.h"
 #include "net/eth.h"
 #include "net/arp.h"
 #include "kairax/errors.h"
@@ -72,25 +71,32 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 	}
 }
 
-int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t prot)
+uint8_t* ip4_get_destination_mac(struct route4* route, uint32_t dest_addr)
 {
-	struct route4* route = route4_resolve(dest);
+	if (route->netmask == 0 /* это маршрут по умолчанию */
+		|| (dest_addr & route->netmask) != (route->dest & route->netmask) /* адрес назначения не входит в сеть маршрута */) 
+	{
+		return arp_get_ip4(route->interface, route->gateway);
+	}
+	
+	return arp_get_ip4(route->interface, dest_addr);
+}
 
+int ip4_send(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot)
+{
 	if (route == NULL) {
-#ifdef IPV4_LOGGING
-		printk("NO ROUTE!!!!\n");
-#endif
 		return -ENETUNREACH;
 	}
 
-	uint32_t src1 = route->interface->ipv4_addr;
+	uint32_t src_addr = route->interface->ipv4_addr;
 
 	size_t len = net_buffer_get_remain_len(nbuffer) + sizeof(struct ip4_packet);
 
+	// Заполнение IPv4 заголовка
 	struct ip4_packet pkt;
 	memset(&pkt, 0, sizeof(struct ip4_packet));
 	pkt.dst_ip = dest;
-	pkt.src_ip = src1;
+	pkt.src_ip = src_addr;
 #ifdef __LITTLE_ENDIAN__
 	pkt.version_ihl = (4 << 4) | (sizeof(struct ip4_packet) / 4);
 #else
@@ -102,16 +108,17 @@ int ip4_send(struct net_buffer* nbuffer, uint32_t dest, uint32_t src, uint8_t pr
 
 	pkt.header_checksum = htons(ipv4_calculate_checksum(&pkt, sizeof(struct ip4_packet)));
 
+	// Добавление заголовка в пакет
 	net_buffer_add_front(nbuffer, &pkt, sizeof(struct ip4_packet));
 	nbuffer->netdev = route->interface;
 
-	uint8_t* mac = arp_cache_get_ip4(dest);
+	uint8_t* mac = ip4_get_destination_mac(route, dest);
 
 	if (mac == NULL) {
 #ifdef IPV4_LOGGING
 		printk("NO ARP!!!\n");
 #endif
-		return -1;
+		return -ENETUNREACH;
 	}
 
 	return eth_send_nbuffer(nbuffer, mac, ETH_TYPE_IPV4);

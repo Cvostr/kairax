@@ -11,6 +11,8 @@ struct arp_v4_cache_entry {
     uint8_t     mac[6];
 };
 
+#define ARP_NETBUF_DEFAULT_SIZE 256
+
 struct arp_v4_cache_entry* get_arp_cache_entry(uint32_t addr);
 
 spinlock_t arp_cache_lock = 0;
@@ -45,7 +47,7 @@ void arp_handle_packet(struct net_buffer* nbuffer)
                 memcpy(resp.tpa_a, arph->spa_a, 4);
 
                 // Создаем netbuffer и добавляем к нему структуру ответа
-                struct net_buffer* response_nbuffer = new_net_buffer_out(512);
+                struct net_buffer* response_nbuffer = new_net_buffer_out(ARP_NETBUF_DEFAULT_SIZE);
                 net_buffer_add_front(response_nbuffer, &resp, sizeof(struct arp_header));
                 response_nbuffer->netdev = nic;
 
@@ -62,6 +64,32 @@ void arp_handle_packet(struct net_buffer* nbuffer)
             arp_cache_add(arph->spa, arph->sha);    
         }
     }
+}
+
+void arp_send_request(struct nic* nic, uint32_t addr)
+{
+    struct arp_header req;
+    req.htype = htons(ARP_HTYPE_ETHERNET);
+    req.ptype = htons(ARP_PTYPE_IPV4);
+    req.hlen = 6;  // Длина MAC
+    req.plen = 4;  // Длина IP v4
+    req.oper = htons(ARP_OPER_REQ); // Ответ
+    memcpy(req.sha, nic->mac, 6);   // MAC запрашивающего
+    memcpy(req.spa_a, &nic->ipv4_addr, 4);
+    memcpy(req.tpa_a, &addr, 4);
+
+    // Создаем netbuffer и добавляем к нему структуру запроса
+    struct net_buffer* arp_rq_nbuffer = new_net_buffer_out(ARP_NETBUF_DEFAULT_SIZE);
+    net_buffer_add_front(arp_rq_nbuffer, &req, sizeof(struct arp_header));
+    arp_rq_nbuffer->netdev = nic;
+
+    // Послать broadcast запрос
+    uint8_t broadcast_mac[6];
+    memset(broadcast_mac, 0xFF, 6);
+    eth_send_nbuffer(arp_rq_nbuffer, broadcast_mac, ETH_TYPE_ARP);
+
+    // Освободить буфер ответа
+    net_buffer_free(arp_rq_nbuffer);
 }
 
 void arp_cache_add(uint32_t addr, uint8_t* mac)
@@ -100,13 +128,30 @@ struct arp_v4_cache_entry* get_arp_cache_entry(uint32_t addr)
     return result;
 }
 
-uint8_t* arp_cache_get_ip4(uint32_t addr)
+uint8_t* arp_get_ip4(struct nic* nic, uint32_t addr)
 {
     struct arp_v4_cache_entry* entry = get_arp_cache_entry(addr);
+    int rounds = 0;
 
-    if (entry == NULL) { // TODO: сделать запрос!!
-        return NULL;
+    if (entry == NULL) {
+        // Посылаем ARP запрос
+        arp_send_request (nic, addr);
+
+        while (rounds < 5) {
+
+            sys_thread_sleep(0, 100000);
+
+            entry = get_arp_cache_entry(addr);
+            if (entry != NULL) {
+                break;
+            }
+
+            rounds ++;
+        }
     }
+
+    if (entry == NULL)
+        return NULL;
 
     return entry->mac;
 }

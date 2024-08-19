@@ -101,6 +101,17 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         sock_data->backlog_tail++;
 
         scheduler_wakeup(sock_data->backlog, 1);
+    } else {
+
+        acquire_spinlock(&sock_data->rx_queue_lock);
+
+        // Добавить буфер в очередь приема с увеличением количества ссылок
+        net_buffer_acquire(nbuffer);
+        list_add(&sock_data->rx_queue, nbuffer);
+        
+        release_spinlock(&sock_data->rx_queue_lock);
+
+        scheduler_wakeup(&sock_data->rx_queue, 1);
     }
 }
 
@@ -149,10 +160,11 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
         // порты кончились
         return -1;// ???
     }
-    
+
     union ip4uni src;
 	src.val = inetaddr->sin_addr.s_addr; 
-	printk("Connecting to: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3], inetaddr->sin_port);
+	printk("Connecting to: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3],
+            htons(inetaddr->sin_port));
 
     memcpy(&sock_data->addr, saddr, sockaddr_len);
     sock->state = SOCKET_STATE_CONNECTING;
@@ -163,7 +175,7 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     {
         return -ENETUNREACH;
     }
-/*
+
     // Создать буфер запроса SYN
     struct net_buffer* synrq = new_net_buffer_out(4096);
     synrq->netdev = route->interface;
@@ -175,7 +187,7 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     struct tcp_packet pkt;
     memset(&pkt, 0, TCP_HEADER_LEN);
     pkt.src_port = htons(sock_data->client_port);
-    pkt.dst_port = htons(inetaddr->sin_port);
+    pkt.dst_port = inetaddr->sin_port;
     pkt.ack = sock_data->ack;
     pkt.sn = ntohl(sock_data->sn);
     pkt.urgent_point = 0;
@@ -185,8 +197,8 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
 
     struct tcp_checksum_proto checksum_struct;
     memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
-    checksum_struct.dest = synrq->netdev->ipv4_addr;
-    checksum_struct.src = inetaddr->sin_addr.s_addr;
+    checksum_struct.src = synrq->netdev->ipv4_addr;
+    checksum_struct.dest = inetaddr->sin_addr.s_addr;
     checksum_struct.prot = IPV4_PROTOCOL_TCP;
     checksum_struct.len = htons(TCP_HEADER_LEN);
     pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
@@ -195,8 +207,35 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
 
     // Попытка отправить ответ
-    rc = ip4_send(synrq, checksum_struct.dest, checksum_struct.src, IPV4_PROTOCOL_TCP);
-    net_buffer_free(synrq);*/
+    rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
+    net_buffer_free(synrq);
+
+    if (rc < 0)
+        return rc;
+
+    // Ожидание SYN | ACK
+    acquire_spinlock(&sock_data->rx_queue_lock);
+
+    while (sock_data->rx_queue.head == NULL) {
+        scheduler_sleep(&sock_data->rx_queue, &sock_data->rx_queue_lock);
+    }
+
+    struct net_buffer* synack = list_dequeue(&sock_data->rx_queue);
+    struct tcp_packet* tcpp = synack->transp_header;
+    struct ip4_packet* ip4p = synack->netw_header;
+
+    release_spinlock(&sock_data->rx_queue_lock);
+
+    uint16_t flags = ntohs(tcpp->hlen_flags);
+    flags &= 0b111111111;
+
+    if (flags & TCP_FLAG_RST) {
+        net_buffer_free(synack);
+        return -ECONNREFUSED;
+    }
+
+
+    net_buffer_free(synack);
     
     return rc;   
 }
@@ -236,7 +275,18 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 	src.val = client_addr.sin_addr.s_addr; 
 	printk("Accepted client: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3], client_addr.sin_port);
 */
+
+    // Маршрут назначения
+    struct route4* route = route4_resolve(ip4p->src_ip);
+    if (route == NULL)
+    {
+        //printk("UDP: NO ROUTE!!!\n");
+        return -ENETUNREACH;
+    }
+
+    // Готовим ответ SYN | ACK
     struct net_buffer* resp = new_net_buffer_out(4096);
+    resp->netdev = route->interface;
 
     int flags = (TCP_FLAG_SYN | TCP_FLAG_ACK);
     
@@ -272,7 +322,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     net_buffer_free(syn_req);
 
     // Попытка отправить ответ
-    ip4_send(resp, checksum_struct.dest, checksum_struct.src, IPV4_PROTOCOL_TCP);
+    ip4_send(resp, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
     net_buffer_free(resp);
 
     // TODO: завершить handshake - ожидание ACK

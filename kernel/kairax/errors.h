@@ -35,8 +35,9 @@
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
 
-#define EISCONN     106
-#define ENOTCONN    107
-#define ENETUNREACH 113
+#define EISCONN         106
+#define ENOTCONN        107
+#define ECONNREFUSED	111
+#define ENETUNREACH     113
 
 #endif

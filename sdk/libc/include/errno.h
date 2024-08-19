@@ -35,6 +35,7 @@ int* __errno_location();
 #define EISCONN                     106
 #define ENOTCONN                    107
 #define ENOTSOCK                    108
+#define ECONNREFUSED	            111
 #define EHOSTUNREACH	            113
 #define ETIMEDOUT                   116
 

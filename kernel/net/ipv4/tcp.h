@@ -51,6 +51,10 @@ struct tcp4_socket_data {
     int backlog_head;
     int backlog_tail;
     spinlock_t backlog_lock;
+
+    // очередь приема
+    list_t rx_queue;
+    spinlock_t rx_queue_lock;
 };
 
 uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, unsigned char* payload, size_t payload_size);

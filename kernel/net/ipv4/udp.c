@@ -201,20 +201,30 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
         }
     }
 
+    // Маршрут назначения
+    struct route4* route = route4_resolve(dest_addr_in->sin_addr.s_addr);
+    if (route == NULL)
+    {
+        //printk("UDP: NO ROUTE!!!\n");
+        return -ENETUNREACH;
+    }
+
     struct net_buffer* resp = new_net_buffer_out(UDP_DEFAULT_RESPONSE_BUFLEN);
+    resp->netdev = route->interface;
     net_buffer_acquire(resp);
 
     net_buffer_add_front(resp, msg, len);
 
+    // Формируем UDP заголовок
     struct udp_packet udphdr;
     memset(&udphdr, 0, sizeof(struct udp_packet));
     udphdr.dst_port = dest_addr_in->sin_port;
     udphdr.src_port = htons(sock_data->port);
     udphdr.len = htons(sizeof(struct udp_packet) + len); 
-
+    // Добавляем UDP заголовок к буферу
     net_buffer_add_front(resp, &udphdr, sizeof(struct udp_packet));
 
-    int rc = ip4_send(resp, dest_addr_in->sin_addr.s_addr, 0xFFFFFFFF, IPV4_PROTOCOL_UDP);
+    int rc = ip4_send(resp, route, dest_addr_in->sin_addr.s_addr, IPV4_PROTOCOL_UDP);
 
     // освобождение памяти, выделенной под буфер
     net_buffer_free(resp);
