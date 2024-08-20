@@ -221,6 +221,9 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     udphdr.dst_port = dest_addr_in->sin_port;
     udphdr.src_port = htons(sock_data->port);
     udphdr.len = htons(sizeof(struct udp_packet) + len); 
+    // Вычисление контрольной суммы
+    udphdr.checksum = udp4_calc_checksum(resp->netdev->ipv4_addr, dest_addr_in->sin_addr.s_addr, &udphdr, msg, len);
+
     // Добавляем UDP заголовок к буферу
     net_buffer_add_front(resp, &udphdr, sizeof(struct udp_packet));
 

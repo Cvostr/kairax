@@ -82,7 +82,10 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
-    if ((flags & TCP_FLAG_SYN) == TCP_FLAG_SYN) {
+    if ((flags & (TCP_FLAG_SYN | TCP_FLAG_ACK)) == TCP_FLAG_SYN) {
+
+        // Пришел SYN пакет - это первая попытка подключения к серверу
+        // Добавляем пакет в backlog
 
         if (sock->state != SOCKET_STATE_LISTEN) {
             // ? CONNREFUSED?
@@ -101,7 +104,10 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         sock_data->backlog_tail++;
 
         scheduler_wakeup(sock_data->backlog, 1);
+
     } else {
+
+        // Во всех остальных случаях - добавляем к очереди приема
 
         acquire_spinlock(&sock_data->rx_queue_lock);
 
@@ -161,10 +167,12 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
         return -1;// ???
     }
 
+/*
     union ip4uni src;
 	src.val = inetaddr->sin_addr.s_addr; 
 	printk("Connecting to: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3],
             htons(inetaddr->sin_port));
+*/
 
     memcpy(&sock_data->addr, saddr, sockaddr_len);
     sock->state = SOCKET_STATE_CONNECTING;
@@ -177,7 +185,7 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     }
 
     // Создать буфер запроса SYN
-    struct net_buffer* synrq = new_net_buffer_out(4096);
+    struct net_buffer* synrq = new_net_buffer_out(1024);
     synrq->netdev = route->interface;
 
     // Генерируем начальный SN
@@ -234,9 +242,32 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
         return -ECONNREFUSED;
     }
 
+    // ACK - следующий номер для SN пришедшего пакета
+    sock_data->ack = htonl(tcpp->sn) + 1;
+    // SN - ???
+    sock_data->sn += 1;
 
+    // Очистка буфера пришедшего пакета
     net_buffer_free(synack);
+
+    pkt.ack = htonl(sock_data->ack);
+    pkt.sn = ntohl(sock_data->sn);
+    pkt.hlen_flags = htons(TCP_FLAG_ACK | TCP_HEADER_SZ_VAL);
+    pkt.checksum = 0;
+
+    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
+
+    // Создать буфер ответа ACK
+    struct net_buffer* ackrsp = new_net_buffer_out(1024);
+    ackrsp->netdev = route->interface;
     
+    // Добавить заголовок TCP к буферу запроса
+    net_buffer_add_front(ackrsp, &pkt, TCP_HEADER_LEN);
+
+    // Попытка отправить ответ
+    rc = ip4_send(ackrsp, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
+    net_buffer_free(ackrsp);
+
     return rc;   
 }
 
@@ -383,6 +414,9 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 int sock_tcp4_close(struct socket* sock)
 {
     printk("tcp: close()\n");
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    if (sock_data)
+        kfree(sock_data);
     return 0;
 }
 
