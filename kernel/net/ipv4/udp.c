@@ -197,7 +197,7 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
         // Если порт не назначен - назначить случайный ephemeral
         if (udp_ip4_alloc_dynamic_port(sock) == 0) {
             // порты закончились
-            return -1; //  ???
+            return -EADDRNOTAVAIL;
         }
     }
 

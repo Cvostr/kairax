@@ -162,17 +162,10 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
 
     if (tcp_ip4_alloc_dynamic_port(sock) == 0)
     {
-        printk("TCP: port exhaust!\n");
+        //printk("TCP: port exhaust!\n");
         // порты кончились
-        return -1;// ???
+        return -EADDRNOTAVAIL;
     }
-
-/*
-    union ip4uni src;
-	src.val = inetaddr->sin_addr.s_addr; 
-	printk("Connecting to: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3],
-            htons(inetaddr->sin_port));
-*/
 
     memcpy(&sock_data->addr, saddr, sockaddr_len);
     sock->state = SOCKET_STATE_CONNECTING;
@@ -241,6 +234,8 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
         net_buffer_free(synack);
         return -ECONNREFUSED;
     }
+
+    sock->state = SOCKET_STATE_CONNECTED;
 
     // ACK - следующий номер для SN пришедшего пакета
     sock_data->ack = htonl(tcpp->sn) + 1;

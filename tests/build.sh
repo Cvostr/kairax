@@ -33,3 +33,12 @@ ld $LD_ARGS -o qemunet.a qemunet.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
 gcc $ARGS udpsrv.c -o udpsrv.o
 ld $LD_ARGS -o udpsrv.a udpsrv.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS tcpcl.c -o tcpcl.o
+ld $LD_ARGS -o tcpcl.a tcpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS udpcl.c -o udpcl.o
+ld $LD_ARGS -o udpcl.a udpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS rterm.c -o rterm.o
+ld $LD_ARGS -o rterm.a rterm.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
