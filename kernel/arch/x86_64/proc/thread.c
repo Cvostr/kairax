@@ -81,8 +81,10 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
 
     thread_create_tls(thread);
 
+    // Выделить память под контекст FPU и инициализировать его
     thread->fpu_context = P2V(pmm_alloc_page());
     memset(thread->fpu_context, 0, PAGE_SIZE);
+    fpu_context_init(thread->fpu_context);
 
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
