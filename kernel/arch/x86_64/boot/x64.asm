@@ -16,6 +16,7 @@ global x64_idle_routine
 global x64_sse_enable
 global x64_osxsave_enable
 global x64_avx_enable
+global x64_full_halt
 
 [section .text] 
 
@@ -112,3 +113,7 @@ x64_avx_enable:
     pop rdx
     pop rcx
     ret
+
+x64_full_halt:
+    cli
+    hlt

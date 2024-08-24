@@ -8,6 +8,8 @@
 #include "memory/mem_layout.h"
 #include "mem/pmm.h"
 #include "memory/kernel_vmm.h"
+#include "../apic.h"
+#include "cpu/cpu.h"
 
 char const *exception_message[33] =
 {
@@ -138,6 +140,9 @@ void exception_handler(interrupt_frame_t* frame)
 
     } else {
         printf("Kernel terminated. Please reboot your computer\n");
+
+        // Остановить остальные ядра
+        lapic_send_ipi(0, IPI_DST_OTHERS, IPI_TYPE_FIXED, INTERRUPT_VEC_HLT);
     }
 
 	asm volatile("hlt");

@@ -297,7 +297,7 @@ int hda_device_probe(struct device *dev)
 
     // Полный сброс контроллера
     hda_controller_reset(dev_data);
-    printk("Reset completed!\n");
+    //printk("Reset completed!\n");
 
     // Считаем суммарное количество потоков всех типов
     dev_data->streams_total = dev_data->iss_num + dev_data->oss_num + dev_data->bss_num;
@@ -337,7 +337,7 @@ int hda_device_probe(struct device *dev)
     delay();
 
     uint32_t status = hda_ind(dev_data, STATESTS);
-    printk("STATESTS %i\n", status);
+    //printk("STATESTS %i\n", status);
 
     for (int codec_i = 0; codec_i < HDA_MAX_CODECS; codec_i ++) {
         if (status & (1 >> codec_i)) {
@@ -501,7 +501,7 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
             printk("Widget type : Audio mixer\n");
             break;
         default:
-            printk("Widget type : Unknown !!!!\n");
+            printk("Widget type : Unknown (%i) !!!!\n", widget->type);
             break;
     }
 

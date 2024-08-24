@@ -44,6 +44,10 @@
 
 extern struct vgaconsole* current_console;
 
+extern void x64_full_halt();
+
+void halt();
+
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	parse_mb2_tags(multiboot_struct_ptr);
 
@@ -168,9 +172,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_ints_keyboard();
 
 	usb_init();
-
 	net_init();
 	
+	register_interrupt_handler(INTERRUPT_VEC_HLT, x64_full_halt, 0);
+	register_interrupt_handler(INTERRUPT_VEC_TLB, cpu_tlb_shootdown_ipi, 0);
+
 	struct device* dev = NULL;
     int i = 0;
     while ((dev = get_device(i ++)) != NULL) {
@@ -191,5 +197,5 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	fatal_error:
 		printf("Fatal Error!\nKernel terminated!");
-		asm("hlt");
+		x64_full_halt();
 }

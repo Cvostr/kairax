@@ -18,6 +18,16 @@
 #define LAPIC_TIMER_PERIODIC        0x20000
 #define LAPIC_TIMER_MASKED          0x10000
 
+#define IPI_TYPE_FIXED  0
+#define IPI_TYPE_LOW_PRIORITY   (1 << 8)
+#define IPI_TYPE_INIT           (5 << 8)
+#define IPI_TYPE_STARTUP        (6 << 8)
+
+#define IPI_DST_BY_ID           0
+#define IPI_DST_SELF            (1 << 18)
+#define IPI_DST_ALL             (2 << 18)
+#define IPI_DST_OTHERS          (3 << 18)
+
 int apic_init();
 
 int lapic_timer_calibrate(int freq);
@@ -26,7 +36,7 @@ void lapic_write(uint32_t reg, uint32_t val);
 
 uint32_t lapic_read(uint32_t reg);
 
-void lapic_send_ipi(uint32_t lapic_id, uint32_t value);
+void lapic_send_ipi(uint32_t lapic_id, uint32_t dst, uint32_t type, uint8_t vector);
 
 void lapic_eoi();
 

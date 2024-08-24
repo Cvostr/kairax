@@ -5,10 +5,8 @@
 #include "mem_layout.h"
 #include "stddef.h"
 #include "kstdlib.h"
-
-extern void write_cr3(void*);
-
-extern uint64 read_cr3();
+#include "interrupts/apic.h"
+#include "cpu/cpu.h"
 
 extern void x64_tlb_shootdown(void* addr);
 
@@ -151,8 +149,11 @@ int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr
         pt_table->entries[level1_index] = 0;
     }
 
-    // TODO: сделать сброс TLB более правильным - через IPI уведомлять остальные ядра
+    
     x64_tlb_shootdown(virtual_addr);
+
+    // TODO: сделать сброс TLB более правильным - добавлять в очередь на tlb flush ядра адрес по процессу 
+    lapic_send_ipi(0, IPI_DST_OTHERS, IPI_TYPE_FIXED, INTERRUPT_VEC_TLB);
 
     return 0;
 }

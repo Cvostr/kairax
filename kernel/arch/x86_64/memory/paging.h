@@ -32,6 +32,9 @@
 #define GET_PAGE_FRAME(x)         (void*)((uint64_t)(x) & ~(PAGE_EXEC_DISABLE | 0xFFF))
 #define GET_PAGE_FLAGS(x)         ((uint64_t)(x) & (PAGE_EXEC_DISABLE | 0xFFF)) 
 
+extern void write_cr3(void*);
+extern uint64_t read_cr3();
+
 typedef uintptr_t virtual_addr_t;
 typedef uintptr_t physical_addr_t;
 typedef uint64_t    table_entry_t;

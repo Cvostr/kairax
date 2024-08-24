@@ -189,13 +189,13 @@ int smp_init()
         ap_stack = P2V(pmm_alloc_page() + PAGE_SIZE);
 
         // IPI
-        lapic_send_ipi(lapic_array[cpu_i]->lapic_id, 0x4500);
+        lapic_send_ipi(lapic_array[cpu_i]->lapic_id, IPI_DST_BY_ID, IPI_TYPE_INIT, 0);
 
         // задержка
 		short_delay(5000UL);
 
 		// SIPI со страницей 1
-		lapic_send_ipi(lapic_array[cpu_i]->lapic_id, (0x4600 | TRAMPOLINE_PAGE));
+		lapic_send_ipi(lapic_array[cpu_i]->lapic_id, IPI_DST_BY_ID, IPI_TYPE_STARTUP, TRAMPOLINE_PAGE);
 
         do { asm volatile ("pause" : : : "memory"); } while (!ap_started_flag);
     }
@@ -215,4 +215,12 @@ exit:
     arch_destroy_vm_table(ap_bootstrap_vm);
 
     return rc;
+}
+
+void cpu_tlb_shootdown_ipi()
+{
+    // Пока что просто перезаписываем CR3
+    // ГОВНО !!!!!
+    // TODO: переписать с использованием очереди
+    write_cr3(read_cr3());
 }

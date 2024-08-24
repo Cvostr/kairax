@@ -73,11 +73,12 @@ int lapic_timer_calibrate(int freq)
     return 0;
 }
 
-void lapic_send_ipi(uint32_t lapic_id, uint32_t value)
+void lapic_send_ipi(uint32_t lapic_id, uint32_t dst, uint32_t type, uint8_t vector)
 {
     lapic_write(0x310, lapic_id << 24);
-	lapic_write(0x300, value);
-	do { asm volatile ("pause" : : : "memory"); } while (lapic_read(0x300) & (1 << 12));
+    lapic_write(0x300, dst | type | vector);
+
+    do { asm volatile ("pause" : : : "memory"); } while (lapic_read(0x300) & (1 << 12));
 }
 
 void lapic_eoi()
