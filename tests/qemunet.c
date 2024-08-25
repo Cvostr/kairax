@@ -1,5 +1,6 @@
 #include "unistd.h"
 #include "sys/wait.h"
+#include "stdio.h"
 
 int exec_args(char* cmd, char** args) 
 {

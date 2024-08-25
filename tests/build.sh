@@ -1,44 +1,47 @@
 ARGS="-nostdlib -m64 -c -nostdinc -ffreestanding -I../sdk/libc/include -I../sdk/libkairax/include"
 LD_ARGS="-melf_x86_64 --dynamic-linker=/loader.elf -z noexecstack"
 
-gcc $ARGS sysc.c -o sysc.o
-ld $LD_ARGS -o sysc.a sysc.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+mkdir -p obj
+mkdir -p bin
 
-gcc $ARGS sysn.c -o sysn.o
-ld $LD_ARGS -o sysn.a sysn.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS sysc.c -o obj/sysc.o
+ld $LD_ARGS -o bin/sysc.a obj/sysc.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS floattest.c -o floattest.o
-ld $LD_ARGS -o floattest.a floattest.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS sysn.c -o obj/sysn.o
+ld $LD_ARGS -o bin/sysn.a obj/sysn.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS fs.c -o fs.o
-ld $LD_ARGS -o fs.a fs.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS floattest.c -o obj/floattest.o
+ld $LD_ARGS -o bin/floattest.a obj/floattest.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS pipe.c -o pipe.o
-ld $LD_ARGS -o pipe.a pipe.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS fs.c -o obj/fs.o
+ld $LD_ARGS -o bin/fs.a obj/fs.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS mem.c -o mem.o
-ld $LD_ARGS -o mem.a mem.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS pipe.c -o obj/pipe.o
+ld $LD_ARGS -o bin/pipe.a obj/pipe.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS assert.c -o assert.o
-ld $LD_ARGS -o assert.a assert.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS mem.c -o obj/mem.o
+ld $LD_ARGS -o bin/mem.a obj/mem.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS unixsock.c -o unixsock.o
-ld $LD_ARGS -o unixsock.a unixsock.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS assert.c -o obj/assert.o
+ld $LD_ARGS -o bin/assert.a obj/assert.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS fork.c -o fork.o
-ld $LD_ARGS -o fork.a fork.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS unixsock.c -o obj/unixsock.o
+ld $LD_ARGS -o bin/unixsock.a obj/unixsock.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS qemunet.c -o qemunet.o
-ld $LD_ARGS -o qemunet.a qemunet.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS fork.c -o obj/fork.o
+ld $LD_ARGS -o bin/fork.a obj/fork.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS udpsrv.c -o udpsrv.o
-ld $LD_ARGS -o udpsrv.a udpsrv.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS qemunet.c -o obj/qemunet.o
+ld $LD_ARGS -o bin/qemunet.a obj/qemunet.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS tcpcl.c -o tcpcl.o
-ld $LD_ARGS -o tcpcl.a tcpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS udpsrv.c -o obj/udpsrv.o
+ld $LD_ARGS -o bin/udpsrv.a obj/udpsrv.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS udpcl.c -o udpcl.o
-ld $LD_ARGS -o udpcl.a udpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS tcpcl.c -o obj/tcpcl.o
+ld $LD_ARGS -o bin/tcpcl.a obj/tcpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
-gcc $ARGS rterm.c -o rterm.o
-ld $LD_ARGS -o rterm.a rterm.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+gcc $ARGS udpcl.c -o obj/udpcl.o
+ld $LD_ARGS -o bin/udpcl.a obj/udpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS rterm.c -o obj/rterm.o
+ld $LD_ARGS -o bin/rterm.a obj/rterm.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

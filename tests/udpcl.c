@@ -6,6 +6,7 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 #include "errno.h"
+#include "stdio.h"
    
 #define PORT     8080 
 #define MAXLINE 1024 

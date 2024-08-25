@@ -1,1 +1,1 @@
-sudo cp *.a /mnt/kxvol
+sudo cp bin/*.a /mnt/kxvol
