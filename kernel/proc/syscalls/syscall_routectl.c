@@ -69,8 +69,7 @@ int routectl4(int action, int arg, struct route4_info* route)
             if (is_default_route && nic == NULL)
                 return -EINVAL;
 
-            struct route4* new_route = kmalloc(sizeof(struct route4));
-            memset(new_route, 0, sizeof(struct route4));
+            struct route4* new_route = new_route4();
             new_route->dest = route->dest;
             new_route->netmask = route->netmask;
             new_route->gateway = route->gateway;

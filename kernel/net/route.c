@@ -1,8 +1,17 @@
 #include "route.h"
 #include "list/list.h"
 #include "sync/spinlock.h"
+#include "mem/kheap.h"
+#include "string.h"
 
 list_t      route_table4 = {0,};
+
+struct route4* new_route4()
+{
+    struct route4* route = kmalloc(sizeof(struct route4));
+    memset(route, 0, sizeof(struct route4));
+    return route;
+}
 
 struct route4* route4_resolve(uint32_t dest)
 {

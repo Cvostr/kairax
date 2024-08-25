@@ -46,6 +46,11 @@ extern struct vgaconsole* current_console;
 
 extern void x64_full_halt();
 
+extern int kairax_version_major;
+extern int kairax_version_minor;
+extern const char* kairax_build_date;
+extern const char* kairax_build_time;
+
 void halt();
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
@@ -103,7 +108,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	current_console = console_init();
 
-	printf("Kairax Kernel v0.1\n");
+	printk("Kairax Kernel v%i.%i (%s %s)\n", kairax_version_major, kairax_version_minor, kairax_build_date, kairax_build_time);
 
 	/*struct pmm_region* reg = pmm_get_regions();
 	while (reg->length != 0) {
@@ -121,38 +126,38 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		goto fatal_error;
 	}
 
-	printf("ACPI: Initialization ... ");
+	printk("ACPI: Initialization ... ");
 	void* rsdp_ptr = kboot_info->rsdp_version > 0 ? kboot_info->rsdp_data : NULL;
 	if ((rc = acpi_init(rsdp_ptr)) != 0) {
-		printf("ACPI: Init ERROR 0x%i\n", rc);
+		printk("ACPI: Init ERROR 0x%i\n", rc);
 		goto fatal_error;
 	}
 	if ((rc = acpi_enable()) != 0) {
-		printf("ACPI: Enable ERROR 0x%i\n", rc);
+		printk("ACPI: Enable ERROR 0x%i\n", rc);
 		goto fatal_error;
 	} else {
-		printf("Success!\n");
+		printk("Success!\n");
 	}
 
-	printf("APIC: Initialization\n");
+	printk("APIC: Initialization\n");
 	if (apic_init() != 0) {
 		goto fatal_error;
 	}
 
 	timer_init();
 
-	printf("SMP: Initialization\n");
+	printk("SMP: Initialization\n");
 	init_idle_process();
 	if (smp_init() != 0) {
 		goto fatal_error;
 	}
 
-	printf("Reading PCI devices\n");
+	printk("Reading PCI devices\n");
 	load_pci_devices_list();	
 
 	struct tm datetime;
 	cmos_rtc_get_datetime_tm(&datetime);
-	printf("%i:%i:%i   %i:%i:%i\n", datetime.tm_hour, 
+	printk("%i:%i:%i   %i:%i:%i\n", datetime.tm_hour, 
 									datetime.tm_min,
 									datetime.tm_sec,
 									datetime.tm_mday,
@@ -196,6 +201,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	scheduler_yield(FALSE);
 
 	fatal_error:
-		printf("Fatal Error!\nKernel terminated!");
+		printk("Fatal Error!\nKernel terminated!");
 		x64_full_halt();
 }

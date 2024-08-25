@@ -14,6 +14,7 @@ struct route4 {
     struct nic* interface;
 };
 
+struct route4* new_route4();
 struct route4* route4_get(uint32_t index);
 struct route4* route4_resolve(uint32_t dest);
 int route4_add(struct route4* route);

@@ -37,8 +37,7 @@ void loopback_init()
     net_dev->mtu = 65536;
     register_nic(net_dev, "lo");
 
-    struct route4* loopback_route = kmalloc(sizeof(struct route4));
-    memset(loopback_route, 0, sizeof(struct route4));
+    struct route4* loopback_route = new_route4();
     loopback_route->dest = net_dev->ipv4_addr;
     loopback_route->netmask = 0xFFFFFFFF;
     loopback_route->interface = net_dev;

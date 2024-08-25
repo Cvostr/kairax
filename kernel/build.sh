@@ -4,9 +4,9 @@ rm -rf bin
 mkdir bin
 
 x64_SRC=./arch/x86_64
-STDC_PATH=./kairax
+KAIRAX_PATH=./kairax
 GCC_DEFINES="-D__LITTLE_ENDIAN__ -DX86_64"
-GCC_ARGS="$GCC_DEFINES -nostdlib -m64 -c -nostdinc -I$STDC_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
+GCC_ARGS="$GCC_DEFINES -nostdlib -m64 -c -nostdinc -I$KAIRAX_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
 
 nasm $NASM_ARGS $x64_SRC/boot/start.asm -o ./bin/start.o
@@ -52,17 +52,18 @@ gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler_x64.o
 
 #raxlib
-gcc $GCC_ARGS $STDC_PATH/list/list.c -o ./bin/list.o
-gcc $GCC_ARGS $STDC_PATH/vector/vector.c -o ./bin/vector.o
-gcc $GCC_ARGS $STDC_PATH/guid/guid.c -o ./bin/guid.o
+gcc $GCC_ARGS $KAIRAX_PATH/list/list.c -o ./bin/list.o
+gcc $GCC_ARGS $KAIRAX_PATH/vector/vector.c -o ./bin/vector.o
+gcc $GCC_ARGS $KAIRAX_PATH/guid/guid.c -o ./bin/guid.o
 
 #generic kairax
-gcc $GCC_ARGS $STDC_PATH/elf.c -o ./bin/elf.o
-gcc $GCC_ARGS $STDC_PATH/string.c -o ./bin/stdc_string.o
-gcc $GCC_ARGS $STDC_PATH/stdlib.c -o ./bin/stdc_stdlib.o
-gcc $GCC_ARGS $STDC_PATH/ctype.c -o ./bin/stdc_ctype.o
-gcc $GCC_ARGS $STDC_PATH/stdio.c -o ./bin/stdc_stdio.o
-gcc $GCC_ARGS $STDC_PATH/time.c -o ./bin/time.o
+gcc $GCC_ARGS $KAIRAX_PATH/elf.c -o ./bin/elf.o
+gcc $GCC_ARGS $KAIRAX_PATH/string.c -o ./bin/stdc_string.o
+gcc $GCC_ARGS $KAIRAX_PATH/stdlib.c -o ./bin/stdc_stdlib.o
+gcc $GCC_ARGS $KAIRAX_PATH/ctype.c -o ./bin/stdc_ctype.o
+gcc $GCC_ARGS $KAIRAX_PATH/stdio.c -o ./bin/stdc_stdio.o
+gcc $GCC_ARGS $KAIRAX_PATH/time.c -o ./bin/time.o
+gcc $GCC_ARGS $KAIRAX_PATH/version.c -o ./bin/version.o
 
 #generic dev
 gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o

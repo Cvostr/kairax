@@ -79,22 +79,22 @@ void exception_handler(interrupt_frame_t* frame)
         }
     }
 
-    printf("Exception occured 0x%s (%s)\n", 
+    printk("Exception occured 0x%s (%s)\n", 
     itoa(frame->int_no, 16), exception_message[frame->int_no]);
-    printf("ERR = %s\n", ulltoa(frame->error_code, 16));
-    printf("RAX = %s ", ulltoa(frame->rax, 16));
-    printf("RBX = %s ", ulltoa(frame->rbx, 16));
-    printf("RCX = %s\n", ulltoa(frame->rcx, 16));
-    printf("RIP = %s ", ulltoa(frame->rip, 16));
-    printf("RSP = %s ", ulltoa(frame->rsp, 16));
-    printf("RBP = %s\n", ulltoa(frame->rbp, 16));
-    printf("RDI = %s ", ulltoa(frame->rdi, 16));
-    printf("RSI = %s ", ulltoa(frame->rsi, 16));
-    printf("RDX = %s\n", ulltoa(frame->rdx, 16));
-    printf("CS = %s ", ulltoa(frame->cs, 16));
-    printf("SS = %s ", ulltoa(frame->ss, 16));
-    printf("CR2 = %s ", ulltoa(cr2, 16));
-    printf("CR3 = %s\n", ulltoa(cr3, 16));
+    printk("ERR = %s\n", ulltoa(frame->error_code, 16));
+    printk("RAX = %s ", ulltoa(frame->rax, 16));
+    printk("RBX = %s ", ulltoa(frame->rbx, 16));
+    printk("RCX = %s\n", ulltoa(frame->rcx, 16));
+    printk("RIP = %s ", ulltoa(frame->rip, 16));
+    printk("RSP = %s ", ulltoa(frame->rsp, 16));
+    printk("RBP = %s\n", ulltoa(frame->rbp, 16));
+    printk("RDI = %s ", ulltoa(frame->rdi, 16));
+    printk("RSI = %s ", ulltoa(frame->rsi, 16));
+    printk("RDX = %s\n", ulltoa(frame->rdx, 16));
+    printk("CS = %s ", ulltoa(frame->cs, 16));
+    printk("SS = %s ", ulltoa(frame->ss, 16));
+    printk("CR2 = %s ", ulltoa(cr2, 16));
+    printk("CR3 = %s\n", ulltoa(cr3, 16));
 
     uint8_t* ip = (uint8_t*) frame->rip;
     int show_instr = 1;
@@ -102,9 +102,9 @@ void exception_handler(interrupt_frame_t* frame)
         show_instr = vm_is_mapped(cpu_get_current_vm_table(), ip);
     }
     if (show_instr == 1) {
-        printf("INSTR: ");
+        printk("INSTR: ");
         for (int i = 0; i < 8; i ++) {
-            printf("%s ", ulltoa(*(ip++), 16));
+            printk("%s ", ulltoa(*(ip++), 16));
         }
     }
     
@@ -114,14 +114,14 @@ void exception_handler(interrupt_frame_t* frame)
         show_stack = vm_is_mapped(cpu_get_current_vm_table(), stack_ptr);
     }
     if (show_stack) {
-        printf("\nSTACK TRACE: \n");
+        printk("\nSTACK TRACE: \n");
         for (int i = 0; i < 25; i ++) {
             uintptr_t value = *(stack_ptr + i);
-            printf("%s ", ulltoa(value, 16));
+            printk("%s ", ulltoa(value, 16));
         }
     }
     
-    printf("\n");
+    printk("\n");
 
     if (frame->cs == 0x23) {
         // Исключение произошло в пользовательском процессе
@@ -135,11 +135,11 @@ void exception_handler(interrupt_frame_t* frame)
                 rc = 128 + SIGILL;
                 break;
         }
-        printf("Process terminated!\n");
+        printk("Process terminated!\n");
         sys_exit_process(rc);
 
     } else {
-        printf("Kernel terminated. Please reboot your computer\n");
+        printk("Kernel terminated. Please reboot your computer\n");
 
         // Остановить остальные ядра
         lapic_send_ipi(0, IPI_DST_OTHERS, IPI_TYPE_FIXED, INTERRUPT_VEC_HLT);
