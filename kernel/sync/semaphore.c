@@ -40,7 +40,7 @@ void semaphore_acquire(struct semaphore* sem)
         if (sem->first == NULL) {
             sem->first = current;
         } else {
-            sem->last->next_blocked_thread = current; 
+            sem->last->next = current; 
         }
 
         sem->last = current;
@@ -59,8 +59,8 @@ void semaphore_release(struct semaphore* sem)
     if (sem->first) {
         // Первый заблокированный поток
         struct thread* first_thread = sem->first;
-        sem->first = first_thread->next_blocked_thread; 
-        first_thread->next_blocked_thread = NULL;
+        sem->first = first_thread->next; 
+        first_thread->next = NULL;
         // Разблокировка потока
         scheduler_unblock(first_thread);
     } else {

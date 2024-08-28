@@ -33,7 +33,8 @@ struct thread {
     int                 timeslice;
     sigset_t            pending_signals;
     // Следующий поток при блокировке на семафоре
-    struct thread*      next_blocked_thread;
+    struct thread*      prev;
+    struct thread*      next;
 
 #ifdef X86_64
     uint8_t*             fpu_context;

@@ -111,10 +111,12 @@ void list_unlink(list_t* list, struct list_node* node)
 
     if (list->head == node) {
         list->head = next;
+        if (list->head) list->head->prev = NULL;
     }
 
     if (list->tail == node) {
         list->tail = prev;
+        if (list->tail) list->tail->next = NULL;
     }
 
     list->size--;
