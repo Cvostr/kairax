@@ -134,6 +134,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 
     // Сохраняем значения аргументов в память ядра, т.к ниже мы уничтожим адресное пространство процесса
     char** argvk = kmalloc(argc * sizeof(char*));
+    if (argv == NULL) { rc = -ENOMEM; goto error; }
     for (i = 0; i < argc; i ++) {
         argvk[i] = kmalloc(strlen(argv[i]) + 1);
         strcpy(argvk[i], argv[i]);
@@ -141,6 +142,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 
     // Сохраняем значения ENV в память ядра, т.к ниже мы уничтожим адресное пространство процесса
     char** envpk = kmalloc(envc * sizeof(char*));
+    if (envpk == NULL) { rc = -ENOMEM; goto error; }
     for (i = 0; i < envc; i ++) {
         envpk[i] = kmalloc(strlen(envp[i]) + 1);
         strcpy(envpk[i], envp[i]);
@@ -151,10 +153,12 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     goto next;
 
 error:
-    if (exec_file) file_close(exec_file);
-    if (process_image_data) kfree(process_image_data);
-    if (loader_file) file_close(loader_file);
+    if (envpk) kfree(envpk);
+    if (argvk) kfree(argvk);
     if (loader_image_data) kfree(loader_image_data);
+    if (loader_file) file_close(loader_file);
+    if (process_image_data) kfree(process_image_data);
+    if (exec_file) file_close(exec_file);
 
     return rc;
 next:

@@ -1,12 +1,7 @@
 #include "thread_scheduler.h"
 #include "cpu/cpu_local_x64.h"
 
-#define MAX_THREADS 3000
-
-struct thread* sched_threads[MAX_THREADS];
-pid_t current_thread = 0;
-pid_t max_tid = 0;
-spinlock_t threads_lock = 0;
+struct sched_wq thread_queue;
 
 void init_scheduler()
 {
@@ -15,33 +10,47 @@ void init_scheduler()
 
 void scheduler_add_thread(struct thread* thread)
 {
-    acquire_spinlock(&threads_lock);
+    disable_interrupts();
 
-    for (pid_t tid = 0; tid < MAX_THREADS; tid ++) {
-        if (sched_threads[tid] == NULL) {
-            sched_threads[tid] = thread;
-            if (max_tid < tid) {
-                max_tid = tid;
-            }
-
-            break;
-        }
+    if (!thread_queue.head) {
+        // Первого элемента не существует
+        thread_queue.head = thread;
+    } else {
+        thread_queue.tail->next = thread;
+        thread->prev = thread_queue.tail;
     }
-    
-    release_spinlock(&threads_lock);
+
+    thread_queue.tail = thread;
+
+    enable_interrupts();
 }
 
 void scheduler_remove_thread(struct thread* thread)
 {
-    acquire_spinlock(&threads_lock);
+    disable_interrupts();
     
-    for (uint64 i = 0; i < MAX_THREADS; i ++) {
-        if (sched_threads[i] == thread) {
-            sched_threads[i] = NULL;
-        }
+    struct thread* prev = thread->prev;
+    struct thread* next = thread->next;
+
+    if (prev) {
+        prev->next = next;
     }
 
-    release_spinlock(&threads_lock);
+    if (next) {
+        next->prev = prev;
+    }
+
+    if (thread_queue.head == thread) {
+        thread_queue.head = next;
+        if (thread_queue.head) thread_queue.head->prev = NULL;
+    }
+
+    if (thread_queue.tail == thread) {
+        thread_queue.tail = prev;
+        if (thread_queue.tail) thread_queue.tail->next = NULL;
+    }
+
+    enable_interrupts();
 }
 
 void scheduler_remove_process_threads(struct process* process)
@@ -75,21 +84,21 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
 int scheduler_wakeup(void* handle, int max)
 {
     int i = 0;
-    acquire_spinlock(&threads_lock);
+    disable_interrupts();
 
-    for (pid_t tid = 0; tid <= max_tid; tid ++) {
+    struct thread* thread = thread_queue.head;
 
-        struct thread* thread = sched_threads[tid];
+    while (thread != NULL) {
 
-        if (thread != NULL) {
-            if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle && i < max) {
-                scheduler_unblock(thread);
-                i ++;
-            }
+        if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle && i < max) {
+            scheduler_unblock(thread);
+            i ++;
         }
+
+        thread = thread->next;
     }
 
-    release_spinlock(&threads_lock);
+    enable_interrupts();
     return i;
 }
 
@@ -101,39 +110,42 @@ void scheduler_unblock(struct thread* thread)
 
 struct thread* scheduler_get_next_runnable_thread()
 {
-    struct thread* new_thread = NULL;
+    struct thread* thread = thread_queue.head;
 
-/*
+
     int runnable = 0;
-    for (uint64 i = 0; i < MAX_THREADS; i ++) {
-        if (sched_threads[i] != NULL) {
-            if (sched_threads[i]->state == STATE_RUNNABLE)
-                runnable++;
+    while (thread != NULL) {
+        if (thread->state == STATE_RUNNABLE) {
+            runnable = 1;
+            break;
         }
+        thread = thread->next;
     }
-
     if (runnable == 0) {
         return cpu_get_idle_thread();
-    }*/
+    }
+
+
+    thread = cpu_get_current_thread();
+
+    if (thread == NULL) {
+        return thread_queue.head;
+    }
 
     while (1) {
-        
-        current_thread ++;
-        if (current_thread > max_tid)
-            current_thread = 0;
 
-        new_thread = sched_threads[current_thread];
+        thread = thread->next;
 
-        if (new_thread == NULL) {
-            continue;
+        if (thread == NULL) {
+            thread = thread_queue.head;
         }
 
-        if (new_thread->state != STATE_RUNNABLE) {
+        if (thread->state != STATE_RUNNABLE) {
             continue;
         }
 
         break;
     }
 
-    return new_thread;
+    return thread;
 }

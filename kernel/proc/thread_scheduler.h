@@ -3,6 +3,11 @@
 
 #include "thread.h"
 
+struct sched_wq {
+    struct thread* head;
+    struct thread* tail;
+};
+
 void init_scheduler();
 
 void scheduler_start();
