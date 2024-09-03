@@ -4,6 +4,7 @@
 #include "gdt.h"
 #include "proc/thread.h"
 #include "mem/paging.h"
+#include "proc/thread_scheduler.h"
 
 struct cpu_local_x64 {
     // Указатели на стек пользователя и ядра. НЕ ПЕРЕМЕЩАТЬ!!!
@@ -17,6 +18,7 @@ struct cpu_local_x64 {
     int lapic_id;
     int id;
 
+    struct sched_wq* wq;
     struct vm_table* current_vm;
     struct thread* current_thread;
     struct thread* idle_thread;
@@ -72,6 +74,11 @@ static inline int cpu_get_lapic_id()
 static inline struct thread* cpu_get_idle_thread()
 {
     return this_core->idle_thread;
+}
+
+static inline struct sched_wq* cpu_get_wq()
+{
+    return this_core->wq;
 }
 
 #endif

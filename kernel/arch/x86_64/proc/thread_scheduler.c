@@ -65,6 +65,7 @@ int scheduler_handler(thread_frame_t* frame)
         // Сохранить указатель на контекст
         previous_thread->context = frame;
         
+        // Сохранить состояние FPU
         if (previous_thread->fpu_context) {
             fpu_save(previous_thread->fpu_context);
         }

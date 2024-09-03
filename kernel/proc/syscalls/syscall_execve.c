@@ -9,6 +9,21 @@
 #include "proc/x64_context.h"
 //
 
+void free_twodim(char **arr, int size)
+{
+    int i;
+    if (arr != NULL)
+    {
+        for (i = 0; i < size; i ++) 
+        {
+            if (arr[i])
+                kfree(arr[i]);
+        }
+
+        kfree(arr);
+    }
+}
+
 int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 {
     int rc;
@@ -25,6 +40,9 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     void* loader_start_ip = NULL;
     struct file* exec_file = NULL;
     struct file* loader_file = NULL;
+
+    char** argvk = NULL;
+    char** envpk = NULL;
 
     struct process* process = cpu_get_current_thread()->process;
 
@@ -133,17 +151,19 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     file_close(loader_file);
 
     // Сохраняем значения аргументов в память ядра, т.к ниже мы уничтожим адресное пространство процесса
-    char** argvk = kmalloc(argc * sizeof(char*));
-    if (argv == NULL) { rc = -ENOMEM; goto error; }
-    for (i = 0; i < argc; i ++) {
+    argvk = kmalloc(argc * sizeof(char*));
+    if (argvk == NULL) { rc = -ENOMEM; goto error; }
+    for (i = 0; i < argc; i ++) 
+    {
         argvk[i] = kmalloc(strlen(argv[i]) + 1);
         strcpy(argvk[i], argv[i]);
     }
 
     // Сохраняем значения ENV в память ядра, т.к ниже мы уничтожим адресное пространство процесса
-    char** envpk = kmalloc(envc * sizeof(char*));
+    envpk = kmalloc(envc * sizeof(char*));
     if (envpk == NULL) { rc = -ENOMEM; goto error; }
-    for (i = 0; i < envc; i ++) {
+    for (i = 0; i < envc; i ++) 
+    {
         envpk[i] = kmalloc(strlen(envp[i]) + 1);
         strcpy(envpk[i], envp[i]);
     }
@@ -153,8 +173,8 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     goto next;
 
 error:
-    if (envpk) kfree(envpk);
-    if (argvk) kfree(argvk);
+    free_twodim(argvk, argc);
+    free_twodim(envpk, envc);
     if (loader_image_data) kfree(loader_image_data);
     if (loader_file) file_close(loader_file);
     if (process_image_data) kfree(process_image_data);
@@ -276,15 +296,9 @@ next:
     // Освободить память под aux
     kfree(aux_v);
 
-    for (i = 0; i < argc; i ++) {
-        kfree(argvk[i]);
-    }
-    kfree(argvk);
-
-    for (i = 0; i < envc; i ++) {
-        kfree(envpk[i]);
-    }
-    kfree(envpk);
+    // Освободить память под временные двумерные массивы аргументов и окружения
+    free_twodim(argvk, argc);
+    free_twodim(envpk, envc);
 
     return 0;
 }

@@ -8,13 +8,15 @@ struct ip4_protocol ip4_icmp_protocol = {
     .handler = icmp_ip4_handle
 };
 
-void icmp_ip4_handle(struct net_buffer* nbuffer)
+int icmp_ip4_handle(struct net_buffer* nbuffer)
 {
 #ifdef ICMP_LOGGING
     printk("ICMP packet received\n");
 #endif
     net_buffer_acquire(nbuffer);
     net_buffer_free(nbuffer);
+    
+    return 0;
 }
 
 void icmp_ip4_init()

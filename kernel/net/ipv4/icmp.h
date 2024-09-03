@@ -3,6 +3,6 @@
 
 #include "net/net_buffer.h"
 
-void icmp_ip4_handle(struct net_buffer* nbuffer);
+int icmp_ip4_handle(struct net_buffer* nbuffer);
 
 #endif

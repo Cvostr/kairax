@@ -1,34 +1,26 @@
 #include "thread_scheduler.h"
 #include "cpu/cpu_local_x64.h"
 
-struct sched_wq thread_queue;
-
 void init_scheduler()
 {
    
 }
 
-void scheduler_add_thread(struct thread* thread)
+void wq_add_thread(struct sched_wq* wq, struct thread* thread)
 {
-    disable_interrupts();
-
-    if (!thread_queue.head) {
+    if (!wq->head) {
         // Первого элемента не существует
-        thread_queue.head = thread;
+        wq->head = thread;
     } else {
-        thread_queue.tail->next = thread;
-        thread->prev = thread_queue.tail;
+        wq->tail->next = thread;
+        thread->prev = wq->tail;
     }
 
-    thread_queue.tail = thread;
-
-    enable_interrupts();
+    wq->tail = thread;
 }
 
-void scheduler_remove_thread(struct thread* thread)
+void wq_remove_thread(struct sched_wq* wq, struct thread* thread)
 {
-    disable_interrupts();
-    
     struct thread* prev = thread->prev;
     struct thread* next = thread->next;
 
@@ -40,15 +32,33 @@ void scheduler_remove_thread(struct thread* thread)
         next->prev = prev;
     }
 
-    if (thread_queue.head == thread) {
-        thread_queue.head = next;
-        if (thread_queue.head) thread_queue.head->prev = NULL;
+    if (wq->head == thread) {
+        wq->head = next;
+        if (wq->head) wq->head->prev = NULL;
     }
 
-    if (thread_queue.tail == thread) {
-        thread_queue.tail = prev;
-        if (thread_queue.tail) thread_queue.tail->next = NULL;
+    if (wq->tail == thread) {
+        wq->tail = prev;
+        if (wq->tail) wq->tail->next = NULL;
     }
+}
+
+void scheduler_add_thread(struct thread* thread)
+{
+    struct sched_wq* wq = cpu_get_wq();
+    disable_interrupts();
+
+    wq_add_thread(wq, thread);
+
+    enable_interrupts();
+}
+
+void scheduler_remove_thread(struct thread* thread)
+{
+    struct sched_wq* wq = cpu_get_wq();
+    disable_interrupts();
+    
+    wq_remove_thread(wq, thread);
 
     enable_interrupts();
 }
@@ -84,9 +94,10 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
 int scheduler_wakeup(void* handle, int max)
 {
     int i = 0;
+    struct sched_wq* wq = cpu_get_wq();
     disable_interrupts();
 
-    struct thread* thread = thread_queue.head;
+    struct thread* thread = wq->head;
 
     while (thread != NULL) {
 
@@ -110,7 +121,8 @@ void scheduler_unblock(struct thread* thread)
 
 struct thread* scheduler_get_next_runnable_thread()
 {
-    struct thread* thread = thread_queue.head;
+    struct sched_wq* wq = cpu_get_wq();
+    struct thread* thread = wq->head;
 
 
     int runnable = 0;
@@ -129,7 +141,7 @@ struct thread* scheduler_get_next_runnable_thread()
     thread = cpu_get_current_thread();
 
     if (thread == NULL) {
-        return thread_queue.head;
+        return wq->head;
     }
 
     while (1) {
@@ -137,7 +149,7 @@ struct thread* scheduler_get_next_runnable_thread()
         thread = thread->next;
 
         if (thread == NULL) {
-            thread = thread_queue.head;
+            thread = wq->head;
         }
 
         if (thread->state != STATE_RUNNABLE) {

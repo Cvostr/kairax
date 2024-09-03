@@ -11,13 +11,10 @@ extern int scheduler_handler(thread_frame_t* frame);
 
 void timer_int_handler(thread_frame_t* context) 
 {
-    int lc = cpu_get_lapic_id();
+    int lapicid = cpu_get_lapic_id();
 
-    if (lc == 0) {
+    if (lapicid == 0) {
         timer_handle();
-    } else {
-        lapic_eoi();
-        return;
     }
 
     lapic_eoi();

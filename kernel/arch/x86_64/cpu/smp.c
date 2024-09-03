@@ -160,6 +160,9 @@ int smp_init()
         // Создать GDT для ядра
         gdt_create(&curr_cpu_local->gdt, &curr_cpu_local->gdt_size, &curr_cpu_local->tss);
 
+        curr_cpu_local->wq = kmalloc(sizeof(struct sched_wq));
+        memset(curr_cpu_local->wq, 0, sizeof(struct sched_wq));
+
         if (cpu_i == bspid) {
             // Обрабатываем стартовое ядро
             gdtr_t bsp_gdtr;

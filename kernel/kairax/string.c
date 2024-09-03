@@ -1,5 +1,6 @@
 #include "string.h"
 #include "mem/kheap.h"
+#include "kstdlib.h"
 
 size_t strlen(const char* str)
 {
@@ -19,7 +20,7 @@ char* strcat(char *str, char* add_str){
 
   	for (i = 0; str[i] != '\0'; i++);
   		for (j = 0; add_str[j] != '\0'; j++)
-    			str[i+j] = add_str[j];
+    		str[i+j] = add_str[j];
 
   	str[i+j] = '\0';
 
@@ -78,28 +79,35 @@ int strcmp(const char* str1, const char* str2){
   	return 0;
 }
 
-int strncmp(const char* str1, const char* str2, size_t len){
-  	for(int i = 0; i < len; i ++){
-    		if(str1[i] != str2[i]) 
+int strncmp(const char* str1, const char* str2, size_t len)
+{
+  	for(int i = 0; i < len; i ++)
+	{
+    	if(str1[i] != str2[i]) 
 			return 1;
   	}
   	return 0;
 }
 
-void strcpy(char* dst, const char* src){
+void strcpy(char* dst, const char* src)
+{
 	size_t len = strlen(src);
 
-  	for(uint32_t it = 0; it < len; it ++){
-    		*(dst++) = src[it];
+  	for (uint32_t it = 0; it < len; it ++){
+    	*(dst++) = src[it];
   	}
 
 	*(dst++) = '\0';
 }
 
-void strncpy(char* dst, const char* src, size_t size){
-	for(uint32_t it = 0; it < size; it ++){
-    		*(dst++) = src[it];
+void strncpy(char* dst, const char* src, size_t size)
+{
+	size_t len = strlen(src);
+	len = MIN(len, size);
+	for (uint32_t it = 0; it < len; it ++){
+    	*(dst++) = src[it];
   	}
+
 	*(dst++) = '\0';
 }
 
