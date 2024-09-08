@@ -36,8 +36,9 @@ struct thread {
     struct thread*      prev;
     struct thread*      next;
 
+    uint32_t            cpu;
 #ifdef X86_64
-    uint8_t*             fpu_context;
+    uint8_t*            fpu_context;
 #endif
 };
 

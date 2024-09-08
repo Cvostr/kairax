@@ -55,6 +55,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     if (argv != NULL) {
+        VALIDATE_USER_POINTER(process, &argv[argc], sizeof(char*))
         while (argv[argc] != NULL) {
             argc++;
             summary_size += strlen(argv[argc]) + 1;
@@ -72,6 +73,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     if (envp != NULL) {
+        VALIDATE_USER_POINTER(process, &envp[envc], sizeof(char*))
         while (envp[envc] != NULL) {
             envc++;
         }

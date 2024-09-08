@@ -152,6 +152,11 @@ int process_is_userspace_region(struct process* process, uintptr_t base, size_t 
         return 0;
     }
 
+    // temporary
+    if (base + len < 0x1000) {
+        return 0;
+    }
+
     return 1;
 }
 
