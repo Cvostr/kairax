@@ -17,6 +17,7 @@ global x64_sse_enable
 global x64_osxsave_enable
 global x64_avx_enable
 global x64_full_halt
+global x64_getrflags
 
 [section .text] 
 
@@ -117,3 +118,8 @@ x64_avx_enable:
 x64_full_halt:
     cli
     hlt
+
+x64_getrflags:
+    pushfq
+    pop rax
+    ret

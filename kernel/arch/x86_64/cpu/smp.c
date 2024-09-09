@@ -28,6 +28,10 @@ int ap_started_flag = 0;
 
 struct cpu_local_x64* curr_cpu_local;
 
+// Структуры для глобальной линковки 
+struct cpu_local_x64** cpus;
+size_t cpus_num = 0; 
+
 extern void syscall_entry_x64();
 extern void x64_idle_routine();
 
@@ -145,6 +149,11 @@ int smp_init()
     ap_gdtr->base = (uintptr_t)gdt_addr;
     ap_gdtr->limit = reqd_gdt_size - 1;
 
+    // Выделить память под локальные структуры процессоров
+    cpus = kmalloc(sizeof(struct cpu_local_x64*) * acpi_get_cpus_apic_count());
+
+    cpus_num = acpi_get_cpus_apic_count();
+
     // Инициализировать ядра
     for (int cpu_i = 0; cpu_i < acpi_get_cpus_apic_count(); cpu_i ++) {
 
@@ -156,6 +165,9 @@ int smp_init()
         memset(curr_cpu_local, 0, sizeof(struct cpu_local_x64));
         curr_cpu_local->lapic_id = lapic_array[cpu_i]->lapic_id;
         curr_cpu_local->id = cpu_i;
+
+        // Сохранить в массив
+        cpus[cpu_i] = curr_cpu_local;
 
         // Создать GDT для ядра
         gdt_create(&curr_cpu_local->gdt, &curr_cpu_local->gdt_size, &curr_cpu_local->tss);
