@@ -1,5 +1,6 @@
 #include "process_list.h"
 #include "process.h"
+#include "thread.h"
 #include "sync/spinlock.h"
 
 #define MAX_PROCESSES 3000
@@ -76,7 +77,12 @@ void plist_debug()
 
         if (proc != NULL) {
             
-            printk("\"%s\": pid: %i\n", proc->name, proc->pid);           
+            printk("\"%s\": pid: %i ", proc->name, proc->pid);      
+            if (proc->type == OBJECT_TYPE_THREAD) {
+                struct thread* thr = (struct thread*) proc;
+                printk("CPU %i", thr->cpu);
+            }   
+            printk("\n");  
         }
     }
 }

@@ -45,3 +45,6 @@ ld $LD_ARGS -o bin/udpcl.a obj/udpcl.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -le
 
 gcc $ARGS rterm.c -o obj/rterm.o
 ld $LD_ARGS -o bin/rterm.a obj/rterm.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS bench.c -o obj/bench.o
+ld $LD_ARGS -o bin/bench.a obj/bench.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

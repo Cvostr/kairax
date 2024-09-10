@@ -10,6 +10,7 @@
 #include "memory/kernel_vmm.h"
 #include "../apic.h"
 #include "cpu/cpu.h"
+#include "sync/spinlock.h"
 
 char const *exception_message[33] =
 {
@@ -50,6 +51,8 @@ char const *exception_message[33] =
 
 //#define PAGE_PROTECTION_VIOLATION
 
+spinlock_t dump_lock = 0;
+
 void exception_handler(interrupt_frame_t* frame)
 {
     uint64_t cr2, cr3;
@@ -79,8 +82,10 @@ void exception_handler(interrupt_frame_t* frame)
         }
     }
 
-    printk("Exception occured 0x%s (%s)\n", 
-    itoa(frame->int_no, 16), exception_message[frame->int_no]);
+    acquire_spinlock(&dump_lock);
+
+    printk("Exception occured 0x%s (%s) on CPU %i\n", 
+    itoa(frame->int_no, 16), exception_message[frame->int_no], cpu_get_id());
     printk("ERR = %s\n", ulltoa(frame->error_code, 16));
     printk("RAX = %s ", ulltoa(frame->rax, 16));
     printk("RBX = %s ", ulltoa(frame->rbx, 16));
@@ -123,6 +128,8 @@ void exception_handler(interrupt_frame_t* frame)
     
     printk("\n");
 
+    release_spinlock(&dump_lock);
+
     if (frame->cs == 0x23) {
         // Исключение произошло в пользовательском процессе
         // Завершаем процесс
@@ -135,7 +142,6 @@ void exception_handler(interrupt_frame_t* frame)
                 rc = 128 + SIGILL;
                 break;
         }
-        printk("Process terminated!\n");
         sys_exit_process(rc);
 
     } else {
