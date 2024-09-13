@@ -10,7 +10,7 @@
 
 int main(int argc, char** argv) 
 {
-
+    int status = 0;
     printf("Fork() test program\n");
 
     int fd = open("/dev/random", O_RDONLY, 0);
@@ -37,7 +37,6 @@ int main(int argc, char** argv)
     } else if (r > 0) {
         printf("PARENT, child: %i\n", r);
         printf("Waiting for completion\n");
-        int status = 0;
         waitpid(r, &status, 0);
         printf("Completed with code %i\n", status);
     } else {
@@ -65,6 +64,7 @@ int main(int argc, char** argv)
             printf("ERROR, Strings are not equal\n");
             return 1;
         }
+        waitpid(r, &status, 0);
     }
 
     return 0;

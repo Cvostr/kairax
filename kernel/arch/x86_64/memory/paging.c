@@ -13,6 +13,10 @@ extern void x64_tlb_shootdown(void* addr);
 page_table_t* new_page_table()
 {
     page_table_t* table = (page_table_t*)pmm_alloc_page();
+    if (table == NULL) {
+        return NULL;
+    }
+    
     table = P2V(table);
     memset(table, 0, 4096);
     return table;

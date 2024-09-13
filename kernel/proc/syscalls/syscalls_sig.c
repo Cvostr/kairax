@@ -38,6 +38,10 @@ int sys_send_signal(pid_t pid, int signal)
         target = (struct thread*) proc;
     }
 
+    if (target == NULL) {
+        return -ESRCH;
+    }
+
     return thread_send_signal(target, signal);
 }
 

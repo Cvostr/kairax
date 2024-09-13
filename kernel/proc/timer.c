@@ -72,6 +72,11 @@ struct event_timer* register_event_timer(struct timespec duration)
     return timer;
 }
 
+void sleep_on_timer(struct event_timer* timer)
+{
+    scheduler_sleep(timer, NULL);
+}
+
 void unregister_event_timer(struct event_timer* timer)
 {
     acquire_spinlock(&timers_lock);

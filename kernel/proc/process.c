@@ -14,12 +14,20 @@
 struct process*  create_new_process(struct process* parent)
 {
     struct process* process = (struct process*)kmalloc(sizeof(struct process));
+    if (process == NULL) {
+        return NULL;
+    }
     memset(process, 0, sizeof(struct process));
 
     process->type = OBJECT_TYPE_PROCESS;
     process->name[0] = '\0';
     // Склонировать таблицу виртуальной памяти ядра
     process->vmemory_table = clone_kernel_vm_table();
+    if (process->vmemory_table == NULL) {
+        kfree(process);
+        return NULL;
+    }
+
     atomic_inc(&process->vmemory_table->refs);
 
     process->brk = 0x0;

@@ -54,6 +54,12 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         return -1;
     }
 
+    // Заранее выделяем память под aux вектор
+    struct aux_pair* aux_v = kmalloc(sizeof(struct aux_pair) * 4);
+    if (aux_v == NULL) {
+        return -ENOMEM;
+    }
+
     if (argv != NULL) {
         VALIDATE_USER_POINTER(process, &argv[argc], sizeof(char*))
         while (argv[argc] != NULL) {
@@ -256,7 +262,6 @@ next:
     rc = elf_load_process(process, loader_image_data, loader_offset, &loader_start_ip, NULL);
     kfree(loader_image_data);
 
-
     char* argvm = NULL;
     char* envpm = NULL;
     if (argv) {
@@ -269,7 +274,6 @@ next:
     }
 
     // Формируем auxiliary вектор
-    struct aux_pair* aux_v = kmalloc(sizeof(struct aux_pair) * 4);
     aux_v[1].type = AT_EXECFD;
     aux_v[1].ival = fd;
     aux_v[2].type = AT_ENTRY;

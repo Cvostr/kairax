@@ -17,6 +17,10 @@ pid_t sys_fork()
 
     // Создать новый процесс
     struct process* new_process = create_new_process(process);
+    if (new_process == NULL) {
+        return -ENOMEM;
+    }
+    
     // Добавить в список и назначить pid
     process_add_to_list(new_process);
 

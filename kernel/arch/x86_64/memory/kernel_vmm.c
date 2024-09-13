@@ -81,6 +81,10 @@ void vmm_use_kernel_vm()
 void* arch_clone_kernel_vm_table()
 {
     page_table_t* result = new_page_table();
+    if (result == NULL) {
+        return NULL;
+    }
+
     memcpy(result, root_pml4, sizeof(page_table_t));
     return result;
 }
