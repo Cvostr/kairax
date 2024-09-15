@@ -3,7 +3,6 @@
 #include "string.h"
 #include "mem/pmm.h"
 #include "kstdlib.h"
-#include "proc/thread_scheduler.h"
 
 struct file_operations pipe_fops_read = {
     .read = pipe_file_read,
@@ -18,15 +17,25 @@ struct file_operations pipe_fops_write = {
 struct pipe* new_pipe(size_t size)
 {
     struct pipe* pipe = (struct pipe*) kmalloc(sizeof(struct pipe)); 
+    if (pipe == NULL) {
+        return NULL;
+    }
+
     memset(pipe, 0, sizeof(struct pipe));
 
     pipe->buffer = P2V(pmm_alloc_page());
+    if (pipe->buffer == NULL) {
+        kfree(pipe);
+        return NULL;
+    }
     
     return pipe;
 }
 
 void free_pipe(struct pipe* pipe)
 {
+    pipe->dead = 1;
+
     pmm_free_page(V2P(pipe->buffer));
     kfree(pipe);
 }
@@ -64,18 +73,35 @@ int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, stru
 ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 {
     size_t i;
+
+    // Канал уничтожен
+    if (pipe->dead == 1) 
+    {
+        // TODO : SIGPIPE
+        return -ESPIPE;
+    }
+
     acquire_spinlock(&pipe->lock);
 
     while (pipe->read_pos == pipe->write_pos) {
+
+        // Закрыт ли дескриптор записи?
+        if ((pipe->check_ends == 1 && pipe->nwritefds == 0))
+        {
+            // TODO : SIGPIPE
+            i = -EPIPE;
+            goto exit;
+        }
 
         if (nonblock == 1) {
             i = 0;
             goto exit;
         }
 
-        //printk("BLK %i %i ", pipe->write_pos, pipe->read_pos);
         // Нечего читать - засыпаем
-        scheduler_sleep(&pipe->nreadfds, &pipe->lock);
+        release_spinlock(&pipe->lock);
+        scheduler_sleep_intrusive(&pipe->readb.head, &pipe->readb.tail, &pipe->readb.lock);
+        acquire_spinlock(&pipe->lock);
     }
 
     for (i = 0; i < count; i ++) {
@@ -87,7 +113,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
     }
 
     // Пробуждаем записывающих
-    scheduler_wakeup(&pipe->nwritefds, INT_MAX);
+    scheduler_wakeup_intrusive(&pipe->writeb.head, &pipe->writeb.tail, &pipe->writeb.lock, INT_MAX);
 
 exit:
     release_spinlock(&pipe->lock);
@@ -96,23 +122,38 @@ exit:
 
 ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
 {
+    if (pipe->dead == 1) 
+    {
+        // TODO : SIGPIPE
+        return -ESPIPE;
+    }
+
+    // Закрыты все читающие
+    if ((pipe->check_ends == 1 && pipe->nreadfds == 0))
+    {
+        // TODO : SIGPIPE
+        return -EPIPE;
+    }
+
     acquire_spinlock(&pipe->lock);
+
     for (size_t i = 0; i < count; i ++) {
         
         while (pipe->write_pos == pipe->read_pos + PIPE_SIZE) {
-            //printk("OBER %s %i %i %i ", buffer, count, pipe->write_pos, pipe->read_pos);
             // Больше места нет - пробуждаем читающих
-            scheduler_wakeup(&pipe->nreadfds, INT_MAX);
+            scheduler_wakeup_intrusive(&pipe->readb.head, &pipe->readb.tail, &pipe->readb.lock, INT_MAX);
             // И засыпаем сами
-            scheduler_sleep(&pipe->nwritefds, &pipe->lock);
+            release_spinlock(&pipe->lock);
+            scheduler_sleep_intrusive(&pipe->writeb.head, &pipe->writeb.tail, &pipe->lock);
+            acquire_spinlock(&pipe->lock);
         }
 
         // записываем байт
         pipe->buffer[pipe->write_pos++ % PIPE_SIZE] = buffer[i];
     }
 
-    // Пробуждаем читающих
-    scheduler_wakeup(&pipe->nreadfds, INT_MAX);
+    // Пробуждаем читающих  
+    scheduler_wakeup_intrusive(&pipe->readb.head, &pipe->readb.tail, &pipe->readb.lock, INT_MAX);
 
     release_spinlock(&pipe->lock);
     return count;
@@ -142,7 +183,7 @@ int pipe_file_close(struct inode *inode, struct file *file)
         p->nwritefds --;
     }
 
-    if (atomic_dec_and_test(&p->ref_count) == 0) {
+    if (atomic_dec_and_test(&p->ref_count)) {
         free_pipe(p);
     }
 

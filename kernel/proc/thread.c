@@ -7,6 +7,10 @@
 struct thread* new_thread(struct process* process)
 {
     struct thread* thread    = (struct thread*)kmalloc(sizeof(struct thread));
+    if (thread == NULL) {
+        return NULL;
+    }
+
     memset(thread, 0, sizeof(struct thread));
     thread->process = process;
     thread->type = OBJECT_TYPE_THREAD;

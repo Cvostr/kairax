@@ -4,9 +4,26 @@
 #include "thread.h"
 
 struct sched_wq {
-    struct thread* head;
-    struct thread* tail;
+    struct thread*  head;
+    struct thread*  tail;
+    size_t          size;
+    int        since_balance;
 };
+
+struct blocker {
+    struct thread*  head;
+    struct thread*  tail;
+    spinlock_t      lock;
+};
+
+uint32_t scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock);
+uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock, uint32_t max);
+
+void thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread);
+void thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread);
+
+void wq_add_thread(struct sched_wq* wq, struct thread* thread);
+void wq_remove_thread(struct sched_wq* wq, struct thread* thread);
 
 void init_scheduler();
 
@@ -16,7 +33,7 @@ void scheduler_add_thread(struct thread* thread);
 
 void scheduler_remove_thread(struct thread* thread);
 
-void scheduler_remove_process_threads(struct process* process);
+void scheduler_remove_process_threads(struct process* process, struct thread* despite);
 
 struct thread* scheduler_get_next_runnable_thread();
 
@@ -27,5 +44,11 @@ void scheduler_sleep(void* handle, spinlock_t* lock);
 int scheduler_wakeup(void* handle, int max);
 
 void scheduler_unblock(struct thread* thread);
+
+
+// Получить порядковый номер наиболее свободного процессора
+uint32_t scheduler_get_less_loaded();
+
+void cpu_put_thread(uint32_t icpu, struct thread* thread);
 
 #endif

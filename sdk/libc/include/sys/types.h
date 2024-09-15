@@ -23,7 +23,7 @@ typedef signed long 		useconds_t;
 
 typedef long int            time_t;
 typedef long long  			pid_t;
-typedef unsigned long 		ssize_t;
+typedef signed long         ssize_t;
 
 typedef unsigned int        socklen_t;
 typedef unsigned short      sa_family_t;

@@ -33,6 +33,10 @@ int sys_pipe(int* pipefd, int flags)
     VALIDATE_USER_POINTER(process, pipefd, sizeof(int*) * 2);
 
     struct pipe* ppe = new_pipe();
+    ppe->check_ends = 1; // EPIPE если другой конец закрыт
+    if (ppe == NULL) {
+        return -ENOMEM;
+    }
 
     struct file* pread_file = new_file();
     struct file* pwrite_file = new_file();
@@ -95,8 +99,11 @@ int sys_thread_sleep(time_t sec, long int nsec)
     struct thread* thread = cpu_get_current_thread();
     struct timespec duration = {.tv_sec = sec, .tv_nsec = nsec};
     struct event_timer* timer = register_event_timer(duration);
+    if (timer == NULL) {
+        return -ENOMEM;
+    }
     
-    scheduler_sleep(timer, NULL);
+    sleep_on_timer(timer);
 
     unregister_event_timer(timer);
     kfree(timer);
@@ -108,7 +115,12 @@ exit:
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
+
     struct thread* thread = create_thread(process, entry_ptr, arg, stack_size, NULL);
+    if (thread == NULL) {
+        return -ENOMEM;
+    }
+
     // Добавить в список и назначить pid
     process_add_to_list(thread);
 
@@ -139,16 +151,19 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
 void sys_exit_process(int code)
 {
     struct process* process = cpu_get_current_thread()->process;
-    // Данная операция должна выполниться атомарно
-    disable_interrupts();
+    // Удалить другие потоки процесса из планировщика
+    scheduler_remove_process_threads(process, cpu_get_current_thread());
     // Сохранить код возврата
     process->code = code;
     // Очистить процесс, сделать его зомби
     process_become_zombie(process);
+
+    // Данная операция должна выполниться атомарно
+    disable_interrupts();
+    // Удалить текущий оставшийся поток из планировщика
+    scheduler_remove_process_threads(process, NULL);
     // Разбудить потоки, ждущие pid
     scheduler_wakeup(process, INT_MAX);
-    // Удалить потоки процесса из планировщика
-    scheduler_remove_process_threads(process);
 
     scheduler_yield(FALSE);
 }

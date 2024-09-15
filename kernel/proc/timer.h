@@ -9,6 +9,9 @@ struct event_timer
 {
     struct timespec when;
     int alarmed;
+
+    struct thread* wait_head;
+    struct thread* wait_tail;
 };
 
 void timer_init();

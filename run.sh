@@ -1,5 +1,5 @@
 qemu-system-x86_64 -m 1G -d int \
-			-smp 2 \
+			-smp 1 \
 			-drive id=disk,file=drive.img,if=none,format=raw \
 			-drive id=bootdisk,file=kairax.iso,if=none \
  			-device ahci,id=ahci \

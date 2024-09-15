@@ -6,20 +6,27 @@ void init_scheduler()
    
 }
 
-void wq_add_thread(struct sched_wq* wq, struct thread* thread)
+#define DISABLE_INTS  int intsenab = check_interrupts(); disable_interrupts();
+#define ENABLE_INTS  if (intsenab) enable_interrupts();
+
+void thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread)
 {
-    if (!wq->head) {
+    if (!(*head)) {
         // Первого элемента не существует
-        wq->head = thread;
+        *head = thread;
+        thread->prev = NULL;
     } else {
-        wq->tail->next = thread;
-        thread->prev = wq->tail;
+        (*tail)->next = thread;
+        thread->prev = (*tail);
     }
 
-    wq->tail = thread;
+    // Добавляем в конец - следующего нет
+    thread->next = NULL;
+
+    *tail = thread;
 }
 
-void wq_remove_thread(struct sched_wq* wq, struct thread* thread)
+void thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread)
 {
     struct thread* prev = thread->prev;
     struct thread* next = thread->next;
@@ -32,15 +39,90 @@ void wq_remove_thread(struct sched_wq* wq, struct thread* thread)
         next->prev = prev;
     }
 
-    if (wq->head == thread) {
-        wq->head = next;
-        if (wq->head) wq->head->prev = NULL;
+    if (*head == thread) {
+        *head = next;
+        if (*head) (*head)->prev = NULL;
     }
 
-    if (wq->tail == thread) {
-        wq->tail = prev;
-        if (wq->tail) wq->tail->next = NULL;
+    if (*tail == thread) {
+        *tail = prev;
+        if (*tail) (*tail)->next = NULL;
     }
+}
+
+uint32_t scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock)
+{
+    struct thread* thr = cpu_get_current_thread();
+    struct sched_wq* wq = cpu_get_wq();
+
+    // Изменяем состояние - блокируемся
+    thr->state = STATE_INTERRUPTIBLE_SLEEP;
+
+    DISABLE_INTS
+
+    // удалить из очереди текущего ЦП
+    wq_remove_thread(wq, thr);
+
+    ENABLE_INTS
+
+    if (lock != NULL)
+        acquire_spinlock(lock);
+
+    // Добавить в очередь ожидания
+    thread_intrusive_add(head, tail, thr);
+
+    if (lock != NULL)
+        // Блокируем спинлок
+        release_spinlock(lock);
+
+    // Передача управления другому процессу
+    scheduler_yield(TRUE);
+}
+
+uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock, uint32_t max)
+{
+    struct sched_wq* wq = cpu_get_wq();
+
+    uint32_t unblocked = 0;
+    struct thread* thread = *head;
+    struct thread* next = thread;
+
+    while (thread != NULL) {
+
+        next = next->next;
+
+        if (unblocked < max) {
+            scheduler_unblock(thread);
+            
+            if (lock != NULL)
+                acquire_spinlock(lock);
+            thread_intrusive_remove(head, tail, thread);
+            if (lock != NULL)
+                // Блокируем спинлок
+                release_spinlock(lock);
+            
+            DISABLE_INTS
+            wq_add_thread(wq, thread);
+            ENABLE_INTS
+            unblocked ++;
+        }
+
+        thread = next;
+    }
+
+    return unblocked;
+}
+
+void wq_add_thread(struct sched_wq* wq, struct thread* thread)
+{
+    thread_intrusive_add(&wq->head, &wq->tail, thread);
+    wq->size++;
+}
+
+void wq_remove_thread(struct sched_wq* wq, struct thread* thread)
+{
+    thread_intrusive_remove(&wq->head, &wq->tail, thread);
+    wq->size--;
 }
 
 void scheduler_add_thread(struct thread* thread)
@@ -63,12 +145,14 @@ void scheduler_remove_thread(struct thread* thread)
     enable_interrupts();
 }
 
-void scheduler_remove_process_threads(struct process* process)
+void scheduler_remove_process_threads(struct process* process, struct thread* despite)
 {
     // TODO: Ожидание выхода всех потоков из системных вызовов
     for (size_t i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
-        scheduler_remove_thread(thread);
+        if (thread != despite) {
+            scheduler_remove_thread(thread);
+        }
     }
 }
 
@@ -93,24 +177,26 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
 
 int scheduler_wakeup(void* handle, int max)
 {
-    int i = 0;
+    int unblocked = 0;
     struct sched_wq* wq = cpu_get_wq();
-    disable_interrupts();
+
+    DISABLE_INTS
 
     struct thread* thread = wq->head;
 
     while (thread != NULL) {
 
-        if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle && i < max) {
+        if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle && unblocked < max) {
             scheduler_unblock(thread);
-            i ++;
+            unblocked ++;
         }
 
         thread = thread->next;
     }
 
-    enable_interrupts();
-    return i;
+    ENABLE_INTS
+    
+    return unblocked;
 }
 
 void scheduler_unblock(struct thread* thread)
@@ -124,6 +210,10 @@ struct thread* scheduler_get_next_runnable_thread()
     struct sched_wq* wq = cpu_get_wq();
     struct thread* thread = wq->head;
 
+    if (wq == NULL || wq->size == 0)
+    {
+        return cpu_get_idle_thread();
+    }
 
     int runnable = 0;
     while (thread != NULL) {
@@ -136,7 +226,6 @@ struct thread* scheduler_get_next_runnable_thread()
     if (runnable == 0) {
         return cpu_get_idle_thread();
     }
-
 
     thread = cpu_get_current_thread();
 

@@ -105,9 +105,14 @@ void process_become_zombie(struct process* process)
     // Переключаемся на основную виртуальную таблицу памяти ядра
     vmm_use_kernel_vm();
 
+    struct vm_table* vmtable = process->vmemory_table;
+   
+    // Зануление, чтобы планировщик не переключал таблицу
+    process->vmemory_table = NULL;
+
     // Уничтожение таблицы виртуальной памяти процесса
     // и освобождение занятых таблиц физической
-    free_vm_table(process->vmemory_table);
+    free_vm_table(vmtable);
 }
 
 int process_load_arguments(struct process* process, int argc, char** argv, char** args_mem, int add_null)

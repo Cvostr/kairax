@@ -6,6 +6,7 @@
 #include "sync/spinlock.h"
 #include "fs/vfs/file.h"
 #include "fs/vfs/inode.h"
+#include "proc/thread_scheduler.h"
 
 #define PIPE_SIZE 4096
 
@@ -18,8 +19,14 @@ struct pipe {
     loff_t      write_pos;
     loff_t      read_pos;
 
+    int         dead;
+    int         check_ends;
+
     int         nwritefds;
     int         nreadfds;
+
+    struct blocker readb;
+    struct blocker writeb;
 };
 
 struct pipe* new_pipe();

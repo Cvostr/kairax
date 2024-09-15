@@ -45,6 +45,7 @@ void timer_handle()
 
             if (timespec_is_zero(&ev_timer->when)) {
                 scheduler_wakeup(ev_timer, INT_MAX);
+                //scheduler_wakeup_intrusive(&ev_timer->wait_head, &ev_timer->wait_tail, NULL, INT_MAX);
                 ev_timer->alarmed = 1;
             }
         }
@@ -56,6 +57,9 @@ void timer_handle()
 struct event_timer* new_event_timer()
 {
     struct event_timer* timer = kmalloc(sizeof(struct event_timer));
+    if (timer == NULL) {
+        return NULL;
+    }
     memset(timer, 0, sizeof(struct event_timer));
     return timer;
 }
@@ -63,6 +67,9 @@ struct event_timer* new_event_timer()
 struct event_timer* register_event_timer(struct timespec duration)
 {
     struct event_timer* timer = new_event_timer();
+    if (timer == NULL) {
+        return NULL;
+    }
     timer->when = duration;
 
     acquire_spinlock(&timers_lock);
@@ -75,6 +82,7 @@ struct event_timer* register_event_timer(struct timespec duration)
 void sleep_on_timer(struct event_timer* timer)
 {
     scheduler_sleep(timer, NULL);
+    //scheduler_sleep_intrusive(&timer->wait_head, &timer->wait_tail, NULL);
 }
 
 void unregister_event_timer(struct event_timer* timer)

@@ -4,27 +4,23 @@
 #include "time.h"
 #include "sched.h"
 #include "errno.h"
+#include "sys/wait.h"
 
 int fds[2];
 
 void thread(void* n) {
-    char val[60];
-    val[59] = 0;
-    while (1) {
-        int rc = read(fds[0], &val[0], 58);
-        //write(STDOUT_FILENO, val, rc);
-        //printf("%s\n", val);
-    }
-}
-
-void thread2(void* n) {
     char val = '0';
-    while (1) {
+    for (int i = 0; i < 7000; i ++)
+    {
         write(fds[1], &val, 1);
         val += 1;
         if (val == '9')
             val = '0';
     }
+
+    close(fds[1]);
+
+    thread_exit(125);
 }
 
 int main(int argc, char** argv) {
@@ -41,10 +37,23 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    create_thread(thread, NULL);
-    create_thread(thread2, NULL);
+    pid_t pid = create_thread(thread, NULL);
 
-    sleep(2);
+    char val[81];
+    ssize_t total = 0;
+    while (1) {
+        ssize_t rrc = read(fds[0], val, 80);
+        if (rrc < 0) {
+            break;
+        }
+        total += rrc;
+        write(STDOUT_FILENO, val, rrc);
+    }
+
+    int status  = 0;
+    waitpid(pid, &status,  0);
+
+    printf("Readed %i bytes!\n", total);
 
     //close(fds[0]);
     //close(fds[1]);

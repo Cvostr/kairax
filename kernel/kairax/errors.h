@@ -31,6 +31,7 @@
 #define	EACCES		                13
 #define EINVAL                      ERROR_INVALID_VALUE
 #define	ESPIPE		                29
+#define EPIPE		                32
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET

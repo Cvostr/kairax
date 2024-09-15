@@ -20,7 +20,37 @@ extern void scheduler_exit(thread_frame_t* ctx);
 int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
+extern struct cpu_local_x64** cpus;
+extern size_t cpus_num; 
+
 #define DEFAULT_TIMESLICE 3
+#define BALANCE_PERIOD      200
+
+uint32_t scheduler_get_less_loaded()
+{
+    uint32_t min = UINT32_MAX;
+    uint32_t pos = 0;
+
+    for (uint32_t i = 0; i < cpus_num; i ++)
+    {
+        struct sched_wq* wq = cpus[i]->wq;
+        if (wq->size < min) 
+        {
+            min = wq->size;
+            pos = i;
+        }
+    }
+
+    return pos;
+}
+
+void cpu_put_thread(uint32_t icpu, struct thread* thread)
+{
+    struct cpu_local_x64* cpu = cpus[icpu];
+
+    // TODO: защитить
+    wq_add_thread(cpu->wq, thread);
+}
 
 void scheduler_yield(int save_context)
 {
@@ -40,6 +70,30 @@ void scheduler_yield(int save_context)
         // Переход в планировщик
         scheduler_handler(NULL);    
     }   
+}
+
+void balance()
+{
+    struct sched_wq* wq = cpu_get_wq();
+    wq->since_balance -= 1;
+
+    if (wq->since_balance > 0) {
+        return;
+    }
+
+    uint32_t index = scheduler_get_less_loaded();
+    int id = cpu_get_id();
+    if (index != id)
+    { 
+        struct sched_wq* wq = cpu_get_wq();
+        struct thread* last = wq->tail;
+        wq_remove_thread(wq, last);
+        last->cpu = index;
+        cpu_put_thread(index, last);
+        //printk("balanced from %i to %i\n", id, index);
+    }
+
+    wq->since_balance = BALANCE_PERIOD;
 }
 
 // frame может быть NULL
@@ -80,6 +134,8 @@ int scheduler_handler(thread_frame_t* frame)
         }
     }
 
+    //balance();
+
     // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
     new_thread->state = STATE_RUNNING;
@@ -114,8 +170,8 @@ int scheduler_handler(thread_frame_t* frame)
         process_handle_signals();
     }
 
-     // Заменить таблицу виртуальной памяти процесса
-    if (cpu_get_current_vm_table() != process->vmemory_table) {  
+    // Заменить таблицу виртуальной памяти процесса
+    if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
         cpu_set_current_vm_table(process->vmemory_table);
         switch_pml4(V2P(process->vmemory_table->arch_table));
     }
