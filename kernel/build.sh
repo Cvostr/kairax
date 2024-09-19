@@ -106,6 +106,7 @@ gcc $GCC_ARGS proc/thread_scheduler.c -o ./bin/thread_scheduler.o
 gcc $GCC_ARGS proc/syscalls/syscalls.c -o ./bin/syscalls.o
 gcc $GCC_ARGS proc/syscalls/syscalls_memory.c -o ./bin/syscalls_memory.o
 gcc $GCC_ARGS proc/syscalls/syscalls_files.c -o ./bin/syscalls_files.o
+gcc $GCC_ARGS proc/syscalls/syscalls_exit.c -o ./bin/syscalls_exit.o
 gcc $GCC_ARGS proc/syscalls/syscall_wait.c -o ./bin/syscall_wait.o
 gcc $GCC_ARGS proc/syscalls/syscalls_wd.c -o ./bin/syscalls_wd.o
 gcc $GCC_ARGS proc/syscalls/syscalls_modules.c -o ./bin/syscalls_modules.o

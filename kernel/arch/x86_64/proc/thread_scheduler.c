@@ -24,7 +24,7 @@ extern struct cpu_local_x64** cpus;
 extern size_t cpus_num; 
 
 #define DEFAULT_TIMESLICE 3
-#define BALANCE_PERIOD      200
+#define BALANCE_PERIOD      100
 
 uint32_t scheduler_get_less_loaded()
 {
@@ -174,6 +174,9 @@ int scheduler_handler(thread_frame_t* frame)
     if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
         cpu_set_current_vm_table(process->vmemory_table);
         switch_pml4(V2P(process->vmemory_table->arch_table));
+    } 
+    else if (process->vmemory_table == NULL) {
+        vmm_use_kernel_vm();
     }
 
     scheduler_exit(new_thread->context);

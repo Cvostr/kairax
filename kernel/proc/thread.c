@@ -28,6 +28,8 @@ void thread_become_zombie(struct thread* thread)
 
 void thread_destroy(struct thread* thread)
 {
+    while (thread->state != STATE_ZOMBIE);
+
 #ifdef X86_64
     if (thread->fpu_context)
     {

@@ -10,11 +10,6 @@ struct sched_wq {
     int        since_balance;
 };
 
-struct blocker {
-    struct thread*  head;
-    struct thread*  tail;
-    spinlock_t      lock;
-};
 
 uint32_t scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock);
 uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock, uint32_t max);

@@ -33,10 +33,11 @@ int sys_pipe(int* pipefd, int flags)
     VALIDATE_USER_POINTER(process, pipefd, sizeof(int*) * 2);
 
     struct pipe* ppe = new_pipe();
-    ppe->check_ends = 1; // EPIPE если другой конец закрыт
     if (ppe == NULL) {
         return -ENOMEM;
     }
+
+    ppe->check_ends = 1; // EPIPE если другой конец закрыт
 
     struct file* pread_file = new_file();
     struct file* pwrite_file = new_file();
@@ -146,42 +147,6 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs)
     }
 
     return vfs_mount_fs(mount_dir, partition, fs);
-}
-
-void sys_exit_process(int code)
-{
-    struct process* process = cpu_get_current_thread()->process;
-    // Удалить другие потоки процесса из планировщика
-    scheduler_remove_process_threads(process, cpu_get_current_thread());
-    // Сохранить код возврата
-    process->code = code;
-    // Очистить процесс, сделать его зомби
-    process_become_zombie(process);
-
-    // Данная операция должна выполниться атомарно
-    disable_interrupts();
-    // Удалить текущий оставшийся поток из планировщика
-    scheduler_remove_process_threads(process, NULL);
-    // Разбудить потоки, ждущие pid
-    scheduler_wakeup(process, INT_MAX);
-
-    scheduler_yield(FALSE);
-}
-
-void sys_exit_thread(int code)
-{
-    // Данная операция должна выполниться атомарно
-    disable_interrupts();
-    // Получить объект потока
-    struct thread* thr = cpu_get_current_thread();
-    thr->code = code;
-    thread_become_zombie(thr);
-    // Разбудить потоки, ждущие pid
-    scheduler_wakeup(thr, INT_MAX);
-    // Убрать поток из списка планировщика
-    scheduler_remove_thread(thr);
-    // Выйти
-    scheduler_yield(FALSE);
 }
 
 int sys_get_time_epoch_protected(struct timeval *tv)

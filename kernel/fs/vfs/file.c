@@ -18,6 +18,10 @@ int file_allow_write(struct file* file)
 struct file* new_file()
 {
     struct file* file = kmalloc(sizeof(struct file));
+    if (file == NULL) {
+        return NULL;
+    }
+
     memset(file, 0, sizeof(struct file));
     return file;
 }
@@ -135,7 +139,6 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
 
     struct file* file = new_file();
     file->inode = inode;
-    //file->mode = mode;  
     file->flags = flags;
     file->pos = 0;
     file->dentry = dentry;

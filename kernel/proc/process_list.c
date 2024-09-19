@@ -80,7 +80,8 @@ void plist_debug()
             printk("\"%s\": pid: %i ", proc->name, proc->pid);      
             if (proc->type == OBJECT_TYPE_THREAD) {
                 struct thread* thr = (struct thread*) proc;
-                printk("CPU %i", thr->cpu);
+                printk("CPU %i ", thr->cpu);
+                printk("State %i", thr->state);
             }   
             printk("\n");  
         }

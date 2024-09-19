@@ -8,6 +8,7 @@
 #include "process_list.h"
 #include "kairax/signal.h"
 #include "mem/vm_area.h"
+#include "blocker.h"
 
 #define MAX_DESCRIPTORS         64
 #define PROCESS_MAX_ARGS        65535
@@ -44,6 +45,7 @@ struct process {
     int                 code;
     // Название
     char                name[PROCESS_NAME_MAX_LEN];
+    struct thread*      waiter;
     // Процесс - родитель
     struct process*     parent;
     struct thread*      main_thread;

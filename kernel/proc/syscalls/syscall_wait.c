@@ -13,7 +13,8 @@
 pid_t sys_wait(pid_t id, int* status, int options)
 {
     pid_t       result = -1;
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
 
     acquire_spinlock(&process->wait_lock);
 
@@ -39,7 +40,11 @@ pid_t sys_wait(pid_t id, int* status, int options)
             if (child->state == STATE_ZOMBIE)
                 break;
 
-            scheduler_sleep(child, &process->wait_lock);
+            release_spinlock(&process->wait_lock);
+            child->waiter = thread;
+            scheduler_sleep1();
+            child->waiter = NULL;
+            acquire_spinlock(&process->wait_lock);
         }
     } else if (id == -1) {
         // Завершить любой дочерний процесс, который зомби

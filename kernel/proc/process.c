@@ -55,6 +55,9 @@ void free_process(struct process* process)
     // Удалить информацию о потоках и освободить страницу с стеком ядра
     for (size_t i = 0; i < list_size(process->threads); i ++) {
         struct thread* thread = list_get(process->threads, i);
+
+        while (thread->state != STATE_ZOMBIE);
+
         //printf("THR REM %i\n", thread->id);
         process_remove_from_list(thread);
         // Уничтожить объект потока

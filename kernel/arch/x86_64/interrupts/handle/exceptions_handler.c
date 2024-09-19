@@ -128,6 +128,10 @@ void exception_handler(interrupt_frame_t* frame)
     
     printk("\n");
 
+    if (frame->cs == 0x8) {
+        printk("Kernel terminated. Please reboot your computer\n");
+    }
+
     release_spinlock(&dump_lock);
 
     if (frame->cs == 0x23) {
@@ -145,7 +149,6 @@ void exception_handler(interrupt_frame_t* frame)
         sys_exit_process(rc);
 
     } else {
-        printk("Kernel terminated. Please reboot your computer\n");
 
         // Остановить остальные ядра
         lapic_send_ipi(0, IPI_DST_OTHERS, IPI_TYPE_FIXED, INTERRUPT_VEC_HLT);

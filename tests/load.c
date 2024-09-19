@@ -8,6 +8,8 @@
 #define ROUNDS 20000
 #define BUFSZ 100
 
+#define RC 127
+
 pid_t pids[THREADS];
 
 void procAct() {
@@ -25,13 +27,13 @@ void procAct() {
         close(fd);
 
     } else {
-        sleep(4);
+        //sleep(2);
     }
 
 //    int rc = execvp("ls", NULL);
 //    printf("execvp:  %i\n", errno);
 
-    _exit(127);
+    _exit(RC);
 }
 
 int main(int argc, char** argv) 
@@ -47,12 +49,30 @@ int main(int argc, char** argv)
 
     printf("Created %i processes\n", THREADS);
 
+    int status = -1;
+
     for (int i = 0; i < THREADS; i ++) {
-        int status = -1;
         int rc = waitpid(pids[i], &status, 0);
-        printf("rc: %i ", status);
+        //printf("rc: %i ", status);
+        if (status != RC) {
+            printf("PANIC\n");
+        }
     }
 
     printf("Load test finished\n");
+
+    for (int i = 0; i < 100; i ++)
+    {
+        pid_t pid = fork();
+        if (pid == 0) {
+            _exit(RC);
+        } else {
+            int rc = waitpid(pid, &status, 0);
+            if (status != RC) {
+                printf("PANIC\n");
+            }
+        }
+    } 
+
     return 0;
 }

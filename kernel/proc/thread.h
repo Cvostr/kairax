@@ -7,6 +7,8 @@
 #define STACK_SIZE (4096 * 2)
 #define STACK_MAX_SIZE 65536
 
+#include "blocker.h"
+
 struct thread {
     // Тип объекта
     int                 type;
@@ -18,6 +20,8 @@ struct thread {
     int                 code;
     // Имя потока
     char                name[PROCESS_NAME_MAX_LEN];
+    // Список потоков, находящихся в ожидании завершения
+    struct thread*      waiter;
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     // Адрес вершины стека ядра
