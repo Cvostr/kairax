@@ -58,8 +58,15 @@ pid_t sys_wait(pid_t id, int* status, int options)
     // Процесс завершен
     // Сохранить код вовзрата
     int code = child->code;
+
+    while (child->state != STATE_ZOMBIE)
+    {
+        scheduler_yield(TRUE);
+    }
+
     // Удалить процесс из списка
     process_remove_from_list(child);
+
     if (child->type == OBJECT_TYPE_PROCESS) {
         // Удалить процесс из списка потомков родителя
         process_remove_child(process, child);

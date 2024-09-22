@@ -12,15 +12,10 @@ void sys_exit_process(int code)
     process->code = code;
 
     // Удалить другие потоки процесса из планировщика
-    scheduler_remove_process_threads(process, cpu_get_current_thread());
+    scheduler_remove_process_threads(process, thr);
 
-    // Очистить процесс, сделать его зомби
-    process_become_zombie(process);
-
-    // Разбудить потоки, ждущие pid
-    if (process->waiter) {
-        scheduler_wakeup1(process->waiter);
-    }
+    // Очистить ресурсы процесса
+    process_free_resources(process);
 
     // Данная операция должна выполниться атомарно
     disable_interrupts();
@@ -30,6 +25,14 @@ void sys_exit_process(int code)
 
     // После этого Данные оставшегося потока можно безопасно уничтожить
     thr->state = STATE_ZOMBIE;
+
+    // Установить состояние zombie
+    process->state = STATE_ZOMBIE;
+
+    // Разбудить потоки, ждущие pid
+    if (process->waiter) {
+        scheduler_wakeup1(process->waiter);
+    }
     
     scheduler_yield(FALSE);
 }
@@ -40,17 +43,17 @@ void sys_exit_thread(int code)
     struct thread* thr = cpu_get_current_thread();
     thr->code = code;
 
-    // Разбудить потоки, ждущие pid
-    if (thr->waiter) {
-        scheduler_wakeup1(thr->waiter);
-    }
-
     // Данная операция должна выполниться атомарно
     disable_interrupts();
     // Убрать поток из списка планировщика
     scheduler_remove_thread(thr);
     // После этого Данные потока можно безопасно уничтожить
     thread_become_zombie(thr);
+
+    // Разбудить потоки, ждущие pid
+    if (thr->waiter) {
+        scheduler_wakeup1(thr->waiter);
+    }
 
     // Выйти
     scheduler_yield(FALSE);

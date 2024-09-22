@@ -40,6 +40,11 @@ int sys_pipe(int* pipefd, int flags)
     ppe->check_ends = 1; // EPIPE если другой конец закрыт
 
     struct file* pread_file = new_file();
+    if (pread_file == NULL) {
+        free_pipe(ppe);
+        return -ENOMEM;  
+    }
+    
     struct file* pwrite_file = new_file();
 
     pipe_create_files(ppe, flags, pread_file, pwrite_file);

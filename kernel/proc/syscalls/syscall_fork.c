@@ -110,9 +110,10 @@ pid_t sys_fork()
     ctx->r14 = syscall_frame->r14;
     ctx->r15 = syscall_frame->r15;
 
+    process_add_to_list(thr);
+
 	// Добавление потока в планировщик
     scheduler_add_thread(thr);
-    process_add_to_list(thr);
 
     return new_process->pid;
 }

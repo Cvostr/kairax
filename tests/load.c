@@ -4,17 +4,19 @@
 #include "stdio.h"
 #include "errno.h"
 
-#define THREADS 70
-#define ROUNDS 20000
+#define TEST1_PROCS 125
+#define TEST2_ROUNDS 300
+
+#define ROUNDS 30000
 #define BUFSZ 100
 
 #define RC 127
 
-pid_t pids[THREADS];
+pid_t pids[TEST1_PROCS];
 
 void procAct() {
     pid_t pid = getpid();
-    fdprintf(STDOUT_FILENO, "%i ", pid);
+    //fdprintf(STDOUT_FILENO, "%i ", pid);
 
     char buff[BUFSZ];
 
@@ -36,10 +38,9 @@ void procAct() {
     _exit(RC);
 }
 
-int main(int argc, char** argv) 
+void test1() 
 {
-    printf("Kairax load test\n");
-    for (int i = 0; i < THREADS; i ++) {
+    for (int i = 0; i < TEST1_PROCS; i ++) {
 
         pids[i] = fork();
         if (pids[i] == 0) {
@@ -47,21 +48,27 @@ int main(int argc, char** argv)
         }
     }
 
-    printf("Created %i processes\n", THREADS);
+    printf("Created %i processes\n", TEST1_PROCS);
 
     int status = -1;
 
-    for (int i = 0; i < THREADS; i ++) {
+    for (int i = 0; i < TEST1_PROCS; i ++) {
         int rc = waitpid(pids[i], &status, 0);
-        //printf("rc: %i ", status);
         if (status != RC) {
             printf("PANIC\n");
         }
     }
 
-    printf("Load test finished\n");
+    printf("Load test 1 finished\n");
+}
 
-    for (int i = 0; i < 100; i ++)
+int main(int argc, char** argv) 
+{
+    int status;
+    printf("Kairax load test\n");
+    test1();
+
+    for (int i = 0; i < TEST2_ROUNDS; i ++)
     {
         pid_t pid = fork();
         if (pid == 0) {
@@ -73,6 +80,8 @@ int main(int argc, char** argv)
             }
         }
     } 
+
+    printf("Load test 2 (%i rounds) finished\n", TEST2_ROUNDS);
 
     return 0;
 }

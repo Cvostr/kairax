@@ -56,7 +56,6 @@ struct process {
     gid_t               egid;
     // Сигналы
     sigset_t            blocked_signals;
-    //spinlock_t          sighandler_lock;
     uintptr_t           sighandle_trampoline;
     struct proc_sigact  sigactions[SIGNALS];
     // Адрес, после которого загружен код программы и линковщика
@@ -111,7 +110,7 @@ void  process_remove_child(struct process* process, struct process* child);
 
 void  process_remove_thread(struct process* process, struct thread* thread);
 
-void process_become_zombie(struct process* process);
+void process_free_resources(struct process* process);
 
 void free_process(struct process* process);
 

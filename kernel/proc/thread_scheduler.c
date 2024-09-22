@@ -67,15 +67,13 @@ uint32_t scheduler_sleep_intrusive(struct thread** head, struct thread** tail, s
     if (lock != NULL)
         acquire_spinlock(lock);
 
+    DISABLE_INTS
+
     // Изменяем состояние - блокируемся
     thr->state = STATE_INTERRUPTIBLE_SLEEP;
 
-    DISABLE_INTS
-
     // удалить из очереди текущего ЦП
     wq_remove_thread(wq, thr);
-
-    ENABLE_INTS
 
     // Добавить в очередь ожидания
     thread_intrusive_add(head, tail, thr);
@@ -200,8 +198,6 @@ void scheduler_sleep1()
 
     // удалить из очереди текущего ЦП
     wq_remove_thread(wq, thr);
-
-    ENABLE_INTS
 
     // Передача управления другому процессу
     scheduler_yield(TRUE);

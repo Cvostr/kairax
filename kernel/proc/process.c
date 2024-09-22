@@ -39,8 +39,10 @@ struct process*  create_new_process(struct process* parent)
     process->mmap_ranges = create_list();
 
     if (parent) {
+        acquire_spinlock(&parent->children_lock);
         process->parent = parent;
         list_add(parent->children, process);
+        release_spinlock(&parent->children_lock);
     }
 
     return process;
@@ -71,12 +73,9 @@ void free_process(struct process* process)
     kfree(process);
 }
 
-void process_become_zombie(struct process* process)
+void process_free_resources(struct process* process)
 {
     size_t i = 0;
-
-    // Установить состояние zombie
-    process->state = STATE_ZOMBIE;
 
     for (i = 0; i < list_size(process->mmap_ranges); i ++) {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
