@@ -77,7 +77,8 @@ void process_free_resources(struct process* process)
 {
     size_t i = 0;
 
-    for (i = 0; i < list_size(process->mmap_ranges); i ++) {
+    size_t ranges = list_size(process->mmap_ranges);
+    for (i = 0; i < ranges; i ++) {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
         kfree(range);
     }
@@ -529,7 +530,11 @@ int process_handle_page_fault(struct process* process, uint64_t address)
         }
 
         // Выделить страницу
-        int rc = vm_table_map(process->vmemory_table, aligned_address, pmm_alloc_page(), range->protection);
+        char* paddr = pmm_alloc_page();
+        // Предварительное зануление
+        memset(P2V(paddr), 0, PAGE_SIZE);
+        // замаппить
+        int rc = vm_table_map(process->vmemory_table, aligned_address, paddr, range->protection);
 
         release_spinlock(&process->mmap_lock);
         return 1;

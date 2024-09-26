@@ -19,9 +19,12 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
     }
     // Создать объект потока в памяти
     struct thread* thread = new_thread(process);
+    
     // Выделить место под стек
-    thread->stack_ptr = P2V(pmm_alloc_page() + PAGE_SIZE);
+    thread->stack_ptr = P2V(pmm_alloc_page());
     memset(thread->stack_ptr, 0, PAGE_SIZE);
+    thread->stack_ptr += PAGE_SIZE;
+
     // Добавить поток в список потоков процесса
     list_add(process->threads, thread);
     //Подготовка контекста

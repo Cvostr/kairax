@@ -32,9 +32,8 @@ struct vm_table* clone_kernel_vm_table()
 
 void free_vm_table(struct vm_table* table)
 {
-    acquire_spinlock(&table->lock);
-
     if (atomic_dec_and_test(&table->refs)) {
+
         if (table->arch_table) {
             arch_destroy_vm_table(table->arch_table);
         }

@@ -53,8 +53,8 @@ struct terminal_session* new_kterm_session(int create_console)
 	process_add_file_at(session->proc, slave_file, 2);
 
 	struct thread* thr = create_kthread(session->proc, bootshell, NULL);
-	scheduler_add_thread(thr);
 	process_add_to_list(thr);
+	scheduler_add_thread(thr);
 
 	if (create_console == TRUE) {
 		session->console = console_init();
