@@ -7,7 +7,7 @@
 #include "sync/spinlock.h"
 #include "kstdlib.h"
 
-#define KHEAP_INIT_SIZE 4096000
+#define KHEAP_INIT_SIZE 8192000
 
 kheap_t kheap;
 spinlock_t kheap_lock;
@@ -88,7 +88,7 @@ void* kmalloc(uint64_t size)
 
     if (current_item != NULL) {
         // Если размер блока гораздо больше - надо разделить
-        if (current_item->size > (total_size)) {
+        if (current_item->size > (total_size + 8)) {
             // Адрес нового свободного блока, который будет создан
             kheap_item_t* new_item = (kheap_item_t*)((virtual_addr_t)(current_item + 1) + size);
             // Новый блок свободен
@@ -154,6 +154,10 @@ void combine_forward(kheap_item_t* item)
 
 void kfree(void* mem)
 {
+    if (mem < KHEAP_MAP_OFFSET) {
+        printk("KHEAP: PANIC: Invalid ADDR %i\n", mem);
+    }
+
     acquire_spinlock(&kheap_lock);
     kheap_item_t* item = (kheap_item_t*)mem - 1;
 

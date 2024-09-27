@@ -17,6 +17,12 @@ void sys_exit_process(int code)
     // Очистить ресурсы процесса
     process_free_resources(process);
 
+    // Дикий кейс
+    while (process->waiter == NULL)
+    {
+        scheduler_yield(TRUE);
+    }
+
     // Данная операция должна выполниться атомарно
     disable_interrupts();
 

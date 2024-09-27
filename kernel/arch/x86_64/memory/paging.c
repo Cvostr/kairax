@@ -64,13 +64,18 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
     page_table_t *pd_table;
     page_table_t *pt_table;
 
+    uint64_t baseFlags = PAGE_BASE_FLAGS;
+    if ((flags & PAGE_USER_ACCESSIBLE) == PAGE_USER_ACCESSIBLE) {
+        baseFlags |= PAGE_USER_ACCESSIBLE;
+    }
+
     //Проверим, существует ли страница 4-го уровня
     if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
         //Страница не существует
         //Выделить память под страницу
         pdp_table = new_page_table();
         //Записать страницу в родительское дерево
-        root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | PAGE_BASE_FLAGS);  
+        root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | baseFlags);  
     }
 
     pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
@@ -80,7 +85,7 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
         //Выделить память под страницу
         pd_table = new_page_table();
         //Записать страницу в родительское дерево
-        pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | PAGE_BASE_FLAGS);  
+        pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | baseFlags);  
     }
 
     pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
@@ -90,7 +95,7 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
         //Выделить память под страницу
         pt_table = new_page_table();
         //Записать страницу в родительское дерево
-        pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | PAGE_BASE_FLAGS);  
+        pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | baseFlags);  
     }
 
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);

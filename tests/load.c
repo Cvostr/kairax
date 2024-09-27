@@ -62,12 +62,9 @@ void test1()
     printf("Load test 1 finished\n");
 }
 
-int main(int argc, char** argv) 
+void test2() 
 {
     int status;
-    printf("Kairax load test\n");
-    test1();
-
     for (int i = 0; i < TEST2_ROUNDS; i ++)
     {
         pid_t pid = fork();
@@ -82,6 +79,13 @@ int main(int argc, char** argv)
     } 
 
     printf("Load test 2 (%i rounds) finished\n", TEST2_ROUNDS);
+}
+
+int main(int argc, char** argv) 
+{
+    printf("Kairax load test\n");
+    test1();
+    test2();
 
     return 0;
 }
