@@ -23,6 +23,9 @@ struct cpu_local_x64 {
     struct sched_wq* wq;
     struct thread* current_thread;
     struct thread* idle_thread;
+
+    struct thread* migration_thread;
+    spinlock_t migration_lock;
 } PACKED;
 
 static struct cpu_local_x64 __seg_gs * const this_core = 0;

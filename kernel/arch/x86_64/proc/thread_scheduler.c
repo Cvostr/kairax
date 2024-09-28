@@ -14,6 +14,7 @@
 #include "kairax/intctl.h"
 #include "kstdlib.h"
 #include "cpu/cpu.h"
+#include "interrupts/apic.h"
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
@@ -44,12 +45,30 @@ uint32_t scheduler_get_less_loaded()
     return pos;
 }
 
+void cpu_reshedule_handler()
+{
+    struct sched_wq* wq = cpu_get_wq();
+    struct thread* mthr = this_core->migration_thread;
+
+    if (mthr != NULL) {
+        wq_add_thread(wq, mthr);
+        this_core->migration_thread = NULL;
+    }
+
+    this_core->migration_lock = 0;
+}
+
 void cpu_put_thread(uint32_t icpu, struct thread* thread)
 {
     struct cpu_local_x64* cpu = cpus[icpu];
 
-    // TODO: защитить
-    wq_add_thread(cpu->wq, thread);
+    acquire_spinlock(&cpu->migration_lock);
+    
+    cpu->migration_thread = thread;
+    lapic_send_ipi(cpu->lapic_id, IPI_DST_BY_ID, IPI_TYPE_FIXED, INTERRUPT_VEC_RES);
+    //while (cpu->migration_thread != NULL);
+
+    //release_spinlock(&cpu->migration_lock);
 }
 
 void scheduler_yield(int save_context)
@@ -75,6 +94,11 @@ void scheduler_yield(int save_context)
 void balance()
 {
     struct sched_wq* wq = cpu_get_wq();
+
+    if (wq->size == 0) {
+        return;
+    }
+
     wq->since_balance -= 1;
 
     if (wq->since_balance > 0) {
@@ -176,7 +200,11 @@ int scheduler_handler(thread_frame_t* frame)
         switch_pml4(V2P(process->vmemory_table->arch_table));
     } 
     else if (process->vmemory_table == NULL) {
+        // Процесс завершается
+        // Используем основную таблицу ядра
         vmm_use_kernel_vm();
+        // Чтобы нормально работало переключение 
+        cpu_set_current_vm_table(NULL);
     }
 
     scheduler_exit(new_thread->context);

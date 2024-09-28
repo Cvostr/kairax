@@ -232,6 +232,11 @@ exit:
     return rc;
 }
 
+void cpu_reschedule_ipi()
+{
+    cpu_reshedule_handler();
+}
+
 void cpu_tlb_shootdown_ipi()
 {
     // Пока что просто перезаписываем CR3

@@ -105,13 +105,16 @@ uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, 
             
             thread_intrusive_remove(head, tail, thread);
             
-            DISABLE_INTS
-            wq_add_thread(wq, thread);
-            ENABLE_INTS
+            if (thread->state == STATE_INTERRUPTIBLE_SLEEP || thread->state == STATE_UNINTERRUPTIBLE_SLEEP)
+            {
+                DISABLE_INTS
+                wq_add_thread(wq, thread);
+                ENABLE_INTS
 
-            scheduler_unblock(thread);
+                scheduler_unblock(thread);
 
-            unblocked ++;
+                unblocked ++;
+            }
         }
 
         thread = next;
@@ -207,10 +210,13 @@ void scheduler_wakeup1(struct thread* thread)
 {
     struct sched_wq* wq = cpu_get_wq();
 
-    DISABLE_INTS
-    wq_add_thread(wq, thread);
-    thread->state = STATE_RUNNABLE;
-    ENABLE_INTS
+    if (thread->state == STATE_INTERRUPTIBLE_SLEEP || thread->state == STATE_UNINTERRUPTIBLE_SLEEP)
+    {
+        DISABLE_INTS
+        wq_add_thread(wq, thread);
+        thread->state = STATE_RUNNABLE;
+        ENABLE_INTS
+    }
 }
 
 int scheduler_wakeup(void* handle, int max)
