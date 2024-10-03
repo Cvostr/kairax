@@ -37,6 +37,8 @@ struct thread {
     int                 timeslice;
     sigset_t            pending_signals;
     // Следующий поток при блокировке на семафоре
+    struct thread**     sleep_raiser;
+    int                 in_queue;
     struct thread*      prev;
     struct thread*      next;
 

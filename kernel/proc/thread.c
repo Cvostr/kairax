@@ -55,7 +55,17 @@ int thread_send_signal(struct thread* thread, int signal)
     thread->pending_signals |= shifted;
 
     if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
-        scheduler_unblock(thread);
+    {
+        // Если поток был усыплен
+        if (thread->sleep_raiser != NULL && *thread->sleep_raiser != NULL) 
+        {
+            *thread->sleep_raiser = NULL;
+            thread->sleep_raiser = NULL;
+        }
+
+        scheduler_wakeup1(thread);
+        //scheduler_unblock(thread);
+    }
 
     return 0;
 }

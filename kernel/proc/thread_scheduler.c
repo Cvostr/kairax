@@ -9,12 +9,11 @@ void init_scheduler()
 #define DISABLE_INTS  int intsenab = check_interrupts(); disable_interrupts();
 #define ENABLE_INTS  if (intsenab) enable_interrupts();
 
-void thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread)
+int thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread)
 {
-    if (thread->prev != NULL || thread->next != NULL)
-    {
+    if (thread->prev != NULL || thread->next != NULL) {
         // Если поток уже в каком либо списке - выходим
-        return;
+        return -1;
     }
 
     if (!(*head)) {
@@ -30,9 +29,11 @@ void thread_intrusive_add(struct thread** head, struct thread** tail, struct thr
     thread->next = NULL;
 
     *tail = thread;
+
+    return 0;
 }
 
-void thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread)
+int thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread)
 {
     struct thread* prev = thread->prev;
     struct thread* next = thread->next;
@@ -57,9 +58,11 @@ void thread_intrusive_remove(struct thread** head, struct thread** tail, struct 
 
     thread->next = NULL;
     thread->prev = NULL;
+
+    return 0;
 }
 
-uint32_t scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock)
+void scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock)
 {
     struct thread* thr = cpu_get_current_thread();
     struct sched_wq* wq = cpu_get_wq();
@@ -128,14 +131,31 @@ uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, 
 
 void wq_add_thread(struct sched_wq* wq, struct thread* thread)
 {
-    thread_intrusive_add(&wq->head, &wq->tail, thread);
-    wq->size++;
+    if (thread->in_queue == 1) {
+        return;
+    }
+
+    if (thread_intrusive_add(&wq->head, &wq->tail, thread) == 0) {
+        wq->size++;
+        thread->in_queue = 1;
+    }
 }
 
 void wq_remove_thread(struct sched_wq* wq, struct thread* thread)
 {
-    thread_intrusive_remove(&wq->head, &wq->tail, thread);
-    wq->size--;
+    if (wq->size == 0) {
+        printk("wq_remove_thread(): wq->size == 0, pid %i\n", thread->id);
+        return;
+    }
+
+    if (thread->in_queue == 0) {
+        return;
+    }
+
+    if (thread_intrusive_remove(&wq->head, &wq->tail, thread) == 0) {
+        wq->size--;
+        thread->in_queue = 0;
+    }
 }
 
 void scheduler_add_thread(struct thread* thread)

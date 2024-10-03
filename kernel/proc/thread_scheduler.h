@@ -10,12 +10,11 @@ struct sched_wq {
     int        since_balance;
 };
 
-
-uint32_t scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock);
+void scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock);
 uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock, uint32_t max);
 
-void thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread);
-void thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread);
+int thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread);
+int thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread);
 
 void wq_add_thread(struct sched_wq* wq, struct thread* thread);
 void wq_remove_thread(struct sched_wq* wq, struct thread* thread);
@@ -37,6 +36,7 @@ void scheduler_yield(int save_context);
 void scheduler_sleep(void* handle, spinlock_t* lock);
 
 int scheduler_wakeup(void* handle, int max);
+void scheduler_wakeup1(struct thread* thread);
 
 void scheduler_unblock(struct thread* thread);
 
