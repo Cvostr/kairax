@@ -27,6 +27,14 @@ struct object_data* root;
 
 extern void linker_entry();
 
+#define assert(expr) ((void) ((expr) ? 0 :	(__assert_fail (#expr, __FILE__, __LINE__, __func__), 0)))
+
+void __assert_fail (const char *assertion, const char *file, unsigned int line, const char *function)
+{
+    printf("%s:%i: %s: Assertion '%s' failed.\n", file, line, function, assertion);
+    syscall_process_exit(100);
+}
+
 void loader() {
 
     int fd = aux_vector[AT_EXECFD];
@@ -60,6 +68,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
 
     // Выделить память под файл
     char* file_buffer = syscall_map_memory(NULL, file_stat.st_size, PAGE_PROTECTION_WRITE_ENABLE, MAP_ANONYMOUS, -1, 0);
+    assert(file_buffer != NULL);
     memset(file_buffer, 0, file_stat.st_size);
 
     // Чтение файла
@@ -81,6 +90,8 @@ struct object_data* load_object_data(char* data, int shared) {
                                             sizeof(struct object_data),
                                             PAGE_PROTECTION_WRITE_ENABLE,
                                             MAP_ANONYMOUS, -1, 0);
+
+    assert(obj_data != NULL);
 
     memset(obj_data, 0, sizeof(struct object_data));
 
@@ -111,6 +122,7 @@ struct object_data* load_object_data(char* data, int shared) {
             obj_data->size,
             PAGE_PROTECTION_WRITE_ENABLE | PAGE_PROTECTION_EXEC_ENABLE,
             MAP_ANONYMOUS, -1, 0);
+        assert(obj_data->base != NULL);
 
         // Расположить код в памяти
         for (uint32_t i = 0; i < elf_header->prog_header_entries_num; i ++) {
@@ -151,6 +163,7 @@ struct object_data* load_object_data(char* data, int shared) {
 
             // Сохранить все данные секции
             obj_data->dynamic_section = syscall_map_memory(NULL, sehentry->size, PAGE_PROTECTION_WRITE_ENABLE, MAP_ANONYMOUS, -1, 0);
+            assert(obj_data->dynamic_section != NULL);
             memcpy(obj_data->dynamic_section, data + sehentry->offset, sehentry->size);
             obj_data->dynamic_sec_size = sehentry->size;
 
@@ -176,6 +189,8 @@ struct object_data* load_object_data(char* data, int shared) {
                 PAGE_PROTECTION_WRITE_ENABLE,
                 MAP_ANONYMOUS, -1, 0);
 
+            assert(obj_data->dynsym != NULL);
+
             memcpy(obj_data->dynsym, data + sehentry->offset, sehentry->size);
 
             obj_data->dynsym_size = sehentry->size;
@@ -187,6 +202,8 @@ struct object_data* load_object_data(char* data, int shared) {
                 PAGE_PROTECTION_WRITE_ENABLE,
                 MAP_ANONYMOUS, -1, 0);
 
+            assert(obj_data->dynstr != NULL);
+
             memcpy(obj_data->dynstr, data + sehentry->offset, sehentry->size);
 
             obj_data->dynstr_size = sehentry->size;
@@ -197,6 +214,8 @@ struct object_data* load_object_data(char* data, int shared) {
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
                 MAP_ANONYMOUS, -1, 0);
+
+            assert(obj_data->plt_rela != NULL);
                 
             memcpy(obj_data->plt_rela, data + sehentry->offset, sehentry->size);
 
@@ -207,6 +226,8 @@ struct object_data* load_object_data(char* data, int shared) {
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
                 MAP_ANONYMOUS, -1, 0);
+
+            assert(obj_data->rela != NULL);
 
             memcpy(obj_data->rela, data + sehentry->offset, sehentry->size);
             obj_data->rela_size = sehentry->size;

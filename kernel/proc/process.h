@@ -78,6 +78,10 @@ struct process {
     // начальные данные для TLS
     char*               tls;
     size_t              tls_size;
+    // futex
+    void*               futex_list_head;
+    void*               futex_list_tail;
+    spinlock_t          futex_list_lock;
     // Карта адресного пространства
     list_t*             mmap_ranges;
     spinlock_t          mmap_lock;
