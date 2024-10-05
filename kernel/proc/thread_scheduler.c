@@ -235,6 +235,7 @@ void scheduler_wakeup1(struct thread* thread)
         DISABLE_INTS
         wq_add_thread(wq, thread);
         thread->state = STATE_RUNNABLE;
+        thread->sleep_raiser = NULL;
         ENABLE_INTS
     }
 }

@@ -197,6 +197,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	kterm_process_start();
 
+	printk("Initialize complete!\n");
+
 	init_scheduler();
 	scheduler_start();
 	scheduler_yield(FALSE);

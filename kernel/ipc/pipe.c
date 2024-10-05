@@ -144,7 +144,7 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
             scheduler_wakeup_intrusive(&pipe->readb.head, &pipe->readb.tail, &pipe->readb.lock, INT_MAX);
             // И засыпаем сами
             release_spinlock(&pipe->lock);
-            scheduler_sleep_intrusive(&pipe->writeb.head, &pipe->writeb.tail, &pipe->lock);
+            scheduler_sleep_intrusive(&pipe->writeb.head, &pipe->writeb.tail, &pipe->writeb.lock);
             acquire_spinlock(&pipe->lock);
         }
 
