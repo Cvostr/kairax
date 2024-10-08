@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include "kstdlib.h"
 #include "dev/device.h"
+#include "mem/iomem.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
@@ -61,11 +62,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	char* port_mem = (char*)pmm_alloc_page();
 	uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
-	//set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(port_mem), pageFlags);
-	map_page_mem(get_kernel_pml4(),
-			P2V(port_mem),
-			port_mem,
-			pageFlags);
+	map_io_region(port_mem, PAGE_SIZE);
 
     port->command_list = (HBA_COMMAND*)port_mem;
     port->fis = (fis_t*)(port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT);
@@ -82,13 +79,7 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	//Выделить память под буфер команд
 	char* cmd_tables_mem = (char*)pmm_alloc_pages(pages_num);
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
-	for (int i = 0; i < pages_num; i ++) {
-		//set_page_flags(get_kernel_pml4(), (uintptr_t)P2V(cmd_tables_mem) + i * PAGE_SIZE, pageFlags);
-		map_page_mem(get_kernel_pml4(),
-			P2V(cmd_tables_mem) + i * PAGE_SIZE,
-			cmd_tables_mem + i * PAGE_SIZE,
-			pageFlags);
-	}
+	map_io_region(cmd_tables_mem, PAGE_SIZE * pages_num);
 
     for(int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++){
 		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(port->command_list);
@@ -347,7 +338,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer)
 	}
 	if (spin == 1000000)
 	{
-		printf("Port is hung\n");
+		printk("Port is hung\n");
 		return 0;
 	}
 
@@ -360,7 +351,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer)
 			
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
 		{
-			printf("Disk identity error\n");
+			printk("Disk identity error\n");
 			return 0;
 		}
 	}

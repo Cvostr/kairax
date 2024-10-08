@@ -66,9 +66,6 @@ void cpu_put_thread(uint32_t icpu, struct thread* thread)
     
     cpu->migration_thread = thread;
     lapic_send_ipi(cpu->lapic_id, IPI_DST_BY_ID, IPI_TYPE_FIXED, INTERRUPT_VEC_RES);
-    //while (cpu->migration_thread != NULL);
-
-    //release_spinlock(&cpu->migration_lock);
 }
 
 void scheduler_yield(int save_context)

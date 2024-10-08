@@ -13,6 +13,12 @@ void proc()
         a *= 1.0001;
         syscall_get_ticks_count();
     }
+
+    while (a < 10000002)
+    {
+        a *= a;
+        syscall_get_ticks_count();
+    }
 }
 
 void thr()

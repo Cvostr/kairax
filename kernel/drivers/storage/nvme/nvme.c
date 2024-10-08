@@ -8,6 +8,8 @@
 #include "dev/device.h"
 #include "mem/iomem.h"
 
+//#define NVME_LOG_CONTROLLER_ID
+
 int nvme_next_ctrlr_index = 0;
 
 uint32_t* nvme_calc_submission_doorbell_addr(struct nvme_controller* controller, int id)
@@ -158,10 +160,12 @@ int nvme_ctlr_device_probe(struct device *dev)
 {
 	struct pci_device_info* device_desc = dev->pci_info;
 
-	printf("NVME controller found on bus: %i, device: %i func: %i \n", 
+#ifdef NVME_LOG_CONTROLLER_ID
+	printk("NVME controller found on bus: %i, device: %i func: %i \n", 
 		device_desc->bus,
 		device_desc->device,
 		device_desc->function);
+#endif
 
 	struct nvme_controller* device = (struct nvme_controller*)kmalloc(sizeof(struct nvme_controller));
 	memset(device, 0, sizeof(struct nvme_controller));
@@ -192,7 +196,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 	device->stride 		= (((device->bar0->cap) >> 32) & 0xf);
 	device->queue_entries_num 	= (device->bar0->cap & 0xFFFF) + 1; // Значение, начинающееся с нуля
-	printf("NVME: stride %i, queue_entries %i\n", device->stride, device->queue_entries_num);
+	printk("NVME: stride %i, queue_entries %i\n", device->stride, device->queue_entries_num);
 
 	// Создание admin queue
 	device->admin_queue = nvme_create_admin_queue(device, device->queue_entries_num);
@@ -228,8 +232,14 @@ int nvme_ctlr_device_probe(struct device *dev)
 		return rc;
 	}
 
-	printk("NVME: Ctrlr name: '%s'\n", device->controller_id.model);
-	//printk("Num namespaces: %i\n", device->controller_id.namespaces_num);
+	for(int p = strlen(device->controller_id.model) - 1; p > 0; p --){
+		if(device->controller_id.model[p] == ' ')
+			device->controller_id.model[p] = '\0';
+		else 
+			break;
+	}
+
+	printk("NVME: Ctrlr name: '%s', %i namespaces\n", device->controller_id.model, device->controller_id.namespaces_num);
 
 	int check1 = device->controller_id.controller_type == NVME_CONTROLLER_TYPE_IO;
 	int check2 = device->controller_id.controller_type == NVME_CONTROLLER_TYPE_NOT_REPORTED;

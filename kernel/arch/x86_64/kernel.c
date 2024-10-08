@@ -183,6 +183,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	register_interrupt_handler(INTERRUPT_VEC_HLT, x64_full_halt, 0);
 	register_interrupt_handler(INTERRUPT_VEC_TLB, cpu_tlb_shootdown_ipi, 0);
 
+	printk("Reading disks partition tables...\n");
+
 	struct device* dev = NULL;
     int i = 0;
     while ((dev = get_device(i ++)) != NULL) {

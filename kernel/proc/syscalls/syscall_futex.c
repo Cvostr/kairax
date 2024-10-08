@@ -138,7 +138,6 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout)
 
         if (futx->blocker.head == NULL && futx->blocker.tail == NULL)
         {
-            //printk("  free futex   ");
             acquire_spinlock(&process->futex_list_lock);
             futex_intrusive_remove(&process->futex_list_head, &process->futex_list_tail, futx);
             release_spinlock(&process->futex_list_lock);

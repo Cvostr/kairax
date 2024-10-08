@@ -253,11 +253,49 @@ void destroy_page_table(table_entry_t* entries, int level, uint64_t mask)
 
 int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 {
-    int rc = 0;
-    physical_addr_t phys_addr = get_physical_address(root, virtual_addr);
-    int mr = unmap_page(root, virtual_addr);
-    if (mr == 0)
-	    map_page_mem(root, virtual_addr, phys_addr, flags);
+    uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
+    uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
+    uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
+    uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
+
+    page_table_t *pdp_table;
+    page_table_t *pd_table;
+    page_table_t *pt_table;
+
+    //Проверим, существует ли страница 4-го уровня
+    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
+        //Страница не существует
+        return ERR_NO_PAGE_PRESENT;
+    }
+
+    pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
+    pdp_table = P2V(pdp_table);
+
+    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))){
+        return ERR_NO_PAGE_PRESENT;
+    }
+
+    pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
+    pd_table = P2V(pd_table);
+
+    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))) {
+        return ERR_NO_PAGE_PRESENT; 
+    }
+
+    pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    pt_table = P2V(pt_table);
+
+    uintptr_t paddr = GET_PAGE_FRAME(pt_table->entries[level1_index]);
+
+    if((pt_table->entries[level1_index] & (PAGE_PRESENT)) == 0) {
+        return ERR_NO_PAGE_PRESENT;
+    }
+
+    pt_table->entries[level1_index] = paddr | flags;
+
+    x64_tlb_shootdown(virtual_addr);
+
+    // TODO: остальные ядра
 
     return 0;
 }
