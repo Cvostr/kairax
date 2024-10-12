@@ -3,6 +3,7 @@
 
 #include "atomic.h"
 #include "spinlock.h"
+#include "proc/blocker.h"
 
 struct thread;
 

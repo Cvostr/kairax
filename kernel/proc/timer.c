@@ -46,7 +46,6 @@ void timer_handle()
             timespec_sub(&ev_timer->when, &offset);
 
             if (timespec_is_zero(&ev_timer->when)) {
-                //scheduler_wakeup(ev_timer, INT_MAX);
                 //scheduler_wakeup_intrusive(&ev_timer->wait_head, &ev_timer->wait_tail, NULL, INT_MAX);
                 
                 if (ev_timer->wait_head) scheduler_wakeup1(ev_timer->wait_head);
@@ -85,9 +84,7 @@ struct event_timer* register_event_timer(struct timespec duration)
 }
 
 void sleep_on_timer(struct event_timer* timer)
-{
-    //scheduler_sleep(timer, NULL);
-    
+{   
     timer->wait_head = cpu_get_current_thread();
     timer->wait_head->sleep_raiser = &timer->wait_head;
     scheduler_sleep1();

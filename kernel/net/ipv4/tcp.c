@@ -16,6 +16,12 @@
 #define TCP_HEADER_LEN      (sizeof(struct tcp_packet))
 #define TCP_HEADER_SZ_VAL   ((TCP_HEADER_LEN / 4) << 12)
 
+#define TCP_LOG_SOCK_CLOSE
+#define TCP_LOG_SOCK_SEND
+//#define TCP_LOG_NO_SOCK_PORT
+#define TCP_LOG_PORT_EXHAUST
+//#define TCP_LOG_ACCEPTED_CLIENT
+
 struct ip4_protocol ip4_tcp_protocol = {
     .handler = tcp_ip4_handle
 };
@@ -32,6 +38,7 @@ struct socket_prot_ops ipv4_stream_ops = {
     .setsockopt = sock_tcp4_setsockopt
 };
 
+// Сокеты по портам в порядке байтов хоста
 struct socket* tcp4_bindings[TCP_PORTS];
 
 int tcp_ip4_handle(struct net_buffer* nbuffer)
@@ -75,7 +82,9 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     struct socket* sock = tcp4_bindings[dst_port];
     if (sock == NULL)
     {
+#ifdef TCP_LOG_NO_SOCK_PORT
         printk("No socket bound to TCP port %i\n", dst_port);
+#endif
         // ??? - реализовать
         return -1;
     }
@@ -103,7 +112,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         sock_data->backlog[sock_data->backlog_tail] = nbuffer;
         sock_data->backlog_tail++;
 
-        scheduler_wakeup(sock_data->backlog, 1);
+        // Разбудить ожидающих подключений
+        scheduler_wakeup_intrusive(&sock_data->backlog_blk.head, &sock_data->backlog_blk.tail, &sock_data->backlog_blk.lock, 1);
 
     } else {
 
@@ -117,7 +127,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         
         release_spinlock(&sock_data->rx_queue_lock);
 
-        scheduler_wakeup(&sock_data->rx_queue, 1);
+        // Разбудить ожидающих приема
+        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, 1);
     }
 }
 
@@ -162,7 +173,9 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
 
     if (tcp_ip4_alloc_dynamic_port(sock) == 0)
     {
-        //printk("TCP: port exhaust!\n");
+#ifdef TCP_LOG_PORT_EXHAUST
+        printk("TCP: port exhaust!\n");
+#endif
         // порты кончились
         return -EADDRNOTAVAIL;
     }
@@ -217,8 +230,11 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     // Ожидание SYN | ACK
     acquire_spinlock(&sock_data->rx_queue_lock);
 
-    while (sock_data->rx_queue.head == NULL) {
-        scheduler_sleep(&sock_data->rx_queue, &sock_data->rx_queue_lock);
+    while (sock_data->rx_queue.head == NULL) 
+    {
+        release_spinlock(&sock_data->rx_queue_lock);
+        scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
+        acquire_spinlock(&sock_data->rx_queue_lock);
     }
 
     struct net_buffer* synack = list_dequeue(&sock_data->rx_queue);
@@ -276,9 +292,11 @@ void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, str
 int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr)
 {
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // Ожидание подключений
     while (sock_data->backlog_head == sock_data->backlog_tail - 1) 
     {
-        scheduler_sleep(sock_data->backlog, NULL);
+        scheduler_sleep_intrusive(&sock_data->backlog_blk.head, &sock_data->backlog_blk.tail, &sock_data->backlog_blk.lock);
     }
 
     struct net_buffer* syn_req = sock_data->backlog[++sock_data->backlog_head];
@@ -295,12 +313,13 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     // Биндинг сокета клиента
     tcp4_fill_sockaddr_in(&client_sockdata->addr, tcpp, ip4p);
-    tcp4_bindings[client_sockdata->addr.sin_port] = client_sock;
-/*
+    client_sockdata->client_port = client_sockdata->addr.sin_port;
+    tcp4_bindings[client_sockdata->client_port] = client_sock;
+#ifdef TCP_LOG_ACCEPTED_CLIENT
     union ip4uni src;
-	src.val = client_addr.sin_addr.s_addr; 
-	printk("Accepted client: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3], client_addr.sin_port);
-*/
+	src.val = client_sockdata->addr.sin_addr.s_addr; 
+	printk("Accepted client: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3], client_sockdata->addr.sin_port);
+#endif
 
     // Маршрут назначения
     struct route4* route = route4_resolve(ip4p->src_ip);
@@ -399,7 +418,10 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
 int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
+#ifdef TCP_LOG_SOCK_SEND
     printk("tcp: send()\n");
+#endif
+
     if (sock->state != SOCKET_STATE_CONNECTED) {
         return -ENOTCONN;
     }
@@ -408,10 +430,28 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 
 int sock_tcp4_close(struct socket* sock)
 {
+#ifdef TCP_LOG_SOCK_CLOSE
     printk("tcp: close()\n");
+#endif
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
-    if (sock_data)
+    
+    if (sock_data) {
+
+        uint16_t port = sock_data->addr.sin_port;
+
+        // Освободить порт
+        if (tcp4_bindings[sock_data->client_port] != NULL)
+        {
+            tcp4_bindings[sock_data->client_port] = NULL;
+        } 
+        else if (tcp4_bindings[port] != NULL) 
+        {    
+            tcp4_bindings[port] = NULL;
+        }
+
         kfree(sock_data);
+    }
+
     return 0;
 }
 

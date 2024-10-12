@@ -87,7 +87,8 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
         
         release_spinlock(&sock_data->rx_queue_lock);
 
-        scheduler_wakeup(&sock_data->rx_queue, 1);
+        // Будим ожидающих
+        scheduler_wakeup_intrusive(&sock_data->blk.head, &sock_data->blk.tail, &sock_data->blk.lock, 1);
     }
 }
 
@@ -151,7 +152,9 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     acquire_spinlock(&sock_data->rx_queue_lock);
 
     while (sock_data->rx_queue.head == NULL) {
-        scheduler_sleep(&sock_data->rx_queue, &sock_data->rx_queue_lock);
+        release_spinlock(&sock_data->rx_queue_lock);
+        scheduler_sleep_intrusive(&sock_data->blk.head, &sock_data->blk.tail, &sock_data->blk.lock);
+        acquire_spinlock(&sock_data->rx_queue_lock);
     }
 
     struct net_buffer* nbuffer = list_dequeue(&sock_data->rx_queue);

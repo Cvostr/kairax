@@ -6,6 +6,7 @@
 #include "ipc/socket.h"
 #include "list/list.h"
 #include "sync/spinlock.h"
+#include "proc/blocker.h"
 
 struct udp_packet {
     uint16_t    src_port;
@@ -22,6 +23,8 @@ struct udp4_socket_data {
 
     list_t rx_queue;
     spinlock_t rx_queue_lock;
+
+    struct blocker blk;
 };
 
 void udp_ip4_handle(struct net_buffer* nbuffer);
