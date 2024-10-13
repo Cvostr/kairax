@@ -192,21 +192,7 @@ void scheduler_remove_process_threads(struct process* process, struct thread* de
 
 void scheduler_sleep(void* handle, spinlock_t* lock)
 {
-    struct thread* thr = cpu_get_current_thread();
-
-    if (lock != NULL)
-        release_spinlock(lock);
-
-    // Изменяем состояние - блокируемся
-    thr->wait_handle = handle;
-    thr->state = STATE_INTERRUPTIBLE_SLEEP;
-
-    // Передача управления другому процессу
-    scheduler_yield(TRUE);
-
-    if (lock != NULL)
-        // Блокируем спинлок
-        acquire_spinlock(lock);
+    printk("Deprecated!\n");
 }
 
 void scheduler_sleep1()
@@ -242,26 +228,7 @@ void scheduler_wakeup1(struct thread* thread)
 
 int scheduler_wakeup(void* handle, int max)
 {
-    int unblocked = 0;
-    struct sched_wq* wq = cpu_get_wq();
-
-    DISABLE_INTS
-
-    struct thread* thread = wq->head;
-
-    while (thread != NULL) {
-
-        if (thread->state == STATE_INTERRUPTIBLE_SLEEP && thread->wait_handle == handle && unblocked < max) {
-            scheduler_unblock(thread);
-            unblocked ++;
-        }
-
-        thread = thread->next;
-    }
-
-    ENABLE_INTS
-    
-    return unblocked;
+    printk("Deprecated!\n");
 }
 
 void scheduler_unblock(struct thread* thread)
@@ -277,24 +244,15 @@ struct thread* scheduler_get_next_runnable_thread()
 
     if (wq == NULL || wq->size == 0)
     {
-        return cpu_get_idle_thread();
-    }
-
-    int runnable = 0;
-    while (thread != NULL) {
-        if (thread->state == STATE_RUNNABLE) {
-            runnable = 1;
-            break;
-        }
-        thread = thread->next;
-    }
-    if (runnable == 0) {
+        // Очередь пуста, возвращаем IDLE задачу
         return cpu_get_idle_thread();
     }
 
     thread = cpu_get_current_thread();
 
-    if (thread == NULL) {
+    if (thread == NULL) 
+    {
+        // Достигли конца очереди, возвращаемся на начало
         return wq->head;
     }
 
