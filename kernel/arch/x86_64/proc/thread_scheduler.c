@@ -155,7 +155,9 @@ int scheduler_handler(thread_frame_t* frame)
         }
     }
 
-    //balance();
+    // Вызов простейшего балансировщика между ядрами
+    // Закомментируйте, чтобы выключить многоядерность
+    balance();
 
     // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
