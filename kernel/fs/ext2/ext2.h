@@ -128,13 +128,13 @@ typedef struct PACKED {
 } ext2_instance_t;
 
 #define EXT2_DT_UNKNOWN  0
-#define EXT2_DT_FIFO     5
-#define EXT2_DT_CHR      3
-#define EXT2_DT_DIR      2
-#define EXT2_DT_BLK      4
 #define EXT2_DT_REG      1      // Обычный файл
-#define EXT2_DT_LNK      7
+#define EXT2_DT_DIR      2
+#define EXT2_DT_CHR      3
+#define EXT2_DT_BLK      4
+#define EXT2_DT_FIFO     5
 #define EXT2_DT_SOCK     6
+#define EXT2_DT_SYMLINK  7
 
 void ext2_init();
 
@@ -242,6 +242,8 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index);
 ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 
 ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
+
+int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name);
 
 // -----------------------------------------------
 

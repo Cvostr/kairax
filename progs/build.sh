@@ -77,3 +77,7 @@ cd ..
 cd route
 make
 cd ..
+
+cd ln
+make
+cd ..

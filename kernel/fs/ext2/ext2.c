@@ -33,6 +33,7 @@ void ext2_init()
     dir_inode_ops.chmod = ext2_chmod;
     dir_inode_ops.rename = ext2_rename;
     dir_inode_ops.unlink = ext2_unlink;
+    dir_inode_ops.link = ext2_linkat;
     dir_inode_ops.rmdir = ext2_rmdir;
     dir_ops.readdir = ext2_file_readdir;
 
@@ -931,7 +932,7 @@ int ext2_dt_to_vfs_dt(int ext2_dt)
         case EXT2_DT_REG:
             dt = DT_REG;
             break;
-        case EXT2_DT_LNK:
+        case EXT2_DT_SYMLINK:
             dt = DT_LNK;
             break;
         case EXT2_DT_DIR:
@@ -945,6 +946,40 @@ int ext2_dt_to_vfs_dt(int ext2_dt)
             break;
         case EXT2_DT_BLK:
             dt = DT_BLK;
+            break;
+        case EXT2_DT_SOCK:
+            dt = DT_SOCK;
+            break;
+    }
+
+    return dt;
+}
+
+int vfs_inode_mode_to_ext2_dentry_type(int inode_mode)
+{
+    int dt = 0;
+    switch (inode_mode & INODE_TYPE_MASK) 
+    {
+        case INODE_TYPE_FILE:
+            dt = EXT2_DT_REG;
+            break;
+        case INODE_FLAG_SYMLINK:
+            dt = EXT2_DT_SYMLINK;
+            break;
+        case INODE_TYPE_DIRECTORY:
+            dt = EXT2_DT_DIR;
+            break;
+        case INODE_FLAG_CHARDEVICE:
+            dt = EXT2_DT_CHR;
+            break;
+        case INODE_FLAG_PIPE:
+            dt = EXT2_DT_FIFO;
+            break;
+        case INODE_FLAG_BLOCKDEVICE:
+            dt = EXT2_DT_BLK;
+            break;
+        case INODE_FLAG_SOCKET:
+            dt = EXT2_DT_SOCK;
             break;
     }
 
@@ -1364,6 +1399,38 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     ext2_create_dentry(inst, parent, file_name, inode_num, EXT2_DT_REG);
 
     kfree(inode);
+    return 0;
+}
+
+int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name)
+{
+    ext2_instance_t* inst = (ext2_instance_t*) dst_dir->sb->fs_info;
+
+    if (ext2_find_dentry(dst_dir->sb, dst_dir->inode, dst_name, NULL) != WRONG_INODE_INDEX) 
+    {
+        return -ERROR_ALREADY_EXISTS;
+    }
+
+    struct inode* src_inode = src->d_inode;
+    uint64_t inode_idx = src_inode->inode;
+
+    // Тип dentry из типа inode
+    int dentry_type = vfs_inode_mode_to_ext2_dentry_type(src_inode->mode);
+    // Добавить иноду в директорию
+    ext2_create_dentry(inst, dst_dir, dst_name, inode_idx, dentry_type); // TODO: correct dentry type
+
+    // Считать ext2 - inode, для которой делаем unlink
+    ext2_inode_t* e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, inode_idx);
+    // Увеличить количество ссылок на выбранную inode
+    e2_inode->hard_links++;
+    // Перезаписать inode
+    ext2_write_inode_metadata(inst, e2_inode, inode_idx);
+
+    // Увеличить количество жестких ссылок объекта inode VFS
+    src_inode->hard_links++;
+
+    kfree(e2_inode);
     return 0;
 }
 

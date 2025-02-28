@@ -35,6 +35,8 @@ int dentry_close(struct dentry* dentry)
         if ((dentry->flags & DENTRY_INVALID) == DENTRY_INVALID) {
             
             //printk("destroying dentry %s, inode %i\n", dentry->name, dentry->d_inode->inode);
+            // Закрытие inode
+            // Внимание! Если живых жестких ссылок не осталось - произойдет удаление
             inode_close(dentry->d_inode);
             // Удаление из dentry родителя
             dentry_remove_subdir(dentry->parent, dentry);
@@ -64,8 +66,13 @@ void dentry_remove_subdir(struct dentry* parent, struct dentry* dir)
 
 void dentry_reparent(struct dentry* dentr, struct dentry* newparent)
 {
-    dentry_remove_subdir(dentr->parent, dentr);
-    dentry_add_subdir(newparent, dentr);
+    struct dentry* oldParent = dentr->parent;
+    
+    if (oldParent != newparent)
+    {
+        dentry_remove_subdir(dentr->parent, dentr);
+        dentry_add_subdir(newparent, dentr);
+    }
 }
 
 int dentry_is_child(struct dentry* d1, struct dentry* d2)
@@ -148,13 +155,24 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
         // Получить позицию следующего разделителя
         char* slash_pos = strchr(path_temp, '/');
 
-        if (slash_pos != NULL) {
+        if (slash_pos != NULL) 
+        {
             // еще есть разделители /
             strncpy(name_temp, path_temp, slash_pos - path_temp);
             path_temp = slash_pos + 1;
             current = superblock_get_dentry(current->sb, current, name_temp);
+
+            // Убедимся что это директория
+            if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
+            {
+                // TODO: return ENOTDIR
+                current = NULL;
+                break;
+            }
+
             continue;
-        } else {
+        } else 
+        {
             // Больше нет разделителей /
             strncpy(name_temp, path_temp, strlen(path_temp));
             current = superblock_get_dentry(current->sb, current, name_temp);

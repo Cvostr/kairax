@@ -24,10 +24,13 @@ void inode_close(struct inode* node)
 {
     //acquire_spinlock(&node->spinlock);
 
-    if (atomic_dec_and_test(&node->reference_count)) {
+    if (atomic_dec_and_test(&node->reference_count)) 
+    {
 
-        if (node->sb != NULL) {
-            if (node->hard_links == 0) {
+        if (node->sb != NULL) 
+        {
+            if (node->hard_links == 0) 
+            {
                 //printk("Destroying inode %i\n", node->inode);
                 node->sb->operations->destroy_inode(node);
             }
@@ -159,6 +162,21 @@ int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_pa
     if (parent != new_parent)
         release_spinlock(&new_parent->spinlock);
     release_spinlock(&parent->spinlock);
+
+    return rc;
+}
+
+int inode_linkat(struct dentry* src, struct inode* dst, const char* name)
+{
+    acquire_spinlock(&dst->spinlock);
+
+    int rc = -EPERM;
+    if (dst->operations->link) 
+    {
+        rc = dst->operations->link(src, dst, name);
+    }
+
+    release_spinlock(&dst->spinlock);
 
     return rc;
 }

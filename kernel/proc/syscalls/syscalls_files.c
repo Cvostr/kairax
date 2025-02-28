@@ -19,11 +19,11 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     VALIDATE_USER_POINTER(process, path, strlen(path))
 
     // Получить dentry, относительно которой открыть файл
-    fd = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
+    fd = process_get_relative_direntry1(process, dirfd, path, &dir_dentry);
 
     if (fd != 0) {
         // Не получилось найти директорию с файлом
-        return fd;
+        goto exit;
     }
 
     // Открыть файл в ядре
@@ -31,19 +31,22 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
 
     if (file == NULL) {
         // Файл не найден
-        return -ERROR_NO_FILE;
+        fd = -ERROR_NO_FILE;
+        goto exit;
     }
 
     if ( !(file->inode->mode & INODE_TYPE_DIRECTORY) && (flags & FILE_OPEN_FLAG_DIRECTORY)) {
         // Мы пытаемся открыть обычный файл с флагом директории - выходим
         file_close(file);
-        return -ERROR_NOT_A_DIRECTORY;
+        fd = -ERROR_NOT_A_DIRECTORY;
+        goto exit;
     }
 
     if ((file->inode->mode & INODE_TYPE_DIRECTORY) && file_allow_write(file)) {
         // Мы пытаемся открыть директорию с правами на запись
         file_close(file);
-        return -ERROR_IS_DIRECTORY;
+        fd = -ERROR_IS_DIRECTORY;
+        goto exit;
     }
 
     // Проверка разрешений
@@ -51,9 +54,11 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
         (file_allow_write(file) && inode_check_perm(file->inode, process->euid, process->egid, S_IWUSR, S_IWGRP, S_IWOTH) == 0) )
     {
         file_close(file);
-        return -EACCES;
+        fd = -EACCES;
+        goto exit;
     }
 
+    // TODO: может делать это после попытки добавить к процессу?
     if ((file->inode->mode & INODE_TYPE_FILE) && (flags & FILE_OPEN_FLAG_TRUNCATE) && file_allow_write(file)) {
         inode_truncate(file->inode);
     }
@@ -64,7 +69,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     if (fd < 0) {
         // Не получилось привязать дескриптор к процессу, закрыть файл
         file_close(file);
-        return fd;
+        goto exit;
     }
 
     // Если передан флаг O_CLOEXEC, надо взвести бит дескриптора
@@ -72,6 +77,9 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     {
         process_set_cloexec(process, fd, 1);
     }
+
+exit:
+    DENTRY_CLOSE_SAFE(dir_dentry);
 
     return fd;
 }
@@ -90,7 +98,7 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     VALIDATE_USER_POINTER(process, path, strlen(path))
 
     // Получить dentry, относительно которой создать папку
-    rc = process_get_relative_direntry(process, dirfd, path, &dir_dentry);
+    rc = process_get_relative_direntry1(process, dirfd, path, &dir_dentry);
     if (rc != 0) {
         return rc;
     }
@@ -123,6 +131,7 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     inode_close(dir_inode);
 
 exit:
+    DENTRY_CLOSE_SAFE(dir_dentry);
     kfree(formatted_path);
     return rc;
 }
@@ -134,6 +143,8 @@ ssize_t sys_read_file(int fd, char* buffer, size_t size)
     struct process* process = thread->process;
 
     if (thread->is_userspace) {
+        // Эта функция также используется в ядре
+        // Проверять диапазон, только если вызвана из userspace
         VALIDATE_USER_POINTER(process, buffer, size)
     }
 
@@ -157,6 +168,8 @@ ssize_t sys_write_file(int fd, const char* buffer, size_t size)
     struct process* process = thread->process;
 
     if (thread->is_userspace) {
+        // Эта функция также используется в ядре
+        // Проверять диапазон, только если вызвана из userspace
         VALIDATE_USER_POINTER(process, buffer, size)
     }
 
@@ -297,7 +310,7 @@ int sys_unlink(int dirfd, const char* path, int flags)
 
     // Получение dentry от dirfd для относительного поиска
     struct dentry* dirdentry = NULL;
-    int rc = process_get_relative_direntry(process, dirfd, path, &dirdentry);
+    int rc = process_get_relative_direntry1(process, dirfd, path, &dirdentry);
     if (rc != 0) 
         return rc;
 
@@ -340,7 +353,7 @@ exit:
     //printk("unlink() closing dentry %s, refs %i\n", target_dentry->name, target_dentry->refs_count);
     DENTRY_CLOSE_SAFE(target_dentry);
 
-    //DENTRY_CLOSE_SAFE(dirdentry)
+    DENTRY_CLOSE_SAFE(dirdentry)
 
     return rc;
 }
@@ -406,9 +419,90 @@ exit:
 
 int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
 {
+    if (oldpath == NULL || newpath == NULL) 
+    {
+        return -ERROR_NO_FILE;
+    }
+
     struct process* process = cpu_get_current_thread()->process;
 
-    return -1;
+    VALIDATE_USER_POINTER(process, oldpath, strlen(oldpath))
+    VALIDATE_USER_POINTER(process, newpath, strlen(newpath))
+
+    printk("linkat: %s to %s\n", oldpath, newpath);
+
+    // Новый путь
+    char* new_directory_path = NULL;
+    // Новое имя
+    char* new_filename = NULL;
+
+    struct dentry* olddir_dentry = NULL;
+    struct dentry* newdir_dentry = NULL;
+
+    struct inode* old_parent_inode = NULL;
+    struct inode* new_parent_inode = NULL;
+    struct dentry* new_parent_dentry = NULL;
+
+    // Получить dentry для olddirfd
+    int rc = process_get_relative_direntry1(process, olddirfd, oldpath, &olddir_dentry);
+    if (rc != 0) 
+        return rc;
+    // Получить dentry для newdirfd
+    rc = process_get_relative_direntry1(process, newdirfd, newpath, &newdir_dentry);
+    if (rc != 0) 
+        return rc;
+
+    // Открыть источник файл - получить inode и dentry
+    struct dentry* old_dentry = NULL;
+    struct inode* old_inode = vfs_fopen(olddir_dentry, oldpath, &old_dentry);
+    if (old_inode == NULL || old_dentry == NULL) 
+    {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    // Запрещено делать жесткие ссылки на директории
+    if ((old_inode->mode & INODE_TYPE_DIRECTORY) == INODE_TYPE_DIRECTORY) 
+    {
+        rc = -EPERM;
+        goto exit;
+    }
+
+    // Получить inode - директорию старого файла
+    old_parent_inode = vfs_fopen_parent(old_dentry);
+
+    // Разделить новый путь на путь директории и имя файла
+    split_path(newpath, &new_directory_path, &new_filename);
+
+    // Открыть inode директории нового пути
+    new_parent_inode = vfs_fopen(newdir_dentry, new_directory_path, &new_parent_dentry);
+
+    // Инода, старый и новый родители должны быть на одном устройстве
+    if (old_inode->device != new_parent_inode->device || old_parent_inode->device != new_parent_inode->device) 
+    {
+        rc = -ERROR_OTHER_DEVICE;
+        goto exit;
+    }
+
+    rc = inode_linkat(old_dentry, new_parent_inode, new_filename);
+    if (rc != 0)
+        goto exit;    
+
+exit:
+    // Освобождаем в обратном порядке
+    DENTRY_CLOSE_SAFE(new_parent_dentry)
+    INODE_CLOSE_SAFE(new_parent_inode)
+    INODE_CLOSE_SAFE(old_parent_inode)
+    DENTRY_CLOSE_SAFE(old_dentry)
+    
+    DENTRY_CLOSE_SAFE(newdir_dentry)
+    DENTRY_CLOSE_SAFE(olddir_dentry)
+
+    if (new_directory_path) {
+        kfree(new_directory_path);
+    }
+
+    return rc;
 }
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)
@@ -435,11 +529,11 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
     char* new_filename = NULL;
 
     // Получить dentry для olddirfd
-    int rc = process_get_relative_direntry(process, olddirfd, oldpath, &olddir_dentry);
+    int rc = process_get_relative_direntry1(process, olddirfd, oldpath, &olddir_dentry);
     if (rc != 0) 
         return rc;
     // Получить dentry для newdirfd
-    rc = process_get_relative_direntry(process, newdirfd, newpath, &newdir_dentry);
+    rc = process_get_relative_direntry1(process, newdirfd, newpath, &newdir_dentry);
     if (rc != 0) 
         return rc;
 
@@ -492,12 +586,16 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
     dentry_reparent(old_dentry, new_parent_dentry);
 
 exit:
-    DENTRY_CLOSE_SAFE(old_dentry)
+    // Освобождаем в обратном порядке
     DENTRY_CLOSE_SAFE(new_parent_dentry)
+    INODE_CLOSE_SAFE(new_parent_inode)
 
     INODE_CLOSE_SAFE(old_parent_inode)
     INODE_CLOSE_SAFE(old_inode)
-    INODE_CLOSE_SAFE(new_parent_inode)
+    DENTRY_CLOSE_SAFE(old_dentry)
+
+    DENTRY_CLOSE_SAFE(newdir_dentry)
+    DENTRY_CLOSE_SAFE(olddir_dentry)
     
     if (new_directory_path)
         kfree(new_directory_path);

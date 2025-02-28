@@ -91,17 +91,12 @@ void inode_open(struct inode* node, uint32_t flags);
 void inode_close(struct inode* node);
 
 int inode_stat(struct inode* node, struct stat* sstat);
-
 int inode_mkdir(struct inode* node, const char* name, uint32_t mode);
-
 int inode_mkfile(struct inode* node, const char* name, uint32_t mode);
-
 int inode_truncate(struct inode* inode);
-
 int inode_unlink(struct inode* parent, struct dentry* child);
-
+int inode_linkat(struct dentry* src, struct inode* dst, const char* name);
 int inode_rmdir(struct inode* parent, struct dentry* child);
-
 int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_parent, const char* name);
 
 #endif

@@ -32,6 +32,7 @@ extern int syscall_fdstat(int dirfd, const char* filepath, void* stat_buffer, in
 extern long long int syscall_file_seek(int fd, long int offset, int whence);
 extern int syscall_create_pipe(int* dirfd, int flags);
 extern int syscall_set_file_mode(int dirfd, const char* filepath, unsigned int mode, int flags);
+extern int syscall_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
 extern int syscall_unlink(int fd, const char* path, int flags);
 extern int syscall_rmdir(const char* path);
 extern int syscall_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath);

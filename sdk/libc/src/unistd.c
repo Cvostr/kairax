@@ -121,6 +121,16 @@ int close(int fd)
     __set_errno(syscall_close(fd));
 }
 
+int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
+{
+    __set_errno(syscall_linkat(AT_FDCWD, oldpath, newdirfd, newpath, flags));
+}
+
+int link(const char *oldpath, const char *newpath)
+{
+    __set_errno(syscall_linkat(AT_FDCWD, oldpath, AT_FDCWD, newpath, 0));
+}
+
 int unlink(const char* path)
 {
     __set_errno(syscall_unlink(AT_FDCWD, path, 0));
