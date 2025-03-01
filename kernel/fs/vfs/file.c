@@ -181,7 +181,7 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
 {
     ssize_t written = -1;
 
-    acquire_spinlock(&file->lock);
+    //acquire_spinlock(&file->lock);
 
     if (file->flags & FILE_OPEN_FLAG_DIRECTORY) {
         written = -ERROR_IS_DIRECTORY;
@@ -205,7 +205,7 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
     }
 
 exit:
-    release_spinlock(&file->lock);
+    //release_spinlock(&file->lock);
     return written;
 }
 

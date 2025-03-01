@@ -95,7 +95,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 
         if (nonblock == 1) {
             i = 0;
-            goto exit;
+            goto exit_wake_writers;
         }
 
         // Нечего читать - засыпаем
@@ -112,6 +112,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
         buffer[i] = pipe->buffer[pipe->read_pos++ % PIPE_SIZE];
     }
 
+exit_wake_writers:
     // Пробуждаем записывающих
     scheduler_wakeup_intrusive(&pipe->writeb.head, &pipe->writeb.tail, &pipe->writeb.lock, INT_MAX);
 

@@ -88,7 +88,7 @@ ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t o
 {
     struct pty *p_pty = (struct pty *) file->private_data;
     // Неблокирующее чтение
-    return pipe_read(p_pty->slave_to_master, buffer, count, 1);
+    return pipe_read(p_pty->slave_to_master, buffer, count, 0);
 }
 
 ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)

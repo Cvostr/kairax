@@ -31,6 +31,7 @@ void kterm_process_start()
 }
 
 char keyboard_get_key_ascii(char keycode);
+void kterm_tty_master_read_routine(struct terminal_session* session);
 
 struct terminal_session* new_kterm_session(int create_console) 
 {
@@ -39,6 +40,7 @@ struct terminal_session* new_kterm_session(int create_console)
 	struct kterm_color foreground_color = DEFAULT_FOREGROUND_COLOR;
 	session->foreground_color = foreground_color;
 
+	// Создать TTY
 	sys_create_pty(&session->master, &session->slave);
 
 	struct file *slave_file = process_get_file(kterm_process, session->slave);
@@ -53,6 +55,11 @@ struct terminal_session* new_kterm_session(int create_console)
 	if (create_console == TRUE) {
 		session->console = console_init();
 	}
+
+	struct thread* tty_read_thread = create_kthread(kterm_process, kterm_tty_master_read_routine, session);
+	strcpy(tty_read_thread->name, "kterm reading thread");
+	process_add_to_list(tty_read_thread);
+	scheduler_add_thread(tty_read_thread);
 
 	return session;
 }
@@ -77,6 +84,19 @@ void kterm_change_to(int index)
 	console_redraw(current_console);
 }
 
+void kterm_tty_master_read_routine(struct terminal_session* session)
+{
+	while (1)
+	{
+		if (current_session == session)
+		{
+			kterm_session_process(session);
+		} else {
+			sys_thread_sleep(0, 500);
+		}
+	}
+}
+
 void kterm_main()
 {
 	struct terminal_session* session = new_kterm_session(FALSE);
@@ -84,13 +104,11 @@ void kterm_main()
 	kterm_sessions[0] = session;
 	session->console = current_console;
 
-	while (1) {
-
-		kterm_session_process(current_session);
-
+	while (1) 
+	{
 		short keycode_ext = keyboard_get_key();
-		if (keycode_ext > 0) {
-
+		if (keycode_ext > 0) 
+		{
 			char keycode = (keycode_ext) & 0xFF;
 			int state = (keycode_ext >> 8) & 0xFF;
 
