@@ -5,6 +5,22 @@
 #include "drivers/video/video.h"
 #include "proc/syscalls.h"
 #include "string.h"
+#include "proc/thread.h"
+
+struct process* bootshell_spawn_new_process(struct process* parent)
+{
+    struct process* proc = create_new_process(parent);
+	strcpy(proc->name, "bootshell");
+	// Добавить в список и назначить pid
+    process_add_to_list(proc);
+
+    struct thread* thr = create_kthread(proc, bootshell, NULL);
+    strcpy(thr->name, "bootshell main thread");
+	process_add_to_list(thr);
+	scheduler_add_thread(thr);
+
+    return proc;
+}
 
 void bootshell_print_sign()
 {

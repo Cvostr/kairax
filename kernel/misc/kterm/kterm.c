@@ -24,9 +24,10 @@ void kterm_process_start()
 	// Добавить в список и назначить pid
     process_add_to_list(kterm_process);
 
-	struct thread* thr = create_kthread(kterm_process, kterm_main, NULL);
-	scheduler_add_thread(thr);
-	process_add_to_list(thr);
+	struct thread* kterm_thr = create_kthread(kterm_process, kterm_main, NULL);
+	strcpy(kterm_thr->name, "kterm main thread");
+	scheduler_add_thread(kterm_thr);
+	process_add_to_list(kterm_thr);
 }
 
 char keyboard_get_key_ascii(char keycode);
@@ -42,19 +43,12 @@ struct terminal_session* new_kterm_session(int create_console)
 
 	struct file *slave_file = process_get_file(kterm_process, session->slave);
 
-	// Процесс shell
-	session->proc = create_new_process(kterm_process);
-	strcpy(session->proc->name, "bootshell");
-	// Добавить в список и назначить pid
-    process_add_to_list(session->proc);
+	// Создать процесс bootshell
+	session->proc = bootshell_spawn_new_process(kterm_process);
 	// Переопределить каналы
 	process_add_file_at(session->proc, slave_file, 0);
 	process_add_file_at(session->proc, slave_file, 1);
 	process_add_file_at(session->proc, slave_file, 2);
-
-	struct thread* thr = create_kthread(session->proc, bootshell, NULL);
-	process_add_to_list(thr);
-	scheduler_add_thread(thr);
 
 	if (create_console == TRUE) {
 		session->console = console_init();
