@@ -245,6 +245,8 @@ ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, lof
 
 int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name);
 
+int ext2_mknod (struct inode* parent, const char* name, mode_t mode);
+
 // -----------------------------------------------
 
 #endif

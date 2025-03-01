@@ -41,6 +41,8 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
 int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
 
+int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev);
+
 off_t sys_file_seek(int fd, off_t offset, int whence); 
 
 int sys_fcntl(int fd, int cmd, unsigned long long arg);

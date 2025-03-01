@@ -20,6 +20,7 @@ struct inode_operations {
     int      (*link)(struct dentry*, struct inode*, const char*);
     int      (*unlink)(struct inode*, struct dentry*);
     int      (*rmdir)(struct inode*, struct dentry*);
+    int      (*mknod)(struct inode*, const char*, mode_t);
 };
 
 struct file_operations;
@@ -98,5 +99,6 @@ int inode_unlink(struct inode* parent, struct dentry* child);
 int inode_linkat(struct dentry* src, struct inode* dst, const char* name);
 int inode_rmdir(struct inode* parent, struct dentry* child);
 int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_parent, const char* name);
+int inode_mknod(struct inode* parent, const char* name, mode_t mode);
 
 #endif

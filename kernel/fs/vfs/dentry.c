@@ -72,6 +72,7 @@ void dentry_reparent(struct dentry* dentr, struct dentry* newparent)
     {
         dentry_remove_subdir(dentr->parent, dentr);
         dentry_add_subdir(newparent, dentr);
+        dentr->parent = newparent;
     }
 }
 

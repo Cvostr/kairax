@@ -181,6 +181,34 @@ int inode_linkat(struct dentry* src, struct inode* dst, const char* name)
     return rc;
 }
 
+int inode_mknod(struct inode* parent, const char* name, mode_t mode)
+{
+    mode_t inode_type = mode & INODE_TYPE_MASK;
+
+    if (inode_type != INODE_FLAG_PIPE ||
+        inode_type != INODE_FLAG_SOCKET ||
+        inode_type != INODE_TYPE_FILE ||
+        inode_type != INODE_FLAG_CHARDEVICE ||
+        inode_type != INODE_FLAG_BLOCKDEVICE
+    ) 
+    {
+        return -EINVAL;
+    }
+
+    acquire_spinlock(&parent->spinlock);
+
+    int rc = -EINVAL;
+
+    if (parent->operations->mknod)
+    {
+        rc = parent->operations->mknod(parent, name, mode);
+    }
+
+    release_spinlock(&parent->spinlock);
+
+    return rc;
+}
+
 int inode_stat(struct inode* node, struct stat* sstat)
 {
     acquire_spinlock(&node->spinlock);

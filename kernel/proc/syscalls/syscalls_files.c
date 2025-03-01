@@ -429,7 +429,7 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
     VALIDATE_USER_POINTER(process, oldpath, strlen(oldpath))
     VALIDATE_USER_POINTER(process, newpath, strlen(newpath))
 
-    printk("linkat: %s to %s\n", oldpath, newpath);
+    //printk("linkat: %s to %s\n", oldpath, newpath);
 
     // Новый путь
     char* new_directory_path = NULL;
@@ -503,6 +503,11 @@ exit:
     }
 
     return rc;
+}
+
+int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
+{
+    
 }
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)

@@ -35,6 +35,7 @@ void ext2_init()
     dir_inode_ops.unlink = ext2_unlink;
     dir_inode_ops.link = ext2_linkat;
     dir_inode_ops.rmdir = ext2_rmdir;
+    dir_inode_ops.mknod = ext2_mknod;
     dir_ops.readdir = ext2_file_readdir;
 
     file_ops.read = ext2_file_read;
@@ -1112,7 +1113,12 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
     }
 
     int orig_type = 0;
-    ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
+    int rc = ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
+    if (rc != 0)
+    {
+        // Почему-то не смогли удалить dentry из старого родителя - лучше выйти с ошибкой
+        return -ENOENT;
+    }
 
     ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->d_inode->inode, orig_type);
 
@@ -1402,6 +1408,56 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     return 0;
 }
 
+int ext2_mknod (struct inode* parent, const char* name, mode_t mode)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
+
+    if (ext2_find_dentry(parent->sb, parent->inode, name, NULL) != WRONG_INODE_INDEX) {
+        return -ERROR_ALREADY_EXISTS;
+    }
+
+    // Создать inode на диске
+    uint32_t inode_num = ext2_alloc_inode(inst);
+    if (inode_num == 0) {
+        return -ERROR_NO_SPACE;
+    }
+    // Прочитать inode
+    ext2_inode_t *inode = new_ext2_inode();
+    ext2_inode(inst, inode, inode_num);
+
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+
+    inode->mode = mode;
+    inode->atime = current_time.tv_sec;
+    inode->ctime = current_time.tv_sec;
+    inode->mtime = current_time.tv_sec;
+    inode->dtime = 0;
+    inode->gid = 0;
+    inode->userid = 0;
+    inode->flags = 0;
+    inode->hard_links = 1;
+    inode->num_blocks = 0;
+    inode->os_specific1 = 0;
+    memset(inode->blocks, 0, sizeof(inode->blocks));
+    memset(inode->os_specific2, 0, sizeof(inode->os_specific2));
+    inode->generation = 0;
+    inode->file_acl = 0;
+    inode->dir_acl = 0;
+    inode->faddr = 0;
+    inode->size = 0;
+
+    // Записать изменения на диск
+    ext2_write_inode_metadata(inst, inode, inode_num);
+
+    // Добавить иноду в директорию
+    int dentry_type = vfs_inode_mode_to_ext2_dentry_type(mode);
+    ext2_create_dentry(inst, parent, name, inode_num, dentry_type);
+
+    kfree(inode);
+    return 0;
+}
+
 int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name)
 {
     ext2_instance_t* inst = (ext2_instance_t*) dst_dir->sb->fs_info;
@@ -1492,6 +1548,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 
     // Подготовить буфер для блоков
     char* buffer = kmalloc(inst->block_size);
+    char* buffer_phys = (char*)kheap_get_phys_address(buffer);
     // смещение относительно данных inode
     uint64_t offset = 0;
     uint64_t offset_in_block = 0;
@@ -1500,7 +1557,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     size_t name_len = strlen(name);
 
     // Считать первый блок
-    ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+    ext2_read_inode_block(inst, e2_inode, block_index, buffer_phys);
 
     while (offset < e2_inode->size) {
         
@@ -1509,7 +1566,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
             // Считать следующий блок
             block_index++;
             offset_in_block = 0;
-            ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+            ext2_read_inode_block(inst, e2_inode, block_index, buffer_phys);
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + offset_in_block);
@@ -1521,7 +1578,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
                 *orig_type = curr_entry->type;
             }
             // Записать изменения на диск
-            ext2_write_inode_block(inst, e2_inode, parent->inode, block_index, (char*)kheap_get_phys_address(buffer));
+            ext2_write_inode_block(inst, e2_inode, parent->inode, block_index, buffer_phys);
             rc = 0;
             goto exit;
         }
