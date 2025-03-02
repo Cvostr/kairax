@@ -333,8 +333,9 @@ int sys_unlink(int dirfd, const char* path, int flags)
         goto exit;
     }
 
-    // Текущая реализация поддерживает удаление только файлов
-    if ( !(ino_mode & INODE_TYPE_FILE)) {
+    // Нельзя удалять директории
+    if ((ino_mode & INODE_TYPE_DIRECTORY) == INODE_TYPE_DIRECTORY) 
+    {
         rc = -ERROR_IS_DIRECTORY;
         goto exit;
     }

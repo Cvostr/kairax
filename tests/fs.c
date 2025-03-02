@@ -238,7 +238,7 @@ int main(int argc, char** argv)
         printf("Failed mknod(%s, S_IFIFO, 0), errno = %i\n", testsock_file, errno);
         return 30;
     }
-    rc = fstat(fd, &file_stat);
+    rc = stat(testsock_file, &file_stat);
     if (rc == -1) {
         printf("Failed stat() for %s, errno = %i\n", testsock_file, errno);
         return 31;
