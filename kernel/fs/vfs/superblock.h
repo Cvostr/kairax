@@ -23,6 +23,17 @@ struct superblock {
     spinlock_t      spinlock;
 };
 
+struct statfs {
+
+    blksize_t blocksize;
+    
+    blkcnt_t blocks;
+    blkcnt_t blocks_free;
+
+    inocnt_t inodes;
+    inocnt_t inodes_free;
+};
+
 struct super_operations {
 
     struct inode *(*alloc_inode)(struct superblock *sb);
@@ -32,6 +43,8 @@ struct super_operations {
     struct inode* (*read_inode)(struct superblock *sb, uint64_t ino_num);
 
     uint64_t (*find_dentry)(struct superblock *sb, uint64_t parent_num, const char* name, int* type);
+
+    int (*stat)(struct superblock *sb, struct statfs*);
 };
 
 struct superblock* new_superblock();
@@ -50,6 +63,8 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
 void superblock_add_inode(struct superblock* sb, struct inode* inode);
 
 void superblock_remove_inode(struct superblock* sb, struct inode* inode);
+
+int superblock_stat(struct superblock* sb, struct statfs* stat);
 
 void debug_print_inodes(struct superblock* sb);
 

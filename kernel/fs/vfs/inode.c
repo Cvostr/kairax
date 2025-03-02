@@ -211,6 +211,11 @@ int inode_mknod(struct inode* parent, const char* name, mode_t mode)
 
 int inode_stat(struct inode* node, struct stat* sstat)
 {
+    if (node == NULL)
+    {
+        return -ERROR_INVALID_VALUE;
+    }
+
     acquire_spinlock(&node->spinlock);
 
     sstat->st_ino = node->inode;

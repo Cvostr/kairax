@@ -60,6 +60,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x6E, sys_get_parent_process_id),
     DEFINE_SYSCALL(0x7E, sys_sigprocmask),
     DEFINE_SYSCALL(0x7F, sys_sigpending),
+    DEFINE_SYSCALL(0x85, sys_mknodat),
     DEFINE_SYSCALL(0xA4, sys_set_time_epoch),
     DEFINE_SYSCALL(0xA5, sys_mount),
     DEFINE_SYSCALL(0xA9, sys_poweroff),
@@ -68,6 +69,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0xBA, sys_get_thread_id),
     DEFINE_SYSCALL(0xCA, sys_futex),
 
+    // Не POSIX вызовы
     DEFINE_SYSCALL(0x2FF, sys_create_thread),
     DEFINE_SYSCALL(0x300, sys_create_process),
     DEFINE_SYSCALL(0x301, sys_exit_thread),

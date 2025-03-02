@@ -219,6 +219,8 @@ struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num);
 
 uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type);
 
+int ext2_statfs(struct superblock *sb, struct statfs*);
+
 // --------------- Функции inode и file -----------
 
 int ext2_unlink(struct inode* parent, struct dentry* dent);

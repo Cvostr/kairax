@@ -44,6 +44,7 @@ void ext2_init()
     sb_ops.destroy_inode = ext2_purge_inode;
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
+    sb_ops.stat = ext2_statfs;
 }
 
 ext2_inode_t* new_ext2_inode()
@@ -1594,6 +1595,20 @@ exit:
     return rc;
 }
 
+int ext2_statfs(struct superblock *sb, struct statfs* stat)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
+
+    stat->blocksize = inst->block_size;
+
+    stat->blocks = inst->superblock->total_blocks;
+    stat->blocks_free = inst->superblock->free_blocks;
+
+    stat->inodes = inst->superblock->total_inodes;
+    stat->inodes_free = inst->superblock->free_inodes;
+
+    return 0;
+}
 
 uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type)
 {

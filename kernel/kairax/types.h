@@ -38,6 +38,7 @@ typedef unsigned long 		dev_t;
 
 typedef unsigned long int 	blkcnt_t;
 typedef unsigned long int 	blksize_t;  
+typedef unsigned long int   inocnt_t;
 
 typedef long int time_t;
 
@@ -47,7 +48,7 @@ typedef signed long 		useconds_t;
 typedef unsigned int        socklen_t;
 typedef unsigned short 		sa_family_t;
 
-typedef long int clock_t;
+typedef long int 			clock_t;
 
 typedef struct {
 	int counter;

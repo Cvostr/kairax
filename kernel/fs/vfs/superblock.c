@@ -122,6 +122,18 @@ void superblock_remove_inode(struct superblock* sb, struct inode* inode)
     release_spinlock(&sb->spinlock);
 }
 
+int superblock_stat(struct superblock* sb, struct statfs* stat)
+{
+    int rc = -EINVAL;
+    
+    if (sb->operations->stat)
+    {
+        rc = sb->operations->stat(sb, stat);
+    }
+
+    return rc;
+}
+
 void debug_print_inodes(struct superblock* sb)
 {
     acquire_spinlock(&sb->spinlock);

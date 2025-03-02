@@ -507,7 +507,45 @@ exit:
 
 int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
 {
+    if (pathname == NULL) 
+    {
+        return -ERROR_NO_FILE;
+    }
+
+    struct process* process = cpu_get_current_thread()->process;
+
+    // dentry от dirfd
+    struct dentry* dir_dentry = NULL;
+    // dentry и inode родителя
+    struct dentry* parent_dentry = NULL;
+    struct inode* parent_inode = NULL;
+    // Новый путь
+    char* new_directory_path = NULL;
+    // Новое имя
+    char* new_filename = NULL;
+
+    // Получить dentry для olddirfd
+    int rc = process_get_relative_direntry1(process, dirfd, pathname, &dir_dentry);
+    if (rc != 0) 
+        return rc;
+
+    // Разделить новый путь на путь директории и имя файла
+    split_path(pathname, &new_directory_path, &new_filename);
+
+    // Открыть inode директории нового пути
+    parent_inode = vfs_fopen(dir_dentry, new_directory_path, &parent_dentry);
+
+    // выполнить операцию в ФС
+    rc = inode_mknod(parent_inode, new_filename, mode);
     
+    INODE_CLOSE_SAFE(parent_inode)
+    DENTRY_CLOSE_SAFE(parent_dentry)
+    DENTRY_CLOSE_SAFE(dir_dentry)
+    if (new_directory_path) {
+        kfree(new_directory_path);
+    }
+
+    return rc;
 }
 
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags)

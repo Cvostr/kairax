@@ -240,6 +240,12 @@ void bootshell_process_cmd(char* cmdline)
                 vfs_dentry_get_absolute_path(sb->root_dir, NULL, abs_path_buffer);
                 int em = 0;
                 printf_stdout("Partition %s mounted to path %s Filesystem %s\n", sb->partition ? sb->partition->name : &em, abs_path_buffer, sb->filesystem->name);
+
+                struct statfs sb_stat;
+                int rc = superblock_stat(sb, &sb_stat);
+                if (rc == 0)
+                    printf_stdout("  Total blocks: %i, free: %i\n", sb_stat.blocks, sb_stat.blocks_free);
+
                 kfree(abs_path_buffer);
             }
         }
