@@ -70,6 +70,7 @@ DEFINE_SYSCALL syscall_getegid,     0x6C
 DEFINE_SYSCALL syscall_getppid,     0x6E
 DEFINE_SYSCALL syscall_sigprocmask, 0x7E
 DEFINE_SYSCALL syscall_sigpending,  0x7F
+DEFINE_SYSCALL syscall_mknodat,     0x85
 DEFINE_SYSCALL syscall_mount,       0xA5
 DEFINE_SYSCALL syscall_poweroff,    0xA9
 

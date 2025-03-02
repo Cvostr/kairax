@@ -14,6 +14,8 @@ char* testdir = "testdir";
 char* testdir_relative = "../testdir";
 char* testfile = "testdir/testfile.txt";
 char* testfile2 = "testdir/testfile2.txt";
+char* testsock_file = "testpipe";
+
 #define TESTDIR_PERM 0666
 #define TESTFILE_PERM 0667
 
@@ -227,6 +229,39 @@ int main(int argc, char** argv)
     rc = lseek(121, 1, 1);
     if (errno != EBADF) { 
         printf("Incorrect errno, expected %i, got %i\n", EBADF, errno);
+        return 29;
+    }
+
+    printf("Test 13: mknod() call\n");
+    rc = mknod(testsock_file, S_IFIFO, 0);
+    if (rc == -1) {
+        printf("Failed mknod(%s, S_IFIFO, 0), errno = %i\n", testsock_file, errno);
+        return 30;
+    }
+    rc = fstat(fd, &file_stat);
+    if (rc == -1) {
+        printf("Failed stat() for %s, errno = %i\n", testsock_file, errno);
+        return 31;
+    }
+    if ((file_stat.st_mode & S_IFIFO) != S_IFIFO){
+        printf("Wrong inode type!\n");
+        return 32;
+    }
+    rc = unlink(testsock_file);
+    if (rc == -1) {
+        printf("Failed unlink() on %s, Something wrong\n", testsock_file);
+        return 33;
+    }
+
+
+    printf("Test 14: mknod(S_IFDIR) call\n");
+    rc = mknod(testsock_file, S_IFDIR, 0);
+    if (rc != -1) {
+        printf("Successful mknod(S_IFDIR), Something wrong\n");
+        return 34;
+    }
+    if (errno != EINVAL) { 
+        printf("Incorrect errno, expected %i, got %i\n", EINVAL, errno);
         return 29;
     }
 

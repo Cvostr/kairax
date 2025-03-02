@@ -144,7 +144,8 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     file->dentry = dentry;
     file->ops = inode->file_ops;
 
-    if (file->ops->open) {
+    if (file->ops != NULL && file->ops->open) 
+    {
         file->ops->open(inode, file);
     }
     
@@ -163,7 +164,7 @@ ssize_t file_read(struct file* file, size_t size, char* buffer)
     }
     
     if (file_allow_read(file)) {
-        if (file->ops->read) {
+        if (file->ops && file->ops->read) {
             read = file->ops->read(file, buffer, size, file->pos);
         } else {
             read = -ERROR_INVALID_VALUE;
@@ -194,7 +195,7 @@ ssize_t file_write(struct file* file, size_t size, const char* buffer)
                 file->pos = file->inode->size;
             }
 
-            if (file->ops->write) {
+            if (file->ops && file->ops->write) {
                 written = file->ops->write(file, buffer, size, file->pos);
             } else {
                 written = -ERROR_INVALID_VALUE;
@@ -269,7 +270,7 @@ int file_readdir(struct file* file, struct dirent* dirent)
     }
 
     struct dirent* ndirent = NULL;
-    if (file->ops->readdir) {
+    if (file->ops && file->ops->readdir) {
         ndirent = file->ops->readdir(file, file->pos ++);
     }
         

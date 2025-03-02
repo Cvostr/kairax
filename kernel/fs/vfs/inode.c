@@ -69,7 +69,8 @@ int inode_chmod(struct inode* node, uint32_t mode)
     int rc = -1;
     acquire_spinlock(&node->spinlock);
 
-    if(node->operations->chmod) {
+    if (node->operations && node->operations->chmod) 
+    {
         rc = node->operations->chmod(node, mode);
         node->mode = (node->mode & 0xFFFFF000) | mode;
     }
@@ -83,7 +84,8 @@ int inode_mkdir(struct inode* node, const char* name, uint32_t mode)
     int rc = -1;
     acquire_spinlock(&node->spinlock);
 
-    if(node->operations->mkdir) {
+    if (node->operations && node->operations->mkdir) 
+    {
         rc = node->operations->mkdir(node, name, mode);
     }
 
@@ -111,7 +113,8 @@ int inode_truncate(struct inode* inode)
     acquire_spinlock(&inode->spinlock);
 
     int rc = -ERROR_INVALID_VALUE;
-    if(inode->operations->truncate) {
+    if (inode->operations && inode->operations->truncate) 
+    {
         rc = inode->operations->truncate(inode);
     }
 
@@ -125,7 +128,7 @@ int inode_unlink(struct inode* parent, struct dentry* child)
     acquire_spinlock(&parent->spinlock);
 
     int rc = -ERROR_INVALID_VALUE;
-    if(parent->operations->unlink) {
+    if (parent->operations && parent->operations->unlink) {
         rc = parent->operations->unlink(parent, child);
     }
 
@@ -139,7 +142,7 @@ int inode_rmdir(struct inode* parent, struct dentry* child)
     acquire_spinlock(&parent->spinlock);
 
     int rc = -ERROR_INVALID_VALUE;
-    if(parent->operations->rmdir) {
+    if (parent->operations && parent->operations->rmdir) {
         rc = parent->operations->rmdir(parent, child);
     }
 
@@ -155,7 +158,7 @@ int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_pa
         acquire_spinlock(&new_parent->spinlock);
     
     int rc = -ERROR_INVALID_VALUE;
-    if (parent->operations->rename) {
+    if (parent->operations && parent->operations->rename) {
         rc = parent->operations->rename(parent, orig, new_parent, name);
     }
 
@@ -171,7 +174,7 @@ int inode_linkat(struct dentry* src, struct inode* dst, const char* name)
     acquire_spinlock(&dst->spinlock);
 
     int rc = -EPERM;
-    if (dst->operations->link) 
+    if (dst->operations && dst->operations->link) 
     {
         rc = dst->operations->link(src, dst, name);
     }
@@ -185,10 +188,10 @@ int inode_mknod(struct inode* parent, const char* name, mode_t mode)
 {
     mode_t inode_type = mode & INODE_TYPE_MASK;
 
-    if (inode_type != INODE_FLAG_PIPE ||
-        inode_type != INODE_FLAG_SOCKET ||
-        inode_type != INODE_TYPE_FILE ||
-        inode_type != INODE_FLAG_CHARDEVICE ||
+    if (inode_type != INODE_FLAG_PIPE &&
+        inode_type != INODE_FLAG_SOCKET &&
+        inode_type != INODE_TYPE_FILE &&
+        inode_type != INODE_FLAG_CHARDEVICE &&
         inode_type != INODE_FLAG_BLOCKDEVICE
     ) 
     {
@@ -199,7 +202,7 @@ int inode_mknod(struct inode* parent, const char* name, mode_t mode)
 
     int rc = -EINVAL;
 
-    if (parent->operations->mknod)
+    if (parent->operations && parent->operations->mknod)
     {
         rc = parent->operations->mknod(parent, name, mode);
     }

@@ -38,3 +38,13 @@ int fchmodat(int dirfd, const char* filepath, mode_t mode, int flags)
 {
     __set_errno(syscall_set_file_mode(dirfd, filepath, mode, flags));
 }
+
+int mknod(const char *path, mode_t mode, dev_t dev)
+{
+    return mknodat(AT_FDCWD, path, mode, dev);
+}
+
+int mknodat (int dirfd, const char *path, mode_t mode, dev_t dev)
+{
+    __set_errno(syscall_mknodat(dirfd, path, mode, dev));
+}

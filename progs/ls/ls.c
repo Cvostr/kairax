@@ -4,7 +4,36 @@
 #include "fcntl.h"
 #include "dirent.h"
 #include "sys/stat.h"
+#include "string.h"
 #include "time.h"
+
+char* to_filetype(int dentry_type)
+{
+    switch (dentry_type){
+        case DT_REG:
+            return "f";
+        case DT_DIR:
+            return "d";
+        case DT_FIFO:
+            return "p";
+        case DT_SOCK:
+            return "s";
+        case DT_LNK:
+            return "l";
+    }
+
+    return "";
+}
+
+void stringify_perm(int perm, char* str)
+{   
+    // Read
+    str[0] = ((perm & 4) == 4) ? 'r' : '-';
+    // Write
+    str[1] = ((perm & 2) == 2) ? 'w' : '-';
+    // Exec
+    str[2] = ((perm & 1) == 1) ? 'x' : '-';
+}
 
 int main(int argc, char** argv) {
 
@@ -46,9 +75,15 @@ int main(int argc, char** argv) {
         
             struct tm* t = gmtime(&file_stat.st_ctim.tv_sec);
 
-            printf("%-4s %03o %i %i %9i %02i:%02i:%02i %02i:%02i:%i %s\n", 
-                (dr->d_type == DT_REG) ? "FILE" : "DIR",
-                perm,
+            char perm_str[9 + 1];
+            memset(perm_str, 0, sizeof(perm_str));
+            stringify_perm(perm >> 6, perm_str);
+            stringify_perm((perm >> 3) & 07, perm_str + 3);
+            stringify_perm(perm & 07, perm_str + 6);
+
+            printf("%s %s %i %i %9i %02i:%02i:%02i %02i:%02i:%i %s\n", 
+                to_filetype(dr->d_type),
+                perm_str,
                 file_stat.st_uid,
                 file_stat.st_gid,
                 file_stat.st_size,
@@ -62,7 +97,7 @@ int main(int argc, char** argv) {
         
         } else {
         
-            printf("%4s %s\n", (dr->d_type == DT_REG) ? "FILE" : "DIR", dr->d_name);
+            printf("%s %s\n", to_filetype(dr->d_type), dr->d_name);
         
         }
     }    
