@@ -2,8 +2,25 @@
 #include <sys/socket.h> 
 #include "errno.h"
 #include <netinet/in.h> 
+#include "syscalls.h"
+#include "process.h"
+#include "unistd.h"
 
 #define SERV_PORT 22
+
+int pty_master = 0;
+int pty_slave = 0;
+int client_sock = -1;
+
+void client_send_thread()
+{
+    while(1)
+    {
+        char sym = 0;
+        read(pty_master, &sym, 1);
+        send(client_sock, "Welcome!\n", 9, 0);
+    }
+}
 
 int main(int argc, char** argv)
 {
@@ -36,6 +53,38 @@ int main(int argc, char** argv)
         printf("server accept failed: %i\n", errno); 
         return 1;
     } 
+
+    printf("Connected client!\n");
+    client_sock = clfd;
+    int rc = send(clfd, "Welcome!\n", 9, 0);
+    if (rc == -1)
+    {
+        printf("send() error: %i\n", errno);
+    }
+
+    rc = syscall_create_pty(&pty_master, &pty_slave);
+    if (rc != 0)
+    {
+        close(clfd);
+    }
+
+    pid_t forkret = fork();
+    if (forkret == 0) 
+    {
+        dup2(pty_slave, STDOUT_FILENO);
+        dup2(pty_slave, STDIN_FILENO);
+        dup2(pty_slave, STDERR_FILENO);
+
+        int rc = execve("/rxsh.a", NULL, NULL);
+        printf("exec() :%i\n", rc);
+        return 22;
+    }
+
+    create_thread(client_send_thread, NULL);
+
+    while(1) {
+        ;
+    }
 
     return 0;    
 }

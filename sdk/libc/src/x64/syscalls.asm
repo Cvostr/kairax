@@ -78,6 +78,8 @@ DEFINE_SYSCALL syscall_load_module, 0xAF
 
 DEFINE_SYSCALL syscall_futex,       0xCA
 
+DEFINE_SYSCALL syscall_create_pty,  0x303
+
 syscall_process_unmap_memory:
     mov rax, 0xB
     mov r10, rcx

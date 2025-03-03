@@ -154,6 +154,10 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         // Ответить ACK
         tcp_ip4_ack(sock_data);
+    } else if ((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) {
+
+        //sock_data->ack = htonl(tcp_packet->sn);
+        //printk("ACK \n");
     }
 }
 
@@ -186,7 +190,7 @@ int tcp_ip4_ack(struct tcp4_socket_data* sock_data)
 
     struct tcp_packet pkt;
     memset(&pkt, 0, TCP_HEADER_LEN);
-    pkt.src_port = htons(sock_data->client_port);
+    pkt.src_port = htons(sock_data->src_port);
     pkt.dst_port = sock_data->addr.sin_port;
     pkt.ack = ntohl(sock_data->ack);
     pkt.sn = ntohl(sock_data->sn);
@@ -221,7 +225,7 @@ int tcp_ip4_alloc_dynamic_port(struct socket* sock)
     {
         if (tcp4_bindings[port] == NULL)
         {
-            sock_data->client_port = port;
+            sock_data->src_port = port;
             tcp4_bindings[port] = sock;
             return 1;
         }
@@ -262,6 +266,8 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
         return -EADDRNOTAVAIL;
     }
 
+    sock_data->bound_port = sock_data->src_port; 
+
     memcpy(&sock_data->addr, saddr, sockaddr_len);
     sock->state = SOCKET_STATE_CONNECTING;
 
@@ -282,7 +288,7 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
 
     struct tcp_packet pkt;
     memset(&pkt, 0, TCP_HEADER_LEN);
-    pkt.src_port = htons(sock_data->client_port);
+    pkt.src_port = htons(sock_data->src_port);
     pkt.dst_port = inetaddr->sin_port;
     pkt.ack = sock_data->ack;
     pkt.sn = ntohl(sock_data->sn);
@@ -344,7 +350,7 @@ void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, str
 {
     dst->sin_family = AF_INET;
     dst->sin_addr.s_addr = ip4p->src_ip;
-    dst->sin_port = ntohs(tcpp->src_port);
+    dst->sin_port = tcpp->src_port;
 }
 
 int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr)
@@ -371,8 +377,11 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     // Биндинг сокета клиента
     tcp4_fill_sockaddr_in(&client_sockdata->addr, tcpp, ip4p);
-    client_sockdata->client_port = client_sockdata->addr.sin_port;
-    tcp4_bindings[client_sockdata->client_port] = client_sock;
+    // Общаемся с клиентом от имени порта сервера
+    client_sockdata->src_port = sock_data->bound_port;
+    // Биндинг сокета клиента по порту источника
+    client_sockdata->bound_port = htons(client_sockdata->addr.sin_port);
+    tcp4_bindings[client_sockdata->bound_port] = client_sock;
 #ifdef TCP_LOG_ACCEPTED_CLIENT
     union ip4uni src;
 	src.val = client_sockdata->addr.sin_addr.s_addr; 
@@ -401,8 +410,8 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     struct tcp_packet pkt;
     memset(&pkt, 0, sizeof(struct tcp_packet));
-    pkt.src_port = htons(sock_data->addr.sin_port);
-    pkt.dst_port = htons(client_sockdata->addr.sin_port);
+    pkt.src_port = htons(client_sockdata->src_port);
+    pkt.dst_port = client_sockdata->addr.sin_port;
     pkt.ack = ntohl(client_sockdata->ack + 1);
     pkt.sn = ntohl(client_sockdata->sn);
     pkt.urgent_point = 0;
@@ -430,6 +439,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     // TODO: завершить handshake - ожидание ACK
 
+    client_sock->state = SOCKET_STATE_CONNECTED;
     *newsock = client_sock;
 
     return 0;
@@ -447,7 +457,8 @@ int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
     uint16_t port = ntohs(inetaddr->sin_port);
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
-    sock_data->addr.sin_port = port;
+    sock_data->addr.sin_port = inetaddr->sin_port;
+    sock_data->bound_port = port;
     tcp4_bindings[port] = sock;
 
     return 0;
@@ -538,7 +549,7 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 
     struct tcp_packet pkt;
     memset(&pkt, 0, TCP_HEADER_LEN);
-    pkt.src_port = htons(sock_data->client_port);
+    pkt.src_port = htons(sock_data->src_port);
     pkt.dst_port = sock_data->addr.sin_port;
     pkt.ack = ntohl(sock_data->ack);
     pkt.sn = ntohl(sock_data->sn);
@@ -579,13 +590,15 @@ int sock_tcp4_close(struct socket* sock)
         uint16_t port = sock_data->addr.sin_port;
 
         // Освободить порт
-        if (tcp4_bindings[sock_data->client_port] != NULL)
+        if (tcp4_bindings[sock_data->bound_port] != NULL)
         {
-            tcp4_bindings[sock_data->client_port] = NULL;
-        } 
-        else if (tcp4_bindings[port] != NULL) 
-        {    
-            tcp4_bindings[port] = NULL;
+            tcp4_bindings[sock_data->bound_port] = NULL;
+        //} 
+        //else if (tcp4_bindings[port] != NULL) 
+        //{    
+        //  tcp4_bindings[port] = NULL;
+        } else {
+            printk("SOCK NOT FOUND\n");
         }
 
         kfree(sock_data);

@@ -41,8 +41,11 @@ struct tcp_checksum_proto {
 
 struct tcp4_socket_data {
 
-    uint16_t    client_port;
-    struct sockaddr_in addr;
+    // порт, от имени которого будут уходить сообщения
+    uint16_t            src_port;
+    uint16_t            bound_port;
+    // Адрес и порт в сетевой кодировке (Big Endian)
+    struct sockaddr_in  addr;
 
     uint32_t sn;
     uint32_t ack;
