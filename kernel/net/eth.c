@@ -4,6 +4,7 @@
 #include "kairax/in.h"
 #include "string.h"
 #include "mem/kheap.h"
+#include "stdio.h"
 
 //#define ETH_IN_LOGGING
 //#define ETH_OUT_LOGGING
@@ -23,7 +24,7 @@ void eth_handle_frame(struct net_buffer* nbuffer)
     net_buffer_acquire(nbuffer);
 
     struct ethernet_frame* frame = (struct ethernet_frame*) nbuffer->cursor;
-    nbuffer->link_header = frame;
+    nbuffer->link_header = (uint8_t*) frame;
 
 #ifdef ETH_IN_LOGGING
     printk("Eth: type: %i, src: %i %i %i %i %i %i\n", ntohs(frame->type), frame->src[0], frame->src[1], frame->src[2], frame->src[3], frame->src[4], frame->src[5]);

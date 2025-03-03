@@ -80,7 +80,7 @@ void arp_send_request(struct nic* nic, uint32_t addr)
 
     // Создаем netbuffer и добавляем к нему структуру запроса
     struct net_buffer* arp_rq_nbuffer = new_net_buffer_out(ARP_NETBUF_DEFAULT_SIZE);
-    net_buffer_add_front(arp_rq_nbuffer, &req, sizeof(struct arp_header));
+    net_buffer_add_front(arp_rq_nbuffer, (uint8_t*) &req, sizeof(struct arp_header));
     arp_rq_nbuffer->netdev = nic;
 
     // Послать broadcast запрос
@@ -114,7 +114,7 @@ struct arp_v4_cache_entry* get_arp_cache_entry(uint32_t addr)
     struct arp_v4_cache_entry* result = NULL;
 
     for (size_t i = 0; i < arp_cache.size; i++) {
-        entry = (struct pci_device_driver*) current_node->element;
+        entry = (struct arp_v4_cache_entry*) current_node->element;
         
         if (entry->addr == addr) {
             result = entry;

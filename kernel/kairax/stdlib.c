@@ -1,5 +1,6 @@
 #include "kstdlib.h"
 #include "types.h"
+#include "ctype.h"
 #include "string.h"
 
 uint64_t align(uint64_t val, size_t alignment)

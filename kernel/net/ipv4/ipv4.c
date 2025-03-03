@@ -5,6 +5,7 @@
 #include "net/eth.h"
 #include "net/arp.h"
 #include "kairax/errors.h"
+#include "stdio.h"
 
 //#define IPV4_LOGGING
 
@@ -37,7 +38,7 @@ uint16_t ipv4_calculate_checksum(unsigned char* data, size_t len)
 void ip4_handle_packet(struct net_buffer* nbuffer)
 {
     struct ip4_packet* ip_packet = (struct ip4_packet*) nbuffer->cursor;
-	nbuffer->netw_header = ip_packet;
+	nbuffer->netw_header = (uint8_t*) ip_packet;
 
 	int header_size = IP4_IHL(ip_packet->version_ihl) * 4;
 	net_buffer_shift(nbuffer, header_size);

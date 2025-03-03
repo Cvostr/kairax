@@ -6,6 +6,7 @@
 #include "proc/syscalls.h"
 #include "string.h"
 #include "proc/thread.h"
+#include "proc/thread_scheduler.h"
 
 struct process* bootshell_spawn_new_process(struct process* parent)
 {

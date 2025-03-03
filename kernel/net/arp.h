@@ -34,5 +34,6 @@ struct arp_header {
 void arp_send_request(struct nic* nic, uint32_t addr);
 void arp_handle_packet(struct net_buffer* nbuffer);
 uint8_t* arp_get_ip4(struct nic* nic, uint32_t addr);
+void arp_cache_add(uint32_t addr, uint8_t* mac);
 
 #endif

@@ -1,4 +1,7 @@
 #include "loopback.h"
+#include "ipv4/tcp.h"
+#include "ipv4/udp.h"
+#include "ipv4/icmp.h"
 
 void net_init() 
 {

@@ -320,8 +320,8 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     }
 
     struct net_buffer* synack = list_dequeue(&sock_data->rx_queue);
-    struct tcp_packet* tcpp = synack->transp_header;
-    struct ip4_packet* ip4p = synack->netw_header;
+    struct tcp_packet* tcpp = (struct tcp_packet*) synack->transp_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) synack->netw_header;
 
     release_spinlock(&sock_data->rx_queue_lock);
 
@@ -358,8 +358,8 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     }
 
     struct net_buffer* syn_req = sock_data->backlog[++sock_data->backlog_head];
-    struct tcp_packet* tcpp = syn_req->transp_header;
-    struct ip4_packet* ip4p = syn_req->netw_header;
+    struct tcp_packet* tcpp = (struct tcp_packet*) syn_req->transp_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) syn_req->netw_header;
 
     // Создание сокета клиента
     struct socket* client_sock = new_socket();

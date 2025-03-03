@@ -10,6 +10,7 @@
 #include "kstdlib.h"
 #include "elf_process_loader.h"
 #include "process_list.h"
+#include "stdio.h"
 
 struct process*  create_new_process(struct process* parent)
 {
