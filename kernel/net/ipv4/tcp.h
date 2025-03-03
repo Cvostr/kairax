@@ -36,6 +36,7 @@ struct tcp_checksum_proto {
 #define TCP_FLAG_ECE    64
 #define TCP_FLAG_CWR    128
 #define TCP_FLAG_NS     256
+#define TCP_FLAG_SYNACK (TCP_FLAG_SYN | TCP_FLAG_ACK)
 
 
 struct tcp4_socket_data {
@@ -64,6 +65,10 @@ struct tcp4_socket_data {
 uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, unsigned char* payload, size_t payload_size);
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
+
+int tcp_ip4_ack(struct tcp4_socket_data* sock_data);
+
+void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
 

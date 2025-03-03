@@ -155,10 +155,16 @@ void* list_get_first(list_t * list)
 
 void* list_head(list_t* list)
 {
+    if (list->head == NULL)
+        return NULL;
+
     return list->head->element;
 }
 
 void* list_tail(list_t* list)
 {
+    if (list->tail == NULL)
+        return NULL;
+
     return list->tail->element;    
 }
