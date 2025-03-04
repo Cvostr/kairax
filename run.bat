@@ -6,6 +6,6 @@
 -device ide-hd,drive=disk,bus=ahci.0,bootindex=4 ^
 -device ide-hd,drive=bootdisk,bus=ahci.1,bootindex=0 ^
 -device intel-hda -device hda-duplex ^
--netdev user,id=n0,hostfwd=tcp::5555-:22,hostfwd=udp::5590-:22 -device rtl8139,netdev=n0,mac=02:12:fe:f0:0d:01 ^
+-netdev user,id=n0,hostfwd=tcp::5555-:23,hostfwd=udp::5590-:22 -device rtl8139,netdev=n0,mac=02:12:fe:f0:0d:01 ^
 -object filter-dump,id=n0,netdev=n0,file=dump.pcap ^
 -no-reboot -no-shutdown      

@@ -6,19 +6,27 @@
 #include "process.h"
 #include "unistd.h"
 
-#define SERV_PORT 22
+#define SERV_PORT 23
 
 int pty_master = 0;
 int pty_slave = 0;
 int client_sock = -1;
 
+#define TELNET_IAC		0xFF
+#define TELNET_WILL		0xFB
+#define TELNET_DO		0xFC
+#define TELNET_WONT		0xFD
+#define TELNET_ECHO		0x01
+
+static unsigned char ECHO_DISABLE_CMD[] = { TELNET_IAC , TELNET_WILL , TELNET_ECHO };
+
 void client_send_thread()
 {
+    char buffer[10];
     while(1)
     {
-        char sym = 0;
-        read(pty_master, &sym, 1);
-        send(client_sock, "Welcome!\n", 9, 0);
+        int got = read(pty_master, buffer, sizeof(buffer));
+        send(client_sock, buffer, got, 0);
     }
 }
 
@@ -62,6 +70,9 @@ int main(int argc, char** argv)
         printf("send() error: %i\n", errno);
     }
 
+    // Выключить эхо
+    send(clfd, ECHO_DISABLE_CMD, sizeof(ECHO_DISABLE_CMD), 0);
+
     rc = syscall_create_pty(&pty_master, &pty_slave);
     if (rc != 0)
     {
@@ -74,7 +85,10 @@ int main(int argc, char** argv)
         dup2(pty_slave, STDOUT_FILENO);
         dup2(pty_slave, STDIN_FILENO);
         dup2(pty_slave, STDERR_FILENO);
+        close(pty_slave);
+        close(pty_master);
 
+        chdir("/");
         int rc = execve("/rxsh.a", NULL, NULL);
         printf("exec() :%i\n", rc);
         return 22;
@@ -82,8 +96,19 @@ int main(int argc, char** argv)
 
     create_thread(client_send_thread, NULL);
 
-    while(1) {
-        ;
+    while(1) 
+    {
+        char rcvb[11];
+        rcvb[10] = 0;
+        int got = recv(client_sock, rcvb, 10, 0);
+
+        int offset = 0;
+        if (rcvb[0] == TELNET_IAC) {
+            got -= 3;
+            offset += 3;
+        }
+
+        write(pty_master, rcvb + offset, got);
     }
 
     return 0;    

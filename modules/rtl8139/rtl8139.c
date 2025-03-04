@@ -159,7 +159,7 @@ void rtl8139_rx(struct rtl8139* rtl_dev)
         if (rx_status & (RTL8139_ISE | RTL8139_CRCERR | RTL8139_RUNT | RTL8139_LONG | RTL8139_BAD_ALIGN)) 
         {
 #ifdef FAILURE_LOG_ENABLED
-            printk("Bad packed received!\n");
+            printk("Bad packed received (%i)!\n", rx_status);
 #endif
             rtl_dev->dev->nic->stats.rx_errors++;
 

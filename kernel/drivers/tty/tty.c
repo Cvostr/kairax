@@ -158,6 +158,10 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         char first_char = buffer[i];
 
         switch (first_char) {
+            case '\r':
+                // пока что CR просто выводим, не добавляя в буфер
+                pipe_write(p_pty->slave_to_master, &first_char, 1);
+                break;
             case '\n':
                 // Нажата кнопка enter
                 // Эхо в терминал CR + LF

@@ -43,8 +43,11 @@ struct tcp4_socket_data {
 
     // порт, от имени которого будут уходить сообщения
     uint16_t            src_port;
+    // порт, назначенный сокету локально
+    // для клиента - случайно сгенерированный
+    // для сервера - назначенный через bind()
     uint16_t            bound_port;
-    // Адрес и порт в сетевой кодировке (Big Endian)
+    // Адрес и порт пира в сетевой кодировке (Big Endian)
     struct sockaddr_in  addr;
 
     uint32_t sn;
@@ -56,6 +59,11 @@ struct tcp4_socket_data {
     int backlog_head;
     int backlog_tail;
     spinlock_t backlog_lock;
+    list_t children;
+    spinlock_t children_lock;
+    
+    // Указатель на listener сокет (сервер)
+    struct tcp4_socket_data* listener;
 
     // очередь приема
     list_t rx_queue;
@@ -68,14 +76,16 @@ struct tcp4_socket_data {
 uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, unsigned char* payload, size_t payload_size);
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
-
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data);
-
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
-
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
+void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct tcp4_socket_data* client);
+void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct tcp4_socket_data* client);
+// addr и port в порядке байт сети (Big Endian)
+struct tcp4_socket_data* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port);
 
 void tcp_ip4_init();
+
 
 int sock_tcp4_create (struct socket* sock);
 int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
