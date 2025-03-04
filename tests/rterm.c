@@ -60,36 +60,39 @@ int main(int argc, char** argv)
     printf("Server started on port %i\n", SERV_PORT);
 
     int clientaddr_len = sizeof(clientaddr);
-    int clfd = accept(sockfd, &clientaddr, &clientaddr_len);
+    client_sock = accept(sockfd, &clientaddr, &clientaddr_len);
 
-    if (clfd < 0) { 
+    if (client_sock < 0) { 
         printf("server accept failed: %i\n", errno); 
         return 1;
     } 
 
     printf("Connected client!\n");
-    client_sock = clfd;
-    int rc = send(clfd, "Welcome!\n", 9, 0);
+    int rc = send(client_sock, "Welcome!\n", 9, 0);
     if (rc == -1)
     {
         printf("send() error: %i\n", errno);
     }
 
     // Выключить эхо
-    send(clfd, ECHO_DISABLE_CMD, sizeof(ECHO_DISABLE_CMD), 0);
+    send(client_sock, ECHO_DISABLE_CMD, sizeof(ECHO_DISABLE_CMD), 0);
 
     rc = syscall_create_pty(&pty_master, &pty_slave);
     if (rc != 0)
     {
-        close(clfd);
+        close(client_sock);
     }
 
     pid_t forkret = fork();
     if (forkret == 0) 
     {
+        close(sockfd);
+        close(client_sock);
+
         dup2(pty_slave, STDOUT_FILENO);
         dup2(pty_slave, STDIN_FILENO);
         dup2(pty_slave, STDERR_FILENO);
+     
         close(pty_slave);
         close(pty_master);
 

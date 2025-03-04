@@ -7,6 +7,7 @@
 #include "dev/device_drivers.h"
 #include "dev/device.h"
 #include "mem/iomem.h"
+#include "dev/device_man.h"
 
 //#define NVME_LOG_CONTROLLER_ID
 

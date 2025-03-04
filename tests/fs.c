@@ -74,6 +74,13 @@ int main(int argc, char** argv)
         printf("Invalid perm for %s, expected %i, got %i\n", testfile, TESTFILE_PERM, perm);
         return 7;
     }
+    // test O_EXCL
+    printf("\topen() Created file with O_EXCL\n");
+    rc = open(testfile, O_CREAT | O_EXCL, TESTFILE_PERM);
+    if (rc != -1) {
+        printf("Successful open() with O_EXCL of %s, Something wrong\n", testfile);
+        return 6;
+    }
 
     close(fd);
 

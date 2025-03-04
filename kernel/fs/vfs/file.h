@@ -14,6 +14,7 @@
 #define FILE_OPEN_MODE_MASK         0b11
 
 #define FILE_OPEN_FLAG_CREATE       00000100 // O_CREAT
+#define O_CREAT                     00000100
 #define O_EXCL		                0200
 #define FILE_OPEN_FLAG_TRUNCATE     00001000
 #define FILE_OPEN_FLAG_APPEND       00002000

@@ -1,3 +1,4 @@
+#include "af_inet.h"
 #include "ipc/socket.h"
 #include "mem/kheap.h"
 #include "ipv4.h"

@@ -235,8 +235,48 @@ int tcp_ip4_ack(struct tcp4_socket_data* sock_data)
     int rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
     net_buffer_free(synrq);
 
-    //if (rc < 0)
-        return rc;
+    return rc;
+}
+
+int tcp_ip4_fin(struct tcp4_socket_data* sock_data)
+{
+    struct route4* route = route4_resolve(sock_data->addr.sin_addr.s_addr);
+    if (route == NULL)
+    {
+        return -ENETUNREACH;
+    }
+
+    // Создать буфер запроса FIN
+    struct net_buffer* synrq = new_net_buffer_out(1024);
+    synrq->netdev = route->interface;
+
+    struct tcp_packet pkt;
+    memset(&pkt, 0, TCP_HEADER_LEN);
+    pkt.src_port = htons(sock_data->src_port);
+    pkt.dst_port = sock_data->addr.sin_port;
+    pkt.ack = ntohl(sock_data->ack);
+    pkt.sn = ntohl(sock_data->sn);
+    pkt.urgent_point = 0;
+    pkt.window_size = htons(65535);
+    pkt.hlen_flags = htons(TCP_FLAG_FIN | TCP_FLAG_ACK | TCP_HEADER_SZ_VAL);
+    pkt.checksum = 0;
+    
+    struct tcp_checksum_proto checksum_struct;
+    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
+    checksum_struct.src = synrq->netdev->ipv4_addr;
+    checksum_struct.dest = sock_data->addr.sin_addr.s_addr;
+    checksum_struct.prot = IPV4_PROTOCOL_TCP;
+    checksum_struct.len = htons(TCP_HEADER_LEN);
+    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
+
+    // Добавить заголовок TCP к буферу запроса
+    net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
+
+    // Попытка отправить запрос на завершение
+    int rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
+    net_buffer_free(synrq);
+
+    return rc;
 }
 
 int tcp_ip4_alloc_dynamic_port(struct socket* sock)
@@ -557,38 +597,38 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     if (rcv_buffer == NULL) 
     {
-        // Ожидание пакета
-        acquire_spinlock(&sock_data->rx_queue_lock);
-
-        while ((rcv_buffer = list_head(&sock_data->rx_queue)) == NULL) 
+        while (rcv_buffer == NULL) 
         {
-            release_spinlock(&sock_data->rx_queue_lock);
+            // Ожидание пакета
             scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
 
+            // Пробуем вытащить пакет
+            acquire_spinlock(&sock_data->rx_queue_lock);
+            rcv_buffer = list_head(&sock_data->rx_queue);
+            release_spinlock(&sock_data->rx_queue_lock);
+
             // Все данные считаны и сокет закрыт пиром через FIN
-            if (sock->state != SOCKET_STATE_CONNECTED) {
+            if (sock->state != SOCKET_STATE_CONNECTED && rcv_buffer == NULL) 
+            {
                 return 0;
             }
-
-            acquire_spinlock(&sock_data->rx_queue_lock);
         }
-
-        release_spinlock(&sock_data->rx_queue_lock);
     }
 
     size_t readable = MIN(len, rcv_buffer->payload_size);
 
     memcpy(buf, rcv_buffer->cursor, readable);
+
     net_buffer_shift(rcv_buffer, readable);
     rcv_buffer->payload_size -= readable;
 
     if (rcv_buffer->payload_size == 0)
     {
-        net_buffer_free(rcv_buffer);
-
         acquire_spinlock(&sock_data->rx_queue_lock);
         list_remove(&sock_data->rx_queue, rcv_buffer);
         release_spinlock(&sock_data->rx_queue_lock);
+
+        net_buffer_free(rcv_buffer);
     }
 
     return readable;
@@ -665,48 +705,23 @@ int sock_tcp4_close(struct socket* sock)
         return -ENETUNREACH;
     }
 
-    // Создать буфер запроса SYN
-    struct net_buffer* synrq = new_net_buffer_out(1024);
-    synrq->netdev = route->interface;
-
-    struct tcp_packet pkt;
-    memset(&pkt, 0, TCP_HEADER_LEN);
-    pkt.src_port = htons(sock_data->src_port);
-    pkt.dst_port = sock_data->addr.sin_port;
-    pkt.ack = ntohl(sock_data->ack);
-    pkt.sn = ntohl(sock_data->sn);
-    pkt.urgent_point = 0;
-    pkt.window_size = htons(65535);
-    pkt.hlen_flags = htons(TCP_FLAG_FIN | TCP_FLAG_ACK | TCP_HEADER_SZ_VAL);
-    pkt.checksum = 0;
-    
-    struct tcp_checksum_proto checksum_struct;
-    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
-    checksum_struct.src = synrq->netdev->ipv4_addr;
-    checksum_struct.dest = sock_data->addr.sin_addr.s_addr;
-    checksum_struct.prot = IPV4_PROTOCOL_TCP;
-    checksum_struct.len = htons(TCP_HEADER_LEN);
-    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
-
-    // Добавить заголовок TCP к буферу запроса
-    net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
-
-    // Попытка отправить запрос на завершение
-    int rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
-    net_buffer_free(synrq);
+    if (sock->state != SOCKET_STATE_LISTEN)
+    {
+        tcp_ip4_fin(sock_data);
+    }
 
     if (sock_data) 
     {
         // Освободить порт
-        if (tcp4_bindings[sock_data->bound_port] != NULL)
+        if (tcp4_bindings[sock_data->bound_port] == sock)
         {
             tcp4_bindings[sock_data->bound_port] = NULL;
-        } else {
-            printk("SOCK NOT FOUND\n");
         }
 
         kfree(sock_data);
     }
+
+    sock->state == SOCKET_STATE_UNCONNECTED;
 
     return 0;
 }

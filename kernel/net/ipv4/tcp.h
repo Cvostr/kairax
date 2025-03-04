@@ -77,6 +77,7 @@ uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packe
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data);
+int tcp_ip4_fin(struct tcp4_socket_data* sock_data);
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
 void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client);

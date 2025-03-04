@@ -3,6 +3,7 @@
 #include "ipv4/tcp.h"
 #include "ipv4/udp.h"
 #include "ipv4/icmp.h"
+#include "ipv4/af_inet.h"
 
 void net_init() 
 {

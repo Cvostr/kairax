@@ -15,6 +15,7 @@
 #include "kstdlib.h"
 #include "cpu/cpu.h"
 #include "interrupts/apic.h"
+#include "memory/kernel_vmm.h"
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);

@@ -132,9 +132,10 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
 
             return NULL;
         }
-    } else if ((flags & O_EXCL) == O_EXCL) {
-        // вернуть код ошибки
-        printk("--- O_EXCL\n");
+    } else if ((flags & (O_EXCL| O_CREAT)) == (O_EXCL | O_CREAT)) 
+    {
+        // TODO: вернуть код ошибки
+        return NULL;
     }
 
     struct file* file = new_file();
