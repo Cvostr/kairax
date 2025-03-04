@@ -38,6 +38,7 @@
 #include "proc/idle.h"
 #include "drivers/tty/tty.h"
 #include "drivers/char/random.h"
+#include "net/net.h"
 #include "misc/kterm/kterm.h"
 #include "misc/kterm/vgaterm.h"
 #include "kairax/intctl.h"

@@ -104,13 +104,15 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     {
         // Пришли данные по порту сокета-слушателя, при этом соединение уже было установлено
         // Значит надо найти клиентский сокет внутри этого слушателя
-        sock_data = tcp_ip4_listener_get(sock_data, ip4p->src_ip, tcp_packet->src_port);
+        sock = tcp_ip4_listener_get(sock_data, ip4p->src_ip, tcp_packet->src_port);
 
-        if (sock_data == NULL)
+        if (sock == NULL)
         {
             // ??? - реализовать
             return -1;
         }
+
+        sock_data = (struct tcp4_socket_data*) sock->data;
     }
 
     if (is_syn) 
@@ -164,7 +166,12 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     {
         sock_data->ack += 1;
 
-        // TODO: закрыть соединение
+        // закрыть соединение
+        sock->state = SOCKET_STATE_UNCONNECTED;
+
+        // Разбудить всех ожидающих приема
+        // Чтобы они могли сразу выйти с ошибкой
+        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
 
         // Ответить ACK
         tcp_ip4_ack(sock_data);
@@ -367,30 +374,32 @@ void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, str
     dst->sin_port = tcpp->src_port;
 }
 
-void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct tcp4_socket_data* client)
+void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client)
 {
     acquire_spinlock(&listener->children_lock);
     list_add(&listener->children, client);
     release_spinlock(&listener->children_lock);
 }
 
-void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct tcp4_socket_data* client)
+void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct socket* client)
 {
     acquire_spinlock(&listener->children_lock);
     list_remove(&listener->children, client);
     release_spinlock(&listener->children_lock);
 }
 
-struct tcp4_socket_data* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port)
+struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port)
 {
     acquire_spinlock(&listener->children_lock);
 
-    struct tcp4_socket_data* result = NULL;
+    struct socket* result = NULL;
     struct list_node* current = listener->children.head;
     while (current != NULL)
     {
-        struct tcp4_socket_data* sock = current->element;
-        if (sock != NULL && sock->addr.sin_port == port && sock->addr.sin_addr.s_addr == addr)
+        struct socket* sock = current->element;
+        struct tcp4_socket_data* sockdata = (struct tcp4_socket_data*) sock->data; 
+
+        if (sock != NULL && sockdata->addr.sin_port == port && sockdata->addr.sin_addr.s_addr == addr)
         {
             result = sock;
             break;
@@ -418,11 +427,10 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     // Создание сокета клиента
     struct socket* client_sock = new_socket();
+    sock_tcp4_create(client_sock);
     client_sock->ops = &ipv4_stream_ops;
-    struct tcp4_socket_data* client_sockdata = kmalloc(sizeof(struct tcp4_socket_data));
-    memset(client_sockdata, 0, sizeof(struct tcp4_socket_data));
 
-    client_sock->data = client_sockdata;
+    struct tcp4_socket_data* client_sockdata = client_sock->data;
 
     // Биндинг сокета клиента
     tcp4_fill_sockaddr_in(&client_sockdata->addr, tcpp, ip4p);
@@ -434,7 +442,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     // Указатель на listener
     client_sockdata->listener = sock_data;
     // Добавить в список клиентских сокетов
-    tcp_ip4_listener_add(sock_data, client_sockdata);
+    tcp_ip4_listener_add(sock_data, client_sock);
 
 #ifdef TCP_LOG_ACCEPTED_CLIENT
     union ip4uni src;
@@ -547,7 +555,8 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     struct net_buffer* rcv_buffer = list_head(&sock_data->rx_queue);
 
-    if (rcv_buffer == NULL) {
+    if (rcv_buffer == NULL) 
+    {
         // Ожидание пакета
         acquire_spinlock(&sock_data->rx_queue_lock);
 
@@ -555,6 +564,12 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
         {
             release_spinlock(&sock_data->rx_queue_lock);
             scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
+
+            // Все данные считаны и сокет закрыт пиром через FIN
+            if (sock->state != SOCKET_STATE_CONNECTED) {
+                return 0;
+            }
+
             acquire_spinlock(&sock_data->rx_queue_lock);
         }
 
@@ -562,7 +577,7 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     }
 
     size_t readable = MIN(len, rcv_buffer->payload_size);
-    //printk("READABLE %i ", readable);
+
     memcpy(buf, rcv_buffer->cursor, readable);
     net_buffer_shift(rcv_buffer, readable);
     rcv_buffer->payload_size -= readable;
@@ -644,6 +659,42 @@ int sock_tcp4_close(struct socket* sock)
 #endif
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     
+    struct route4* route = route4_resolve(sock_data->addr.sin_addr.s_addr);
+    if (route == NULL)
+    {
+        return -ENETUNREACH;
+    }
+
+    // Создать буфер запроса SYN
+    struct net_buffer* synrq = new_net_buffer_out(1024);
+    synrq->netdev = route->interface;
+
+    struct tcp_packet pkt;
+    memset(&pkt, 0, TCP_HEADER_LEN);
+    pkt.src_port = htons(sock_data->src_port);
+    pkt.dst_port = sock_data->addr.sin_port;
+    pkt.ack = ntohl(sock_data->ack);
+    pkt.sn = ntohl(sock_data->sn);
+    pkt.urgent_point = 0;
+    pkt.window_size = htons(65535);
+    pkt.hlen_flags = htons(TCP_FLAG_FIN | TCP_FLAG_ACK | TCP_HEADER_SZ_VAL);
+    pkt.checksum = 0;
+    
+    struct tcp_checksum_proto checksum_struct;
+    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
+    checksum_struct.src = synrq->netdev->ipv4_addr;
+    checksum_struct.dest = sock_data->addr.sin_addr.s_addr;
+    checksum_struct.prot = IPV4_PROTOCOL_TCP;
+    checksum_struct.len = htons(TCP_HEADER_LEN);
+    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
+
+    // Добавить заголовок TCP к буферу запроса
+    net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
+
+    // Попытка отправить запрос на завершение
+    int rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
+    net_buffer_free(synrq);
+
     if (sock_data) 
     {
         // Освободить порт

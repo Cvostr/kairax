@@ -1,3 +1,4 @@
+#include "net.h"
 #include "loopback.h"
 #include "ipv4/tcp.h"
 #include "ipv4/udp.h"

@@ -79,10 +79,10 @@ int tcp_ip4_handle(struct net_buffer* nbuffer);
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data);
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
-void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct tcp4_socket_data* client);
-void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct tcp4_socket_data* client);
+void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client);
+void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct socket* client);
 // addr и port в порядке байт сети (Big Endian)
-struct tcp4_socket_data* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port);
+struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port);
 
 void tcp_ip4_init();
 

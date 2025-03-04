@@ -11,6 +11,7 @@
 int pty_master = 0;
 int pty_slave = 0;
 int client_sock = -1;
+int alive = 1;
 
 #define TELNET_IAC		0xFF
 #define TELNET_WILL		0xFB
@@ -23,11 +24,13 @@ static unsigned char ECHO_DISABLE_CMD[] = { TELNET_IAC , TELNET_WILL , TELNET_EC
 void client_send_thread()
 {
     char buffer[10];
-    while(1)
+    while (alive)
     {
         int got = read(pty_master, buffer, sizeof(buffer));
         send(client_sock, buffer, got, 0);
     }
+
+    thread_exit(0);
 }
 
 int main(int argc, char** argv)
@@ -53,6 +56,8 @@ int main(int argc, char** argv)
         printf("socket listen failed: %i\n", errno); 
         return 1;
     } 
+
+    printf("Server started on port %i\n", SERV_PORT);
 
     int clientaddr_len = sizeof(clientaddr);
     int clfd = accept(sockfd, &clientaddr, &clientaddr_len);
@@ -94,13 +99,20 @@ int main(int argc, char** argv)
         return 22;
     }
 
-    create_thread(client_send_thread, NULL);
+    pid_t read_thread = create_thread(client_send_thread, NULL);
 
-    while(1) 
+    while (alive) 
     {
         char rcvb[11];
         rcvb[10] = 0;
         int got = recv(client_sock, rcvb, 10, 0);
+
+        if (got == 0) 
+        {
+            printf("Client disconnected!\n");
+            alive = 0;
+            break;
+        }
 
         int offset = 0;
         if (rcvb[0] == TELNET_IAC) {
@@ -110,6 +122,23 @@ int main(int argc, char** argv)
 
         write(pty_master, rcvb + offset, got);
     }
+    
+    printf("Terminating...\n");
+    rc = close(client_sock);
+    if (rc == -1){
+        printf("Error close(client_sock): %i\n", errno);
+    }
+
+    rc = close(sockfd);
+    if (rc == -1){
+        printf("Error close(sockfd): %i\n", errno);
+    }
+
+    close(pty_master);
+    close(pty_slave);
+
+    int status;
+    rc = waitpid(read_thread, &status, 0);
 
     return 0;    
 }
