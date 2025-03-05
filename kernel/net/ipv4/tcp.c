@@ -93,6 +93,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         printk("No socket bound to TCP port %i\n", dst_port);
 #endif
         // ??? - реализовать
+        // Пока не отправляем RST потому что сокет выпадет из списка раньше и уйдет RST на попытку FIN
+        //tcp_ip4_err_rst(tcp_packet, ip4p);
         return -1;
     }
     int is_listener = sock->state == SOCKET_STATE_LISTEN;
@@ -122,6 +124,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         if (is_listener == 0) {
             // ? CONNREFUSED?
+            tcp_ip4_err_rst(tcp_packet, ip4p);
             return 1;
         }
 
@@ -175,11 +178,27 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         // Ответить ACK
         tcp_ip4_ack(sock_data);
+    } else if ((flags & TCP_FLAG_RST) == TCP_FLAG_RST) {
+
+        // закрыть соединение
+        sock->state = SOCKET_STATE_UNCONNECTED;
+
+        // Помечаем флаг RST
+        sock_data->is_rst = 1;
+
+        // Очищаем очередь приема
+        tcp_ip4_sock_drop_recv_buffer(sock_data);
+
+        // Разбудить всех ожидающих приема
+        // Чтобы они могли сразу выйти с ошибкой
+        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
+
+        //printk("RST \n");
     } else if ((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) {
 
         //sock_data->ack = htonl(tcp_packet->sn);
         //printk("ACK \n");
-    }
+    } 
 }
 
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer)
@@ -194,6 +213,17 @@ void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buff
 
     // Разбудить ожидающих приема
     scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, 1);
+}
+
+void tcp_ip4_sock_drop_recv_buffer(struct tcp4_socket_data* sock)
+{
+    acquire_spinlock(&sock->rx_queue_lock);
+    struct net_buffer* current; 
+    while ((current = list_dequeue(&sock->rx_queue)) != NULL)
+    {
+        net_buffer_free(current);
+    }
+    release_spinlock(&sock->rx_queue_lock);
 }
 
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data)
@@ -265,6 +295,47 @@ int tcp_ip4_fin(struct tcp4_socket_data* sock_data)
     memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
     checksum_struct.src = synrq->netdev->ipv4_addr;
     checksum_struct.dest = sock_data->addr.sin_addr.s_addr;
+    checksum_struct.prot = IPV4_PROTOCOL_TCP;
+    checksum_struct.len = htons(TCP_HEADER_LEN);
+    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
+
+    // Добавить заголовок TCP к буферу запроса
+    net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
+
+    // Попытка отправить запрос на завершение
+    int rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
+    net_buffer_free(synrq);
+
+    return rc;
+}
+
+int tcp_ip4_err_rst(struct tcp_packet* tcp_packet, struct ip4_packet* ip4p)
+{
+    struct route4* route = route4_resolve(ip4p->src_ip);
+    if (route == NULL)
+    {
+        return -ENETUNREACH;
+    }
+
+    // Создать буфер запроса FIN
+    struct net_buffer* synrq = new_net_buffer_out(1024);
+    synrq->netdev = route->interface;
+
+    struct tcp_packet pkt;
+    memset(&pkt, 0, TCP_HEADER_LEN);
+    pkt.src_port = tcp_packet->dst_port;
+    pkt.dst_port = tcp_packet->src_port;
+    pkt.ack = tcp_packet->sn;
+    pkt.sn = 0;
+    pkt.urgent_point = 0;
+    pkt.window_size = htons(65535);
+    pkt.hlen_flags = htons(TCP_FLAG_RST | TCP_FLAG_ACK | TCP_HEADER_SZ_VAL);
+    pkt.checksum = 0;
+    
+    struct tcp_checksum_proto checksum_struct;
+    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
+    checksum_struct.src = synrq->netdev->ipv4_addr;
+    checksum_struct.dest = ip4p->src_ip;
     checksum_struct.prot = IPV4_PROTOCOL_TCP;
     checksum_struct.len = htons(TCP_HEADER_LEN);
     pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
@@ -382,25 +453,27 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     while (sock_data->rx_queue.head == NULL) 
     {
         release_spinlock(&sock_data->rx_queue_lock);
+
         scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
+
+        if (sock_data->is_rst) 
+        {
+            return -ECONNREFUSED;
+        }
+
         acquire_spinlock(&sock_data->rx_queue_lock);
     }
 
     struct net_buffer* synack = list_dequeue(&sock_data->rx_queue);
-    struct tcp_packet* tcpp = (struct tcp_packet*) synack->transp_header;
-    struct ip4_packet* ip4p = (struct ip4_packet*) synack->netw_header;
+    //struct tcp_packet* tcpp = (struct tcp_packet*) synack->transp_header;
+    //struct ip4_packet* ip4p = (struct ip4_packet*) synack->netw_header;
 
     release_spinlock(&sock_data->rx_queue_lock);
 
-    uint16_t flags = ntohs(tcpp->hlen_flags);
-    flags &= 0b111111111;
+    //uint16_t flags = ntohs(tcpp->hlen_flags);
+    //flags &= 0b111111111;
 
     net_buffer_free(synack);
-
-    if (flags & TCP_FLAG_RST) {
-        //net_buffer_free(synack);
-        return -ECONNREFUSED;
-    }
 
     sock->state = SOCKET_STATE_CONNECTED;
 
@@ -607,6 +680,12 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
             rcv_buffer = list_head(&sock_data->rx_queue);
             release_spinlock(&sock_data->rx_queue_lock);
 
+            // Пришел RST
+            if (sock_data->is_rst && rcv_buffer == NULL) 
+            {
+                return -ECONNRESET;
+            }
+
             // Все данные считаны и сокет закрыт пиром через FIN
             if (sock->state != SOCKET_STATE_CONNECTED && rcv_buffer == NULL) 
             {
@@ -698,30 +777,35 @@ int sock_tcp4_close(struct socket* sock)
     printk("tcp: close()\n");
 #endif
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
-    
-    struct route4* route = route4_resolve(sock_data->addr.sin_addr.s_addr);
-    if (route == NULL)
-    {
-        return -ENETUNREACH;
-    }
 
     if (sock->state != SOCKET_STATE_LISTEN)
     {
-        tcp_ip4_fin(sock_data);
+        int rc = tcp_ip4_fin(sock_data);
+        if (rc != 0)
+        {
+            printk("tcp: close() error: %i", rc);
+        }
     }
+
+    sock->state == SOCKET_STATE_UNCONNECTED;
 
     if (sock_data) 
     {
+        // Разбудить всех ожидающих приема
+        // Чтобы они могли дочитать буфер или сразу выйти с ошибкой
+        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
+
         // Освободить порт
         if (tcp4_bindings[sock_data->bound_port] == sock)
         {
             tcp4_bindings[sock_data->bound_port] = NULL;
         }
 
+        // Очищаем очередь приема
+        tcp_ip4_sock_drop_recv_buffer(sock_data);
+
         kfree(sock_data);
     }
-
-    sock->state == SOCKET_STATE_UNCONNECTED;
 
     return 0;
 }

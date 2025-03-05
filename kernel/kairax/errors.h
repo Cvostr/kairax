@@ -37,6 +37,7 @@
 #define ENOTSOCK                    ERROR_NOT_SOCKET
 
 #define EADDRNOTAVAIL	99
+#define ECONNRESET	    104
 #define EISCONN         106
 #define ENOTCONN        107
 #define ECONNREFUSED	111

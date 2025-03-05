@@ -55,7 +55,9 @@ struct socket {
     int type;
     int protocol;
 
+    // Состояние в системе
     int state;
+    // Флаги (пока не используется)
     int flags;
 
     // Данные в зависимости от протокола

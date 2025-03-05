@@ -53,6 +53,8 @@ struct tcp4_socket_data {
     uint32_t sn;
     uint32_t ack;
 
+    int is_rst;
+
     // Ожидаемые подключения
     struct net_buffer **backlog;
     int backlog_sz;
@@ -78,10 +80,12 @@ uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packe
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data);
 int tcp_ip4_fin(struct tcp4_socket_data* sock_data);
+int tcp_ip4_err_rst(struct tcp_packet* tcp_packet, struct ip4_packet* ip4p);
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
 void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client);
 void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct socket* client);
+void tcp_ip4_sock_drop_recv_buffer(struct tcp4_socket_data* sock);
 // addr и port в порядке байт сети (Big Endian)
 struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port);
 

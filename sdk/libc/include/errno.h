@@ -34,6 +34,7 @@ int* __errno_location();
 #define EPIPE		                32
 #define	ENOSYS		                38
 #define EADDRNOTAVAIL	            99
+#define ECONNRESET	                104
 #define EISCONN                     106
 #define ENOTCONN                    107
 #define ENOTSOCK                    108
