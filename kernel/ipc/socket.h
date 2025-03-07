@@ -14,6 +14,13 @@
 #define SOCK_RAW    3
 #define SOCK_MAX    (SOCK_RAW + 1)
 
+// дополнительные параметры 
+#define SOCK_NONBLOCK   04000                
+#define SOCK_CLOEXEC    02000000
+
+// параметры для recv
+#define MSG_DONTWAIT	0x40
+
 struct iovec {
     void *iov_base;
     size_t iov_len;

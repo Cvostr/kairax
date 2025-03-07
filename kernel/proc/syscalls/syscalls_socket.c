@@ -17,8 +17,13 @@ int sys_socket(int domain, int type, int protocol)
 {
     struct process* process = cpu_get_current_thread()->process;
     
-    struct socket* sock = new_socket();
+    // Запомнить доп флаги
+    int cloexec = (type & SOCK_CLOEXEC) == SOCK_CLOEXEC;
+    int nonblock = (type & SOCK_NONBLOCK) == SOCK_NONBLOCK;
+    // Отрезать дополнительные флаги
+    type = type & 0777;
 
+    struct socket* sock = new_socket();
     int rc = socket_init(sock, domain, type, protocol);
     if (rc != 0) {
         // destroy socket
@@ -30,9 +35,23 @@ int sys_socket(int domain, int type, int protocol)
 
     // Добавить к процессу
     rc = process_add_file(process, fsock);
-    if (rc != 0) {
+    if (rc < 0) 
+    {
         // destroy socket
+        file_close(fsock);
         goto exit;
+    }
+
+    // Если настроено неблокирующее чтение, то добавим в флаги
+    if (nonblock == 1)
+    {
+        fsock->flags |= FILE_FLAG_NONBLOCK;
+    }
+
+    // Если передан флаг SOCK_CLOEXEC, надо взвести бит дескриптора
+    if (cloexec == 1) 
+    {
+        process_set_cloexec(process, rc, 1);
     }
 
 exit:
@@ -219,6 +238,12 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
     if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
         rc = -ERROR_NOT_SOCKET;
         goto exit;
+    }
+
+    // Если на дескрипторе настроено неблокирующее чтение - то модифицируем флаги
+    if ((file->flags & FILE_FLAG_NONBLOCK) == FILE_FLAG_NONBLOCK)
+    {
+        flags |= MSG_DONTWAIT;
     }
 
     rc = socket_recvfrom((struct socket*) file->inode, buf, len, flags, from, addrlen);

@@ -18,6 +18,10 @@ extern "C" {
 #define SOCK_DGRAM  2
 #define SOCK_RAW    3
 
+// дополнительные параметры 
+#define SOCK_NONBLOCK   04000                
+#define SOCK_CLOEXEC    02000000
+
 // для setsockopts
 #define SOL_SOCKET	1
 
@@ -43,6 +47,9 @@ extern "C" {
 #define SO_RCVTIMEO	20
 #define SO_SNDTIMEO	21
 #define SO_BINDTODEVICE	25
+
+// параметры для recv
+#define MSG_DONTWAIT	0x40
 
 struct iovec {
     void *iov_base;

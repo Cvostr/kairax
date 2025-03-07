@@ -36,7 +36,7 @@ void client_send_thread()
 int main(int argc, char** argv)
 {
     struct sockaddr_in servaddr, clientaddr;
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+    int sockfd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0); 
     
     if (sockfd == -1) {
         printf("Error creating server socket: %i\n", errno);
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     pid_t forkret = fork();
     if (forkret == 0) 
     {
-        close(sockfd);
+        //close(sockfd);
         close(client_sock);
 
         dup2(pty_slave, STDOUT_FILENO);

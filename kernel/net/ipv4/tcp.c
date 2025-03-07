@@ -628,10 +628,11 @@ int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
 
     struct sockaddr_in* inetaddr = (struct sockaddr_in*) addr;
 
-    uint16_t port = ntohs(inetaddr->sin_port);
-
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     sock_data->addr.sin_port = inetaddr->sin_port;
+
+    // Bind port
+    uint16_t port = ntohs(inetaddr->sin_port);
     sock_data->bound_port = port;
     tcp4_bindings[port] = sock;
 
@@ -670,6 +671,12 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     if (rcv_buffer == NULL) 
     {
+        // неблокирующее чтение
+        if ((flags & MSG_DONTWAIT) == MSG_DONTWAIT)
+        {
+            return -EAGAIN;
+        }
+
         while (rcv_buffer == NULL) 
         {
             // Ожидание пакета
@@ -791,6 +798,14 @@ int sock_tcp4_close(struct socket* sock)
 
     if (sock_data) 
     {
+        // Если закрываемый сокет - дочерний сокет от сервера
+        // То надо удалить его из этого серверного сокета 
+        if (sock_data->listener != NULL) 
+        {
+            tcp_ip4_listener_remove(sock_data->listener, sock);
+            sock_data->listener = NULL;
+        }
+
         // Разбудить всех ожидающих приема
         // Чтобы они могли дочитать буфер или сразу выйти с ошибкой
         scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
@@ -801,6 +816,7 @@ int sock_tcp4_close(struct socket* sock)
             tcp4_bindings[sock_data->bound_port] = NULL;
         }
 
+        // TODO: должно происходить только при освобождении inode
         // Очищаем очередь приема
         tcp_ip4_sock_drop_recv_buffer(sock_data);
 
