@@ -46,8 +46,7 @@ struct socket* tcp4_bindings[TCP_PORTS];
 
 int tcp_ip4_handle(struct net_buffer* nbuffer)
 {
-    struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->cursor;
-    nbuffer->transp_header = tcp_packet;
+    struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->transp_header;
     
     // Расчитаем размер сегмента
     uint32_t tcp_header_size = (ntohs(tcp_packet->hlen_flags) & 0xF000) >> 12;
@@ -517,6 +516,8 @@ struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t 
             result = sock;
             break;
         }
+
+        current = current->next;
     }
 
     release_spinlock(&listener->children_lock);

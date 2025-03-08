@@ -12,7 +12,7 @@ struct raw4_socket_data {
     list_t rx_queue;
     spinlock_t rx_queue_lock;
 
-    struct blocker blk;
+    struct blocker rx_blk;
 };
 
 void raw4_accept_packet(int protocol, struct net_buffer* nbuffer);

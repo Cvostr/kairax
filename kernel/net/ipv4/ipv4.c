@@ -41,8 +41,12 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
     struct ip4_packet* ip_packet = (struct ip4_packet*) nbuffer->cursor;
 	nbuffer->netw_header = (uint8_t*) ip_packet;
 
+	// Вычислить длину заголовка IPv4 и сдвинуть его курсор nbuffer
 	int header_size = IP4_IHL(ip_packet->version_ihl) * 4;
 	net_buffer_shift(nbuffer, header_size);
+
+	// Записать в объект пакета указатель на начало заголовка транспортного уровня
+	nbuffer->transp_header = nbuffer->cursor;
 
 	// Рассчитаем размер пакета следующего уровня
 	nbuffer->netw_packet_size = ntohs(ip_packet->size) - header_size;

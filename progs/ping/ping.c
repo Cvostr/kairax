@@ -12,6 +12,8 @@ int main(int argc, char** argv)
 {
     char* addr = NULL;
     in_addr_t ip4_addr = 0;
+    int ping_times = 4;
+
     for (int i = 1; i < argc; i ++)
     {
         char* arg = argv[i];
@@ -40,7 +42,6 @@ int main(int argc, char** argv)
     ichdr.type = ICMP_ECHO;
     ichdr.un.echo.id = getpid();
     ichdr.un.echo.sequence = 0;
-    ichdr.checksum = checksum(&ichdr, sizeof(ichdr));
 
     struct sockaddr_in ping_addr;
     ping_addr.sin_family = AF_INET;
@@ -58,13 +59,22 @@ int main(int argc, char** argv)
 
     char recv_buffer[128];
     int i = 0;
-    while (i < 4) 
+    while (i < ping_times) 
     {
         ichdr.un.echo.sequence = htons(i);
+        ichdr.checksum = 0;
+        ichdr.checksum = checksum(&ichdr, sizeof(ichdr));
+        
         sendto(sockfd, &ichdr, sizeof(ichdr), 0, (struct sockaddr*) &ping_addr, sizeof(ping_addr));
 
         recvfrom(sockfd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr*) &recv_addr, &recv_addr_len);
+
         struct icmphdr* recv_hdr = (struct icmphdr*) recv_buffer;
+
+        if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id) 
+        {
+            printf("Ping response from %s: icmp seq=%i\n", addr, htons(recv_hdr->un.echo.sequence));
+        }
 
         i++;
     }
