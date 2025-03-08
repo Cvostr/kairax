@@ -19,6 +19,10 @@ int inet_aton(const char* cp, struct in_addr* inp)
                 return 0;
             }
             paddr++;
+        } else if (*paddr == '\0') {
+            break;
+        } else {
+            return 0;
         }
     }
 

@@ -10,9 +10,7 @@ struct socket_family ipv4_sock_family = {
 
 extern struct socket_prot_ops ipv4_stream_ops;
 extern struct socket_prot_ops ipv4_dgram_ops;
-struct socket_prot_ops ipv4_raw_ops = {
-
-};
+extern struct socket_prot_ops ipv4_raw_ops;
 
 int ipv4_sock_create(struct socket* s, int type, int protocol)
 {

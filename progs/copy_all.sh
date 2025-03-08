@@ -18,6 +18,7 @@ sudo cp ./shutdown/shutdown.a /mnt/kxvol/bin/shutdown
 sudo cp ./modctl/modctl.a /mnt/kxvol/bin/modctl
 sudo cp ./route/route.a /mnt/kxvol/bin/route
 sudo cp ./ln/ln.a /mnt/kxvol/bin/ln
+sudo cp ./ping/ping.a /mnt/kxvol/bin/ping
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo

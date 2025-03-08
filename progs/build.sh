@@ -81,3 +81,7 @@ cd ..
 cd ln
 make
 cd ..
+
+cd ping
+make
+cd ..

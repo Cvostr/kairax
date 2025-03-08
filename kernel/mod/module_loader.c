@@ -39,7 +39,7 @@ int module_load(const char* image, size_t size)
 
         if (strcmp(section_name, ".kxmod_header") == 0) {
             // Заголочная секция
-            module_header_ptr = sehentry->offset;
+            module_header_ptr = (struct kxmodule_header*) sehentry->offset;
         } else if (sehentry->type == SHT_SYMTAB) {
             // Секция перемещений в коде
             symtab_section = sehentry;
@@ -73,7 +73,7 @@ int module_load(const char* image, size_t size)
     }
 
     // Копируем данные в память рядом с кодом ядра
-    memcpy(mod->offset, image, size);
+    memcpy((void*) mod->offset, image, size);
 
     // Применение перемещений
     struct elf_symbol* sym_data = (struct elf_symbol*) (image + symtab_section->offset);

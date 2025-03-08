@@ -293,10 +293,10 @@ next:
     struct thread* thr = process->threads->head->element;
     thread_recreate_on_execve(thr, &main_thr_info);
 	
-    syscall_frame_t* syscall_frame = this_core->kernel_stack;
+    syscall_frame_t* syscall_frame = (syscall_frame_t*) this_core->kernel_stack;
     syscall_frame = syscall_frame - 1;
 
-    syscall_frame->rcx = loader_start_ip;
+    syscall_frame->rcx = (uint64_t) loader_start_ip;
     set_user_stack_ptr(thr->stack_ptr);
 
     // Освободить память под aux

@@ -133,6 +133,7 @@ gcc $GCC_ARGS net/ipv4/ipv4.c -o ./bin/ipv4.o
 gcc $GCC_ARGS net/ipv4/af_inet.c -o ./bin/af_inet.o
 gcc $GCC_ARGS net/ipv4/udp.c -o ./bin/udp.o
 gcc $GCC_ARGS net/ipv4/tcp.c -o ./bin/tcp.o
+gcc $GCC_ARGS net/ipv4/raw.c -o ./bin/raw.o
 gcc $GCC_ARGS net/ipv4/icmp.c -o ./bin/icmp.o
 gcc $GCC_ARGS net/route.c -o ./bin/route.o
 gcc $GCC_ARGS net/loopback.c -o ./bin/loopback.o
