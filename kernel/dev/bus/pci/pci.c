@@ -132,9 +132,10 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 		device_desc->header_type = (uint8_t)(bist_header & 0xFF);	//Младшие 8 бит - тип заголовка
 		//Чтение базовых адресов
 
-		if (device_desc->header_type == 0) {
-
-			for (int i = 0; i < 6; i ++){
+		if (device_desc->header_type == PCI_HEADER_TYPE_NORMAL || device_desc->header_type == PCI_HEADER_TYPE_MULTI) 
+		{
+			for (int i = 0; i < 6; i ++)
+			{
 				uint32_t address = 0;
 				uint32_t mask = 0;
 				read_pci_bar(bus, device, func, i, &address, &mask);

@@ -38,13 +38,19 @@ struct pci_device_info {
 } PACKED;
 
 #define PCI_DEVCMD_BUSMASTER_ENABLE 0x4
-#define PCI_DEVCMD_MSA_ENABLE 0x2
+#define PCI_DEVCMD_MSA_ENABLE 		0x2
+#define PCI_DEVCMD_IO_ENABLE		0x1
 #define PCI_DEVCMP_INTERRUPTS_DISABLE (1 << 10)
 
 #define PCI_STATUS_MSI_CAPABLE			(1 << 4)
 
 #define PCI_VENDOR_ID	0
 #define PCI_PRODUCT_ID	2
+
+#define PCI_HEADER_TYPE_NORMAL	0
+#define PCI_HEADER_TYPE_BRIDGE	0x01
+#define PCI_HEADER_TYPE_CARDBUS	0x02
+#define PCI_HEADER_TYPE_MULTI	0x80	// Многофункциональное устройство (уже встречали на XHCI)
 
 struct device;
 

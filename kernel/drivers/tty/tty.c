@@ -4,6 +4,7 @@
 #include "sync/spinlock.h"
 #include "string.h"
 #include "proc/syscalls.h"
+#include "stdio.h"
 
 struct file_operations tty_master_fops;
 struct file_operations tty_slave_fops;

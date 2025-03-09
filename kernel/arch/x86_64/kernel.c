@@ -9,6 +9,7 @@
 
 #include "drivers/storage/ahci/ahci.h"
 #include "drivers/storage/nvme/nvme.h"
+#include "dev/bus/usb/usb_xhci.h"
 
 #include "memory/mem_layout.h"
 #include "mem/pmm.h"
@@ -170,6 +171,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	devfs_init();
 	ahci_init();	
 	init_nvme();
+	usb_init();
 	tty_init();
 
 	vga_init_dev();
@@ -177,7 +179,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	zero_init();
 	init_ints_keyboard();
 
-	usb_init();
 	net_init();
 	
 	register_interrupt_handler(INTERRUPT_VEC_RES, cpu_reschedule_ipi, 0);
