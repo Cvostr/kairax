@@ -211,16 +211,33 @@ int sock_raw4_setsockopt(struct socket* sock, int level, int optname, const void
     return 0;
 }
 
+void sock_raw4_drop_recv_buffer(struct raw4_socket_data* sock_data)
+{
+    acquire_spinlock(&sock_data->rx_queue_lock);
+    struct net_buffer* current; 
+    while ((current = list_dequeue(&sock_data->rx_queue)) != NULL)
+    {
+        net_buffer_free(current);
+    }
+    release_spinlock(&sock_data->rx_queue_lock);
+}
+
 int sock_raw4_close(struct socket* sock)
 {
 #ifdef RAW_LOG_SOCK_CLOSE
     printk("raw: close()\n");
 #endif
 
+    struct raw4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+
     acquire_spinlock(&raw_sockets_lock);
     list_remove(&raw_sockets, sock);
     inode_close((struct inode*) sock);
     release_spinlock(&raw_sockets_lock);
+
+    // Освободить память
+    sock_raw4_drop_recv_buffer(sock_data);
+    kfree(sock_data);
 
     return 0;
 }

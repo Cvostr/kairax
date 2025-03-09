@@ -44,6 +44,11 @@ void loader() {
 
     // Загрузить главный объект
     root = load_object_data_fd(fd, 0);
+    if (root == NULL)
+    {
+        printf("linker: Failed loading main object\n");
+        syscall_process_exit(130);
+    }
 
     // Обработка перемещений
     process_relocations(root);
@@ -62,7 +67,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     int rc = syscall_fdstat(fd, 0, &file_stat, DIRFD_IS_FD);
 
     if (rc != 0) {
-        printf("Error! can't stat object fd!\n");
+        printf("Error! can't stat object fd (%i)!\n", fd);
         return NULL;
     }
 
