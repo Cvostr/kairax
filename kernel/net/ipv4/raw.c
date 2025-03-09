@@ -6,7 +6,7 @@
 #include "stdio.h"
 #include "kairax/kstdlib.h"
 
-#define RAW_LOG_SOCK_CLOSE
+//#define RAW_LOG_SOCK_CLOSE
 
 struct socket_prot_ops ipv4_raw_ops = {
     .create = sock_raw4_create,
@@ -84,6 +84,7 @@ int sock_raw4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 
     struct sockaddr_in* dest_addr_in = (struct sockaddr_in*) to;
 
+    struct raw4_socket_data* sock_data = (struct raw4_socket_data*) sock->data;
     // Маршрут назначения
     struct route4* route = route4_resolve(dest_addr_in->sin_addr.s_addr);
     if (route == NULL)
@@ -101,7 +102,8 @@ int sock_raw4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     net_buffer_add_front(resp, msg, len);
     
     // Отправить
-    int rc = ip4_send(resp, route, dest_addr_in->sin_addr.s_addr, sock->protocol);
+    uint8_t ttl = sock_data->max_ttl != 0 ? sock_data->max_ttl : IPV4_DEFAULT_TTL; 
+    int rc = ip4_send_ttl(resp, route, dest_addr_in->sin_addr.s_addr, sock->protocol, ttl);
 
     // освобождение памяти, выделенной под буфер
     net_buffer_free(resp);
@@ -176,13 +178,34 @@ int sock_raw4_setsockopt_sol_socket(struct socket* sock, int optname, const void
     return 0;
 }
 
+int sock_raw4_setsockopt_sol_IP(struct socket* sock, int optname, const void *optval, unsigned int optlen)
+{
+    struct raw4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+
+    switch (optname) {
+        case IP_TTL:
+            if (optlen < 1)
+                return -EINVAL;
+
+            uint8_t val = *((uint8_t*) optval);
+            sock_data->max_ttl = val;
+            break;
+    }
+
+    return 0;
+}
+
+
 int sock_raw4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
 {
-    printk("RAW: setsockopt level:%i name:%i\n", level, optname);
+    //printk("RAW: setsockopt level:%i name:%i\n", level, optname);
 
     switch (level) {
         case SOL_SOCKET:
             return sock_raw4_setsockopt_sol_socket(sock, optname, optval, optlen);
+        case SOL_IP:
+            return sock_raw4_setsockopt_sol_IP(sock, optname, optval, optlen);
+
     };
 
     return 0;

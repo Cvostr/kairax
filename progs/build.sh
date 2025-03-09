@@ -85,3 +85,7 @@ cd ..
 cd ping
 make
 cd ..
+
+cd traceroute
+make
+cd ..

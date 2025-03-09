@@ -23,8 +23,10 @@ extern "C" {
 #define SOCK_CLOEXEC    02000000
 
 // для setsockopts
+#define SOL_IP		0
 #define SOL_SOCKET	1
 
+// Параметры SOL_SOCKET
 #define SO_DEBUG	1
 #define SO_REUSEADDR	2
 #define SO_TYPE		3

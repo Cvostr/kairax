@@ -14,6 +14,8 @@ int ipv4_sock_create(struct socket* s, int type, int protocol);
 #define IPV4_PROTOCOL_UDP   17
 #define IPV4_PROTOCOL_ICMP  1
 
+#define IPV4_DEFAULT_TTL 64
+
 union ip4uni {
     uint32_t val;
     uint8_t array[4];
@@ -66,6 +68,7 @@ void ip4_handle_packet(struct net_buffer* nbuffer);
 
 void ip4_register_protocol(struct ip4_protocol* protocol, int proto);
 
+int ip4_send_ttl(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot, uint8_t ttl);
 int ip4_send(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot);
 
 #endif

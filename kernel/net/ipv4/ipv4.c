@@ -91,6 +91,11 @@ uint8_t* ip4_get_destination_mac(struct route4* route, uint32_t dest_addr)
 
 int ip4_send(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot)
 {
+	return ip4_send_ttl(nbuffer, route, dest, prot, IPV4_DEFAULT_TTL);
+}
+
+int ip4_send_ttl(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot, uint8_t ttl)
+{
 	if (route == NULL) {
 		return -ENETUNREACH;
 	}
@@ -111,7 +116,7 @@ int ip4_send(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, ui
 #endif
 	pkt.protocol = prot;
 	pkt.size = htons(len);
-	pkt.ttl = 64;
+	pkt.ttl = ttl;
 
 	pkt.header_checksum = htons(ipv4_calculate_checksum(&pkt, sizeof(struct ip4_packet)));
 

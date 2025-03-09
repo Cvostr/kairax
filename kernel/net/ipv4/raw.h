@@ -13,6 +13,8 @@ struct raw4_socket_data {
     spinlock_t rx_queue_lock;
 
     struct blocker rx_blk;
+
+    uint8_t max_ttl;
 };
 
 void raw4_accept_packet(int protocol, struct net_buffer* nbuffer);

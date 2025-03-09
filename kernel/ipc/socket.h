@@ -74,6 +74,7 @@ struct socket {
     struct socket_prot_ops* ops;
 };
 
+#define SOL_IP		0
 #define SOL_SOCKET	1
 
 #define SO_DEBUG	1
@@ -98,6 +99,9 @@ struct socket {
 #define SO_RCVTIMEO	20
 #define SO_SNDTIMEO	21
 #define SO_BINDTODEVICE	25
+
+#define IP_TOS		1
+#define IP_TTL		2
 
 struct socket_prot_ops {
     int (*create) (struct socket* sock);

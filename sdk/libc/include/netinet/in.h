@@ -58,6 +58,9 @@ extern uint16_t htons (uint16_t hshort);
 #define	INADDR_BROADCAST	((unsigned long int) 0xffffffff)
 #define	INADDR_LOOPBACK		0x7f000001	/* 127.0.0.1   */
 
+#define IP_TOS		1
+#define IP_TTL		2
+
 #ifdef __cplusplus
 }
 #endif
