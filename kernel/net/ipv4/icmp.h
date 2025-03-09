@@ -1,6 +1,7 @@
 #ifndef _ICMP_IP4_H
 #define _ICMP_IP4_H
 
+#include "kairax/types.h"
 #include "net/net_buffer.h"
 
 #define ICMP_ECHOREPLY      0
@@ -42,6 +43,7 @@ struct icmp_header {
 
 int icmp_ip4_handle(struct net_buffer* nbuffer);
 void icmp_ip4_init();
+void icmp_ip4_handle_ping(struct net_buffer* nbuffer);
 uint16_t icmp_checksum(void *b, int len);
 
 #endif
