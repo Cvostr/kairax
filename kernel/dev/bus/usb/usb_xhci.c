@@ -63,6 +63,13 @@ int xhci_device_probe(struct device *dev)
 	while ((cntrl->op->usbcmd & XHCI_CMD_RESET));
 	while ((cntrl->op->usbsts & XHCI_STS_NOT_READY));
 
+	uint16_t max_scratchpad_hi = (cntrl->cap->hcsparams2 >> 20) & 0b11111;
+	uint16_t max_scratchpad_lo = (cntrl->cap->hcsparams2 >> 27) & 0b11111;
+	cntrl->max_scratchpad_buffers = max_scratchpad_hi << 5 | max_scratchpad_lo;
+
+	cntrl->pagesize = 1ULL << (cntrl->op->pagesize + 12);
+	printk("XHCI: scratchpad: %i, pagesize: %i\n", cntrl->cap->hcsparams2, cntrl->max_scratchpad_buffers, cntrl->pagesize);
+
 	uint8_t irq = alloc_irq(0, "xhci");
     printk("XHCI: using IRQ %i\n", irq);
     int rc = pci_device_set_msi_vector(dev, irq);

@@ -38,6 +38,7 @@ void devfs_init()
     devfs_root_inode->modify_time = current_time.tv_sec;
     devfs_root_inode->operations = &root_inode_ops;
     devfs_root_inode->file_ops = &root_file_ops;
+    devfs_root_inode->hard_links = 1;
     atomic_inc(&devfs_root_inode->reference_count);
 
     filesystem_t* devfs = new_filesystem();
@@ -123,6 +124,7 @@ int devfs_add_char_device(const char* name, struct file_operations* fops, void* 
     device->inode->modify_time = current_time.tv_sec;
     device->inode->file_ops = fops;
     device->inode->operations = &dev_inode_ops;
+    device->inode->hard_links = 1;
     device->inode->private_data = private_data;
     atomic_inc(&device->inode->reference_count);
 

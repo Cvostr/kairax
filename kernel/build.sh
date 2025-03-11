@@ -152,6 +152,7 @@ gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
 gcc $GCC_ARGS mem/paging.c -o ./bin/paging.o
 gcc $GCC_ARGS mem/kheap.c -o ./bin/kheap.o
 gcc $GCC_ARGS mem/pmm.c -o ./bin/pmm.o
+gcc $GCC_ARGS mem/vm_area.c -o ./bin/vm_area.o
 
 #generic modules
 gcc $GCC_ARGS mod/module_loader.c -o ./bin/module_loader.o

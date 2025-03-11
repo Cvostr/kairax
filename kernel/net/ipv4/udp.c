@@ -40,8 +40,7 @@ int udp_ip4_alloc_dynamic_port(struct socket* sock)
 void udp_ip4_handle(struct net_buffer* nbuffer)
 {
     struct udp4_socket_data* sock_data = NULL;
-    struct udp_packet* udphdr = (struct udp_packet*) nbuffer->cursor;
-    nbuffer->transp_header = udphdr;
+    struct udp_packet* udphdr = (struct udp_packet*) nbuffer->transp_header;
 
     struct ip4_packet* ip4p = nbuffer->netw_header;
 
@@ -129,10 +128,9 @@ int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
     printk("bind() to port %i\n", port);
 #endif
 
-    udp4_bindings[port] = sock;
-
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     sock_data->port = port;
+    udp4_bindings[port] = sock;
 
     return 0;
 }
@@ -270,7 +268,8 @@ int sock_udp4_close(struct socket* sock)
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     sock->data = NULL;
 
-    if (udp4_bindings[sock_data->port]) {
+    if (udp4_bindings[sock_data->port] == sock) 
+    {
         udp4_bindings[sock_data->port] = NULL;
     }
 

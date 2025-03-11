@@ -55,6 +55,8 @@ struct xhci_controller
 
 	uint8_t slots;
 	uint8_t ports;
+	uint32_t max_scratchpad_buffers;
+	uint32_t pagesize;
 };
 
 void xhci_int_hander();
