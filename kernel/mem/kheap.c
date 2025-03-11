@@ -154,8 +154,10 @@ void combine_forward(kheap_item_t* item)
 
 void kfree(void* mem)
 {
-    if (mem < KHEAP_MAP_OFFSET) {
+    if (mem < KHEAP_MAP_OFFSET) 
+    {
         printk("KHEAP: PANIC: Invalid ADDR %i\n", mem);
+        return;
     }
 
     acquire_spinlock(&kheap_lock);

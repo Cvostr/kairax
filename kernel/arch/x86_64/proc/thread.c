@@ -146,7 +146,7 @@ void thread_create_tls(struct thread* thread)
         // Выделить память под TLS
         uint64_t mem_begin = process_get_free_addr(process, aligned_mem_size, align_down(USERSPACE_MMAP_ADDR, PAGE_SIZE));
         // Добавить диапазон памяти к процессу
-        struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+        struct mmap_range* range = new_mmap_region();
         range->base = mem_begin;
         range->length = aligned_mem_size;
         range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;

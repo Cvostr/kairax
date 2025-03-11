@@ -210,7 +210,7 @@ next:
         if (!shared) {
             list_remove(process->mmap_ranges, range);
             vm_table_unmap_region(process->vmemory_table, range->base, range->length);
-            kfree(range);
+            mmap_region_unref(range);
         }
 
         current_area_node = next;

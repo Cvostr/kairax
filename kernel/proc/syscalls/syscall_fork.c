@@ -64,8 +64,10 @@ pid_t sys_fork()
     {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
         
-        struct mmap_range* new_range = kmalloc(sizeof(struct mmap_range));
+        // новый регион - копия старого
+        struct mmap_range* new_range = new_mmap_region();
         memcpy(new_range, range, sizeof(struct mmap_range));
+        new_range->refs.counter = 0;
 
         int is_shared = (new_range->flags & MAP_SHARED) == MAP_SHARED;
 

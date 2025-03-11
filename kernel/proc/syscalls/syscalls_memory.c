@@ -42,8 +42,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     address = process_get_free_addr(process, length, align_down((uint64_t) address, PAGE_SIZE));
 
     // Сформировать регион
-    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
-    memset(range, 0, sizeof(struct mmap_range));
+    struct mmap_range* range = new_mmap_region();
     if (range == NULL) {
         return -ENOMEM;
     }
@@ -96,7 +95,7 @@ int sys_memory_unmap(void* address, uint64_t length)
     // Освободить память
     vm_table_unmap_region(process->vmemory_table, address, length);
 
-    kfree(region);
+    mmap_region_unref(region);
 
 exit:
     release_spinlock(&process->mmap_lock);

@@ -1,6 +1,7 @@
 #include "vm_area.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "stdio.h"
 
 struct mmap_range* new_mmap_region()
 {
@@ -23,6 +24,12 @@ void mmap_region_ref(struct mmap_range* region)
 
 void mmap_region_unref(struct mmap_range* region)
 {
+    if (region == NULL)
+    {
+        printk("warn: mmap_region_unref(NULL)\n");
+        return;
+    }
+
     if (atomic_dec_and_test(&region->refs)) 
     {
         kfree(region);

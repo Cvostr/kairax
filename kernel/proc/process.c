@@ -79,9 +79,10 @@ void process_free_resources(struct process* process)
     size_t i = 0;
 
     size_t ranges = list_size(process->mmap_ranges);
-    for (i = 0; i < ranges; i ++) {
+    for (i = 0; i < ranges; i ++) 
+    {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
-        kfree(range);
+        mmap_region_unref(range);
     }
 
     // Освобождение памяти под данные TLS
@@ -184,8 +185,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     uintptr_t end_addr = align(start + size, PAGE_SIZE);
 
     // Добавить диапазон
-    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
-    memset(range, 0, sizeof(struct mmap_range));
+    struct mmap_range* range = new_mmap_region();
     range->base = start_aligned;
     range->length = end_addr - start_aligned;
     range->protection = flags;
@@ -218,7 +218,7 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size, int
     uint64_t mem_begin = process_get_free_addr(process, stack_size, align_down(USERSPACE_MMAP_ADDR, PAGE_SIZE));
 
     // Добавить диапазон памяти к процессу
-    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
+    struct mmap_range* range = new_mmap_region();
     range->base = mem_begin;
     range->length = stack_size;
     range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
@@ -245,8 +245,7 @@ uintptr_t process_brk(struct process* process, uint64_t addr)
     uintptr_t uaddr = align(addr, PAGE_SIZE);
 
     // Добавить диапазон памяти к процессу
-    struct mmap_range* range = kmalloc(sizeof(struct mmap_range));
-    memset(range, 0, sizeof(struct mmap_range));
+    struct mmap_range* range = new_mmap_region();
     range->base = process->brk;
     range->length = uaddr - process->brk;
     range->protection = protection;
@@ -404,6 +403,7 @@ void process_add_mmap_region(struct process* process, struct mmap_range* region)
     acquire_spinlock(&process->mmap_lock);
 
     list_add(process->mmap_ranges, region);
+    mmap_region_ref(region);
 
     release_spinlock(&process->mmap_lock);
 }
@@ -540,7 +540,7 @@ int process_handle_page_fault(struct process* process, uint64_t address)
         release_spinlock(&process->mmap_lock);
         return 1;
     }
-    printk("Locked in process_handle_page_fault()\n");
+    printk("Locked in process_handle_page_fault(%s)\n", ulltoa(address, 16));
     // Дождемся разблокировки  
     return 1;
 }

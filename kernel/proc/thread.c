@@ -64,7 +64,6 @@ int thread_send_signal(struct thread* thread, int signal)
         }
 
         scheduler_wakeup1(thread);
-        //scheduler_unblock(thread);
     }
 
     return 0;
