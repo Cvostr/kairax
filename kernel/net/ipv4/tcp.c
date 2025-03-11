@@ -449,15 +449,21 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     // Ожидание SYN | ACK
     acquire_spinlock(&sock_data->rx_queue_lock);
 
-    while (sock_data->rx_queue.head == NULL) 
+    if (sock_data->rx_queue.head == NULL) 
     {
         release_spinlock(&sock_data->rx_queue_lock);
 
-        scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
+        scheduler_sleep_on(&sock_data->rx_blk);
 
         if (sock_data->is_rst) 
         {
             return -ECONNREFUSED;
+        }
+
+        if (sock_data->rx_queue.head == NULL)
+        {
+            // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
+            return -EINTR;
         }
 
         acquire_spinlock(&sock_data->rx_queue_lock);
@@ -532,7 +538,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     // Ожидание подключений
     while (sock_data->backlog_head == sock_data->backlog_tail - 1) 
     {
-        scheduler_sleep_intrusive(&sock_data->backlog_blk.head, &sock_data->backlog_blk.tail, &sock_data->backlog_blk.lock);
+        scheduler_sleep_on(&sock_data->backlog_blk);
     }
 
     struct net_buffer* syn_req = sock_data->backlog[++sock_data->backlog_head];
@@ -678,10 +684,10 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
             return -EAGAIN;
         }
 
-        while (rcv_buffer == NULL) 
+        if (rcv_buffer == NULL) 
         {
             // Ожидание пакета
-            scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
+            scheduler_sleep_on(&sock_data->rx_blk);
 
             // Пробуем вытащить пакет
             acquire_spinlock(&sock_data->rx_queue_lock);
@@ -694,10 +700,18 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
                 return -ECONNRESET;
             }
 
-            // Все данные считаны и сокет закрыт пиром через FIN
-            if (sock->state != SOCKET_STATE_CONNECTED && rcv_buffer == NULL) 
+            if (rcv_buffer == NULL)
             {
-                return 0;
+                if (sock->state != SOCKET_STATE_CONNECTED)
+                {
+                    // Все данные считаны и сокет закрыт пиром через FIN
+                    return 0;
+                }
+                else  
+                {
+                    // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
+                    return -EINTR;
+                }
             }
         }
     }

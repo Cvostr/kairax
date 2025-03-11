@@ -33,7 +33,7 @@ struct thread {
     // Указатель на сохраненные данные контекста
     void*               context;
     int                 is_userspace;
-    void*               wait_handle;
+    struct blocker*     blocker;
     int                 timeslice;
     sigset_t            pending_signals;
     // Следующий поток при блокировке на семафоре

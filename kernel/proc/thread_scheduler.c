@@ -62,6 +62,15 @@ int thread_intrusive_remove(struct thread** head, struct thread** tail, struct t
     return 0;
 }
 
+void scheduler_sleep_on(struct blocker* blocker)
+{
+    struct thread* thr = cpu_get_current_thread();
+
+    thr->blocker = blocker;
+
+    scheduler_sleep_intrusive(&blocker->head, &blocker->tail, &blocker->lock);
+}
+
 void scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock)
 {
     struct thread* thr = cpu_get_current_thread();
@@ -107,14 +116,14 @@ uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, 
         if (unblocked < max) {
             
             thread_intrusive_remove(head, tail, thread);
+            thread->blocker = NULL;
             
             if (thread->state == STATE_INTERRUPTIBLE_SLEEP || thread->state == STATE_UNINTERRUPTIBLE_SLEEP)
             {
                 DISABLE_INTS
                 wq_add_thread(wq, thread);
-                ENABLE_INTS
-
                 scheduler_unblock(thread);
+                ENABLE_INTS
 
                 unblocked ++;
             }
@@ -218,10 +227,15 @@ void scheduler_wakeup1(struct thread* thread)
 
     if (thread->state == STATE_INTERRUPTIBLE_SLEEP || thread->state == STATE_UNINTERRUPTIBLE_SLEEP)
     {
+        if (thread->blocker)
+        {
+            thread_intrusive_remove(&thread->blocker->head, &thread->blocker->tail, thread);
+            thread->blocker = NULL;
+        }
+
         DISABLE_INTS
         wq_add_thread(wq, thread);
-        thread->state = STATE_RUNNABLE;
-        thread->sleep_raiser = NULL;
+        scheduler_unblock(thread);
         ENABLE_INTS
     }
 }
@@ -234,7 +248,7 @@ int scheduler_wakeup(void* handle, int max)
 void scheduler_unblock(struct thread* thread)
 {
     thread->state = STATE_RUNNABLE;
-    thread->wait_handle = NULL;
+    thread->sleep_raiser = NULL;
 }
 
 struct thread* scheduler_get_next_runnable_thread()
