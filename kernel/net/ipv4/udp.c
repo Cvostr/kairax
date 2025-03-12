@@ -151,7 +151,7 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     while (sock_data->rx_queue.head == NULL) {
         release_spinlock(&sock_data->rx_queue_lock);
-        scheduler_sleep_intrusive(&sock_data->blk.head, &sock_data->blk.tail, &sock_data->blk.lock);
+        scheduler_sleep_on(&sock_data->blk);
         acquire_spinlock(&sock_data->rx_queue_lock);
     }
 

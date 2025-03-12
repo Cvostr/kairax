@@ -124,7 +124,7 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout)
             release_spinlock(&process->futex_list_lock);
         }
 
-        scheduler_sleep_intrusive(&futx->blocker.head, &futx->blocker.tail, &futx->blocker.lock);
+        scheduler_sleep_on(&futx->blocker);
        
     } else if (op == FUTEX_WAKE) {
         //printk(" WOKE UP  %i  ", futex_physaddr);

@@ -100,7 +100,7 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 
         // Нечего читать - засыпаем
         release_spinlock(&pipe->lock);
-        scheduler_sleep_intrusive(&pipe->readb.head, &pipe->readb.tail, &pipe->readb.lock);
+        scheduler_sleep_on(&pipe->readb);
         acquire_spinlock(&pipe->lock);
     }
 
@@ -145,7 +145,7 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
             scheduler_wakeup_intrusive(&pipe->readb.head, &pipe->readb.tail, &pipe->readb.lock, INT_MAX);
             // И засыпаем сами
             release_spinlock(&pipe->lock);
-            scheduler_sleep_intrusive(&pipe->writeb.head, &pipe->writeb.tail, &pipe->writeb.lock);
+            scheduler_sleep_on(&pipe->writeb);
             acquire_spinlock(&pipe->lock);
         }
 

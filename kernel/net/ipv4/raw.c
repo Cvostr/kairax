@@ -89,7 +89,6 @@ int sock_raw4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     struct route4* route = route4_resolve(dest_addr_in->sin_addr.s_addr);
     if (route == NULL)
     {
-        printk("RAW: NO ROUTE!!!\n");
         return -ENETUNREACH;
     }
 
@@ -133,7 +132,7 @@ ssize_t sock_raw4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
         }
 
         release_spinlock(&sock_data->rx_queue_lock);
-        scheduler_sleep_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock);
+        scheduler_sleep_on(&sock_data->rx_blk);
 
         // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
         if (sock_data->rx_queue.head == NULL) 
@@ -230,10 +229,14 @@ int sock_raw4_close(struct socket* sock)
 
     struct raw4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
 
+    // удалить сокет из списка raw сокетов
     acquire_spinlock(&raw_sockets_lock);
     list_remove(&raw_sockets, sock);
     inode_close((struct inode*) sock);
     release_spinlock(&raw_sockets_lock);
+
+    // Разбудить спящих
+    scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
 
     // Освободить память
     sock_raw4_drop_recv_buffer(sock_data);

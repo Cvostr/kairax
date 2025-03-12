@@ -5,6 +5,7 @@
 #include "stddef.h"
 #include "unistd.h"
 #include "stdio.h"
+#include "errno.h"
 
 unsigned short checksum(void *b, int len);
 
@@ -59,13 +60,23 @@ int main(int argc, char** argv)
 
     char recv_buffer[128];
     int i = 0;
+    int rc = 0;
     while (i < ping_times) 
     {
+        usleep(1000000);
+
+        i++;
+
         ichdr.un.echo.sequence = htons(i);
         ichdr.checksum = 0;
         ichdr.checksum = checksum(&ichdr, sizeof(ichdr));
         
-        sendto(sockfd, &ichdr, sizeof(ichdr), 0, (struct sockaddr*) &ping_addr, sizeof(ping_addr));
+        rc = sendto(sockfd, &ichdr, sizeof(ichdr), 0, (struct sockaddr*) &ping_addr, sizeof(ping_addr));
+        if (rc == -1)
+        {
+            printf("Error sending ping packet to %s: %i\n", addr, errno);
+            continue;
+        }
 
         recvfrom(sockfd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr*) &recv_addr, &recv_addr_len);
 
@@ -75,8 +86,6 @@ int main(int argc, char** argv)
         {
             printf("Ping response from %s: icmp seq=%i\n", addr, htons(recv_hdr->un.echo.sequence));
         }
-
-        i++;
     }
 }
 
