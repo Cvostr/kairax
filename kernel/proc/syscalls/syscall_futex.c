@@ -134,7 +134,7 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout)
             return 0; // ???
         }
 
-        int r = scheduler_wakeup_intrusive(&futx->blocker.head, &futx->blocker.tail, &futx->blocker.lock, val);
+        int r = scheduler_wake(&futx->blocker, val);
 
         if (futx->blocker.head == NULL && futx->blocker.tail == NULL)
         {

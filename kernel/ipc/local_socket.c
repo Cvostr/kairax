@@ -5,6 +5,7 @@
 #include "list/list.h"
 #include "kairax/string.h"
 #include "fs/vfs/file.h"
+#include "stdio.h"
 
 struct socket_family local_sock_family = {
     .family = AF_LOCAL,
@@ -44,7 +45,7 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
     }
 
     struct sockaddr_un* addr_un = (struct sockaddr_un*) addr;
-    struct local_socket* lsock = sock->data;
+    struct local_socket* lsock = (struct local_socket*) sock->data;
 
     printk("Opening file %s\n", addr_un->sun_path);
 

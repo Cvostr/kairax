@@ -14,6 +14,7 @@ void scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinl
 uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock, uint32_t max);
 
 void scheduler_sleep_on(struct blocker* blocker);
+uint32_t scheduler_wake(struct blocker* blocker, uint32_t max);
 
 int thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread);
 int thread_intrusive_remove(struct thread** head, struct thread** tail, struct thread* thread);

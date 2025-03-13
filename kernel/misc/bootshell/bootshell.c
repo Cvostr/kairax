@@ -17,7 +17,7 @@ struct process* bootshell_spawn_new_process(struct process* parent)
 
     struct thread* thr = create_kthread(proc, bootshell, NULL);
     strcpy(thr->name, "bootshell main thread");
-	process_add_to_list(thr);
+	process_add_to_list((struct process*) thr);
 	scheduler_add_thread(thr);
 
     return proc;

@@ -18,8 +18,8 @@
 #define ERROR_ALREADY_EXISTS        17
 #define ERROR_OTHER_DEVICE          18
 #define	ERROR_BUSY		            16
-#define ERROR_NOT_EMPTY             90
-#define ERROR_NOT_SOCKET            108
+#define ERROR_NOT_EMPTY             39
+#define ERROR_NOT_SOCKET            88
 
 #define	EPERM                       1
 #define	ENOENT                      ERROR_NO_FILE
@@ -36,6 +36,7 @@
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
 
+#define EADDRINUSE	    98
 #define EADDRNOTAVAIL	99
 #define ECONNRESET	    104
 #define EISCONN         106

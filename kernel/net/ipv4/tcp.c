@@ -139,7 +139,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         sock_data->backlog_tail++;
 
         // Разбудить ожидающих подключений
-        scheduler_wakeup_intrusive(&sock_data->backlog_blk.head, &sock_data->backlog_blk.tail, &sock_data->backlog_blk.lock, 1);
+        scheduler_wake(&sock_data->backlog_blk, 1);
 
     } else if ((flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYNACK) 
     {
@@ -173,7 +173,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         // Разбудить всех ожидающих приема
         // Чтобы они могли сразу выйти с ошибкой
-        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
+        scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
         // Ответить ACK
         tcp_ip4_ack(sock_data);
@@ -190,7 +190,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         // Разбудить всех ожидающих приема
         // Чтобы они могли сразу выйти с ошибкой
-        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
+        scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
         //printk("RST \n");
     } else if ((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) {
@@ -211,7 +211,7 @@ void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buff
     release_spinlock(&sock_data->rx_queue_lock);
 
     // Разбудить ожидающих приема
-    scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, 1);
+    scheduler_wake(&sock_data->rx_blk, 1);
 }
 
 void tcp_ip4_sock_drop_recv_buffer(struct tcp4_socket_data* sock)
@@ -634,12 +634,18 @@ int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
     }
 
     struct sockaddr_in* inetaddr = (struct sockaddr_in*) addr;
+    uint16_t port = ntohs(inetaddr->sin_port);
+
+    if (tcp4_bindings[port] != NULL)
+    {
+        // TODO: учитывать разные IP адреса и сетевые карты
+        return -EADDRINUSE;
+    }
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     sock_data->addr.sin_port = inetaddr->sin_port;
 
     // Bind port
-    uint16_t port = ntohs(inetaddr->sin_port);
     sock_data->bound_port = port;
     tcp4_bindings[port] = sock;
 
@@ -823,7 +829,7 @@ int sock_tcp4_close(struct socket* sock)
 
         // Разбудить всех ожидающих приема
         // Чтобы они могли дочитать буфер или сразу выйти с ошибкой
-        scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
+        scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
         // Освободить порт
         if (tcp4_bindings[sock_data->bound_port] == sock)

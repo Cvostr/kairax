@@ -93,7 +93,7 @@ int module_load(const char* image, size_t size)
             //printk("type %i, off %i, num %i\n", relocation_type, rela->offset, relocation_sym_index);
 
             struct elf_symbol* sym = sym_data + relocation_sym_index;
-            char* sym_name = image + strtab_section->offset + sym->name;
+            const char* sym_name = image + strtab_section->offset + sym->name;
             //printk("sym name %s indx: %i\n", sym_name, sym->shndx);
 
             if (sym->shndx == 0) {

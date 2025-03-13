@@ -4,11 +4,13 @@
 #include "stdio.h"
 #include "errno.h"
 
-#define TEST1_PROCS 125
+#define TEST1_PROCS 175
 #define TEST2_ROUNDS 300
 
 #define ROUNDS 30000
 #define BUFSZ 100
+
+#define FILE "/dev/random"
 
 #define RC 127
 
@@ -22,7 +24,12 @@ void procAct() {
 
     if (pid % 3 == 0)
     {
-        int fd = open("/dev/random", O_RDWR, 0);
+        int fd = open(FILE, O_RDWR, 0);
+        if (fd == -1)
+        {
+            printf("Error opening %s: %i", FILE, errno);
+            _exit(RC);
+        }
         for  ( int i = 0; i < ROUNDS; i ++) {
             read(fd, buff, BUFSZ);
         }

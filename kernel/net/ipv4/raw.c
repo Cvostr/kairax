@@ -54,7 +54,7 @@ void raw_ip4_put_to_rx_queue(struct socket* sock, struct net_buffer* nbuffer)
     release_spinlock(&sockdata->rx_queue_lock);
 
     // Разбудить ожидающих приема
-    scheduler_wakeup_intrusive(&sockdata->rx_blk.head, &sockdata->rx_blk.tail, &sockdata->rx_blk.lock, 1);
+    scheduler_wake(&sockdata->rx_blk, 1);
 }
 
 int sock_raw4_create (struct socket* sock)
@@ -236,7 +236,7 @@ int sock_raw4_close(struct socket* sock)
     release_spinlock(&raw_sockets_lock);
 
     // Разбудить спящих
-    scheduler_wakeup_intrusive(&sock_data->rx_blk.head, &sock_data->rx_blk.tail, &sock_data->rx_blk.lock, INT_MAX);
+    scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
     // Освободить память
     sock_raw4_drop_recv_buffer(sock_data);

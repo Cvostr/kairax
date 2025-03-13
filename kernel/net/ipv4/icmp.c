@@ -52,7 +52,7 @@ void icmp_ip4_handle_ping(struct net_buffer* nbuffer)
     if (route == NULL)
     {
         printk("ICMP: NO ROUTE!!!\n");
-        return 0;//-ENETUNREACH;
+        return;
     }
 
     struct net_buffer* resp = new_net_buffer_out(256);

@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "keycodes.h"
 #include "dev/keyboard/int_keyboard.h"
+#include "proc/thread_scheduler.h"
 #include "mem/kheap.h"
 #include "string.h"
 
@@ -27,7 +28,7 @@ void kterm_process_start()
 	struct thread* kterm_thr = create_kthread(kterm_process, kterm_main, NULL);
 	strcpy(kterm_thr->name, "kterm main thread");
 	scheduler_add_thread(kterm_thr);
-	process_add_to_list(kterm_thr);
+	process_add_to_list((struct process*) kterm_thr);
 }
 
 char keyboard_get_key_ascii(char keycode);
@@ -58,7 +59,7 @@ struct terminal_session* new_kterm_session(int create_console)
 
 	struct thread* tty_read_thread = create_kthread(kterm_process, kterm_tty_master_read_routine, session);
 	strcpy(tty_read_thread->name, "kterm reading thread");
-	process_add_to_list(tty_read_thread);
+	process_add_to_list((struct process*) tty_read_thread);
 	scheduler_add_thread(tty_read_thread);
 
 	return session;

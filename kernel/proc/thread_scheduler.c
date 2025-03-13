@@ -71,6 +71,11 @@ void scheduler_sleep_on(struct blocker* blocker)
     scheduler_sleep_intrusive(&blocker->head, &blocker->tail, &blocker->lock);
 }
 
+uint32_t scheduler_wake(struct blocker* blocker, uint32_t max)
+{
+    return scheduler_wakeup_intrusive(&blocker->head, &blocker->tail, &blocker->lock, max);
+}
+
 void scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock)
 {
     struct thread* thr = cpu_get_current_thread();

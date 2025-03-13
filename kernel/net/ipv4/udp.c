@@ -87,7 +87,7 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
         release_spinlock(&sock_data->rx_queue_lock);
 
         // Будим ожидающих
-        scheduler_wakeup_intrusive(&sock_data->blk.head, &sock_data->blk.tail, &sock_data->blk.lock, 1);
+        scheduler_wake(&sock_data->blk, 1);
     }
 }
 
