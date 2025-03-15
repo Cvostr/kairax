@@ -56,11 +56,11 @@ struct tcp4_socket_data {
     int is_rst;
 
     // Ожидаемые подключения
-    struct net_buffer **backlog;
-    int backlog_sz;
-    int backlog_head;
-    int backlog_tail;
+    //struct net_buffer **backlog;
+    uint32_t backlog_sz;
+    list_t backlog;
     spinlock_t backlog_lock;
+
     list_t children;
     spinlock_t children_lock;
     

@@ -127,19 +127,23 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
             return 1;
         }
 
+        acquire_spinlock(&sock_data->backlog_lock);
         // запрос соединения
-        if (sock_data->backlog_tail == sock_data->backlog_sz) {
-            // ? CONNREFUSED?
-            return 1;
+        if (list_size(&sock_data->backlog) < sock_data->backlog_sz) 
+        {
+            // Добавляем запрос к очереди подключений
+            net_buffer_acquire(nbuffer);
+            list_add(&sock_data->backlog, nbuffer);
+
+            // Разбудить ожидающих подключений
+            scheduler_wake(&sock_data->backlog_blk, 1);
+        } else {
+            // Очередь заполнена - отправляем RST
+            tcp_ip4_err_rst(tcp_packet, ip4p);
+            return -1;            
         }
 
-        // Добавляем запрос к очереди подключений
-        net_buffer_acquire(nbuffer);
-        sock_data->backlog[sock_data->backlog_tail] = nbuffer;
-        sock_data->backlog_tail++;
-
-        // Разбудить ожидающих подключений
-        scheduler_wake(&sock_data->backlog_blk, 1);
+        release_spinlock(&sock_data->backlog_lock);
 
     } else if ((flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYNACK) 
     {
@@ -535,15 +539,29 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 {
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
-    // Ожидание подключений
-    while (sock_data->backlog_head == sock_data->backlog_tail - 1) 
+    // Вытаскиваем из начала списка
+    struct net_buffer* syn_req_buffer = list_dequeue(&sock_data->backlog);
+
+    if (syn_req_buffer == NULL)
     {
+        // Ожидание подключений
         scheduler_sleep_on(&sock_data->backlog_blk);
+
+        // Пробуем вытащить пакет
+        acquire_spinlock(&sock_data->rx_queue_lock);
+        syn_req_buffer = list_dequeue(&sock_data->backlog);
+        release_spinlock(&sock_data->rx_queue_lock);
+
+        if (syn_req_buffer == NULL)
+        {
+            // Мы проснулись, но пакетов нет - выходим с EINTR
+            return -EINTR;
+        }
     }
 
-    struct net_buffer* syn_req = sock_data->backlog[++sock_data->backlog_head];
-    struct tcp_packet* tcpp = (struct tcp_packet*) syn_req->transp_header;
-    struct ip4_packet* ip4p = (struct ip4_packet*) syn_req->netw_header;
+    // Извлекаем заголовки
+    struct tcp_packet* tcpp = (struct tcp_packet*) syn_req_buffer->transp_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) syn_req_buffer->netw_header;
 
     // Создание сокета клиента
     struct socket* client_sock = new_socket();
@@ -612,7 +630,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     net_buffer_add_front(resp, &pkt, sizeof(struct tcp_packet));
     
     // Освободить буфер с запросом SYN
-    net_buffer_free(syn_req);
+    net_buffer_free(syn_req_buffer);
 
     // Попытка отправить ответ
     ip4_send(resp, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
@@ -656,9 +674,6 @@ int sock_tcp4_listen(struct socket* sock, int backlog)
 {
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     sock_data->backlog_sz = backlog;
-    sock_data->backlog_head = -1;
-    sock_data->backlog_tail = 0;
-    sock_data->backlog = kmalloc(sizeof(struct net_buffer*) * backlog);
 
     // Принимающий подключения
     sock->state = SOCKET_STATE_LISTEN;

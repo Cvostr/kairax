@@ -177,6 +177,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	vga_init_dev();
 	random_init();
 	zero_init();
+	null_init();
 	init_ints_keyboard();
 
 	net_init();

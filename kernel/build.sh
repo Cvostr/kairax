@@ -85,6 +85,7 @@ gcc $GCC_ARGS drivers/video/video.c -o ./bin/video.o
 gcc $GCC_ARGS drivers/tty/tty.c -o ./bin/tty.o
 gcc $GCC_ARGS drivers/char/random.c -o ./bin/random.o
 gcc $GCC_ARGS drivers/char/zero.c -o ./bin/zero.o
+gcc $GCC_ARGS drivers/char/null.c -o ./bin/null.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
