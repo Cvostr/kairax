@@ -7,9 +7,9 @@
 struct file* make_file_from_sock(struct socket* sock)
 {
     struct file* fsock = new_file();
-    fsock->inode = sock;
+    fsock->inode = (struct inode*) sock;
     fsock->ops = ((struct inode*) sock)->file_ops;
-    inode_open(sock, 0);
+    inode_open((struct inode*) sock, 0);
     return fsock;
 }
 

@@ -30,6 +30,7 @@ void pmm_take_base_regions();
 
 void* pmm_alloc_page();
 void* pmm_alloc_pages(uint32_t pages);
+void* pmm_alloc(size_t bytes, size_t* npages);
 
 void pmm_free_page(void* addr);
 void pmm_free_pages(void* addr, uint32_t pages);

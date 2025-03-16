@@ -101,7 +101,7 @@ pid_t sys_fork()
     ctx->rdx = syscall_frame->rdx;
     ctx->rdi = syscall_frame->rdi;
     ctx->rsi = syscall_frame->rsi;
-    ctx->rsp = get_user_stack_ptr();
+    ctx->rsp = (uint64_t) get_user_stack_ptr();
     ctx->rbp = syscall_frame->rbp;
     ctx->r8 = syscall_frame->r8;
     ctx->r9 = syscall_frame->r9;

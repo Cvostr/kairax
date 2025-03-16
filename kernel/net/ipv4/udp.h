@@ -27,7 +27,7 @@ struct udp4_socket_data {
     struct blocker blk;
 };
 
-void udp_ip4_handle(struct net_buffer* nbuffer);
+int udp_ip4_handle(struct net_buffer* nbuffer);
 int udp_ip4_alloc_dynamic_port(struct socket* sock);
 
 void udp_ip4_init();

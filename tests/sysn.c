@@ -5,6 +5,7 @@
 #include "errno.h"
 #include "process.h"
 #include "arpa/inet.h"
+#include "signal.h"
 
 char buff[220];
 
@@ -85,6 +86,9 @@ int main(int argc, char** argv, char** envp) {
     // ошибка
     close(123);
     printf("ERRNO = %i\n", errno);
+
+    sigset_t pending;
+    sigpending(&pending);
 
     printf("inet_addr: %u\n", inet_addr("10.0.2.2"));
     printf("htonl: %u %u %u\n", 33685514, htonl(33685514), htonl(htonl(33685514)));

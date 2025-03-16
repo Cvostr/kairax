@@ -5,6 +5,7 @@
 #include "mem/kheap.h"
 #include "stdio.h"
 #include "kairax/kstdlib.h"
+#include "proc/thread_scheduler.h"
 
 //#define RAW_LOG_SOCK_CLOSE
 
@@ -166,7 +167,7 @@ ssize_t sock_raw4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
 int sock_raw4_setsockopt_sol_socket(struct socket* sock, int optname, const void *optval, unsigned int optlen)
 {
-    struct raw4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    struct raw4_socket_data* sock_data = (struct raw4_socket_data*) sock->data;
 
     switch (optname) {
         case SO_BINDTODEVICE:
@@ -179,7 +180,7 @@ int sock_raw4_setsockopt_sol_socket(struct socket* sock, int optname, const void
 
 int sock_raw4_setsockopt_sol_IP(struct socket* sock, int optname, const void *optval, unsigned int optlen)
 {
-    struct raw4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    struct raw4_socket_data* sock_data = (struct raw4_socket_data*) sock->data;
 
     switch (optname) {
         case IP_TTL:
@@ -227,7 +228,7 @@ int sock_raw4_close(struct socket* sock)
     printk("raw: close()\n");
 #endif
 
-    struct raw4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    struct raw4_socket_data* sock_data = (struct raw4_socket_data*) sock->data;
 
     // удалить сокет из списка raw сокетов
     acquire_spinlock(&raw_sockets_lock);

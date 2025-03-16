@@ -18,6 +18,7 @@ struct raw4_socket_data {
 };
 
 void raw4_accept_packet(int protocol, struct net_buffer* nbuffer);
+void raw_ip4_put_to_rx_queue(struct socket* sock, struct net_buffer* nbuffer);
 
 int sock_raw4_create (struct socket* sock);
 int sock_raw4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);

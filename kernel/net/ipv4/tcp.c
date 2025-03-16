@@ -568,7 +568,7 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     sock_tcp4_create(client_sock);
     client_sock->ops = &ipv4_stream_ops;
 
-    struct tcp4_socket_data* client_sockdata = client_sock->data;
+    struct tcp4_socket_data* client_sockdata = (struct tcp4_socket_data*) client_sock->data;
 
     // Биндинг сокета клиента
     tcp4_fill_sockaddr_in(&client_sockdata->addr, tcpp, ip4p);

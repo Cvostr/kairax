@@ -5,6 +5,7 @@
 #include "proc/thread_scheduler.h"
 #include "kstdlib.h"
 #include "net/route.h"
+#include "stdio.h"
 
 //#define UDP4_LOGGING
 //#define UDP4_NO_LISTEN_LOG
@@ -37,7 +38,7 @@ int udp_ip4_alloc_dynamic_port(struct socket* sock)
     return 0;
 }
 
-void udp_ip4_handle(struct net_buffer* nbuffer)
+int udp_ip4_handle(struct net_buffer* nbuffer)
 {
     struct udp4_socket_data* sock_data = NULL;
     struct udp_packet* udphdr = (struct udp_packet*) nbuffer->transp_header;
@@ -53,7 +54,7 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
         uint16_t calculated = htons(udp4_calc_checksum(ip4p->src_ip, ip4p->dst_ip, udphdr, nbuffer->payload, nbuffer->payload_size));
         if (calculated != 0) {
             printk("UDP: Invalid Checksum!!!\n");
-            return; // ???? todo: реализовать
+            return -1; // ???? todo: реализовать
         }
     }
 
@@ -71,7 +72,7 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
         printk("No listening socket");
 #endif
         // ??? - реализовать
-        return;
+        return -1;
     }
 
     if (sock->data != NULL) 
@@ -89,6 +90,8 @@ void udp_ip4_handle(struct net_buffer* nbuffer)
         // Будим ожидающих
         scheduler_wake(&sock_data->blk, 1);
     }
+
+    return 0;
 }
 
 void udp_ip4_init()

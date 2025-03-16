@@ -135,6 +135,19 @@ exit:
 	return result;
 }
 
+void* pmm_alloc(size_t bytes, size_t* npages)
+{
+	size_t aligned_size = align(bytes, PAGE_SIZE);
+	size_t _npages = aligned_size / PAGE_SIZE;
+
+	if (npages != NULL)
+	{
+		*npages = _npages;
+	}
+
+	return pmm_alloc_pages(_npages);
+}
+
 void* pmm_alloc_pages(uint32_t pages)
 {
 	void* result = NULL;

@@ -13,7 +13,7 @@ int sys_sigpending(sigset_t *set, size_t sigsetsize)
 
     VALIDATE_USER_POINTER(thread->process, set, sigsetsize)
 
-    memcpy(set, thread->pending_signals, sigsetsize);
+    memcpy(set, &thread->pending_signals, sigsetsize);
 
     return 0;
 }
