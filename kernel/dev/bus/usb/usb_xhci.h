@@ -5,8 +5,11 @@
 
 #define XHCI_CMD_RUN        (1 << 0)
 #define XHCI_CMD_RESET      (1 << 1)
+#define XHCI_CMD_INTE		(1 << 2) // Interrupts Enable
 
 #define XHCI_STS_HALT       (1 << 0)
+#define XHCI_HOST_SYSTEM_ERR (1 << 2)
+#define XHCI_EVENT_INTERRUPT (1 << 3)
 #define XHCI_STS_NOT_READY  (1 << 11)
 
 #define XHCI_CR_CYCLE_STATE (1)
@@ -14,12 +17,16 @@
 #define XHCI_CR_ABORT		(1 << 2)
 #define XHCI_RUNNING		(1 << 3)
 
+#define XHCI_IMAN_INTERRUPT_PENDING (1 << 0)
+#define XHCI_IMAN_INTERRUPT_ENABLE 	(1 << 1)
+
 #define XHCI_EXT_CAP_LEGACY_SUPPORT 1
 #define XHCI_EXT_CAP_SUPPORTED_PROTOCOL 2
 #define XHCI_EXT_CAP_EXTENDED_PM		3
 #define XHCI_EXT_CAP_IO_VIRTALIZATION	4
 #define XHCI_EXT_CAP_MESSAGE_INTERRUPT	5
 
+#define XHCI_EVENT_HANDLER_BUSY		(1 << 3)
 
 struct xhci_cap_regs {
     //uint32_t caplen_version;
@@ -84,25 +91,22 @@ struct xhci_protocol_cap {
 	uint32_t                         : 27;
 } PACKED;
 
-struct xhci_controller 
+struct xhci_interrupter
 {
-    char* mmio_addr;
-    uintptr_t mmio_addr_phys;
+	uint32_t iman;
+	uint32_t imod;
+	uint32_t erstsz;
+	uint32_t reserved;
+	uint64_t erstba;
+	uint64_t erdp;
+} PACKED;
 
-    struct xhci_cap_regs*   cap;  
-    struct xhci_op_regs*    op;
-    struct xhci_port_regs*  port;
+struct xhci_runtime_regs {
 
-	uint8_t slots;
-	uint8_t ports;
-	uint16_t interrupters;
-	uint32_t max_scratchpad_buffers;
-	uint32_t pagesize;
-	uint16_t ext_cap_offset;
-
-	void* dcbaa;
-	void* crcr;
-};
+	uint32_t mfindex;
+	uint32_t reserved[7];
+	struct xhci_interrupter interrupters[];
+} PACKED;
 
 // Transfer ring block
 struct xhci_trb {
@@ -117,9 +121,43 @@ struct xhci_trb {
 	uint16_t control;
 };
 
+struct xhci_event_ring_seg_table_entry {
+	uint32_t rsba_l;
+	uint32_t rsba_h;
+	uint32_t rsz;
+	uint32_t rsvd;
+} PACKED;
+
+struct xhci_controller 
+{
+    char* mmio_addr;
+    uintptr_t mmio_addr_phys;
+
+    struct xhci_cap_regs*   cap;  
+    struct xhci_op_regs*    op;
+    struct xhci_port_regs*  port;
+	struct xhci_runtime_regs* runtime;
+
+	uintptr_t ersts_phys;
+	struct xhci_event_ring_seg_table_entry* ersts;
+
+	uint8_t slots;
+	uint8_t ports;
+	uint16_t interrupters;
+	uint32_t max_scratchpad_buffers;
+	uint32_t pagesize;
+	uint16_t ext_cap_offset;
+
+	uintptr_t* dcbaa;
+	void* crcr;
+	void* event_ring;
+};
+
 void xhci_controller_stop(struct xhci_controller* controller);
 void xhci_controller_reset(struct xhci_controller* controller);
 int xhci_controller_init_ports(struct xhci_controller* controller);
+int xhci_controller_init_scratchpad(struct xhci_controller* controller);
+int xhci_controller_init_interrupts(struct xhci_controller* controller);
 
 void xhci_int_hander();
 

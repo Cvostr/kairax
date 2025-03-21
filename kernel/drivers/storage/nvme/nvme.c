@@ -10,6 +10,8 @@
 #include "dev/device_man.h"
 
 //#define NVME_LOG_CONTROLLER_ID
+//#define NVME_LOG_QUEUES_STRIDE
+//#define NVME_LOG_QUEUES
 
 int nvme_next_ctrlr_index = 0;
 
@@ -197,7 +199,9 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 	device->stride 		= (((device->bar0->cap) >> 32) & 0xf);
 	device->queue_entries_num 	= (device->bar0->cap & 0xFFFF) + 1; // Значение, начинающееся с нуля
+#ifdef NVME_LOG_QUEUES_STRIDE
 	printk("NVME: stride %i, queue_entries %i\n", device->stride, device->queue_entries_num);
+#endif
 
 	// Создание admin queue
 	device->admin_queue = nvme_create_admin_queue(device, device->queue_entries_num);
@@ -256,7 +260,9 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 	// Выделить на контроллере требуемое количество очередей (0 - ...)
 	nvme_allocate_io_queues(device, NVME_CONTROLLER_MAX_IO_QUEUES, &device->allocated_io_queues);
+#ifdef NVME_LOG_QUEUES
 	printk("NVME: Allocated queues: %i\n", device->allocated_io_queues);
+#endif
 
 	device->io_queues = kmalloc(device->allocated_io_queues * sizeof(struct nvme_queue*));
 

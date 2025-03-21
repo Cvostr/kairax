@@ -112,6 +112,11 @@ struct socket_prot_ops ipv4_dgram_ops = {
 int sock_udp4_create(struct socket* sock)
 {
     sock->data = kmalloc(sizeof(struct udp4_socket_data));
+    if (sock->data == NULL)
+    {
+        return -ENOMEM;
+    }
+    
     memset(sock->data, 0, sizeof(struct udp4_socket_data));
     return 0;
 }

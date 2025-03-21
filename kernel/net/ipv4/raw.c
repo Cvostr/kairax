@@ -61,6 +61,11 @@ void raw_ip4_put_to_rx_queue(struct socket* sock, struct net_buffer* nbuffer)
 int sock_raw4_create (struct socket* sock)
 {
     sock->data = kmalloc(sizeof(struct raw4_socket_data));
+    if (sock->data == NULL)
+    {
+        return -ENOMEM;
+    }
+
     memset(sock->data, 0, sizeof(struct raw4_socket_data));
 
     acquire_spinlock(&raw_sockets_lock);

@@ -2,7 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 
-struct net_buffer* new_net_buffer(unsigned char* data, size_t len, struct nic* nic)
+struct net_buffer* new_net_buffer(const unsigned char* data, size_t len, struct nic* nic)
 {
     unsigned char* mem = kmalloc(len);
     memcpy(mem, data, len);
@@ -53,7 +53,7 @@ void net_buffer_shift(struct net_buffer* nbuffer, int offset)
     nbuffer->cur_len -= offset;
 }
 
-void net_buffer_add_front(struct net_buffer* nbuffer, unsigned char* data, size_t size)
+void net_buffer_add_front(struct net_buffer* nbuffer, const unsigned char* data, size_t size)
 {
     nbuffer->cursor -= size;
     nbuffer->cur_len += size;

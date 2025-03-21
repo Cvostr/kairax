@@ -372,6 +372,11 @@ int tcp_ip4_alloc_dynamic_port(struct socket* sock)
 int sock_tcp4_create (struct socket* sock)
 {
     sock->data = kmalloc(sizeof(struct tcp4_socket_data));
+    if (sock->data == NULL)
+    {
+        return -ENOMEM;
+    }
+    
     memset(sock->data, 0, sizeof(struct tcp4_socket_data));
     return 0;
 }

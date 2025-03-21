@@ -11,6 +11,9 @@
 #include "stdio.h"
 #include "kstdlib.h"
 
+#define XHCI_CRCR_ENTRIES 256
+#define XHCI_EVENT_RING_ENTIRIES 256
+
 int xhci_device_probe(struct device *dev) 
 {
 	struct pci_device_info* device_desc = dev->pci_info;
@@ -34,18 +37,12 @@ int xhci_device_probe(struct device *dev)
 	memset(cntrl, 0, sizeof(struct xhci_controller));
 
 	cntrl->mmio_addr_phys = dev->pci_info->BAR[0].address;
-
-	if (cntrl->mmio_addr_phys == NULL)
-	{
-		printk("XHCI: Controller BAR0 is NULL\n");
-		return -1;
-	}
-
     cntrl->mmio_addr = map_io_region(cntrl->mmio_addr_phys, dev->pci_info->BAR[0].size);
 
 	// указатели на основные структуры
 	cntrl->cap = (struct xhci_cap_regs*) cntrl->mmio_addr;
 	cntrl->op = (struct xhci_op_regs*) (cntrl->mmio_addr + (cntrl->cap->caplen_version & 0xFF));
+	cntrl->runtime = (struct xhci_runtime_regs*) (cntrl->mmio_addr + (cntrl->cap->rtsoff & ~0x1Fu));
 
 	// Получение свойств
 	cntrl->slots = cntrl->cap->hcsparams1 & 0xFF;
@@ -62,7 +59,7 @@ int xhci_device_probe(struct device *dev)
 	cntrl->max_scratchpad_buffers = max_scratchpad_hi << 5 | max_scratchpad_lo;
 	cntrl->ext_cap_offset = (cntrl->cap->hccparams1 >> 16) & UINT16_MAX;
 	cntrl->pagesize = 1ULL << (cntrl->op->pagesize + 12);
-	printk("XHCI: scratchpad: %i, pagesize: %i, ext cap offset: %i\n", cntrl->max_scratchpad_buffers, cntrl->pagesize, cntrl->ext_cap_offset);
+	printk("XHCI: scratchpad: %i, pagesize: %i, ext cap offset: %i, runt offset: %i\n", cntrl->max_scratchpad_buffers, cntrl->pagesize, cntrl->ext_cap_offset, cntrl->cap->rtsoff);
 
 	if (cntrl->ext_cap_offset == 0)
 	{
@@ -79,19 +76,29 @@ int xhci_device_probe(struct device *dev)
 	// Выделить память
 	uintptr_t dcbaa_phys = (uintptr_t) pmm_alloc(dcbaa_size, NULL);
 	cntrl->dcbaa = map_io_region(dcbaa_phys, dcbaa_size);
+	memset(cntrl->dcbaa, 0, dcbaa_size);
 	// Записать адрес в регистр DCBAA
 	cntrl->op->dcbaa_h = dcbaa_phys >> 32;
 	cntrl->op->dcbaa_l = dcbaa_phys & UINT32_MAX;
 
-	// Выделить память под CRCR с TRB
-	size_t crcr_size = 256 * sizeof(struct xhci_trb);
+	// Выделить память под CRCR с TRB (вроде как всегда по 256 TRB сегментов)
+	size_t crcr_size = XHCI_CRCR_ENTRIES * sizeof(struct xhci_trb);
 	// Выделить память
 	uintptr_t crcr_phys = (uintptr_t) pmm_alloc(crcr_size, NULL);
 	cntrl->crcr = map_io_region(crcr_phys, crcr_size);
+	memset(cntrl->crcr, 0, crcr_size);
 	// Записать адрес в регистр CRCR
 	cntrl->op->crcr_h = crcr_phys >> 32;
 	cntrl->op->crcr_l = (crcr_phys & UINT32_MAX) | XHCI_CR_CYCLE_STATE;
+
+	// Выделим память под кучу записей Event Ring Segment Table Entry
+	size_t ersts_size = 256 * sizeof(struct xhci_event_ring_seg_table_entry);
+	cntrl->ersts_phys = (uintptr_t) pmm_alloc(ersts_size, NULL);
+	cntrl->ersts = map_io_region(cntrl->ersts_phys, ersts_size);
+	memset(cntrl->ersts, 0, crcr_size);
 	
+	xhci_controller_init_interrupts(cntrl);
+	xhci_controller_init_scratchpad(cntrl);
 
 	uint8_t irq = alloc_irq(0, "xhci");
     printk("XHCI: using IRQ %i\n", irq);
@@ -102,7 +109,62 @@ int xhci_device_probe(struct device *dev)
     }
 	register_irq_handler(irq, xhci_int_hander, cntrl);
 
+	// Включить контроллер вместе с прерываниями
+	cntrl->op->usbcmd |= (XHCI_CMD_RUN | XHCI_CMD_INTE);
+	while (cntrl->op->usbsts & XHCI_STS_HALT);
+
+	// Сохранить указатель на структуру
+	dev->dev_data = cntrl;
+
     return 0;
+}
+
+// eXtensible Host Controller Interface for Universal Serial Bus (xHCI) (4.20)
+int xhci_controller_init_scratchpad(struct xhci_controller* controller)
+{
+	// Рассчитаем размер буфера
+	size_t scratchpad_size = controller->max_scratchpad_buffers * sizeof(uintptr_t);
+	// Выделим память под основной буфер
+	uintptr_t scratchpad_phys = (uintptr_t) pmm_alloc(scratchpad_size, NULL);
+	uintptr_t* scratchpad = map_io_region(scratchpad_phys, scratchpad_size);
+	
+	// Переведем размер XHCI страницы в количество системных страниц
+	uint32_t xhci_page_in_sys_pages = controller->pagesize / PAGE_SIZE;
+
+	// Заполним буфер адресами выделяемых страниц
+	for (uint32_t i = 0; i < scratchpad_size; i ++)
+	{
+		uintptr_t phys = pmm_alloc_pages(xhci_page_in_sys_pages);
+		scratchpad[i] = phys;
+	}
+
+	// Адрес на scratchpad буфер записываем в начало DCBAA
+	controller->dcbaa[0] = scratchpad_phys;
+}
+
+int xhci_controller_init_interrupts(struct xhci_controller* controller)
+{
+	size_t event_ring_size = XHCI_EVENT_RING_ENTIRIES * sizeof(struct xhci_trb);
+	// Выделить память
+	uintptr_t event_ring_phys = (uintptr_t) pmm_alloc(event_ring_size, NULL);
+	controller->event_ring = map_io_region(event_ring_phys, event_ring_size);
+	memset(controller->event_ring, 0, event_ring_size);
+
+	uint32_t table_entry_idx = 0;
+
+	// Инициализировать Event Ring Segment Table Entry
+	struct xhci_event_ring_seg_table_entry* entry = &controller->ersts[table_entry_idx];
+	entry->rsba_h = event_ring_phys >> 32;
+	entry->rsba_l = event_ring_phys & UINT32_MAX;
+	entry->rsz = XHCI_EVENT_RING_ENTIRIES;
+
+	struct xhci_interrupter* interrupter = &controller->runtime->interrupters[0];
+	interrupter->erstba = controller->ersts_phys + table_entry_idx * sizeof(struct xhci_event_ring_seg_table_entry);
+	interrupter->erdp = event_ring_phys | XHCI_EVENT_HANDLER_BUSY;
+	interrupter->erstsz = XHCI_EVENT_RING_ENTIRIES;
+
+	// Включить прерывания на этом interrupter
+	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING | XHCI_IMAN_INTERRUPT_ENABLE;
 }
 
 void xhci_controller_stop(struct xhci_controller* controller)
@@ -163,9 +225,14 @@ int xhci_controller_init_ports(struct xhci_controller* controller)
 	return 0;
 }
 
-void xhci_int_hander() 
+void xhci_int_hander(void* regs, struct xhci_controller* data) 
 {
+	if (!(data->op->usbsts & XHCI_EVENT_INTERRUPT))
+		return;
+
 	printk("XHCI: interrupt\n");
+
+	data->op->usbsts = XHCI_EVENT_INTERRUPT;
 }
 
 struct pci_device_id xhci_ctrl_ids[] = {
