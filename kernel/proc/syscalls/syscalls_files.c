@@ -35,14 +35,16 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
         goto exit;
     }
 
-    if ( !(file->inode->mode & INODE_TYPE_DIRECTORY) && (flags & FILE_OPEN_FLAG_DIRECTORY)) {
+    int is_directory = (file->inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY;
+
+    if ( !is_directory && (flags & FILE_OPEN_FLAG_DIRECTORY)) {
         // Мы пытаемся открыть обычный файл с флагом директории - выходим
         file_close(file);
         fd = -ERROR_NOT_A_DIRECTORY;
         goto exit;
     }
 
-    if ((file->inode->mode & INODE_TYPE_DIRECTORY) && file_allow_write(file)) {
+    if (is_directory && file_allow_write(file)) {
         // Мы пытаемся открыть директорию с правами на запись
         file_close(file);
         fd = -ERROR_IS_DIRECTORY;
@@ -334,7 +336,7 @@ int sys_unlink(int dirfd, const char* path, int flags)
     }
 
     // Нельзя удалять директории
-    if ((ino_mode & INODE_TYPE_DIRECTORY) == INODE_TYPE_DIRECTORY) 
+    if ((ino_mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) 
     {
         rc = -ERROR_IS_DIRECTORY;
         goto exit;
@@ -378,7 +380,7 @@ int sys_rmdir(const char* path)
     INODE_CLOSE_SAFE(target_inode)
 
     // С помощью rmdir удаляем только директории
-    if ( !(ino_mode & INODE_TYPE_DIRECTORY)) {
+    if ( (ino_mode & INODE_TYPE_MASK) != INODE_TYPE_DIRECTORY) {
         rc = -ERROR_NOT_A_DIRECTORY;
         goto exit;
     }
@@ -463,7 +465,7 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
     }
 
     // Запрещено делать жесткие ссылки на директории
-    if ((old_inode->mode & INODE_TYPE_DIRECTORY) == INODE_TYPE_DIRECTORY) 
+    if ((old_inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) 
     {
         rc = -EPERM;
         goto exit;

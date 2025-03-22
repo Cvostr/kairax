@@ -75,7 +75,11 @@ struct tcp4_socket_data {
     struct blocker rx_blk;
 };
 
-uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, unsigned char* payload, size_t payload_size);
+uint16_t tcp_ip4_calc_checksum( struct tcp_checksum_proto* prot, 
+                                struct tcp_packet* header,
+                                size_t header_size,
+                                const unsigned char* payload,
+                                size_t payload_size);
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data);

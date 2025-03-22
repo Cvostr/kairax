@@ -8,6 +8,7 @@
 #include "drivers/char/random.h"
 #include "net/route.h"
 #include "kairax/kstdlib.h"
+#include "stdio.h"
 
 #define TCP_MAX_PORT        65535
 #define TCP_PORTS           65536
@@ -877,7 +878,7 @@ void tcp_ip4_init()
     ip4_register_protocol(&ip4_tcp_protocol, IPV4_PROTOCOL_TCP);
 }
 
-uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, unsigned char* payload, size_t payload_size)
+uint16_t tcp_ip4_calc_checksum(struct tcp_checksum_proto* prot, struct tcp_packet* header, size_t header_size, const unsigned char* payload, size_t payload_size)
 {
     uint32_t sum = 0;
     uint16_t* data = (uint16_t*) prot;

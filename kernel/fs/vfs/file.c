@@ -264,7 +264,8 @@ int file_readdir(struct file* file, struct dirent* dirent)
 
     struct inode* inode = file->inode;
 
-    if ( !(inode->mode & INODE_TYPE_DIRECTORY) ) {
+    if ((inode->mode & INODE_TYPE_MASK) != INODE_TYPE_DIRECTORY ) 
+    {
         // Это не директория
         result_code = -ERROR_NOT_A_DIRECTORY;
         goto exit;
