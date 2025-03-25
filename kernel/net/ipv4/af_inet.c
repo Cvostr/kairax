@@ -24,6 +24,8 @@ int ipv4_sock_create(struct socket* s, int type, int protocol)
         case SOCK_DGRAM:
             s->ops = &ipv4_dgram_ops;
             break;
+        default:
+            return -ERROR_INVALID_VALUE;
     }
 
     return s->ops->create(s);

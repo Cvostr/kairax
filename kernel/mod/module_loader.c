@@ -61,10 +61,10 @@ int module_load(const char* image, size_t size)
     char* module_name = ((struct kxmodule_header*) (image + (uint64_t) module_header_ptr))->mod_name;
 
     struct module* mod = mstor_new_module(size, module_name);
-    mod->state = MODULE_STATE_LOADING;
     if (mod == NULL) {
-        return -1;
+        return -ENOMEM;
     }
+    mod->state = MODULE_STATE_LOADING;
 
     rc = mstor_register_module(mod);
     if (rc != 0) {

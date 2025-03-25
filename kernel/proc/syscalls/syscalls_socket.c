@@ -24,6 +24,11 @@ int sys_socket(int domain, int type, int protocol)
     type = type & 0777;
 
     struct socket* sock = new_socket();
+    if (sock == NULL)
+    {
+        return -ENOMEM;
+    }
+
     int rc = socket_init(sock, domain, type, protocol);
     if (rc != 0) {
         // destroy socket

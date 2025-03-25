@@ -5,9 +5,18 @@
 struct net_buffer* new_net_buffer(const unsigned char* data, size_t len, struct nic* nic)
 {
     unsigned char* mem = kmalloc(len);
+    if (mem == NULL) {
+        return NULL;
+    }
+
     memcpy(mem, data, len);
 
     struct net_buffer* nbuffer = kmalloc(sizeof(struct net_buffer));
+    if (nbuffer == NULL) {
+        kfree(mem);
+        return NULL;
+    }
+    
     memset(nbuffer, 0, sizeof(struct net_buffer));
     nbuffer->buffer = mem;
     nbuffer->buffer_len = len;
@@ -22,9 +31,18 @@ struct net_buffer* new_net_buffer(const unsigned char* data, size_t len, struct 
 struct net_buffer* new_net_buffer_out(size_t len)
 {
     unsigned char* mem = kmalloc(len);
+    if (mem == NULL) {
+        return NULL;
+    }
+
     memset(mem, 0, len);
 
     struct net_buffer* nbuffer = kmalloc(sizeof(struct net_buffer));
+    if (nbuffer == NULL) {
+        kfree(mem);
+        return NULL;
+    }
+
     memset(nbuffer, 0, sizeof(struct net_buffer));
     nbuffer->buffer = mem;
     nbuffer->buffer_len = len;

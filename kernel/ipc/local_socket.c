@@ -20,14 +20,14 @@ struct socket_prot_ops local_stream_ops = {
     .connect = sock_local_connect,
     .close = sock_local_close,
     .sendto = sock_local_sendto,
-    .recvfrom = sock_local_recvfrom
+    .recvfrom = sock_local_recvfrom_stream
 };
 
 struct socket_prot_ops local_dgram_ops = {
     .bind = sock_local_bind,
     .close = sock_local_close,
     .sendto = sock_local_sendto,
-    .recvfrom = sock_local_recvfrom
+    .recvfrom = sock_local_recvfrom_dgram
 };
 
 //list_t local_sockets = {0};
@@ -128,9 +128,22 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     }
 
     struct local_socket* client_sock_data = (struct local_socket*) client_sock->data;
+
+    // Создание сокета клиента
+    struct socket* client_pair_sock = new_socket();
+    local_sock_create(client_pair_sock, sock->type, sock->protocol);
+    struct local_socket* client_pair_sock_data = (struct local_socket*) client_pair_sock->data;
+    // Установка пира для клиентского сокета со стороны сервера
+    client_pair_sock_data->peer = client_sock;
+    inode_open((struct inode*) client_pair_sock, 0);
+
+    // Установить пира для клиента
+    client_sock_data->peer = client_pair_sock;
+    inode_open((struct inode*) client_pair_sock, 0);
+    // Разбудить поток, ожидающий подключения
     client_sock_data->connection_accepted = 1;
     scheduler_wake(&client_sock_data->connect_blk, 1);
-
+    
     printk("ACCEPTED\n");
 
     return 0;
@@ -224,15 +237,43 @@ exit:
 
 int sock_local_close(struct socket* sock)
 {
-    return 0;
-}
-
-ssize_t sock_local_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
-{
+    printk("Local sock: close()\n");
     return 0;
 }
 
 int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+{
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+    // Выделим память сразу и под заголовок и под данные
+    unsigned char* bucket = kmalloc(sizeof(struct local_sock_bucket) + len);
+
+    struct local_sock_bucket* header = (struct local_sock_bucket*) bucket;
+    unsigned char* data = (header + 1);
+
+    memcpy(data, msg, len);
+    header->size = len;
+    header->offset = 0;
+
+    // Добавить сообщение в очередь приема пира
+    struct socket* peer = sock_data->peer;
+    struct local_socket* peer_data = (struct local_socket*) peer->data;
+    acquire_spinlock(&peer_data->rx_queue_lock);
+    list_add(&peer_data->rx_queue, header);
+    release_spinlock(&peer_data->rx_queue_lock);
+
+    // Разбудить одного ожидающего приема
+    scheduler_wake(&peer_data->rx_blk, 1);
+
+    return 0;
+}
+
+ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
+{
+    return 0;
+}
+
+
+ssize_t sock_local_recvfrom_dgram(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
     return 0;
 }
@@ -247,6 +288,8 @@ int local_sock_create(struct socket* s, int type, int protocol)
         case SOCK_DGRAM:
             s->ops = &local_dgram_ops;
             break;
+        default:
+            return -ERROR_INVALID_VALUE;
     }
 
     s->data = new_local_socket(type);

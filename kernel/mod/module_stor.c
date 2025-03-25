@@ -31,6 +31,10 @@ struct module* mstor_get_module_with_name(const char* name)
 struct module* mstor_new_module(uint64_t size, const char* name)
 {
     struct module* mod = kmalloc(sizeof(struct module));
+    if (mod == NULL) {
+        return NULL;
+    }
+    
     strcpy(mod->name, name);
     mod->size = size;
 

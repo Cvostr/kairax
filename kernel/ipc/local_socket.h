@@ -35,6 +35,13 @@ struct sockaddr_un {
     char sun_path[LOCAL_PATH_MAX];
 };
 
+struct local_sock_bucket {
+    size_t size;
+    off_t offset;
+    // передаваемые данные будут сразу тут
+    unsigned char data[];
+};
+
 int socket_local_append_to_backlog(struct socket* server_sock, struct socket* sock);
 
 int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
@@ -42,8 +49,9 @@ int sock_local_listen (struct socket* sock, int backlog);
 int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
 int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr);
 int sock_local_close(struct socket* sock);
-ssize_t sock_local_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+ssize_t sock_local_recvfrom_dgram(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 
 int local_sock_create(struct socket* s, int type, int protocol);
 

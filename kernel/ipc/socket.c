@@ -21,6 +21,11 @@ void register_sock_family(struct socket_family* family)
 struct socket* new_socket()
 {
     struct socket* result = kmalloc(sizeof(struct socket));
+    if (result == NULL)
+    {
+        return NULL;
+    }
+
     memset(result, 0, sizeof(struct socket));
 
     result->state = SOCKET_STATE_UNCONNECTED;

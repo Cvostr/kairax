@@ -4,6 +4,7 @@
 #include "mem/pmm.h"
 #include "dev/device.h"
 #include "mem/iomem.h"
+#include "stdio.h"
 
 struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32_t id, struct nvme_namespace_id* nsid)
 {
@@ -19,8 +20,8 @@ struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32
 
     ns->disk_size = nsid->ns_size;
 
-    ns->buffer_phys = pmm_alloc_page();
-	ns->buffer = map_io_region(ns->buffer_phys, PAGE_SIZE);
+    ns->buffer_phys = (uintptr_t) pmm_alloc_page();
+	ns->buffer = (char*) map_io_region(ns->buffer_phys, PAGE_SIZE);
 
     printk("NVME: Namespace %i: lba_sz %i blk_sz %i size %i\n", id, ns->lba_size, ns->block_size, ns->disk_size);
 

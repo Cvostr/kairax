@@ -327,7 +327,7 @@ struct nvme_namespace {
     uint64_t    block_size;
     size_t      disk_size;
 
-    char*       buffer_phys;
+    uintptr_t   buffer_phys;
     char*       buffer;
 
     spinlock_t  lock;
