@@ -89,3 +89,7 @@ cd ..
 cd traceroute
 make
 cd ..
+
+cd sysinfo
+make
+cd ..

@@ -19,12 +19,26 @@ uint64_t kheap_expand(uint64_t size)
 
     // Вычисление количества страниц по 4 кб
     int pages_count = size / PAGE_SIZE;
+
+    int rc = 0;
     
     // Выделяем память и маппим страницы
-    for (int i = 0; i < pages_count; i ++) {
+    for (int i = 0; i < pages_count; i ++) 
+    {
         virtual_addr_t page_virtual = kheap.end_vaddr;
+
+        // Выделить физическую страницу
         physical_addr_t page_physical = pmm_alloc_page();
-        map_page_mem(get_kernel_pml4(), page_virtual, page_physical, PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL);
+        if (page_physical == NULL) {
+            return 0;
+        }
+
+        // Замапить ее
+        rc = map_page_mem(get_kernel_pml4(), page_virtual, page_physical, PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL);
+        if (rc == ERR_NO_MEM) {
+            return 0;
+        }
+
         memset((void*)page_virtual, 0, PAGE_SIZE);
         kheap.end_vaddr += PAGE_SIZE;
     }
@@ -65,8 +79,13 @@ kheap_item_t* get_suitable_item(uint64_t size)
             current_item = current_item->next;
     }
 
-    if(current_item == NULL) {
+    if(current_item == NULL) 
+    {
         uint64_t allocated = kheap_expand(size);
+        if (allocated == 0) {
+            return NULL;
+        }
+
         kheap.tail->size += allocated;
         return kheap.tail;
     }

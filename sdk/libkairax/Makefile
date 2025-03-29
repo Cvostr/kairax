@@ -9,6 +9,7 @@ COMPILED_OBJS = obj/input.o \
 				obj/netctl.o \
 				obj/routectl.o \
 				obj/kernel.o \
+				obj/sysinfo.o \
 				obj/x64/syscalls.o
 
 all: $(OBJ_DIR) libkairax
@@ -20,7 +21,7 @@ libkairax: $(COMPILED_OBJS)
 	$(CC) -fPIC -nostdlib -shared -o libkairax.so $(COMPILED_OBJS)
 
 clean:
-	rm -rf obj/*.o *.so *.a
+	rm -rf obj/*.o *.so *.a obj/x64/*.o
 
 obj/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

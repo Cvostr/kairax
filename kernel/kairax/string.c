@@ -15,7 +15,8 @@ size_t strlen(const char* str)
   	return str - begin - 1;
 }
 
-char* strcat(char *str, char* add_str){
+char* strcat(char *str, char* add_str)
+{
   	size_t i,j;
 
   	for (i = 0; str[i] != '\0'; i++);
@@ -27,6 +28,18 @@ char* strcat(char *str, char* add_str){
   	return str;
 }
 
+char* strncat(char *str, char *add_str, size_t num)
+{
+	size_t i,j;
+
+	for (i = 0; str[i] != '\0'; i++);
+		for (j = 0; add_str[j] != '\0' && j < num; j++)
+		  str[i+j] = add_str[j];
+
+	str[i+j] = '\0';
+
+	return str;
+}
 
 int memcmp(const void* aptr, const void* bptr, size_t size) {
 	const unsigned char* a = (const unsigned char*) aptr;

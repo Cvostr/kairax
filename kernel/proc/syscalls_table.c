@@ -76,5 +76,6 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x302, sys_get_tick_count),
     DEFINE_SYSCALL(0x303, sys_create_pty),
     DEFINE_SYSCALL(0x304, sys_netctl),
-    DEFINE_SYSCALL(0x305, sys_routectl)
+    DEFINE_SYSCALL(0x305, sys_routectl),
+    DEFINE_SYSCALL(0x306, sys_sysinfo)
 };

@@ -21,5 +21,6 @@ struct event_timer* register_event_timer(struct timespec duration);
 void sleep_on_timer(struct event_timer* timer);
 void unregister_event_timer(struct event_timer* timer);
 void timer_get_ticks(struct timespec* ticks);
+time_t timer_get_uptime();
 
 #endif

@@ -18,7 +18,6 @@ int main(int argc, char** argv)
     memset(&srv_addr, 0, sizeof(struct sockaddr_un));
     srv_addr.sun_family = AF_UNIX;
     strcpy(srv_addr.sun_path, "/testsock");
-    //srv_addr.sun_path[0] = 0;
 
     if (bind(srv_sockfd, (const struct sockaddr *) &srv_addr, sizeof(struct sockaddr_un)) < 0)
     {

@@ -5,5 +5,6 @@
 #include "input.h"
 #include "netctl.h"
 #include "routectl.h"
+#include "sysinfo.h"
 
 #endif

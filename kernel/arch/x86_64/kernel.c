@@ -80,7 +80,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 		pmm_add_region(start, length, type == 1 ? PMM_REGION_USABLE : 0);
 
 		if (type != 1)
-			pmm_set_mem_region(start, length);
+			pmm_set_mem_region(start, length, FALSE);
 	}
 
 	pmm_take_base_regions();

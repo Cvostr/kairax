@@ -54,6 +54,10 @@ int slave_file_close(struct inode *inode, struct file *file)
 int tty_create(struct file **master, struct file **slave)
 {
     struct pty* p_pty = kmalloc(sizeof(struct pty));
+    if (p_pty == NULL)
+    {
+        return -ENOMEM;
+    }
     memset(p_pty, 0, sizeof(struct pty));
 
     p_pty->master_to_slave = new_pipe();

@@ -28,16 +28,23 @@ char* kfgets(char* buffer, size_t len)
 	return buffer;
 }
 
-static int print(const char* data, size_t length) {
+static int print_console_func(const char* data, size_t length, void* arg) 
+{
 	const unsigned char* bytes = (const unsigned char*) data;
 	for (size_t i = 0; i < length; i++)
 		console_print_char(current_console, bytes[i], 170, 170, 170);
 	return 1;
 }
 
-static int print_stdout(const char* data, size_t length) {
-
+static int print_stdout_func(const char* data, size_t length, void* arg) 
+{
 	sys_write_file(1, data, length);
+	return 1;
+}
+
+static int sprint_func(const char* data, size_t length, void* arg) 
+{
+	strncat((char*) arg, data, length);
 	return 1;
 }
 
@@ -45,7 +52,7 @@ int printk(const char* restrict format, ...) {
 	va_list parameters;
 	va_start(parameters, format);
  
-	int written = printf_generic(print, format, parameters);
+	int written = printf_generic(print_console_func, INT_MAX, NULL, format, parameters);
  
 	va_end(parameters);
 	return written;
@@ -56,20 +63,35 @@ int printf_stdout(const char* format, ...)
 	va_list parameters;
 	va_start(parameters, format);
  
-	int written = printf_generic(print_stdout, format, parameters);
+	int written = printf_generic(print_stdout_func, INT_MAX, NULL, format, parameters);
  
 	va_end(parameters);
 	return written;
 }
 
-int printf_generic(int (*f) (const char* str, size_t len), const char* format, va_list args)
+int sprintf(char* buffer, size_t buffersz, const char* format, ...)
+{
+	va_list parameters;
+	va_start(parameters, format);
+
+	buffer[0] = 0;
+	int written = printf_generic(sprint_func, buffersz, buffer, format, parameters);
+ 
+	va_end(parameters);
+	return written;
+}
+
+int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max, void* arg, const char* format, va_list args)
 {
 	int written = 0;
  
-	while (*format != '\0') {
-		size_t maxrem = INT_MAX - written;
+	while (*format != '\0') 
+	{
+		// оставшееся место
+		int64_t maxrem = max - written;
  
-		if (format[0] != '%' || format[1] == '%') {
+		if (format[0] != '%' || format[1] == '%') 
+		{
 			if (format[0] == '%')
 				format++;
 			size_t amount = 1;
@@ -78,7 +100,7 @@ int printf_generic(int (*f) (const char* str, size_t len), const char* format, v
 			if (maxrem < amount) {
 				return -1;
 			}
-			if (!f(format, amount))
+			if (!f(format, amount, arg))
 				return -1;
 			format += amount;
 			written += amount;
@@ -93,7 +115,7 @@ int printf_generic(int (*f) (const char* str, size_t len), const char* format, v
 			if (!maxrem) {
 				return -1;
 			}
-			if (!f(&c, sizeof(c)))
+			if (!f(&c, sizeof(c), arg))
 				return -1;
 			written++;
 		} else if (*format == 's') {
@@ -103,7 +125,7 @@ int printf_generic(int (*f) (const char* str, size_t len), const char* format, v
 			if (maxrem < len) {
 				return -1;
 			}
-			if (!f(str, len))
+			if (!f(str, len, arg))
 				return -1;
 			written += len;
 		} else if (*format == 'i') {
@@ -114,7 +136,7 @@ int printf_generic(int (*f) (const char* str, size_t len), const char* format, v
 			if (maxrem < len) {
 				return -1;
 			}
-			if (!f(str, len))
+			if (!f(str, len, arg))
 				return -1;
 			written += len;
 		} else {
@@ -123,7 +145,7 @@ int printf_generic(int (*f) (const char* str, size_t len), const char* format, v
 			if (maxrem < len) {
 				return -1;
 			}
-			if (!f(format, len))
+			if (!f(format, len, arg))
 				return -1;
 			written += len;
 			format += len;

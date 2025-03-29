@@ -19,6 +19,11 @@ void timer_init()
     arch_timer_init();
 }
 
+time_t timer_get_uptime()
+{
+    return current_ticks.tv_sec;
+}
+
 void timer_get_ticks(struct timespec* ticks)
 {
     ticks->tv_sec = current_ticks.tv_sec;

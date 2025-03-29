@@ -103,6 +103,8 @@ int sys_netctl(int op, int param, struct netinfo* netinfo);
 struct route_info;
 int sys_routectl(int type, int action, int arg, struct route_info* route);
 
+int sys_sysinfo(int request, char* buffer, size_t bufsize);
+
 uid_t sys_getuid(void);
 uid_t sys_geteuid(void);
 int sys_setuid(uid_t uid);

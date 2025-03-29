@@ -11,6 +11,7 @@
 
 #define PAGING_ERROR_ALREADY_MAPPED       0x10
 #define ERR_NO_PAGE_PRESENT               0x11
+#define ERR_NO_MEM                        0x12
 
 struct vm_table {
     void*       arch_table;

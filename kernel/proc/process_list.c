@@ -27,6 +27,34 @@ pid_t process_add_to_list(struct process* process)
     return pid;
 }
 
+void get_process_count(size_t *processes_n, size_t *threads)
+{
+    pid_t pid;
+
+    *processes_n = 0;
+    *threads = 0;
+
+    acquire_spinlock(&process_lock);
+
+    for (pid = 0; pid < MAX_PROCESSES; pid ++) 
+    {
+        struct process* proc = processes[pid];
+        if (proc != NULL) 
+        {
+            switch (proc->type) {
+                case OBJECT_TYPE_PROCESS:
+                    (*processes_n) += 1;
+                    break;
+                case OBJECT_TYPE_THREAD:
+                    (*threads) += 1;
+                    break;
+            }
+        }
+    }
+    
+    release_spinlock(&process_lock);
+}
+
 struct process* process_get_by_id(pid_t id)
 {
     return processes[id];

@@ -74,6 +74,10 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
         //Страница не существует
         //Выделить память под страницу
         pdp_table = new_page_table();
+        if (pdp_table == NULL) {
+            return ERR_NO_MEM;
+        }
+
         //Записать страницу в родительское дерево
         root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | baseFlags);  
     }
@@ -84,6 +88,9 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
     if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))){
         //Выделить память под страницу
         pd_table = new_page_table();
+        if (pd_table == NULL) {
+            return ERR_NO_MEM;
+        }
         //Записать страницу в родительское дерево
         pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | baseFlags);  
     }
@@ -94,6 +101,9 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
     if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))){
         //Выделить память под страницу
         pt_table = new_page_table();
+        if (pt_table == NULL) {
+            return ERR_NO_MEM;
+        }
         //Записать страницу в родительское дерево
         pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | baseFlags);  
     }

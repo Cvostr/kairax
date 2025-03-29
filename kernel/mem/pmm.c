@@ -198,7 +198,7 @@ void pmm_free_pages(void* addr, uint32_t pages)
 	release_spinlock(&pmm_lock);
 }
 
-void pmm_set_mem_region(uint64_t offset, uint64_t size)
+void pmm_set_mem_region(uint64_t offset, uint64_t size, int mark_as_used)
 {
 	offset -= (offset % PAGE_SIZE); // выравнивание в меньшую сторону
 	size = align(size, PAGE_SIZE); //выравнивание в большую сторону
@@ -207,10 +207,12 @@ void pmm_set_mem_region(uint64_t offset, uint64_t size)
       	set_bit(offset / PAGE_SIZE + i);
     }
     
-	pages_used += size / PAGE_SIZE;
+	if (mark_as_used)
+		pages_used += size / PAGE_SIZE;
 }
 
-void init_pmm() {
+void init_pmm() 
+{
 	memset(bitmap, 0, sizeof(uint64_t) * MAX_BITMASK_DATA);
 	pages_used = 0;
 }
@@ -219,9 +221,9 @@ void pmm_take_base_regions()
 {
 	uint64_t kernel_size = (uint64_t)&__KERNEL_VIRT_END - (uint64_t)&__KERNEL_VIRT_LINK;
 	//Запретить выделение памяти в 1-м мегабайте
-	pmm_set_mem_region(0x0, 0x100000);
+	pmm_set_mem_region(0x0, 0x100000, TRUE);
 	// Запретить выделение памяти в области кода ядра
-	pmm_set_mem_region(0x100000, kernel_size);
+	pmm_set_mem_region(0x100000, kernel_size, TRUE);
 }
 
 uint64_t pmm_get_used_pages()
