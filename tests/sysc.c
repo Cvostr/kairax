@@ -129,5 +129,8 @@ int main(int argc, char** argv) {
         printf("From prog: %c\n", sym);
     }
 
+    // Не терминируем для проверки fflush из atexit
+    printf("Goodbye!");
+
     return 0;
 }

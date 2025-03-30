@@ -3,7 +3,7 @@
 
 #include "desktop.h"
 #include "input.h"
-#include "netctl.h"
+#include "net.h"
 #include "routectl.h"
 #include "sysinfo.h"
 

@@ -77,3 +77,27 @@ int sys_netctl(int op, int param, struct netinfo* netinfo)
 
     return rc;
 }
+
+int sys_netstat(int index, struct netstat* stat)
+{
+    // проверить память netstat
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_POINTER(process, stat, sizeof(struct nic_stats))
+
+    // получить объект nic по имени или индексу
+    struct nic* nic = NULL;
+    if (index == IF_INDEX_UNKNOWN) {
+        return -EINVAL;
+    } else {
+        nic = get_nic(index);
+    }
+
+    if (nic == NULL) {
+        return -ERROR_NO_FILE;
+    }
+
+    // Получение данных
+    memcpy(stat, &nic->stats, sizeof(struct nic_stats));
+
+    return 0;
+}

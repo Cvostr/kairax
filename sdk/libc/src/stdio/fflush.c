@@ -4,6 +4,7 @@
 #include "stdio_impl.h"
 
 int __fflush_atexit_state = 0;
+extern FILE *__stdio_file_root;
 
 int fflush(FILE *stream)
 {
@@ -24,9 +25,23 @@ int fflush_unlocked(FILE *stream)
 {
     ssize_t res;
 
-    if (stream == NULL) {
+    if (stream == NULL) 
+    {
         fflush(stdout);
-        // todo : fflush all
+        
+        // Выполнить fflush для всех файлов в цепочке
+        FILE* cur = __stdio_file_root;
+
+        while (cur != NULL)
+        {
+            if ((res = fflush_unlocked(cur)) != 0) 
+            {
+                return res;
+            }
+
+            cur = cur->_next;
+        }
+
         return 0;
     }
 

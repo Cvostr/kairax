@@ -6,7 +6,7 @@ OBJ_DIR=obj \
 		obj/x64
 COMPILED_OBJS = obj/input.o \
 				obj/desktop.o \
-				obj/netctl.o \
+				obj/net.o \
 				obj/routectl.o \
 				obj/kernel.o \
 				obj/sysinfo.o \

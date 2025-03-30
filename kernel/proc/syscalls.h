@@ -100,6 +100,9 @@ int sys_futex(void* futex, int op, int val, const struct timespec *timeout);
 struct netinfo;
 int sys_netctl(int op, int param, struct netinfo* netinfo);
 
+struct netstat;
+int sys_netstat(int index, struct netstat* stat);
+
 struct route_info;
 int sys_routectl(int type, int action, int arg, struct route_info* route);
 

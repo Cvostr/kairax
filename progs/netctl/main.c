@@ -1,5 +1,5 @@
 #include "stdio.h"
-#include "netctl.h"
+#include "net.h"
 #include "string.h"
 
 union ip4uni {
@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 
     if (argc == 1) {
 
-        while ((rc = netctl(OP_GET_ALL, i++, &ninfo)) == 0) {
+        while ((rc = netctl(OP_GET_ALL, i, &ninfo)) == 0) {
 
             printf("%s: mtu %i flags %i\n", ninfo.nic_name, ninfo.mtu, ninfo.flags  );
             printf("\tIPv4 ");
@@ -51,6 +51,15 @@ int main(int argc, char** argv)
                                                             ninfo.mac[4],
                                                             ninfo.mac[5]);
 
+            struct netstat stat;
+            GetNetInterfaceStat(i, &stat);
+            
+            printf("\tRX packets %i bytes %i\n", stat.rx_packets, stat.rx_bytes);
+            printf("\tRX errors %i dropped %i overrun %i frame %i\n", stat.rx_errors, stat.rx_dropped, stat.rx_overruns, stat.rx_frame_errors);
+            printf("\tTX packets %i bytes %i\n", stat.tx_packets, stat.tx_bytes);
+            printf("\tTX errors %i dropped %i carrier %i\n", stat.tx_errors, stat.tx_dropped, stat.tx_carrier);
+
+            i++;
         }
         
     } else if (argc >= 3) {

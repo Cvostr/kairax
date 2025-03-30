@@ -28,6 +28,25 @@ struct netinfo {
     uint16_t    ip6_gateway[8];
 };
 
+struct netstat {
+    uint64_t        rx_packets;
+    uint64_t        rx_bytes;
+    uint64_t        rx_errors;
+    uint64_t        rx_frame_errors;
+    uint64_t        rx_overruns;
+    uint64_t        rx_dropped;
+
+    uint64_t        tx_packets;
+    uint64_t        tx_bytes;
+    uint64_t        tx_errors;
+    uint64_t        tx_dropped;
+    uint64_t        tx_carrier;
+};
+
 int netctl(int op, int param, struct netinfo* netinfo);
+#define NetCtl netctl
+
+int netstat(int index, struct netstat* stat);
+#define GetNetInterfaceStat netstat
 
 #endif

@@ -6,13 +6,43 @@
 #include "fcntl.h"
 #include "errno.h"
 
+extern FILE *__stdio_file_root;
+
 int fclose(FILE *stream)
 {
     fflush(stream);
     close(stream->_fileno);
+
+    // Удаление дескриптора из цепочки
+    FILE *prev, *cur;
+    prev = NULL;
+    cur = __stdio_file_root;
+
+    // Проверим, не является ли он корнем?
+    if (__stdio_file_root == stream)
+    {
+        __stdio_file_root = stream->_next;
+    } 
+    else 
+    {
+        // Корнем не является
+        while (cur != NULL)
+        {
+            if (cur == stream)
+            {
+                prev->_next = stream->_next;
+                break;
+            }
+
+            prev = cur;
+            cur = cur->_next;
+        }
+    }
+
     if (stream->_buffer) {
         free(stream->_buffer);
     }
+    
     free(stream);
 }
 
