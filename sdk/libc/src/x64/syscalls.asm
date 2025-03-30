@@ -47,6 +47,7 @@ DEFINE_SYSCALL syscall_connect,     0x2A
 DEFINE_SYSCALL syscall_accept,      0x2B
 DEFINE_SYSCALL syscall_sendto,      0x2C
 DEFINE_SYSCALL syscall_recvfrom,    0x2D
+DEFINE_SYSCALL syscall_shutdown,    0x30
 DEFINE_SYSCALL syscall_bind,        0x31
 DEFINE_SYSCALL syscall_listen,      0x32
 DEFINE_SYSCALL syscall_setsockopt,  0x36

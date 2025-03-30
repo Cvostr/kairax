@@ -32,6 +32,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x2B, sys_accept),
     DEFINE_SYSCALL(0x2C, sys_sendto),
     DEFINE_SYSCALL(0x2D, sys_recvfrom),
+    DEFINE_SYSCALL(0x30, sys_shutdown),
     DEFINE_SYSCALL(0x31, sys_bind),
     DEFINE_SYSCALL(0x32, sys_listen),
     DEFINE_SYSCALL(0x36, sys_setsockopt),

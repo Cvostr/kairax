@@ -187,6 +187,29 @@ exit:
     return rc;
 }
 
+int sys_shutdown(int sockfd, int how)
+{
+    int rc = -1;
+    struct process* process = cpu_get_current_thread()->process;
+
+    struct file* file = process_get_file(process, sockfd);
+
+    if (file == NULL) {
+        rc = -ERROR_BAD_FD;
+        goto exit;
+    }
+
+    if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
+        rc = -ERROR_NOT_SOCKET;
+        goto exit;
+    }
+
+    rc = socket_shutdown((struct socket*) file->inode, how);
+
+exit:
+    return rc;
+}
+
 int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     int rc = -1;

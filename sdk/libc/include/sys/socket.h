@@ -1,13 +1,12 @@
 #ifndef _SYS_SOCKET_H
 #define _SYS_SOCKET_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#include <sys/cdefs.h>
 #include "types.h"
 #include "stddef.h"
 #include "stdint.h"
+
+__BEGIN_DECLS
 
 #define AF_LOCAL    1
 #define AF_UNIX     AF_LOCAL
@@ -53,6 +52,10 @@ extern "C" {
 // параметры для recv
 #define MSG_DONTWAIT	0x40
 
+#define SHUT_RD 0
+#define SHUT_WR 1
+#define SHUT_RDWR 2
+
 struct iovec {
     void *iov_base;
     size_t iov_len;
@@ -73,28 +76,28 @@ struct msghdr {
     uint32_t msg_flags;
 };
 
-int socket(int domain, int type, int protocol);
+int socket(int domain, int type, int protocol) __THROW;
 
-int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) __THROW;
 
-int listen(int sockfd, int backlog);
+int listen(int sockfd, int backlog) __THROW;
 
-int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) __THROW;
 
-int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen);
+int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen) __THROW;
 
-int send(int fd, const void * buf, size_t n, int flags);
+int send(int fd, const void * buf, size_t n, int flags) __THROW;
 
-int sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+int sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen) __THROW;
 
-ssize_t recv(int sockfd, void* buf, size_t len, int flags);
+ssize_t recv(int sockfd, void* buf, size_t len, int flags) __THROW;
 
-ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen) __THROW;
 
-int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen);
+int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen) __THROW;
 
-#ifdef __cplusplus
-}
-#endif
+int shutdown(int sockfd, int how) __THROW;
+
+__END_DECLS
 
 #endif

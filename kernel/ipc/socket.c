@@ -8,6 +8,8 @@ list_t sock_families = {0,};
 spinlock_t sock_families_lock = 0;
 
 struct file_operations socket_fops = {
+    .read = socket_read,
+    .write = socket_write,
     .close = socket_close
 };
 
@@ -134,8 +136,29 @@ int socket_setsockopt(struct socket* sock, int level, int optname, const void *o
     return sock->ops->setsockopt(sock, level, optname, optval, optlen);
 }
 
+int socket_shutdown(struct socket* sock, int how)
+{
+    if (sock->ops->shutdown == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    return sock->ops->shutdown(sock, how);
+}
+
 int socket_close(struct inode *inode, struct file *file)
 {
     struct socket* sock = (struct socket*) inode;
     return sock->ops->close(sock);
+}
+
+ssize_t socket_read(struct file* file, char* buffer, size_t count, loff_t offset)
+{
+    struct socket* sock = (struct socket*) file->inode;
+    return socket_recvfrom(sock, buffer, count, 0, NULL, 0);
+}
+
+ssize_t socket_write(struct file* file, const char* buffer, size_t count, loff_t offset)
+{
+    struct socket* sock = (struct socket*) file->inode;
+    return socket_sendto(sock, buffer, count, 0, NULL, 0);
 }

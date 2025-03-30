@@ -52,3 +52,8 @@ ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* 
 {
     __set_errno(syscall_recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
 }
+
+int shutdown(int sockfd, int how)
+{
+    __set_errno(syscall_shutdown(sockfd, how));
+}
