@@ -41,6 +41,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/system.o \
 				obj/stdlib/env.o \
 				obj/stdlib/putenv.o \
+				obj/stdlib/atexit.o \
 				obj/netinet/in.o \
 				obj/arpa/inet.o \
 				obj/string.o \

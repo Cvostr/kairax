@@ -6,6 +6,9 @@
 #include "stdio_impl.h"
 #include "errno.h"
 
+FILE *__stdio_file_root = NULL;
+extern void __fflush_atexit();
+
 int compute_flags(const char *mode) 
 {
     int flags = 0;
@@ -102,6 +105,13 @@ FILE *fdopen(int fd, const char* restrict mode)
             fil->_flags |= FSTREAM_CANWRITE;
             break;
     }
+
+    // Добавим новый FILE в цепочку (для fflush (NULL))
+    fil->_next = __stdio_file_root;
+    __stdio_file_root = fil->_next;
+
+    // Зарегистрируем очистку всех FILE в atexit
+    __fflush_atexit();
 
     return fil;
 }

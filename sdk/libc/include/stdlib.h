@@ -1,12 +1,11 @@
 #ifndef _STDLIB_H
 #define _STDLIB_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include "stddef.h"
+
+__BEGIN_DECLS
 
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
@@ -48,15 +47,13 @@ extern void srand(unsigned int seed);
 extern void exit(int status);
 extern void abort();
 extern int system(const char *command);
+int atexit(void (*function)(void)) __THROW;
 
 extern char *getenv(const char *name);
 extern int setenv(const char *name, const char *value, int overwrite);
 extern int unsetenv(const char *name);
 extern int putenv(char *string);
 
-#ifdef __cplusplus
-}
-#endif
-
+__END_DECLS
 
 #endif

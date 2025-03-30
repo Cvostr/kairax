@@ -53,7 +53,10 @@ char* lltoa(long long number, char* str, int base)
     return str;
 }
 
+void __atexit_callall();
+
 void exit(int status)
 {
+	__atexit_callall();
 	_exit(status);
 }

@@ -3,6 +3,8 @@
 #include "stdlib.h"
 #include "stdio_impl.h"
 
+int __fflush_atexit_state = 0;
+
 int fflush(FILE *stream)
 {
     int tmp;
@@ -41,4 +43,18 @@ int fflush_unlocked(FILE *stream)
     }
     
 	return 0;
+}
+
+void __fflush_all()
+{
+    fflush(NULL);
+}
+
+void __fflush_atexit()
+{
+    if (__fflush_atexit_state == 0)
+    {
+        atexit(__fflush_all);
+        __fflush_atexit_state = 1;
+    }
 }
