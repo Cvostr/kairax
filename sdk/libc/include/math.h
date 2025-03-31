@@ -1,6 +1,10 @@
 #ifndef _MATH_H
 #define _MATH_H
 
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
+
 # define M_E		2.7182818284590452354	/* e */
 # define M_LOG2E	1.4426950408889634074	/* log_2 e */
 # define M_LOG10E	0.43429448190325182765	/* log_10 e */
@@ -47,5 +51,14 @@ extern double fabs(double x);
 
 extern int isnan(double d);
 extern int isinf(double d);
+
+double sin(double d) __THROW;
+double cos(double d) __THROW;
+double floor(double x);
+double sqrt(double x) __THROW;
+
+double atan2(double x, double y) __THROW;
+
+__END_DECLS
 
 #endif

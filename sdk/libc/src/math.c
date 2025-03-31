@@ -20,3 +20,7 @@ extern int isinf(double d)
   	u.i = d;
 	return (u.i == 0x7FF0000000000000ll ? 1 : u.i == 0xFFF0000000000000ll ? -1 : 0);
 }
+
+double floor(double x) {
+    return __builtin_floor(x);
+}

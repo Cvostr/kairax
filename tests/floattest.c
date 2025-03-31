@@ -4,6 +4,7 @@
 #include "time.h"
 #include "sched.h"
 #include "sys/wait.h"
+#include "math.h"
 
 int fds[2];
 
@@ -28,7 +29,8 @@ void thread2(void* n) {
     }
 }
 
-void fl(int off) {
+void fl(int off) 
+{
     double sd = off;
     double orig = sd;
     double co = 1234;
@@ -58,7 +60,16 @@ void thread433(void* n)
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) 
+{
+    //sin 0.479426
+    printf("sin(0.5) = %f, cos(60) = %f\n", sin(0.5), cos(60.0 * M_PI / 180));
+    printf("floor(2.12) = %f\n", floor(2.12));
+    printf("sqrt(4) = %f, sqrt(6.25) = %f\n", sqrt(4), sqrt(6.25));
+    //printf("sqrt(4) = %f, sqrt(25) = %f, sqrt(6.25) = %f\n", sqrt(4), sqrt(25), sqrt(6.25));
+
+    // atan2 1.190290 (0.5, 0.2)
+    printf("atan2 %f\n", atan2(0.5, 0.2));
 
     asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
 

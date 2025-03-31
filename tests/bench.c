@@ -31,7 +31,7 @@ unsigned long long current_timestamp() {
     return syscall_get_ticks_count();
 }
 
-main()
+int main()
 {
     uint64_t starttime = current_timestamp();
     
