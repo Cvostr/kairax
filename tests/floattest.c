@@ -62,8 +62,8 @@ void thread433(void* n)
 
 int main(int argc, char** argv) 
 {
-    //sin 0.479426
-    printf("sin(0.5) = %f, cos(60) = %f\n", sin(0.5), cos(60.0 * M_PI / 180));
+    //sin 0.479426 // tan 30 = 0,57735026
+    printf("sin(0.5) = %f, cos(60) = %f, tan (30) = %f\n", sin(0.5), cos(60.0 * M_PI / 180), tan(30.0 * M_PI / 180));
     printf("floor(2.12) = %f\n", floor(2.12));
     printf("sqrt(4) = %f, sqrt(6.25) = %f\n", sqrt(4), sqrt(6.25));
     //printf("sqrt(4) = %f, sqrt(25) = %f, sqrt(6.25) = %f\n", sqrt(4), sqrt(25), sqrt(6.25));

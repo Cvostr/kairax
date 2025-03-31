@@ -40,6 +40,8 @@ int fputs(const char *s, FILE *stream);
 int putchar(int);
 int puts(const char*);
 
+#define putc(c,stream) fputc(c,stream)
+
 int fflush(FILE *stream);
 int fflush_unlocked(FILE *stream);
 

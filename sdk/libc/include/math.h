@@ -54,8 +54,15 @@ extern int isinf(double d);
 
 double sin(double d) __THROW;
 double cos(double d) __THROW;
+double tan(double d) __THROW;
+
+double atan(double d) __THROW;
+
 double floor(double x);
+double ceil(double x);
+
 double sqrt(double x) __THROW;
+
 
 double atan2(double x, double y) __THROW;
 

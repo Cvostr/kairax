@@ -29,6 +29,21 @@ cos:
     pop rbp
     ret
 
+global tan
+tan:
+    push rbp
+    mov rbp, rsp
+    movsd [rbp - 0x8], xmm0
+
+    fld qword [rbp - 0x08] 
+    fptan
+    fstp qword [rbp - 0x8]
+    fstp qword [rbp - 0x10]
+
+    movsd xmm0, [rbp - 0x8]
+    pop rbp
+    ret
+
 global sqrt
 sqrt:
     push rbp

@@ -24,3 +24,13 @@ extern int isinf(double d)
 double floor(double x) {
     return __builtin_floor(x);
 }
+
+double ceil(double x)
+{
+	return __builtin_ceil(x);
+}
+
+double atan(double d)
+{
+	return atan2(d, 1.0);
+}
