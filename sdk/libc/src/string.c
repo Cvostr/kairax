@@ -234,3 +234,26 @@ char* strrev(char *str)
         str[j] = c;
     }
 }
+
+size_t strcspn(const char* dest, const char* src)
+{
+    size_t len = 0;
+    char* p = dest;
+    int i = 0;
+
+    while (*p) 
+    {
+        for (i = 0; src[i]; i ++)
+        {
+            if (*p == src[i]) 
+            {
+                return len;
+            }
+        }
+
+        len ++;
+        p ++;
+    }
+
+    return len;
+}

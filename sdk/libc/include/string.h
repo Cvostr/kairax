@@ -62,6 +62,8 @@ extern char *strstr(const char* __s, const char* __n);
 
 extern char* strrev(char *str);
 
+size_t strcspn(const char* dest, const char* src);
+
 #ifdef __cplusplus
 }
 #endif

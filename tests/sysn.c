@@ -94,6 +94,14 @@ int main(int argc, char** argv, char** envp) {
     printf("htonl: %u %u %u\n", 33685514, htonl(33685514), htonl(htonl(33685514)));
     printf("htonl: %u %u %u\n", 167772674, htonl(167772674), htonl(htonl(167772674)));
 
+    ///
+    const char *string = "abcde312$#@";
+    const char *invalid = "*$#";
+    size_t valid_len = strcspn(string, invalid);
+    if (valid_len != strlen(string))
+       printf("'%s' contains invalid chars starting at position %zu\n", string, valid_len);
+    ///
+
     int send = 343;
     pid_t tpi = create_thread(thread_func, &send);
     printf("TID %i \t", tpi);

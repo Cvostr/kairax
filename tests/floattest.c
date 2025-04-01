@@ -59,7 +59,6 @@ void thread433(void* n)
     thread_exit(12);    
 }
 
-
 int main(int argc, char** argv) 
 {
     //sin 0.479426 // tan 30 = 0,57735026
@@ -69,7 +68,10 @@ int main(int argc, char** argv)
     //printf("sqrt(4) = %f, sqrt(25) = %f, sqrt(6.25) = %f\n", sqrt(4), sqrt(25), sqrt(6.25));
 
     // atan2 1.190290 (0.5, 0.2)
-    printf("atan2 %f\n", atan2(0.5, 0.2));
+    printf("atan2(0.5, 0.2) = %f\n", atan2(0.5, 0.2));
+    printf("pow(3,2) = %f, pow(2.5, 1.5) = %f\n", pow(3, 2), pow(2.5, 1.5));
+    // 0.123000 0.281000
+    printf("fmod(0.543, 0.21) = %f fmod(5.543, 0.877) = %f\n", fmod(0.543, 0.21), fmod(5.543, 0.877));
 
     asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
 

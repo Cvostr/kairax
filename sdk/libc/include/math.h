@@ -61,6 +61,8 @@ double atan(double d) __THROW;
 double floor(double x);
 double ceil(double x);
 
+double pow(double x, double y) __THROW;
+double fmod(double x, double y) __THROW;
 double sqrt(double x) __THROW;
 
 
