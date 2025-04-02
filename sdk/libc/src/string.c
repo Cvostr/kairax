@@ -235,10 +235,38 @@ char* strrev(char *str)
     }
 }
 
+size_t strspn(const char* dest, const char* src)
+{
+    size_t len = 0;
+    char* p = (char*) dest;
+    char* s;
+
+    while (*p) 
+    {
+        s = (char*) src;
+
+        // Попытаться найти символ в src
+        while (*s && (*p != *s)) 
+        {
+            s ++;
+        }
+
+        if (*s) {
+            len++;
+        } else {
+            break;
+        }
+
+        p++;
+    }
+
+    return len;
+}
+
 size_t strcspn(const char* dest, const char* src)
 {
     size_t len = 0;
-    char* p = dest;
+    char* p = (char*) dest;
     int i = 0;
 
     while (*p) 

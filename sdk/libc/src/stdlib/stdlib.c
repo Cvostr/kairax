@@ -60,3 +60,8 @@ void exit(int status)
 	__atexit_callall();
 	_exit(status);
 }
+
+void _Exit(int status)
+{
+	_exit(status);
+}

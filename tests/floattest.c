@@ -73,6 +73,8 @@ int main(int argc, char** argv)
     // 0.123000 0.281000
     printf("fmod(0.543, 0.21) = %f fmod(5.543, 0.877) = %f\n", fmod(0.543, 0.21), fmod(5.543, 0.877));
 
+    printf("acos(0) = %f acos(1) = %f acos(0.5) = %f\n", acos(0), acos(1), acos(0.5));
+
     asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
 
     asm volatile ("mov $12, %rax");

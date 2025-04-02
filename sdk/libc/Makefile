@@ -45,6 +45,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/netinet/in.o \
 				obj/arpa/inet.o \
 				obj/string.o \
+				obj/strtok.o \
 				obj/strings.o \
 				obj/unistd.o \
 				obj/exec.o \

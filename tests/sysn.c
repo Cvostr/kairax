@@ -6,6 +6,7 @@
 #include "process.h"
 #include "arpa/inet.h"
 #include "signal.h"
+#include "string.h"
 
 char buff[220];
 
@@ -100,6 +101,25 @@ int main(int argc, char** argv, char** envp) {
     size_t valid_len = strcspn(string, invalid);
     if (valid_len != strlen(string))
        printf("'%s' contains invalid chars starting at position %zu\n", string, valid_len);
+    ///
+
+    ///
+    string = "abcde312$#@";
+    const char* low_alpha = "qwertyuiopasdfghjklzxcvbnm";
+    size_t spnsz = strspn(string, low_alpha);
+    printf("After skipping initial lowercase letters from '%s'\nThe remainder is '%s'\n", string, string + spnsz);
+    //
+
+    ///
+    char str[] ="- This, a sample string.";
+    char * pch;
+    printf ("Splitting string \"%s\" into tokens:\n",str);
+    pch = strtok (str," ,.-");
+    while (pch != NULL)
+    {
+        printf ("%s\n",pch);
+        pch = strtok (NULL, " ,.-");
+    }
     ///
 
     int send = 343;

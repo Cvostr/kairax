@@ -1,11 +1,10 @@
 #ifndef _STRING_H
 #define _STRING_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "stddef.h"
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 /* Copy N bytes of SRC to DEST.  */
 extern void *memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n);
@@ -62,10 +61,12 @@ extern char *strstr(const char* __s, const char* __n);
 
 extern char* strrev(char *str);
 
-size_t strcspn(const char* dest, const char* src);
+size_t strspn(const char* dest, const char* src) __THROW;
+size_t strcspn(const char* dest, const char* src) __THROW;
 
-#ifdef __cplusplus
-}
-#endif
+char *strtok(char *s, const char *delim) __THROW;
+char *strtok_r(char *s, const char *delim, char **ptrptr) __THROW;
+
+__END_DECLS
 
 #endif

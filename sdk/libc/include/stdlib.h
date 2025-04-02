@@ -45,6 +45,7 @@ extern int rand_r(unsigned int *seed);
 extern void srand(unsigned int seed);
 
 extern void exit(int status);
+void _Exit(int status);
 extern void abort();
 extern int system(const char *command);
 int atexit(void (*function)(void)) __THROW;
