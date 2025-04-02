@@ -7,6 +7,7 @@
 #include "arpa/inet.h"
 #include "signal.h"
 #include "string.h"
+#include "stdlib.h"
 
 char buff[220];
 
@@ -19,6 +20,12 @@ void thread_func(int * arg) {
         printf("TID %i \t", gettid());
         fflush(stdout);
     }
+}
+
+int values[] = { 40, 10, 34, 382, 67, 98, 100, 90, 20, 25 };
+int qscompare(const void* a, const void* b)
+{
+	return (*(int*)a - *(int*)b);
 }
 
 int main(int argc, char** argv, char** envp) {
@@ -94,6 +101,13 @@ int main(int argc, char** argv, char** envp) {
     printf("inet_addr: %u\n", inet_addr("10.0.2.2"));
     printf("htonl: %u %u %u\n", 33685514, htonl(33685514), htonl(htonl(33685514)));
     printf("htonl: %u %u %u\n", 167772674, htonl(167772674), htonl(htonl(167772674)));
+
+    ///
+    qsort(values, 10, sizeof(int), qscompare);
+    for (int n = 0; n < 10; n++)
+	    printf("%d ", values[n]);
+    printf("\n");
+    ///
 
     ///
     const char *string = "abcde312$#@";

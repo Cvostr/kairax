@@ -35,6 +35,11 @@ double atan(double d)
 	return atan2(d, 1.0);
 }
 
+double asin(double d)
+{
+	return 2.0 * atan(d / (1.0 + sqrt(1.0 - d * d)));
+}
+
 double acos(double d)
 {
 	return 2.0 * atan(sqrt(1.0 - d * d) / (1.0 + d));

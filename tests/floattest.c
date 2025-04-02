@@ -75,6 +75,8 @@ int main(int argc, char** argv)
 
     printf("acos(0) = %f acos(1) = %f acos(0.5) = %f\n", acos(0), acos(1), acos(0.5));
 
+    printf("asin(0) = %f asin(1) = %f asin(0.5) = %f\n", asin(0), asin(1), asin(0.5));
+
     asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
 
     asm volatile ("mov $12, %rax");

@@ -44,6 +44,8 @@ extern int rand(void);
 extern int rand_r(unsigned int *seed);
 extern void srand(unsigned int seed);
 
+void qsort(void *base, size_t n, size_t size, int (*compare)(const void *, const void *));
+
 extern void exit(int status);
 void _Exit(int status);
 extern void abort();

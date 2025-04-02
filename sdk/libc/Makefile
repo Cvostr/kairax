@@ -1,4 +1,4 @@
-CFLAGS=-nostdlib -nostdinc -ffreestanding -D__LITTLE_ENDIAN__ -std=c99 -fPIC -I./include -I../sys
+CFLAGS=-nostdlib -nostdinc -ffreestanding -D__LITTLE_ENDIAN__ -D__X86_64__ -std=c99 -fPIC -I./include -I../sys
 CC=gcc
 ASM=nasm
 SRC_DIR=src
@@ -42,6 +42,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/env.o \
 				obj/stdlib/putenv.o \
 				obj/stdlib/atexit.o \
+				obj/stdlib/qsort.o \
 				obj/netinet/in.o \
 				obj/arpa/inet.o \
 				obj/string.o \
