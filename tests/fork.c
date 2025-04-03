@@ -5,11 +5,30 @@
 #include "sys/wait.h"
 #include "errno.h"
 #include "fcntl.h"
+#include "setjmp.h"
 
 #define TESTMSG "Test message"
 
+static jmp_buf buf;
+
+void second() {
+    printf("setjmp/longjmp test %p\n");
+    longjmp(buf, 12);            // jumps back to where setjmp was called - making setjmp now return 1
+}
+
+void first() {
+    second();
+    printf("should not be printed\n");          // does not print
+}
+
 int main(int argc, char** argv) 
 {
+    int flag = 0;
+    if ((flag = setjmp(buf)) == 0)
+        first();                // when executed, setjmp returned 0
+    else                        // when longjmp jumps back, setjmp returns 1
+        printf("from longjmp. flag=%i\n", flag);       // prints
+
     int status = 0;
     printf("Fork() test program\n");
 
