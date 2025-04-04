@@ -1,4 +1,4 @@
-CFLAGS=-nostdlib -nostdinc -ffreestanding -D__LITTLE_ENDIAN__ -D__X86_64__ -std=c99 -fPIC -I./include -I../sys
+CFLAGS=-nostdlib -nostdinc -ffreestanding -D__LITTLE_ENDIAN__ -std=c99 -fPIC -I./include -I../sys
 CC=gcc
 ASM=nasm
 SRC_DIR=src

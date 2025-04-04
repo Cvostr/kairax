@@ -6,7 +6,7 @@
 
 __BEGIN_DECLS
 
-#ifdef __X86_64__
+#ifdef __x86_64__
 typedef long long __jmp_buf[8];
 #endif
 
