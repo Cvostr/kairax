@@ -2,7 +2,7 @@
 #include "fs/vfs/vfs.h"
 #include "errors.h"
 #include "proc/process.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 #include "mem/kheap.h"
 #include "mem/pmm.h"
 #include "kstdlib.h"

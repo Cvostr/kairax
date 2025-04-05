@@ -1,9 +1,7 @@
 #include "proc/syscalls.h"
 #include "proc/process.h"
+#include "cpu/cpu_local.h"
 
-// X86
-#include "cpu/cpu_local_x64.h"
-//
 
 #define F_DUPFD         0
 #define F_GETFD         1

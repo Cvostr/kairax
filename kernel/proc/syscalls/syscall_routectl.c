@@ -3,7 +3,7 @@
 #include "dev/type/net_device.h"
 #include "kairax/errors.h"
 #include "kairax/string.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 
 #include "net/route.h"
 #include "mem/kheap.h"

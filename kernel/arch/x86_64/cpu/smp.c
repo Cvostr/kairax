@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "cpu_x64.h"
 #include "dev/acpi/acpi.h"
 #include "string.h"
 #include "mem/pmm.h"

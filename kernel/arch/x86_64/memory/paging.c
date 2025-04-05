@@ -6,7 +6,7 @@
 #include "stddef.h"
 #include "kstdlib.h"
 #include "interrupts/apic.h"
-#include "cpu/cpu.h"
+#include "cpu/cpu_x64.h"
 
 extern void x64_tlb_shootdown(void* addr);
 

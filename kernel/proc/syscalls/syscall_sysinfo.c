@@ -3,12 +3,14 @@
 #include "stdio.h"
 #include "proc/process.h"
 #include "proc/timer.h"
-
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu.h"
+#include "cpu/cpu_local.h"
+#include "string.h"
 
 #define SYSINFO_KERNEL_INFO_STR 1
 #define SYSINFO_MEMORY          2
 #define SYSINFO_SYSSTAT         3
+#define SYSINFO_CPUINFO         4
 
 struct meminfo {
     size_t mem_total;
@@ -20,6 +22,15 @@ struct sysstat {
     time_t uptime;
     size_t processes;
     size_t threads;
+};
+
+struct cpuinfo {
+    uint16_t arch;
+    uint8_t byteorder;
+    uint8_t sockets;
+    uint16_t cpus;
+    char vendor_string[CPU_VENDOR_STR_LEN];
+    char model_string[CPU_MODEL_STR_LEN];
 };
 
 extern int kairax_version_major;
@@ -63,6 +74,25 @@ int sys_sysinfo(int request, char* buffer, size_t bufsize)
             struct sysstat* sstat = (struct sysstat*) buffer;
             sstat->uptime = timer_get_uptime();
             get_process_count(&sstat->processes, &sstat->threads);
+            break;
+        case SYSINFO_CPUINFO:
+            if (bufsize != sizeof(struct cpuinfo))
+            {
+                printf("Diff %i %i\n", bufsize, sizeof(struct cpuinfo));
+                return -ERROR_RANGE;
+            }
+            struct cpuinfo* cpuinf = (struct cpuinfo*) buffer;
+            
+            struct cpu cpu;
+            cpu_get_info(&cpu);
+
+            cpuinf->arch = cpu.arch;
+            cpuinf->byteorder = cpu.byteorder;
+            cpuinf->cpus = cpu.cpus;
+            cpuinf->sockets = cpu.sockets;
+
+            strncpy(cpuinf->model_string, cpu.model_string, CPU_MODEL_STR_LEN);
+            strncpy(cpuinf->vendor_string, cpu.vendor_string, CPU_VENDOR_STR_LEN);
             break;
         default:
             return -ERROR_INVALID_VALUE;

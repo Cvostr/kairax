@@ -1,7 +1,7 @@
 #include "../syscalls.h"
 #include "mod/module_loader.h"
 #include "mod/module_stor.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 #include "kairax/errors.h"
 
 int sys_load_module(void* module_image, size_t image_size)

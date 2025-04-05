@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "cpu_x64.h"
 #include "cpuid.h"
 #include "kairax/types.h"
 #include "kairax/stdio.h"

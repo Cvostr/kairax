@@ -1,5 +1,5 @@
 #include "proc/syscalls.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 #include "proc/thread_scheduler.h"
 #include "mem/kheap.h"
 #include "string.h"

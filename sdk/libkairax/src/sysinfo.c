@@ -16,3 +16,8 @@ int KxGetSysStat(struct sysstat* stat)
 {
     __set_errno(syscall_sysinfo(SYSINFO_SYSSTAT, stat, sizeof(struct sysstat)));
 }
+
+int KxGetCpuInfo(struct cpuinfo* cpu)
+{
+    __set_errno(syscall_sysinfo(SYSINFO_CPUINFO, cpu, sizeof(struct cpuinfo)));
+}

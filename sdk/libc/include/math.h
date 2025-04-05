@@ -67,6 +67,7 @@ double pow(double x, double y) __THROW;
 double fmod(double x, double y) __THROW;
 double sqrt(double x) __THROW;
 
+double rint(double x);
 
 double atan2(double x, double y) __THROW;
 

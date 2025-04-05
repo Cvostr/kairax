@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     rc = KxGetMeminfo(&meminf);
     if (rc != 0) 
     {
-        perror("Error getting kernel string");
+        perror("Error getting memory info");
         return 1;
     }
     printf("Memory: Total %i MiB, Used %i MiB\n", meminf.mem_total / MEM_MB, meminf.mem_used / MEM_MB);
@@ -30,11 +30,20 @@ int main(int argc, char** argv)
     rc = KxGetSysStat(&sstat);
     if (rc != 0) 
     {
-        perror("Error getting kernel string");
+        perror("Error getting system statistics");
         return 1;
     }
     printf("Uptime: %i sec\n", sstat.uptime);
     printf("Processes: %i Threads: %i\n", sstat.processes, sstat.threads);
+
+    struct cpuinfo cpuinfo;
+    rc = KxGetCpuInfo(&cpuinfo);
+    if (rc != 0) 
+    {
+        perror("Error getting CPU information");
+        return 1;
+    }
+    printf("CPU: %s (%s), %i cores\n", cpuinfo.model_string, cpuinfo.vendor_string, cpuinfo.cpus);
 
     return 0;
 }

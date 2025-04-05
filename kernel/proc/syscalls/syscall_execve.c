@@ -1,5 +1,5 @@
 #include "proc/syscalls.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 #include "../elf_process_loader.h"
 #include "mem/pmm.h"
 #include "mem/kheap.h"

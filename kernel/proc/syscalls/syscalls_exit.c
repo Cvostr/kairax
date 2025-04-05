@@ -2,7 +2,7 @@
 #include "proc/process.h"
 #include "kairax/intctl.h"
 
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 
 void sys_exit_process(int code)
 {

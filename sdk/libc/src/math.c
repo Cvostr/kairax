@@ -44,3 +44,8 @@ double acos(double d)
 {
 	return 2.0 * atan(sqrt(1.0 - d * d) / (1.0 + d));
 }
+
+double rint(double x)
+{
+	return floor(x + 0.5);
+}

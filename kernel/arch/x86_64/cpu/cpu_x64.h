@@ -1,5 +1,5 @@
-#ifndef _CPU_H
-#define _CPU_H
+#ifndef _CPU_X64_H
+#define _CPU_X64_H
 
 #define INTERRUPT_VEC_RES  0xFC
 #define INTERRUPT_VEC_TLB  0xFD

@@ -32,7 +32,7 @@
 #include "misc/bootshell/bootshell.h"
 #include "cpu/gdt.h"
 #include "cpu/msr.h"
-#include "cpu/cpu.h"
+#include "cpu/cpu_x64.h"
 #include "interrupts/apic.h"
 #include "cpu/cpuid.h"
 #include "proc/timer.h"

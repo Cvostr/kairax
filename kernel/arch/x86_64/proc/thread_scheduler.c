@@ -13,7 +13,7 @@
 #include "cpu/cpu_local_x64.h"
 #include "kairax/intctl.h"
 #include "kstdlib.h"
-#include "cpu/cpu.h"
+#include "cpu/cpu_x64.h"
 #include "interrupts/apic.h"
 #include "memory/kernel_vmm.h"
 

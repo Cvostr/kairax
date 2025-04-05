@@ -14,10 +14,22 @@ int cpuid_get_model_string(char* model)
 		cpuid(0x80000004, brand[8], brand[9], brand[10], brand[11]);
 		memcpy(model, brand, 48);
 	
-        return 1;
+        return 0;
     }
 
-    return 0; 
+    return -1; 
+}
+
+int cpuid_get_vendor_string(char* vendor)
+{
+    int unused;
+    uint32_t vend[3];
+
+    cpuid(0, unused, vend[0], vend[2], vend[1]);
+
+    memcpy(vendor, vend, 12);
+
+    return 0;
 }
 
 int cpuid_get_apic_id()

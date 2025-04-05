@@ -1,5 +1,5 @@
 #include "proc/syscalls.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 #include "proc/process.h"
 
 int sys_dup(int oldfd)

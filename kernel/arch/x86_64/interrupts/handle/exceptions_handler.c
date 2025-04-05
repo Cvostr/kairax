@@ -9,7 +9,7 @@
 #include "mem/pmm.h"
 #include "memory/kernel_vmm.h"
 #include "../apic.h"
-#include "cpu/cpu.h"
+#include "cpu/cpu_x64.h"
 #include "sync/spinlock.h"
 
 char const *exception_message[33] =
