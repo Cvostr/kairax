@@ -1,12 +1,10 @@
 #ifndef _TIME_H_
 #define _TIME_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#include <sys/cdefs.h>
 #include "sys/time.h"
-#include "sys/types.h"
+
+__BEGIN_DECLS
 
 int isleap(int year);
 
@@ -22,8 +20,6 @@ int stime(time_t *t);
 
 int nanosleep(const struct timespec *req, struct timespec *rem);
 
-#ifdef __cplusplus
-}
-#endif
+__END_DECLS
 
 #endif

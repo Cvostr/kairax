@@ -22,6 +22,25 @@ typedef unsigned int	tcflag_t;
 #define ECHOPRT	0002000
 #define ECHOKE	0004000
 
+// Terminal Special Characters
+#define VINTR	0
+#define VQUIT	1
+#define VERASE	2
+#define VKILL	3
+#define VEOF	4
+#define VTIME	5
+#define VMIN	6
+#define VSWTC	7
+#define VSTART	8
+#define VSTOP	9
+#define VSUSP	10
+#define VEOL	11
+#define VREPRINT 12
+#define VDISCARD 13
+#define VWERASE 14
+#define VLNEXT	15
+#define VEOL2	16
+
 struct termios {
     
     tcflag_t c_iflag;		/* input mode flags */
@@ -35,10 +54,15 @@ struct termios {
 };
 
 #define TCGETS      0x5401
-#define TCSETS      0x5402
+#define TCSETS      0x5402 // TCSANOW
+#define TCSETSW		0x5403 // TCSADRAIN
+#define TCSETSF		0x5404 // TCSAFLUSH
 #define TIOCSPGRP	0x5410
 
 #define ETX         3
+#define FS          0x1C
+#define DEL         0x7F
+#define NAK         0x15
 
 struct pty;
 

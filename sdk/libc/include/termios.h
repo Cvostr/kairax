@@ -35,7 +35,12 @@ struct termios {
     speed_t c_ospeed;		/* output speed */
 };
 
+#define TCSANOW		0
+#define TCSADRAIN	1
+#define TCSAFLUSH	2
+
 int tcgetattr(int fd, struct termios *termios_p) __THROW;
+int tcsetattr(int fd, int optional_actions, struct termios *termios_p) __THROW;
 
 __END_DECLS
 

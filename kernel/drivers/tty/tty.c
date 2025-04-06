@@ -15,10 +15,12 @@ struct file_operations tty_slave_fops;
 struct pty {
     int pty_id;
 
+    // termios struct state
     tcflag_t iflag;
     tcflag_t oflag;
     tcflag_t cflag;
     tcflag_t lflag;
+    cc_t control_characters[CCSNUM];
 
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
@@ -45,6 +47,14 @@ void tty_init()
     tty_slave_fops.ioctl = tty_ioctl;
 }
 
+void tty_fill_ccs(cc_t *control_characters)
+{
+    control_characters[VINTR] = ETX;
+    control_characters[VQUIT] = FS;
+    control_characters[VERASE] = DEL;
+    control_characters[VKILL] = NAK;
+}
+
 int master_file_close(struct inode *inode, struct file *file)
 {
     printk("tty: master close() not implemented!\n");
@@ -68,6 +78,7 @@ int tty_create(struct file **master, struct file **slave)
 
     // Установить флаги по умолчанию
     p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE);
+    tty_fill_ccs(p_pty->control_characters);
 
     // Создать каналы для ведущего и ведомого
     p_pty->master_to_slave = new_pipe();
@@ -136,8 +147,26 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             tmios->c_oflag = p_pty->oflag;
             tmios->c_cflag = p_pty->cflag;
             tmios->c_lflag = p_pty->lflag;
+            memcpy(tmios->c_cc, p_pty->control_characters, sizeof(cc_t) * CCSNUM);
+
+            break;
+        case TCSETS: 
+        case TCSETSF:
+        case TCSETSW:
+            int mode = request - TCSETS;
+
+            // TODO: учесть режим
+            struct termios* tmios = (struct termios*) arg;
+            VALIDATE_USER_POINTER(process, arg, sizeof(struct termios))
+
+            p_pty->iflag = tmios->c_iflag;
+            p_pty->oflag = tmios->c_oflag;
+            p_pty->cflag = tmios->c_cflag;
+            p_pty->lflag = tmios->c_lflag;
+
             // todo: implement returning termios
             break;
+
         default:
             return -EINVAL;
     }
