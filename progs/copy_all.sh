@@ -21,6 +21,7 @@ sudo cp ./ln/ln.a /mnt/kxvol/bin/ln
 sudo cp ./ping/ping.a /mnt/kxvol/bin/ping
 sudo cp ./traceroute/traceroute.a /mnt/kxvol/bin/traceroute
 sudo cp ./sysinfo/sysinfo.a /mnt/kxvol/bin/sysinfo
+sudo cp ./clear/clear.a /mnt/kxvol/bin/clear
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo

@@ -19,6 +19,7 @@ void console_backspace(struct vgaconsole* vgconsole, int chars);
 void console_cr(struct vgaconsole* vgconsole);
 void console_lf(struct vgaconsole* vgconsole);
 void console_redraw(struct vgaconsole* vgconsole);
+void console_clear(struct vgaconsole* vgconsole);
 
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b);
 void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b);

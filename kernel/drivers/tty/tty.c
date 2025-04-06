@@ -5,6 +5,7 @@
 #include "string.h"
 #include "proc/syscalls.h"
 #include "stdio.h"
+#include "cpu/cpu_local.h"
 
 struct file_operations tty_master_fops;
 struct file_operations tty_slave_fops;
@@ -13,7 +14,12 @@ struct file_operations tty_slave_fops;
 
 struct pty {
     int pty_id;
-    int lflags;
+
+    tcflag_t iflag;
+    tcflag_t oflag;
+    tcflag_t cflag;
+    tcflag_t lflag;
+
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
 
@@ -60,12 +66,17 @@ int tty_create(struct file **master, struct file **slave)
     }
     memset(p_pty, 0, sizeof(struct pty));
 
+    // Установить флаги по умолчанию
+    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE);
+
+    // Создать каналы для ведущего и ведомого
     p_pty->master_to_slave = new_pipe();
     atomic_inc(&p_pty->master_to_slave->ref_count);
     
     p_pty->slave_to_master = new_pipe();
     atomic_inc(&p_pty->slave_to_master->ref_count);
 
+    // Создать файловые дескрипторы
     struct file *fmaster = new_file();
     fmaster->flags = FILE_OPEN_MODE_READ_WRITE;
     fmaster->ops = &tty_master_fops;
@@ -92,7 +103,6 @@ ssize_t master_file_write (struct file* file, const char* buffer, size_t count, 
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    // Неблокирующее чтение
     return pipe_read(p_pty->slave_to_master, buffer, count, 0);
 }
 
@@ -111,6 +121,7 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
 
 int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
+    struct process* process = cpu_get_current_thread()->process;
     struct pty *p_pty = (struct pty *) file->private_data;
 
     switch (request) {
@@ -118,6 +129,13 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             p_pty->foreground_pg = arg;
             break;
         case TCGETS:
+            struct termios* tmios = (struct termios*) arg;
+            VALIDATE_USER_POINTER(process, arg, sizeof(struct termios))
+
+            tmios->c_iflag = p_pty->iflag;
+            tmios->c_oflag = p_pty->oflag;
+            tmios->c_cflag = p_pty->cflag;
+            tmios->c_lflag = p_pty->lflag;
             // todo: implement returning termios
             break;
         default:
@@ -129,7 +147,7 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 
 char crlf[2] = {'\r', '\n'};
 char remove[3] = {'\b', ' ', '\b'};
-char ETX[3] = {'^', 'C'};
+char ETX_ECHO[3] = {'^', 'C'};
 
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
 {
@@ -185,15 +203,19 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                     pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
                 }
                 break;
-            case 0x3: // ETX
-                pipe_write(p_pty->slave_to_master, ETX, sizeof(ETX)); // ^C
+            case ETX:
+                pipe_write(p_pty->slave_to_master, ETX_ECHO, sizeof(ETX_ECHO)); // ^C
                 sys_send_signal(p_pty->foreground_pg, SIGINT);
                 break;
             default:
                 // Добавить символ в буфер
                 pty_linebuffer_append(p_pty, first_char);
+                
                 // Эхо на консоль
-                pipe_write(p_pty->slave_to_master, &first_char, 1);
+                if ((p_pty->lflag & ECHO) == ECHO) 
+                {
+                    pipe_write(p_pty->slave_to_master, &first_char, 1);
+                }
                 break;
         }
 

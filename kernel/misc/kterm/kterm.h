@@ -28,6 +28,9 @@ struct terminal_session {
 	struct kterm_color foreground_color;
 };
 
+#define ETX 3
+#define FS  28
+
 void kterm_process_start();
 void kterm_main();
 

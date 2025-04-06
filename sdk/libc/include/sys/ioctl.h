@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #define TCGETS  0x5401
+#define TCSETS	0x5402
 
 int ioctl(int fd, uint64_t request, uint64_t arg);
 

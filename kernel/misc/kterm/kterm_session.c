@@ -61,6 +61,9 @@ void kterm_process_esc_sequence(struct terminal_session* session)
 
 #define CSI_MAX_ARGS 20
 
+#define SGR 'm'
+#define DECSED 'J'
+
 void kterm_session_process_csi(struct terminal_session* session)
 {
 	int args[CSI_MAX_ARGS];
@@ -113,9 +116,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 	};
 
     switch (terminateChar) {
-        case 'm' :
-            // SGR
-
+        case SGR :
 			for (int i = 0; i < argc; i ++) {
 				switch (args[i]) {
 					case 0:
@@ -132,5 +133,15 @@ void kterm_session_process_csi(struct terminal_session* session)
 			}
 
             break;
+		case DECSED:
+			int mode = args[0];
+			switch (mode) {
+				case 2:
+					console_clear(session->console);
+					break;
+				default:
+					printk("Unknown DECSED mode %i\n", mode);
+			}
+			break;
     }
 }

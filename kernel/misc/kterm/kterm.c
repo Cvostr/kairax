@@ -132,7 +132,11 @@ void kterm_main()
 							char chr = 0;
 							switch (symbol) {
 								case 'c':
-									chr = 3;
+									chr = ETX;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case '\\':
+									chr = FS;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 								case 'h':

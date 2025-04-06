@@ -67,6 +67,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/dirent.o \
 				obj/spawn.o \
 				obj/sched.o \
+				obj/termios.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
 				obj/x64/syscalls.o \

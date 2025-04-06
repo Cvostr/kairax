@@ -93,3 +93,7 @@ cd ..
 cd sysinfo
 make
 cd ..
+
+cd clear
+make
+cd ..

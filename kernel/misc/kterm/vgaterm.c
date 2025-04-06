@@ -213,6 +213,15 @@ void console_lf(struct vgaconsole* vgconsole)
     console_scroll(vgconsole);
 }
 
+void console_clear(struct vgaconsole* vgconsole)
+{
+    vgconsole->console_col = 0;
+    vgconsole->console_lines = 0;
+
+    memset(vgconsole->double_buffer, 0, vgconsole->console_buffer_size);
+    vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
+}
+
 void console_scroll(struct vgaconsole* vgconsole)
 {
 	if (vgconsole->console_lines >= BUFFER_LINES) {
