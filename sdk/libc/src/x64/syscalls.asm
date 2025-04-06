@@ -61,6 +61,7 @@ DEFINE_SYSCALL syscall_rename,      0x52
 DEFINE_SYSCALL syscall_rmdir,       0x54
 DEFINE_SYSCALL syscall_linkat,      0x56
 DEFINE_SYSCALL syscall_unlink,      0x57
+DEFINE_SYSCALL syscall_symlinkat,   0x58
 DEFINE_SYSCALL syscall_readdir,     0x59
 DEFINE_SYSCALL syscall_getuid,      0x66
 DEFINE_SYSCALL syscall_getgid,      0x68

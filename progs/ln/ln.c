@@ -4,6 +4,7 @@
 
 int main(int argc, char **argv)
 {
+    int rc;
     int is_sym = 0;
     char* src = NULL;
     char* dst = NULL;
@@ -14,10 +15,7 @@ int main(int argc, char **argv)
         char* arg = argv[i];
         if (arg[0] == '-')
         {
-            // удалить - из начала
-            char* opt_name = arg + arg[1] == '-' ? 2 : 1;
-
-            if (strcmp(opt_name, "s") == 0 || strcmp(opt_name, "symbolic") == 0)
+            if (strcmp(arg, "-s") == 0 || strcmp(arg, "--symbolic") == 0)
             {
                 is_sym = 1;
             }
@@ -37,10 +35,14 @@ int main(int argc, char **argv)
     src = argv[i];
     dst = argv[i + 1];
 
-    int rc = link(src, dst);
+    if (is_sym)  {
+        rc = symlink(src, dst);
+    } else {
+        rc = link(src, dst);
+    }
     if (rc != 0)
     {
-        printf("link failed: %i\n");
+        perror("link failed");
         return 1;
     }
 

@@ -135,12 +135,14 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
     struct process* process = cpu_get_current_thread()->process;
     struct pty *p_pty = (struct pty *) file->private_data;
 
+    struct termios* tmios;
+
     switch (request) {
         case TIOCSPGRP:
             p_pty->foreground_pg = arg;
             break;
         case TCGETS:
-            struct termios* tmios = (struct termios*) arg;
+            tmios = (struct termios*) arg;
             VALIDATE_USER_POINTER(process, arg, sizeof(struct termios))
 
             tmios->c_iflag = p_pty->iflag;
@@ -156,7 +158,7 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             int mode = request - TCSETS;
 
             // TODO: учесть режим
-            struct termios* tmios = (struct termios*) arg;
+            tmios = (struct termios*) arg;
             VALIDATE_USER_POINTER(process, arg, sizeof(struct termios))
 
             p_pty->iflag = tmios->c_iflag;

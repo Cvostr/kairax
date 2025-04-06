@@ -249,6 +249,8 @@ int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name
 
 int ext2_mknod (struct inode* parent, const char* name, mode_t mode);
 
+int ext2_symlink(struct inode* parent, const char* name, const char* target);
+
 // -----------------------------------------------
 
 #endif

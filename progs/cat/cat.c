@@ -22,11 +22,16 @@ int main(int argc, char** argv) {
     }
 
     ssize_t readed = 0;
-    while ((readed = read(srcfd, region, REGION_LEN)) > 0) {
-
+    while ((readed = read(srcfd, region, REGION_LEN)) > 0) 
+    {
         for (int i = 0; i < readed; i ++) {
             putchar(region[i]);
         }
+    }
+
+    if (readed < 0) {
+        perror("Can't read file");
+        return 1;
     }
 
     putchar('\n');

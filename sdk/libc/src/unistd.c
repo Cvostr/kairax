@@ -131,6 +131,16 @@ int link(const char *oldpath, const char *newpath)
     __set_errno(syscall_linkat(AT_FDCWD, oldpath, AT_FDCWD, newpath, 0));
 }
 
+int symlinkat(const char *target, int newdirfd, const char *linkpath)
+{
+    __set_errno(syscall_symlinkat(target, newdirfd, linkpath));
+}
+
+int symlink(const char *target, const char *linkpath)
+{
+    return symlinkat(target, AT_FDCWD, linkpath);
+}
+
 int unlink(const char* path)
 {
     __set_errno(syscall_unlink(AT_FDCWD, path, 0));

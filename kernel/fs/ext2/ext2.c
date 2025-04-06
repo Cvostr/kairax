@@ -36,6 +36,7 @@ void ext2_init()
     dir_inode_ops.link = ext2_linkat;
     dir_inode_ops.rmdir = ext2_rmdir;
     dir_inode_ops.mknod = ext2_mknod;
+    dir_inode_ops.symlink = ext2_symlink;
     dir_ops.readdir = ext2_file_readdir;
 
     file_ops.read = ext2_file_read;
@@ -1456,6 +1457,73 @@ int ext2_mknod (struct inode* parent, const char* name, mode_t mode)
     ext2_create_dentry(inst, parent, name, inode_num, dentry_type);
 
     kfree(inode);
+    return 0;
+}
+
+int ext2_symlink(struct inode* parent, const char* name, const char* target)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
+
+    if (ext2_find_dentry(parent->sb, parent->inode, name, NULL) != WRONG_INODE_INDEX) {
+        return -ERROR_ALREADY_EXISTS;
+    }
+
+    size_t target_len = strlen(target); 
+
+    if (target_len > 60)
+    {
+        printk("ext2 symlink: Unsupported!\n");
+    }
+
+    printk("ext2 symlink: %s to %s. Not implemented!\n", target, name);
+
+    // Создать inode на диске
+    uint32_t inode_num = ext2_alloc_inode(inst);
+    if (inode_num == 0) {
+        return -ERROR_NO_SPACE;
+    }
+    // Прочитать inode
+    ext2_inode_t *inode = new_ext2_inode();
+    ext2_inode(inst, inode, inode_num);
+
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+
+    // подготовить структуру inode
+    inode->mode = INODE_FLAG_SYMLINK | (0777);
+    inode->atime = current_time.tv_sec;
+    inode->ctime = current_time.tv_sec;
+    inode->mtime = current_time.tv_sec;
+    inode->dtime = 0;
+    inode->gid = 0;
+    inode->userid = 0;
+    inode->flags = 0;
+    inode->hard_links = 1;
+    inode->num_blocks = 0;
+    inode->os_specific1 = 0;
+    memset(inode->blocks, 0, sizeof(inode->blocks));
+    memset(inode->os_specific2, 0, sizeof(inode->os_specific2));
+    inode->generation = 0;
+    inode->file_acl = 0;
+    inode->dir_acl = 0;
+    inode->faddr = 0;
+    inode->size = target_len;
+
+    if (target_len <= 60)
+    {
+        memcpy(inode->blocks, target, target_len);
+    } else {
+        // TODO: implement!
+    }
+
+    // Записать изменения на диск
+    ext2_write_inode_metadata(inst, inode, inode_num);
+
+    // Добавить иноду в директорию
+    ext2_create_dentry(inst, parent, name, inode_num, EXT2_DT_SYMLINK);
+
+    kfree(inode);
+
     return 0;
 }
 

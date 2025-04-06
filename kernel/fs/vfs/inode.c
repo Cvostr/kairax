@@ -212,6 +212,26 @@ int inode_mknod(struct inode* parent, const char* name, mode_t mode)
     return rc;
 }
 
+int inode_symlink(struct inode* parent, const char* name, const char* target)
+{
+    if (parent == NULL)
+    {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    acquire_spinlock(&parent->spinlock);
+
+    int rc = -EPERM;
+    if (parent->operations && parent->operations->symlink) 
+    {
+        rc = parent->operations->symlink(parent, name, target);
+    }
+
+    release_spinlock(&parent->spinlock);
+    
+    return rc;
+}
+
 int inode_stat(struct inode* node, struct stat* sstat)
 {
     if (node == NULL)

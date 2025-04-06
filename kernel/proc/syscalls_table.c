@@ -49,6 +49,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x54, sys_rmdir),
     DEFINE_SYSCALL(0x56, sys_linkat),
     DEFINE_SYSCALL(0x57, sys_unlink),
+    DEFINE_SYSCALL(0x58, sys_symlinkat),
     DEFINE_SYSCALL(0x59, sys_readdir),
     DEFINE_SYSCALL(0x5A, sys_set_mode),
     DEFINE_SYSCALL(0x60, sys_get_time_epoch_protected),

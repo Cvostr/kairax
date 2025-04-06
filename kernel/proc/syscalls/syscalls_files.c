@@ -432,8 +432,6 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
     VALIDATE_USER_POINTER(process, oldpath, strlen(oldpath))
     VALIDATE_USER_POINTER(process, newpath, strlen(newpath))
 
-    //printk("linkat: %s to %s\n", oldpath, newpath);
-
     // Новый путь
     char* new_directory_path = NULL;
     // Новое имя
@@ -500,6 +498,61 @@ exit:
     
     DENTRY_CLOSE_SAFE(newdir_dentry)
     DENTRY_CLOSE_SAFE(olddir_dentry)
+
+    if (new_directory_path) {
+        kfree(new_directory_path);
+    }
+
+    return rc;
+}
+
+int sys_symlinkat(const char *target, int newdirfd, const char *linkpath)
+{
+    if (target == NULL || linkpath == NULL) 
+    {
+        return -ERROR_NO_FILE;
+    }
+
+    int rc;
+    struct process* process = cpu_get_current_thread()->process;
+
+    // dentry директории из файлового дескриптора
+    struct dentry* newdir_dentry = NULL;
+    struct dentry* new_parent_dentry = NULL;
+
+    VALIDATE_USER_POINTER(process, target, strlen(target))
+    VALIDATE_USER_POINTER(process, linkpath, strlen(linkpath))
+
+    //printk("symlinkat: %s to %s. Not implemented!\n", target, linkpath);
+
+    // Получить dentry для newdirfd
+    rc = process_get_relative_direntry1(process, newdirfd, linkpath, &newdir_dentry);
+    if (rc != 0) 
+        return rc;
+
+    // Новый путь
+    char* new_directory_path = NULL;
+    // Новое имя
+    char* new_filename = NULL;
+    // Разделить новый путь на путь директории и имя файла
+    split_path(linkpath, &new_directory_path, &new_filename);
+
+    // Открыть inode директории нового пути
+    struct inode* new_parent_inode = vfs_fopen(newdir_dentry, new_directory_path, &new_parent_dentry);
+    if (new_parent_inode == NULL || new_parent_dentry == NULL) 
+    {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    rc = inode_symlink(new_parent_inode, new_filename, target);
+
+exit:
+
+    DENTRY_CLOSE_SAFE(new_parent_dentry)
+    INODE_CLOSE_SAFE(new_parent_inode)
+
+    DENTRY_CLOSE_SAFE(newdir_dentry)
 
     if (new_directory_path) {
         kfree(new_directory_path);

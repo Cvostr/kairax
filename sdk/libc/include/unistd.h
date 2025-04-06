@@ -60,6 +60,9 @@ off_t lseek(int fd, off_t offset, int whence);
 int link(const char *oldpath, const char *newpath);
 int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
 
+int symlink(const char *target, const char *linkpath);
+int symlinkat(const char *target, int newdirfd, const char *linkpath);
+
 char* getcwd(char* buf, size_t size);
 
 int chdir(const char* path);
