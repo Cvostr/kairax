@@ -35,6 +35,8 @@ void stringify_perm(int perm, char* str)
     str[2] = ((perm & 1) == 1) ? 'x' : '-';
 }
 
+char linkbuff[300] = {0,};
+
 int main(int argc, char** argv) {
 
     int all = 0;
@@ -45,7 +47,7 @@ int main(int argc, char** argv) {
         if (argv[i][0] != '-') {
             path = argv[i];
         } else {
-            if (argv[i][1] == 'a') {
+            if (argv[i][1] == 'l') {
                 all = 1;
             }
         }
@@ -81,7 +83,21 @@ int main(int argc, char** argv) {
             stringify_perm((perm >> 3) & 07, perm_str + 3);
             stringify_perm(perm & 07, perm_str + 6);
 
-            printf("%s %s %i %i %9i %02i:%02i:%02i %02i:%02i:%i %s\n", 
+            if (dr->d_type == DT_LNK)
+            {
+                ssize_t linklen = readlinkat(dirfd, dr->d_name, linkbuff, sizeof(linkbuff));
+                if (linklen >= 0) {
+                    linkbuff[linklen] = 0;
+                } else {
+                    linkbuff[0] = 0;
+                }
+            } 
+            else
+            {
+                linkbuff[0] = 0;
+            }
+
+            printf("%s %s %i %i %9i %02i:%02i:%02i %02i:%02i:%i %s %s\n", 
                 to_filetype(dr->d_type),
                 perm_str,
                 file_stat.st_uid,
@@ -93,7 +109,9 @@ int main(int argc, char** argv) {
 				t->tm_mday,
 				t->tm_mon,
 				t->tm_year + 1900,
-                dr->d_name);
+                dr->d_name,
+                linkbuff
+            );
         
         } else {
         

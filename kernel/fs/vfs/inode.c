@@ -232,6 +232,21 @@ int inode_symlink(struct inode* parent, const char* name, const char* target)
     return rc;
 }
 
+ssize_t inode_readlink(struct inode* symlink, char* buf, size_t buflen)
+{
+    acquire_spinlock(&symlink->spinlock);
+
+    int rc = -EPERM;
+    if (symlink->operations && symlink->operations->readlink) 
+    {
+        rc = symlink->operations->readlink(symlink, buf, buflen);
+    }
+
+    release_spinlock(&symlink->spinlock);
+    
+    return rc;
+}
+
 int inode_stat(struct inode* node, struct stat* sstat)
 {
     if (node == NULL)

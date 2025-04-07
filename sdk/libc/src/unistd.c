@@ -141,6 +141,16 @@ int symlink(const char *target, const char *linkpath)
     return symlinkat(target, AT_FDCWD, linkpath);
 }
 
+ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize)
+{
+    __set_errno(syscall_readlinkat(dirfd, pathname, buf, bufsize));
+}
+
+ssize_t readlink(const char *path, char *buf, size_t bufsize)
+{
+    return readlinkat(AT_FDCWD, path, buf, bufsize);
+}
+
 int unlink(const char* path)
 {
     __set_errno(syscall_unlink(AT_FDCWD, path, 0));

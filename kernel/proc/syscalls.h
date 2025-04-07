@@ -43,6 +43,8 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
 
 int sys_symlinkat(const char *target, int newdirfd, const char *linkpath);
 
+ssize_t sys_readlinkat(int dirfd, const char* pathname, char* buf, size_t bufsize);
+
 int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev);
 
 off_t sys_file_seek(int fd, off_t offset, int whence); 

@@ -523,8 +523,6 @@ int sys_symlinkat(const char *target, int newdirfd, const char *linkpath)
     VALIDATE_USER_POINTER(process, target, strlen(target))
     VALIDATE_USER_POINTER(process, linkpath, strlen(linkpath))
 
-    //printk("symlinkat: %s to %s. Not implemented!\n", target, linkpath);
-
     // Получить dentry для newdirfd
     rc = process_get_relative_direntry1(process, newdirfd, linkpath, &newdir_dentry);
     if (rc != 0) 
@@ -557,6 +555,48 @@ exit:
     if (new_directory_path) {
         kfree(new_directory_path);
     }
+
+    return rc;
+}
+
+ssize_t sys_readlinkat(int dirfd, const char* pathname, char* buf, size_t bufsize)
+{
+    int rc;
+    struct process* process = cpu_get_current_thread()->process;
+
+    VALIDATE_USER_POINTER(process, buf, bufsize)
+    //
+    VALIDATE_USER_POINTER(process, pathname, strlen(pathname))
+
+    struct dentry* directory_dentry = NULL;
+    struct dentry* symlink_dentry = NULL;
+
+    // Получить dentry для newdirfd
+    rc = process_get_relative_direntry1(process, dirfd, pathname, &directory_dentry);
+    if (rc != 0) 
+        return rc;
+
+    struct inode* symlink_inode = vfs_fopen(directory_dentry, pathname, &symlink_dentry);
+    if (symlink_inode == NULL || symlink_dentry == NULL) 
+    {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    if ((symlink_inode->mode & INODE_TYPE_MASK) != INODE_FLAG_SYMLINK) 
+    {
+        rc = -ERROR_INVALID_VALUE;
+        goto exit;
+    }
+
+    rc = inode_readlink(symlink_inode, buf, bufsize);
+
+exit:
+
+    DENTRY_CLOSE_SAFE(symlink_dentry)
+    INODE_CLOSE_SAFE(symlink_inode)
+
+    DENTRY_CLOSE_SAFE(directory_dentry)
 
     return rc;
 }

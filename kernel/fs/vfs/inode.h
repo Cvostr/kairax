@@ -22,6 +22,7 @@ struct inode_operations {
     int      (*rmdir)(struct inode*, struct dentry*);
     int      (*mknod)(struct inode*, const char*, mode_t);
     int      (*symlink)(struct inode*, const char*, const char*);
+    int      (*readlink)(struct inode*, char*, size_t);
 };
 
 struct file_operations;
@@ -102,5 +103,6 @@ int inode_rmdir(struct inode* parent, struct dentry* child);
 int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_parent, const char* name);
 int inode_mknod(struct inode* parent, const char* name, mode_t mode);
 int inode_symlink(struct inode* parent, const char* name, const char* target);
+ssize_t inode_readlink(struct inode* symlink, char* buf, size_t buflen);
 
 #endif

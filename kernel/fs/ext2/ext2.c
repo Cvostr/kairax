@@ -7,9 +7,11 @@
 #include "stdio.h"
 #include "errors.h"
 #include "kairax/time.h"
+#include "kairax/kstdlib.h"
 
 struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
+struct inode_operations symlink_inode_ops;
 
 struct file_operations file_ops;
 struct file_operations dir_ops;
@@ -39,9 +41,14 @@ void ext2_init()
     dir_inode_ops.symlink = ext2_symlink;
     dir_ops.readdir = ext2_file_readdir;
 
+    // Symlink inode
+    symlink_inode_ops.readlink = ext2_readlink;
+
+    // File
     file_ops.read = ext2_file_read;
     file_ops.write = ext2_file_write;
 
+    // Superblock
     sb_ops.destroy_inode = ext2_purge_inode;
     sb_ops.read_inode = ext2_read_node;
     sb_ops.find_dentry = ext2_find_dentry;
@@ -1020,7 +1027,7 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
         result->file_ops = &dir_ops;
     }
     if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) {
-    
+        result->operations = &symlink_inode_ops;
     }
     if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_BLOCKDEVICE) {
     
@@ -1525,6 +1532,32 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
     kfree(inode);
 
     return 0;
+}
+
+ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
+{
+    ext2_instance_t* inst = (ext2_instance_t*) inode->sb->fs_info;
+
+    // Получить ext2 иноду ссылки
+    ext2_inode_t* symlink_inode = new_ext2_inode();
+    ext2_inode(inst, symlink_inode, inode->inode);
+
+    // Максимальный размер буфера (без 0 в конце)
+    size_t pathbuflen_real = pathbuflen - 1;
+    // Размер данных, который будем считывать
+    ssize_t readable = MIN(symlink_inode->size, pathbuflen_real);
+
+    if (symlink_inode->size <= 60)
+    {
+        memcpy(pathbuf, symlink_inode->blocks, readable);
+    } 
+    else 
+    {
+        read_inode_filedata(inst, symlink_inode, 0, readable, pathbuf);
+    }
+
+    kfree(symlink_inode);
+    return readable;
 }
 
 int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name)
