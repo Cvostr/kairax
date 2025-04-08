@@ -211,6 +211,17 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
     while (i < count) {
         char first_char = buffer[i];
 
+        if ((p_pty->iflag & ISTRIP) == ISTRIP)
+        {
+            first_char &= 0x7F;
+        }
+
+        if (((p_pty->iflag & IGNCR) == IGNCR) && (first_char == '\r'))
+        {
+            // Ignore Carriage Return
+            continue;
+        }
+
         switch (first_char) {
             case '\r':
                 // пока что CR просто выводим, не добавляя в буфер

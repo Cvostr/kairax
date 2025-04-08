@@ -449,6 +449,15 @@ void ext2_purge_inode(struct inode* inode)
     ext2_rem_inode->hard_links = 0;
     ext2_rem_inode->mode = 0;
 
+    if (((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) && inode->size <= 60) 
+    {
+        // Если мы удаляем символическую ссылку и длина ее содержимого меньше 60 байт
+        // Значит путь ссылки записан напрямую в адреса блоков иноды
+        // Значит мы не должны пытаться очищать занятые инодой блоки
+        // Так как скорее всего нарушим состояние файловой системы 
+        goto skip_block_purge;
+    }
+
     // Освобождение direct блоков
     for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
         uint32_t block_idx = ext2_rem_inode->blocks[block_i];
@@ -467,6 +476,7 @@ void ext2_purge_inode(struct inode* inode)
     ext2_free_block_tree(inst, ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS + 2], 2);
     ext2_rem_inode->blocks[EXT2_DIRECT_BLOCKS + 2] = 0;
 
+skip_block_purge:
     // Обнуление размера и кол-ва занимаемых блоков
     ext2_rem_inode->size = 0;
     ext2_rem_inode->num_blocks = 0;
@@ -1475,14 +1485,7 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
         return -ERROR_ALREADY_EXISTS;
     }
 
-    size_t target_len = strlen(target); 
-
-    if (target_len > 60)
-    {
-        printk("ext2 symlink: Unsupported!\n");
-    }
-
-    printk("ext2 symlink: %s to %s. Not implemented!\n", target, name);
+    size_t target_len = strlen(target);
 
     // Создать inode на диске
     uint32_t inode_num = ext2_alloc_inode(inst);
@@ -1519,8 +1522,10 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
     if (target_len <= 60)
     {
         memcpy(inode->blocks, target, target_len);
-    } else {
-        // TODO: implement!
+    }
+    else 
+    {
+        write_inode_filedata(inst, inode, inode_num, 0, target_len, target);
     }
 
     // Записать изменения на диск
@@ -1542,10 +1547,8 @@ ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
     ext2_inode_t* symlink_inode = new_ext2_inode();
     ext2_inode(inst, symlink_inode, inode->inode);
 
-    // Максимальный размер буфера (без 0 в конце)
-    size_t pathbuflen_real = pathbuflen - 1;
     // Размер данных, который будем считывать
-    ssize_t readable = MIN(symlink_inode->size, pathbuflen_real);
+    ssize_t readable = MIN(symlink_inode->size, pathbuflen);
 
     if (symlink_inode->size <= 60)
     {
