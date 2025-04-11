@@ -1,6 +1,7 @@
 #include "superblock.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "stdio.h"
 
 struct superblock* new_superblock()
 {

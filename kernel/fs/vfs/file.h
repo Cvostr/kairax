@@ -13,14 +13,16 @@
 #define FILE_OPEN_MODE_READ_WRITE   00000002
 #define FILE_OPEN_MODE_MASK         0b11
 
-#define FILE_OPEN_FLAG_CREATE       00000100 // O_CREAT
-#define O_CREAT                     00000100
+#define FILE_OPEN_FLAG_CREATE       0100 // O_CREAT
+#define O_CREAT                     0100
 #define O_EXCL		                0200
 #define FILE_OPEN_FLAG_TRUNCATE     00001000
 #define FILE_OPEN_FLAG_APPEND       00002000
 #define FILE_OPEN_FLAG_DIRECTORY    00200000
 #define FILE_FLAG_NONBLOCK	        00004000 // O_NONBLOCK
+#define O_NOFOLLOW	                 0400000
 #define O_CLOEXEC                   02000000
+#define O_PATH		                010000000
 
 #define SEEK_SET 0
 #define SEEK_CUR 1

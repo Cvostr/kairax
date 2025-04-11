@@ -1,5 +1,6 @@
 #include "kterm.h"
 #include "proc/syscalls.h"
+#include "stdio.h"
 
 void kterm_session_process(struct terminal_session* session)
 {

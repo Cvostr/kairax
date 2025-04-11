@@ -28,7 +28,7 @@ char* strcat(char *str, char* add_str)
   	return str;
 }
 
-char* strncat(char *str, char *add_str, size_t num)
+char* strncat(char *str, const char *add_str, size_t num)
 {
 	size_t i,j;
 

@@ -137,7 +137,36 @@ exit:
     return result;
 }
 
-struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
+#define SYMLINK_MAX 1024
+
+struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char* name, int flags)
+{
+    // dentry из суперблока
+    struct dentry* result = superblock_get_dentry(sb, parent, name);
+
+    if (result != NULL && ((result->d_inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK))
+    {
+        if (((flags & O_NOFOLLOW) == O_NOFOLLOW) && (flags & O_PATH) == 0)
+        {
+            return NULL;
+        }
+
+        // Это символьная ссылка
+        // Выделить память под путь ссылки
+        char* symlink_path = kmalloc(SYMLINK_MAX);
+        // Получить путь ссылки
+        ssize_t len = inode_readlink(result->d_inode, symlink_path, SYMLINK_MAX - 1); // -1 для учета терминирующего 0
+        symlink_path[len] = 0;
+        // Разрезолвить путь символьной ссылки
+        result = vfs_dentry_traverse_path(parent, symlink_path);
+        // Освоббодить память
+        kfree(symlink_path);
+    }
+
+    return result;
+}
+
+struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, int flags)
 {
     struct dentry* current = p_parent;
 
@@ -160,8 +189,10 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
         {
             // еще есть разделители /
             strncpy(name_temp, path_temp, slash_pos - path_temp);
+            // Скипнуть /
             path_temp = slash_pos + 1;
-            current = superblock_get_dentry(current->sb, current, name_temp);
+            // Поискать dentry с именем
+            current = resolve_next_dentry(current->sb, current, name_temp, 0);
 
             // Убедимся что это директория
             if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
@@ -172,11 +203,13 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path)
             }
 
             continue;
-        } else 
+        } 
+        else 
         {
             // Больше нет разделителей /
             strncpy(name_temp, path_temp, strlen(path_temp));
-            current = superblock_get_dentry(current->sb, current, name_temp);
+            // Разрезолвить последний компонент пути
+            current = resolve_next_dentry(current->sb, current, name_temp, flags);
             break;
         }
     }

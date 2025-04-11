@@ -7,7 +7,7 @@ typedef char* string;
 
 size_t strlen(const char *str);
 char*  strcat(char *str, char *add_str);
-char*  strncat(char *str, char *add_str, size_t num);
+char*  strncat(char *str, const char *add_str, size_t num);
 
 int strcmp(const char* str1, const char* str2);
 int strncmp(const char* str1, const char* str2, size_t len);
