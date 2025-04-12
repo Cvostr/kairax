@@ -7,8 +7,9 @@ extern "C" {
 
 #include "sys/types.h"
 
-#define AT_FDCWD		-2
-#define AT_EMPTY_PATH   0x1000
+#define AT_FDCWD		    -2
+#define AT_SYMLINK_NOFOLLOW	0x100
+#define AT_EMPTY_PATH       0x1000
 
 #define O_RDONLY	     00
 #define O_WRONLY	     01
@@ -16,6 +17,7 @@ extern "C" {
 
 #define O_CREAT	        0100
 #define O_EXCL		    0200
+#define O_NOCTTY	    0400
 #define O_TRUNC	        01000
 #define O_APPEND	    02000
 #define O_NONBLOCK	    04000

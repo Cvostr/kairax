@@ -318,7 +318,8 @@ int sys_unlink(int dirfd, const char* path, int flags)
 
     // Получить удаляемую inode и dentry
     struct dentry* target_dentry = NULL;
-    struct inode* target_inode = vfs_fopen(dirdentry, path, &target_dentry);
+    // Флаги O_NOFOLLOW | O_PATH нужны для того, чтобы удалить именно символическую ссылку, а не то, на что она указывает
+    struct inode* target_inode = vfs_fopen_ex(dirdentry, path, &target_dentry, O_NOFOLLOW | O_PATH);
     
     // не нашли файл, который нужно удалить
     if (target_inode == NULL || target_dentry == NULL) {
@@ -576,7 +577,7 @@ ssize_t sys_readlinkat(int dirfd, const char* pathname, char* buf, size_t bufsiz
     if (rc != 0) 
         return rc;
 
-    struct inode* symlink_inode = vfs_fopen(directory_dentry, pathname, &symlink_dentry);
+    struct inode* symlink_inode = vfs_fopen_ex(directory_dentry, pathname, &symlink_dentry, O_NOFOLLOW | O_PATH);
     if (symlink_inode == NULL || symlink_dentry == NULL) 
     {
         rc = -ERROR_NO_FILE;

@@ -113,7 +113,7 @@ exit:
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode)
 {
     struct dentry* dentry;
-    struct inode* inode = vfs_fopen(dir, path, &dentry);
+    struct inode* inode = vfs_fopen_ex(dir, path, &dentry, flags);
 
     if (!inode) {
         // Файл не найден
@@ -123,7 +123,7 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
                 return NULL;
 
             // Файл создан, открываем его
-            inode = vfs_fopen(dir, path, &dentry);
+            inode = vfs_fopen_ex(dir, path, &dentry, flags);
             if (inode == NULL) {
                 return NULL;
             }

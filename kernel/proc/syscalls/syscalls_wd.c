@@ -44,7 +44,7 @@ int sys_set_working_dir(const char* buffer)
 {
     struct process* process = cpu_get_current_thread()->process;
     struct dentry* workdir_dentry = process->pwd != NULL ? process->pwd : NULL;
-    struct dentry* new_workdir = vfs_dentry_traverse_path(workdir_dentry, buffer);
+    struct dentry* new_workdir = vfs_dentry_traverse_path(workdir_dentry, buffer, 0);
 
     if (new_workdir == NULL) {
         return -ENOENT;

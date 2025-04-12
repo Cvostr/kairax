@@ -322,7 +322,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
             
         if (info->current_directory) {
             // Указана рабочая директория
-            struct dentry* new_workdir = vfs_dentry_traverse_path(NULL, info->current_directory);
+            struct dentry* new_workdir = vfs_dentry_traverse_path(NULL, info->current_directory, 0);
 
             if (new_workdir) {
                 

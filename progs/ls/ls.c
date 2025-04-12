@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 
         if (all) {
         
-            rc = fstatat(dirfd, dr->d_name, &file_stat, 0);
+            rc = fstatat(dirfd, dr->d_name, &file_stat, AT_SYMLINK_NOFOLLOW);
             int perm = file_stat.st_mode & 0777;
         
             if (rc == -1) {
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
             stringify_perm((perm >> 3) & 07, perm_str + 3);
             stringify_perm(perm & 07, perm_str + 6);
 
-            if (dr->d_type == DT_LNK)
+            if (S_ISLNK(file_stat.st_mode))
             {
                 ssize_t linklen = readlinkat(dirfd, dr->d_name, linkbuff, sizeof(linkbuff));
                 if (linklen >= 0) {

@@ -39,7 +39,7 @@ void dentry_debug_tree()
 
 int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname)
 {
-    struct dentry* mount_dent = vfs_dentry_traverse_path(root_dentry, mount_path);
+    struct dentry* mount_dent = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
 
     if (mount_dent == NULL) {
         // Путь монтирования отсутствует
@@ -94,7 +94,7 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
 
 int vfs_unmount(char* mount_path)
 {
-    struct dentry* root_dentry = vfs_dentry_traverse_path(root_dentry, mount_path);
+    struct dentry* root_dentry = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
     
     if (!root_dentry) {
         return -ERROR_INVALID_VALUE;
@@ -127,7 +127,7 @@ int vfs_unmount(char* mount_path)
 
 struct superblock* vfs_get_mounted_partition(const char* mount_path)
 {
-    struct dentry* path_dentry = vfs_dentry_traverse_path(root_dentry, mount_path);
+    struct dentry* path_dentry = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
 
     return path_dentry->sb;
 }
@@ -140,7 +140,13 @@ struct superblock* vfs_get_mounted_sb(int index)
 
 struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry** dentry)
 {
-    struct dentry* result_dentry = vfs_dentry_traverse_path(parent, path);
+    //return vfs_fopen_ex(parent, path, dentry, (O_NOFOLLOW | O_PATH));
+    return vfs_fopen_ex(parent, path, dentry, 0);
+}
+
+struct inode* vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, int flags)
+{
+    struct dentry* result_dentry = vfs_dentry_traverse_path(parent, path, flags);
 
     if (result_dentry) {
 
@@ -179,7 +185,7 @@ struct inode* vfs_fopen_parent(struct dentry* child)
     return parent_inode;
 }
 
-struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
+struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path, int flags)
 {
     if (path == NULL) {
         return parent;
@@ -199,7 +205,7 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path)
         return NULL;
     }
 
-    return dentry_traverse_path(parent, path, O_NOFOLLOW | O_PATH);
+    return dentry_traverse_path(parent, path, flags);
 }
 
 void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)

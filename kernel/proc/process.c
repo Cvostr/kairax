@@ -626,12 +626,18 @@ int process_get_relative_direntry1(struct process* process, int dirfd, const cha
 
 int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end)
 {
-    if (flags & DIRFD_IS_FD) {
+    int fopen_flag = 0;
+    if ((flags & AT_SYMLINK_NOFOLLOW) == AT_SYMLINK_NOFOLLOW)
+    {
+        fopen_flag |= (O_NOFOLLOW | O_PATH);
+    }
+
+    if (flags & AT_EMPTY_PATH) {
         // Дескриптор файла передан в dirfd
         *file = process_get_file(process, dirfd);
     } else if (dirfd == FD_CWD && process->pwd) {
         // Указан путь относительно рабочей директории
-        *file = file_open(process->pwd, path, 0, 0);
+        *file = file_open(process->pwd, path, fopen_flag, 0);
         *close_at_end = 1;
     } else {
         // Открываем файл относительно dirfd
@@ -650,14 +656,14 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
         }
 
         // Открыть файл
-        *file = file_open(dirfile->dentry, path, 0, 0);
+        *file = file_open(dirfile->dentry, path, fopen_flag, 0);
         *close_at_end = 1;
     }
 
     if (*file == NULL) {
         // Не получилось открыть файл, выходим
         *close_at_end = 0;
-        if (flags & DIRFD_IS_FD) {
+        if (flags & AT_EMPTY_PATH) {
             return -ERROR_BAD_FD;
         } else {
             return -ERROR_NO_FILE;

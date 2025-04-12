@@ -146,19 +146,27 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
 
     if (result != NULL && ((result->d_inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK))
     {
-        if (((flags & O_NOFOLLOW) == O_NOFOLLOW) && (flags & O_PATH) == 0)
+        // Это символьная ссылка
+
+        if (((flags & O_NOFOLLOW) == O_NOFOLLOW))
         {
-            return NULL;
+            if ((flags & O_PATH) == O_PATH)
+            {
+                return result;
+            } 
+            else 
+            {
+                return NULL;
+            }
         }
 
-        // Это символьная ссылка
         // Выделить память под путь ссылки
         char* symlink_path = kmalloc(SYMLINK_MAX);
         // Получить путь ссылки
         ssize_t len = inode_readlink(result->d_inode, symlink_path, SYMLINK_MAX - 1); // -1 для учета терминирующего 0
         symlink_path[len] = 0;
-        // Разрезолвить путь символьной ссылки
-        result = vfs_dentry_traverse_path(parent, symlink_path);
+        // Разрезолвить путь символьной ссылки (без NOFOLLOW, PATH)
+        result = vfs_dentry_traverse_path(parent, symlink_path, 0);
         // Освоббодить память
         kfree(symlink_path);
     }
@@ -191,7 +199,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, i
             strncpy(name_temp, path_temp, slash_pos - path_temp);
             // Скипнуть /
             path_temp = slash_pos + 1;
-            // Поискать dentry с именем
+            // Поискать dentry с именем (флаги не передаются, так как участвуют только при поиске последнего звена)
             current = resolve_next_dentry(current->sb, current, name_temp, 0);
 
             // Убедимся что это директория

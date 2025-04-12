@@ -22,12 +22,13 @@ struct superblock* vfs_get_mounted_sb(int index);
 //Функции файловой системы
 
 struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry** dentry);
+struct inode* vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, int flags);
 
 struct inode* vfs_fopen_parent(struct dentry* child);
 
 struct dentry* vfs_get_root_dentry();
 
-struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path);
+struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path, int flags);
 
 void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
 

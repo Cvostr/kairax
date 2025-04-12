@@ -16,6 +16,7 @@
 #define FILE_OPEN_FLAG_CREATE       0100 // O_CREAT
 #define O_CREAT                     0100
 #define O_EXCL		                0200
+#define O_NOCTTY	                0400
 #define FILE_OPEN_FLAG_TRUNCATE     00001000
 #define FILE_OPEN_FLAG_APPEND       00002000
 #define FILE_OPEN_FLAG_DIRECTORY    00200000
@@ -29,7 +30,8 @@
 #define SEEK_END 2
 
 #define FD_CWD		-2
-#define DIRFD_IS_FD  0x1000
+#define AT_EMPTY_PATH  0x1000
+#define AT_SYMLINK_NOFOLLOW	0x100
 
 struct file;
 
@@ -50,7 +52,6 @@ struct file {
     struct inode*           inode;
     struct dentry*          dentry;
     struct file_operations* ops;
-    //int                     mode;
     int                     flags;
     loff_t                  pos;
     void*                   private_data;
