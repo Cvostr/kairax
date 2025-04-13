@@ -187,6 +187,11 @@ struct inode* vfs_fopen_parent(struct dentry* child)
 
 struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path, int flags)
 {
+    return vfs_dentry_traverse_path_ex(parent, path, flags, 0);
+}
+
+struct dentry* vfs_dentry_traverse_path_ex(struct dentry* parent, const char* path, int flags, int depth)
+{
     if (path == NULL) {
         return parent;
     }
@@ -205,7 +210,7 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path,
         return NULL;
     }
 
-    return dentry_traverse_path(parent, path, flags);
+    return dentry_traverse_path(parent, path, flags, depth);
 }
 
 void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)

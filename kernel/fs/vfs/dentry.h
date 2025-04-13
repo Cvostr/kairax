@@ -39,7 +39,7 @@ int dentry_is_child(struct dentry* d1, struct dentry* d2);
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name);
 
-struct dentry* dentry_traverse_path(struct dentry* p_dentry, const char* path, int flags);
+struct dentry* dentry_traverse_path(struct dentry* p_dentry, const char* path, int flags, int depth);
 
 void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
 

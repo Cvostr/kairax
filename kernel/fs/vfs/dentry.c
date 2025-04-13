@@ -6,6 +6,9 @@
 #include "inode.h"
 #include "vfs.h"
 
+#define SYMLINK_MAX_DEPTH 9
+#define SYMLINK_PATH_BUFFER_MAX 512
+
 struct dentry* new_dentry()
 {
     struct dentry* result = kmalloc(sizeof(struct dentry));
@@ -137,9 +140,7 @@ exit:
     return result;
 }
 
-#define SYMLINK_MAX 1024
-
-struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char* name, int flags)
+struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char* name, int flags, int depth)
 {
     // dentry из суперблока
     struct dentry* result = superblock_get_dentry(sb, parent, name);
@@ -148,25 +149,35 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
     {
         // Это символьная ссылка
 
+        // Если глубина вхождения достаточно большая, то мы скорее всего зациклились
+        if (depth == SYMLINK_MAX_DEPTH)
+        {
+            // Выйдем, чтобы не зациклиться и не переполнить стек
+            // TODO: ELOOP
+            return NULL;
+        }
+
         if (((flags & O_NOFOLLOW) == O_NOFOLLOW))
         {
             if ((flags & O_PATH) == O_PATH)
             {
+                // O_NOFOLLOW | O_NOFOLLOW - вернем dentry самой ссылки
                 return result;
             } 
             else 
             {
+                // TODO: ELOOP
                 return NULL;
             }
         }
 
         // Выделить память под путь ссылки
-        char* symlink_path = kmalloc(SYMLINK_MAX);
+        char* symlink_path = kmalloc(SYMLINK_PATH_BUFFER_MAX);
         // Получить путь ссылки
-        ssize_t len = inode_readlink(result->d_inode, symlink_path, SYMLINK_MAX - 1); // -1 для учета терминирующего 0
+        ssize_t len = inode_readlink(result->d_inode, symlink_path, SYMLINK_PATH_BUFFER_MAX - 1); // -1 для учета терминирующего 0
         symlink_path[len] = 0;
         // Разрезолвить путь символьной ссылки (без NOFOLLOW, PATH)
-        result = vfs_dentry_traverse_path(parent, symlink_path, 0);
+        result = vfs_dentry_traverse_path_ex(parent, symlink_path, 0, depth + 1);
         // Освоббодить память
         kfree(symlink_path);
     }
@@ -174,7 +185,7 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
     return result;
 }
 
-struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, int flags)
+struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth)
 {
     struct dentry* current = p_parent;
 
@@ -200,7 +211,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, i
             // Скипнуть /
             path_temp = slash_pos + 1;
             // Поискать dentry с именем (флаги не передаются, так как участвуют только при поиске последнего звена)
-            current = resolve_next_dentry(current->sb, current, name_temp, 0);
+            current = resolve_next_dentry(current->sb, current, name_temp, 0, depth);
 
             // Убедимся что это директория
             if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
@@ -217,7 +228,7 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, i
             // Больше нет разделителей /
             strncpy(name_temp, path_temp, strlen(path_temp));
             // Разрезолвить последний компонент пути
-            current = resolve_next_dentry(current->sb, current, name_temp, flags);
+            current = resolve_next_dentry(current->sb, current, name_temp, flags, depth);
             break;
         }
     }

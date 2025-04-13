@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     int srcfd = open(src, O_RDONLY, 0);
 
     if (srcfd == -1) {
-        printf("Can't open file %s", src);
+        printf("Can't open file %s\n", src);
         return 2;
     }
 
