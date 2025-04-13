@@ -146,7 +146,7 @@ void debug_print_inodes(struct superblock* sb)
 
         node = (struct inode*)current->element;
 
-        printk("INODE %i, refs: %i, links %i\n", node->inode, node->reference_count, node->hard_links);
+        printk("INODE %i, refs: %i, links %i, mode %i\n", node->inode, node->reference_count, node->hard_links, node->mode);
             
         // Переход на следующий элемент
         current = current->next;

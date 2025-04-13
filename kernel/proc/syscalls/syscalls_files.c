@@ -15,6 +15,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     int fd = -1;
     struct dentry* dir_dentry = NULL;
     struct process* process = cpu_get_current_thread()->process;
+    struct file* file = NULL;
 
     VALIDATE_USER_POINTER(process, path, strlen(path))
 
@@ -27,11 +28,11 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     }
 
     // Открыть файл в ядре
-    struct file* file = file_open(dir_dentry, path, flags, mode);
+    fd = file_open_ex(dir_dentry, path, flags, mode, &file);
 
-    if (file == NULL) {
-        // Файл не найден
-        fd = -ERROR_NO_FILE;
+    if (fd != 0) 
+    {
+        // Ошибка, код уже записан в fd, так что сразу просто выходим
         goto exit;
     }
 

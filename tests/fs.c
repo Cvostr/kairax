@@ -28,6 +28,7 @@ int main(int argc, char** argv)
     struct stat file_stat;
     int fd, rc;
     int old_links;
+    ino_t file_inode;
 
     rc = stat(".", &file_stat);
     old_links = file_stat.st_nlink;
@@ -69,6 +70,8 @@ int main(int argc, char** argv)
         printf("Failed stat() for %s, errno = %i\n", testfile, errno);
         return 6;
     }
+    file_inode = file_stat.st_ino;
+    printf("New file inode num is %i\n", file_inode);
     perm = file_stat.st_mode & 0777;
     if (perm != TESTFILE_PERM) {
         printf("Invalid perm for %s, expected %i, got %i\n", testfile, TESTFILE_PERM, perm);
@@ -80,6 +83,10 @@ int main(int argc, char** argv)
     if (rc != -1) {
         printf("Successful open() with O_EXCL of %s, Something wrong\n", testfile);
         return 6;
+    }
+    if (errno != EEXIST) {
+        printf("Incorrect errno(), expected %i, got %i\n", EEXIST, errno);
+        return 199;
     }
 
     close(fd);
@@ -151,6 +158,11 @@ int main(int argc, char** argv)
     rc = stat(testfile2, &file_stat);
     if (rc == -1) {
         printf("Failed stat() for %s, errno = %i\n", testfile2, errno);
+        return 17;
+    }
+    if (file_stat.st_ino != file_inode)
+    {
+        printf("Inode number changed after renamin from %i to %i\n", file_inode, file_stat.st_ino);
         return 17;
     }
 

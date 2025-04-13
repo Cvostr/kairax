@@ -66,6 +66,7 @@ int file_allow_write(struct file* file);
 struct file* new_file();
 
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode);
+int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, struct file** pfile);
 
 void file_acquire(struct file* file);
 void file_close(struct file* file);

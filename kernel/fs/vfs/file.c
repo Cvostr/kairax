@@ -113,30 +113,44 @@ exit:
 
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode)
 {
+    struct file* result = NULL;
+    file_open_ex(dir, path, flags, mode, &result);
+    return result;
+}
+
+int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, struct file** pfile)
+{
     struct dentry* dentry;
     struct inode* inode = vfs_fopen_ex(dir, path, &dentry, flags);
+    int rc = 0;
 
     if (!inode) {
         // Файл не найден
-        if (flags & FILE_OPEN_FLAG_CREATE) {
+        if (flags & FILE_OPEN_FLAG_CREATE) 
+        {
             // Создаем новый файл
-            if (mkfile(dir, path, mode) != 0)
-                return NULL;
+            rc = mkfile(dir, path, mode);
+            if (rc != 0)
+            {
+                return rc;
+            }
 
             // Файл создан, открываем его
             inode = vfs_fopen_ex(dir, path, &dentry, flags);
-            if (inode == NULL) {
-                return NULL;
+            if (inode == NULL) 
+            {
+                return -ERROR_NO_FILE;
             }
 
-        } else {
-
-            return NULL;
+        } else 
+        {
+            return -ERROR_NO_FILE;
         }
     } else if ((flags & (O_EXCL| O_CREAT)) == (O_EXCL | O_CREAT)) 
     {
-        // TODO: вернуть код ошибки
-        return NULL;
+        DENTRY_CLOSE_SAFE(dentry)
+        INODE_CLOSE_SAFE(inode)
+        return -EEXIST;
     }
 
     struct file* file = new_file();
@@ -150,8 +164,10 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
     {
         file->ops->open(inode, file);
     }
+
+    *pfile = file;
     
-    return file;
+    return 0;
 }
 
 ssize_t file_read(struct file* file, size_t size, char* buffer)
