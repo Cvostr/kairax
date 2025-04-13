@@ -140,7 +140,6 @@ struct superblock* vfs_get_mounted_sb(int index)
 
 struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry** dentry)
 {
-    //return vfs_fopen_ex(parent, path, dentry, (O_NOFOLLOW | O_PATH));
     return vfs_fopen_ex(parent, path, dentry, 0);
 }
 

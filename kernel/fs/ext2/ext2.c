@@ -481,6 +481,11 @@ skip_block_purge:
     ext2_rem_inode->size = 0;
     ext2_rem_inode->num_blocks = 0;
 
+    // Запишем deletion time, равный текущему времени
+    struct timeval current_time;
+    sys_get_time_epoch(&current_time);
+    ext2_rem_inode->dtime = current_time.tv_sec;
+
     // Перезапись
     ext2_write_inode_metadata(inst, ext2_rem_inode, inode->inode);
 

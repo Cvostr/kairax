@@ -81,9 +81,9 @@ void split_path(const char* path, char** directory_path_ptr, char** filename_ptr
     }
 }
 
-int mkfile(struct dentry* dir, const char* path, int mode) {
-
-    int result = 0;
+int mkfile(struct dentry* dir, const char* path, int mode) 
+{
+    int rc = 0;
     char* directory_path = NULL;
     char* filename = NULL;
 
@@ -93,21 +93,22 @@ int mkfile(struct dentry* dir, const char* path, int mode) {
     // Открываем inode директории
     struct inode* dir_inode = vfs_fopen(dir, directory_path, NULL);
 
-    if (dir_inode == NULL) {
+    if (dir_inode == NULL) 
+    {
         // Отсутствует полный путь к директории
+        rc = -ENOENT;
         goto exit;
     }
 
     // Создать файл
-    int rc = inode_mkfile(dir_inode, filename, mode);
+    rc = inode_mkfile(dir_inode, filename, mode);
     inode_close(dir_inode);
-    result = 1;
 
 exit:
     if (directory_path)
         kfree(directory_path);
     
-    return result;
+    return rc;
 }
 
 struct file* file_open(struct dentry* dir, const char* path, int flags, int mode)
@@ -119,7 +120,7 @@ struct file* file_open(struct dentry* dir, const char* path, int flags, int mode
         // Файл не найден
         if (flags & FILE_OPEN_FLAG_CREATE) {
             // Создаем новый файл
-            if (!mkfile(dir, path, mode))
+            if (mkfile(dir, path, mode) != 0)
                 return NULL;
 
             // Файл создан, открываем его
