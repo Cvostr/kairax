@@ -49,11 +49,14 @@ void sys_exit_thread(int code)
     struct thread* thr = cpu_get_current_thread();
     thr->code = code;
 
+    // Уничтожить данные потока
+    thread_clear_stack_tls(thr);
+
     // Данная операция должна выполниться атомарно
     disable_interrupts();
     // Убрать поток из списка планировщика
     scheduler_remove_thread(thr);
-    // После этого Данные потока можно безопасно уничтожить
+    // После этого сделать поток зомби
     thread_become_zombie(thr);
 
     // Разбудить потоки, ждущие pid

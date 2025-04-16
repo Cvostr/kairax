@@ -24,10 +24,12 @@ struct thread {
     struct thread*      waiter;
     // Адрес вершины стека пользователя
     void*               stack_ptr;
+    struct mmap_range*  stack_mapping;
     // Адрес вершины стека ядра
     void*               kernel_stack_ptr;
     // Адрес локальной памяти потока (TLS)
     void*               tls;
+    struct mmap_range*  tls_mapping;
     // Указатель на объект процесса
     struct process*     process;
     // Указатель на сохраненные данные контекста
@@ -64,6 +66,7 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
 struct thread* create_thread(struct process* process, void* entry, void* arg1, int stack_size, struct main_thread_create_info* info);
 void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_info* info);
 
+void thread_clear_stack_tls(struct thread* thread);
 void thread_become_zombie(struct thread* thread);
 void thread_destroy(struct thread* thread);
 

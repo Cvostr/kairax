@@ -7,6 +7,7 @@
 #include "errno.h"
 #include "spawn.h"
 #include "threads.h"
+#include "kairax.h"
 
 void thr1() {
     for (int i = 0; i < 3; i ++) {
@@ -88,6 +89,9 @@ int main(int argc, char** argv) {
     rc = waitpid(tpi, &status, 0);
     printf("THREAD FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);
 
+    struct meminfo pre, post;
+    rc = KxGetMeminfo(&pre);
+
     pid_t pids[THREADS];
     for (int i = 0; i < THREADS; i ++) {
         pids[i] = create_thread(thr2, i);
@@ -96,7 +100,11 @@ int main(int argc, char** argv) {
     for (int i = 0; i < THREADS; i ++) {
         rc = waitpid(pids[i], &status, 0);
     }
+
+    rc = KxGetMeminfo(&post);
+
     printf("RESULT IS %s\n", buff);
+    printf("pre_mem = %i, post_mem = %i\n", pre.mem_used, post.mem_used);
 
     FILE* tsf = fopen("bugaga.txt", "r");
     if (tsf == NULL) {

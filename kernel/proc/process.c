@@ -207,7 +207,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     return 0;
 }
 
-void* process_alloc_stack_memory(struct process* process, size_t stack_size, int need_map)
+struct mmap_range* process_alloc_stack_memory(struct process* process, size_t stack_size, int need_map)
 {
     // Создаем внизу защитную область в размере страницы
     // Чтобы при попытке взаимодействия завершить программу с SIGSEGV
@@ -233,9 +233,7 @@ void* process_alloc_stack_memory(struct process* process, size_t stack_size, int
         }
     }
 
-    // Результат - вершина стека
-    void* result = mem_begin + stack_size;
-    return result;
+    return range;
 }
 
 uintptr_t process_brk(struct process* process, uint64_t addr)

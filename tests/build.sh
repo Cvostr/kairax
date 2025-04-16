@@ -5,7 +5,7 @@ mkdir -p obj
 mkdir -p bin
 
 gcc $ARGS sysc.c -o obj/sysc.o
-ld $LD_ARGS -o bin/sysc.a obj/sysc.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+ld $LD_ARGS -o bin/sysc.a obj/sysc.o ../sdk/crt/entry.o -L../sdk/libc/ -L../sdk/libkairax/ -lc -lerrno -lkairax
 
 gcc $ARGS sysn.c -o obj/sysn.o
 ld $LD_ARGS -o bin/sysn.a obj/sysn.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

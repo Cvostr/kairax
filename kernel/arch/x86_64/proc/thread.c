@@ -75,7 +75,9 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
     if (create_stack) {
         // Выделить место под стек в памяти процесса
         int map_stack = (info != NULL) ? TRUE : FALSE;
-        thread->stack_ptr = process_alloc_stack_memory(process, stack_size, map_stack);
+
+        thread->stack_mapping = process_alloc_stack_memory(process, stack_size, map_stack);
+        thread->stack_ptr = (thread->stack_mapping->base + thread->stack_mapping->length);
     }
     
     // Выделить память под стек ядра
@@ -126,7 +128,8 @@ void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_
     strcpy(thread->name, process->name);
     strcat(thread->name, "#");
 
-    thread->stack_ptr = process_alloc_stack_memory(process, STACK_SIZE, 1);
+    thread->stack_mapping = process_alloc_stack_memory(process, STACK_SIZE, 1);
+    thread->stack_ptr = (thread->stack_mapping->base + thread->stack_mapping->length);
 
     thread_create_tls(thread);
     // Надо сразу применить новый указатель TLS
@@ -166,7 +169,31 @@ void thread_create_tls(struct thread* thread)
 
         // Копировать данные структуры
         vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
+
+        // Сохранить структуру диапазона
+        thread->tls_mapping = range;
     }
+}
+
+void thread_clear_stack_tls(struct thread* thread)
+{
+    // Освободить стековую и TLS память
+    struct mmap_range* stack_region = thread->stack_mapping;
+    struct mmap_range* tls_region = thread->tls_mapping;
+
+    // Удалить регионы из списка
+    acquire_spinlock(&thread->process->mmap_lock);
+    list_remove(thread->process->mmap_ranges, stack_region);
+    list_remove(thread->process->mmap_ranges, tls_region);
+    release_spinlock(&thread->process->mmap_lock);
+
+    // Освободить память
+    vm_table_unmap_region(thread->process->vmemory_table, stack_region->base, stack_region->length);
+    vm_table_unmap_region(thread->process->vmemory_table, tls_region->base, tls_region->length);
+    
+    // Удалить объект структуры
+    mmap_region_unref(stack_region);
+    mmap_region_unref(tls_region);
 }
 
 void thread_add_main_thread_info(struct thread* thread, struct main_thread_create_info* info)
