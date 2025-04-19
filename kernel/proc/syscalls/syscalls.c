@@ -134,8 +134,9 @@ pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
         return -1;
     }
 
-    if (stack_size > STACK_MAX_SIZE) {
-        stack_size = STACK_MAX_SIZE;
+    if (stack_size > MAX_STACK_SIZE) 
+    {
+        stack_size = MAX_STACK_SIZE;
     }
 
     scheduler_add_thread(thread);

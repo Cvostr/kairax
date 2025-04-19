@@ -4,8 +4,8 @@
 #include "kairax/types.h"
 #include "process.h"
 
-#define STACK_SIZE (4096 * 2)
-#define STACK_MAX_SIZE 65536
+#define DEFAULT_STACK_SIZE (4096 * 100)
+#define MAX_STACK_SIZE DEFAULT_STACK_SIZE
 
 #include "blocker.h"
 

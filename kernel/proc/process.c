@@ -225,10 +225,16 @@ struct mmap_range* process_alloc_stack_memory(struct process* process, size_t st
     range->flags = MAP_STACK;
     process_add_mmap_region(process, range);
 
-    // Замапить страницы, если необходимо
+    // Замапить верхнюю страницу, если необходимо
     // Пропускаем первую защитную страницу
-    if (need_map == TRUE) {
-        for (uintptr_t address = mem_begin + PAGE_SIZE; address < mem_begin + stack_size; address += PAGE_SIZE) {
+    // Это надо чтобы сложить AUX вектор в стек при запуске программы
+    if (need_map == TRUE) 
+    {
+        uintptr_t stack_top = mem_begin + stack_size; 
+        uintptr_t top_addr = stack_top - PAGE_SIZE;
+
+        for (uintptr_t address = top_addr; address < stack_top; address += PAGE_SIZE) 
+        {
             vm_table_map(process->vmemory_table, address, pmm_alloc_page(), range->protection);
         }
     }

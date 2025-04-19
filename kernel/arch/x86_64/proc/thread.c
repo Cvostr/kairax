@@ -58,8 +58,8 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
 
     int create_stack = stack_size >= 0;
 
-    if (stack_size < STACK_SIZE) {
-        stack_size = STACK_SIZE;
+    if (stack_size < PAGE_SIZE) {
+        stack_size = PAGE_SIZE;
     }
 
     // Создать объект потока в памяти
@@ -128,7 +128,7 @@ void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_
     strcpy(thread->name, process->name);
     strcat(thread->name, "#");
 
-    thread->stack_mapping = process_alloc_stack_memory(process, STACK_SIZE, 1);
+    thread->stack_mapping = process_alloc_stack_memory(process, DEFAULT_STACK_SIZE, 1);
     thread->stack_ptr = (thread->stack_mapping->base + thread->stack_mapping->length);
 
     thread_create_tls(thread);
