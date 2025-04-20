@@ -78,7 +78,6 @@ int sys_sysinfo(int request, char* buffer, size_t bufsize)
         case SYSINFO_CPUINFO:
             if (bufsize != sizeof(struct cpuinfo))
             {
-                printf("Diff %i %i\n", bufsize, sizeof(struct cpuinfo));
                 return -ERROR_RANGE;
             }
             struct cpuinfo* cpuinf = (struct cpuinfo*) buffer;

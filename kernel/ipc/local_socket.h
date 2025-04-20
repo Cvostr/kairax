@@ -11,12 +11,14 @@
 
 struct local_socket {
     char path[LOCAL_PATH_MAX];
+    struct inode* bound_inode;
 
     uint32_t backlog_sz;  
     list_t backlog;
     spinlock_t backlog_lock;
 
     list_t rx_queue;
+    size_t rx_available;
     spinlock_t rx_queue_lock;
 
     struct blocker backlog_blk;
@@ -28,6 +30,7 @@ struct local_socket {
     struct socket* peer;
     // Признак того, что соединение со стороны сервера было принято
     int connection_accepted;
+    int peer_disconnected;
 };
 
 struct sockaddr_un {

@@ -7,6 +7,7 @@
 #include "fs/vfs/file.h"
 #include "proc/thread_scheduler.h"
 #include "stdio.h"
+#include "kairax/kstdlib.h"
 
 struct socket_family local_sock_family = {
     .family = AF_LOCAL,
@@ -35,6 +36,7 @@ struct socket_prot_ops local_dgram_ops = {
 int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)
 {
     int rc = 0;
+    struct file* file = NULL;
 
     if (addrlen < sizeof(sa_family_t)) {
         return -EINVAL;
@@ -64,7 +66,7 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
     {
         printk("Opening file %s\n", addr_un->sun_path);
         // Открыть файл в ядре
-        struct file* file = file_open(NULL, addr_un->sun_path, 0, 0);
+        file = file_open(NULL, addr_un->sun_path, 0, 0);
         if (file == NULL) 
         {
             // Файл не найден - создаем через mknod()
@@ -75,11 +77,18 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
             }
 
             // Открыть файл
-            file = file_open(NULL, addr_un->sun_path, 0, 0);
+            rc = file_open_ex(NULL, addr_un->sun_path, 0, 0, &file);
+            if (file == NULL)
+            {
+                return rc;
+            }
 
-            // Запонить указатель на сокет в private_data
+            // Запомнить указатель на сокет в private_data
             inode_open((struct inode*) sock, 0);
             file->inode->private_data = sock;
+
+            inode_open(file->inode, 0);
+            lsock->bound_inode = file->inode;
 
             // Закрыть файл
             file_close(file);
@@ -132,10 +141,11 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     // Создание сокета клиента
     struct socket* client_pair_sock = new_socket();
     local_sock_create(client_pair_sock, sock->type, sock->protocol);
+    client_pair_sock->state = SOCKET_STATE_CONNECTED;
     struct local_socket* client_pair_sock_data = (struct local_socket*) client_pair_sock->data;
     // Установка пира для клиентского сокета со стороны сервера
     client_pair_sock_data->peer = client_sock;
-    inode_open((struct inode*) client_pair_sock, 0);
+    inode_open((struct inode*) client_sock, 0);
 
     // Установить пира для клиента
     client_sock_data->peer = client_pair_sock;
@@ -143,15 +153,18 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     // Разбудить поток, ожидающий подключения
     client_sock_data->connection_accepted = 1;
     scheduler_wake(&client_sock_data->connect_blk, 1);
-    
-    printk("ACCEPTED\n");
+
+    *newsock = client_pair_sock;
+
+    // Уменьшить счетчик ссылок, т.к мы вытащили иноду из очереди
+    inode_close((struct inode*) client_sock);
 
     return 0;
 }
 
 int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
 {
-    if (sock->state == SOCKET_STATE_UNCONNECTED)
+    if (sock->state != SOCKET_STATE_UNCONNECTED)
     {
         return -EISCONN;
     }
@@ -204,7 +217,7 @@ int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr
         goto exit;
     }
 
-    sock->state == SOCKET_STATE_CONNECTED;
+    sock->state = SOCKET_STATE_CONNECTED;
 
 exit:
     file_close(file);
@@ -238,11 +251,55 @@ exit:
 int sock_local_close(struct socket* sock)
 {
     printk("Local sock: close()\n");
+
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+
+    struct socket* peer = sock_data->peer;
+    if (peer != NULL)
+    {
+        struct local_socket* peer_data = (struct local_socket*) peer->data;
+        peer_data->peer_disconnected = 1;
+        
+        sock_data->peer = NULL;
+        inode_close((struct inode*) peer);
+
+        peer_data->peer = NULL;
+        inode_close((struct inode*) sock);
+
+        peer->state = SOCKET_STATE_UNCONNECTED;
+
+        scheduler_wake(&peer_data->rx_blk, INT_MAX);
+    }
+
+    // Очистить остатки буфера приема
+    acquire_spinlock(&sock_data->rx_queue_lock);
+    struct local_sock_bucket* current; 
+    while ((current = list_dequeue(&sock_data->rx_queue)) != NULL)
+    {
+        kfree(current);
+    }
+    release_spinlock(&sock_data->rx_queue_lock);
+
+    if (sock_data->bound_inode != NULL)
+    {
+        inode_close((struct inode*) sock_data->bound_inode->private_data);
+        sock_data->bound_inode->private_data = NULL;
+
+        inode_close(sock_data->bound_inode);
+    }
+
+    kfree(sock_data);
+
     return 0;
 }
 
 int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
+    if (sock->state != SOCKET_STATE_CONNECTED)
+    {
+        return -ENOTCONN;
+    }
+
     struct local_socket* sock_data = (struct local_socket*) sock->data;
     // Выделим память сразу и под заголовок и под данные
     unsigned char* bucket = kmalloc(sizeof(struct local_sock_bucket) + len);
@@ -257,8 +314,10 @@ int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flag
     // Добавить сообщение в очередь приема пира
     struct socket* peer = sock_data->peer;
     struct local_socket* peer_data = (struct local_socket*) peer->data;
+    
     acquire_spinlock(&peer_data->rx_queue_lock);
     list_add(&peer_data->rx_queue, header);
+    peer_data->rx_available += len;
     release_spinlock(&peer_data->rx_queue_lock);
 
     // Разбудить одного ожидающего приема
@@ -269,7 +328,75 @@ int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flag
 
 ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
-    return 0;
+    ssize_t readed = 0;
+
+    if (sock->state != SOCKET_STATE_CONNECTED)
+    {
+        return -ENOTCONN;
+    }
+
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+    struct local_sock_bucket* rcv_buffer = list_head(&sock_data->rx_queue);
+
+    if (rcv_buffer == NULL) 
+    {
+        // неблокирующее чтение
+        if ((flags & MSG_DONTWAIT) == MSG_DONTWAIT)
+        {
+            return -EAGAIN;
+        }
+
+        if (rcv_buffer == NULL) 
+        {
+            // Ожидание пакета
+            scheduler_sleep_on(&sock_data->rx_blk);
+
+            // Пробуем получить первый пакет
+            rcv_buffer = list_head(&sock_data->rx_queue);
+
+            if (rcv_buffer == NULL)
+            {
+                if (sock->state != SOCKET_STATE_CONNECTED && sock_data->peer_disconnected == 1)
+                {
+                    // Все данные считаны и сокет закрыт пиром через FIN
+                    return 0;
+                }
+                else  
+                {
+                    // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
+                    return -EINTR;
+                }
+            }
+        }
+    }
+
+    acquire_spinlock(&sock_data->rx_queue_lock);
+
+    size_t readable = MIN(len, sock_data->rx_available);
+
+    while (readed < readable)
+    {
+        size_t remain = readable - readed;
+
+        rcv_buffer = list_head(&sock_data->rx_queue);
+        size_t available_in_bucket = rcv_buffer->size - rcv_buffer->offset;
+        size_t readable_from_bucket = MIN(available_in_bucket, remain);
+        memcpy(buf + readed, rcv_buffer->data + rcv_buffer->offset, readable_from_bucket);
+
+        rcv_buffer->offset += readable_from_bucket;
+        readed += readable_from_bucket;
+        sock_data->rx_available -= readable_from_bucket;
+
+        if (rcv_buffer->size - rcv_buffer->offset == 0)
+        {
+            list_remove(&sock_data->rx_queue, rcv_buffer);
+            kfree(rcv_buffer);
+        }
+    }
+
+    release_spinlock(&sock_data->rx_queue_lock);
+
+    return readed;
 }
 
 
