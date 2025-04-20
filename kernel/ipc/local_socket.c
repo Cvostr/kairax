@@ -261,6 +261,7 @@ int sock_local_close(struct socket* sock)
     struct socket* peer = sock_data->peer;
     if (peer != NULL)
     {
+        // Отсоединяем пира
         struct local_socket* peer_data = (struct local_socket*) peer->data;
         peer_data->peer_disconnected = 1;
         
@@ -293,6 +294,25 @@ int sock_local_close(struct socket* sock)
 
         inode_close(sock_data->bound_inode);
     }
+
+    if (sock->state == SOCKET_STATE_LISTEN)
+    {
+        // В очереди на прием соединения могут остаться сокеты
+        acquire_spinlock(&sock_data->backlog_lock);
+        struct socket* current_peer; 
+        while ((current_peer = list_dequeue(&sock_data->backlog)) != NULL)
+        {
+            struct local_socket* peer_sock_data = (struct local_socket*) current_peer->data;
+            // Будим поток, ожидающий подключения
+            scheduler_wake(&peer_sock_data->connect_blk, INT_MAX);
+            // Снижаем счетчик ссылок на сокет
+            inode_close((struct inode*) current_peer);
+        }
+
+        release_spinlock(&sock_data->backlog_lock);
+    }
+
+    sock->state = SOCKET_STATE_UNCONNECTED;
 
     kfree(sock_data);
 

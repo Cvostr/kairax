@@ -14,6 +14,13 @@ int server();
 
 int main(int argc, char** argv)
 {
+    int srv_mode = 0;
+
+    if (argc > 1 && strcmp(argv[1], "noacc") == 0)
+    {
+        srv_mode = 1;
+    }
+
     srand(time(NULL));
     pid_t client_pid = fork();
 
@@ -24,7 +31,7 @@ int main(int argc, char** argv)
         exit(0);
     }
 
-    int rc = server();
+    int rc = server(srv_mode);
 
     int clrc = 0;
     waitpid(client_pid, &clrc, 0);
@@ -32,7 +39,7 @@ int main(int argc, char** argv)
     return rc;
 }
 
-int server()
+int server(int mode)
 {
     int srv_sockfd;
 
@@ -63,18 +70,12 @@ int server()
         return -1;
 	}
 
-    /*while (1) 
+    if (mode == 1)
     {
-        struct sockaddr_un client_addr;
-        int client_addr_len = sizeof(struct sockaddr_un);
-        int client_sock = accept(srv_sockfd, &client_addr, &client_addr_len);
-        if (client_sock == -1) {
-            perror("server: accept()");
-            continue;
-        }
-
-        printf("Connected client!\n");
-    }*/
+        sleep(3);
+        close(srv_sockfd);
+        goto exit;
+    }
 
     struct sockaddr_un client_addr;
     int client_addr_len = sizeof(struct sockaddr_un);
@@ -93,6 +94,7 @@ int server()
         send(client_sock, buf, readed, 0);
     }
 
+exit:
     printf("Server closing \n");
 
     return 0;

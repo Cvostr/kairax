@@ -33,6 +33,9 @@ void cd(const char* path)
     sys_set_working_dir(path);
 }
 
+uint64_t last_pmm_used_pages = 0;
+uint64_t last_total_used_bytes = 0;
+
 void bootshell_process_cmd(char* cmdline) 
 {
     int argc = 1;
@@ -258,8 +261,11 @@ void bootshell_process_cmd(char* cmdline)
                                                                         partition->start_lba, partition->sectors);
 	    }
     }
-    if(strcmp(cmdline, "mem") == 0){
-        printf_stdout("Physical mem used pages : %i\n", pmm_get_used_pages());
+    if(strcmp(cmdline, "mem") == 0)
+    {
+        uint64_t pmm_used_pages = pmm_get_used_pages();
+        printf_stdout("Physical mem used pages : %i (%i)\n", pmm_used_pages, pmm_used_pages - last_pmm_used_pages);
+        last_pmm_used_pages = pmm_used_pages;
 
         uint64_t total_free_bytes = 0;
         uint64_t total_used_bytes = 0;
@@ -274,7 +280,9 @@ void bootshell_process_cmd(char* cmdline)
             current_item = current_item->next;
         }
         printf_stdout("Kheap free space: %i\n", total_free_bytes);
-        printf_stdout("Kheap used space: %i\n", total_used_bytes);
+        printf_stdout("Kheap used space: %i (%i)\n", total_used_bytes, total_used_bytes - last_total_used_bytes);
+
+        last_total_used_bytes = total_used_bytes;
     }
     if (strcmp(cmdline, "acpi") == 0) {
         printf_stdout("ACPI OEM = %s\n", acpi_get_oem_str());
