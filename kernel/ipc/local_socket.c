@@ -9,6 +9,8 @@
 #include "stdio.h"
 #include "kairax/kstdlib.h"
 
+//#define LOCAL_SOCK_LOG_CLOSE
+
 struct socket_family local_sock_family = {
     .family = AF_LOCAL,
     .create = local_sock_create
@@ -250,7 +252,9 @@ exit:
 
 int sock_local_close(struct socket* sock)
 {
+#ifdef LOCAL_SOCK_LOG_CLOSE
     printk("Local sock: close()\n");
+#endif
 
     struct local_socket* sock_data = (struct local_socket*) sock->data;
 
@@ -268,6 +272,7 @@ int sock_local_close(struct socket* sock)
 
         peer->state = SOCKET_STATE_UNCONNECTED;
 
+        // Разбудить ожидающих приема данных от пира
         scheduler_wake(&peer_data->rx_blk, INT_MAX);
     }
 
@@ -280,6 +285,7 @@ int sock_local_close(struct socket* sock)
     }
     release_spinlock(&sock_data->rx_queue_lock);
 
+    // Освободить память под inode файла сокета
     if (sock_data->bound_inode != NULL)
     {
         inode_close((struct inode*) sock_data->bound_inode->private_data);
@@ -379,16 +385,21 @@ ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, i
         size_t remain = readable - readed;
 
         rcv_buffer = list_head(&sock_data->rx_queue);
+        // Сколько осталось в пакете
         size_t available_in_bucket = rcv_buffer->size - rcv_buffer->offset;
+        // Сколько можно считать из пакета в буфер
         size_t readable_from_bucket = MIN(available_in_bucket, remain);
+        // Скопировать в буфер приёма
         memcpy(buf + readed, rcv_buffer->data + rcv_buffer->offset, readable_from_bucket);
 
+        // Передвинуть смещения
         rcv_buffer->offset += readable_from_bucket;
         readed += readable_from_bucket;
         sock_data->rx_available -= readable_from_bucket;
 
-        if (rcv_buffer->size - rcv_buffer->offset == 0)
+        if (rcv_buffer->size == rcv_buffer->offset)
         {
+            // Весь пакет прочитан - можно его сносить
             list_remove(&sock_data->rx_queue, rcv_buffer);
             kfree(rcv_buffer);
         }
