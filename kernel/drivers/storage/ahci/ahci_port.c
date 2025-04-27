@@ -244,6 +244,14 @@ int ahci_port_interrupt(ahci_port_t *port)
 {
 	uint32_t is = port->port_reg->is;
 	port->port_reg->is = is;
+
+	uint32_t serr = port->port_reg->serr;
+	port->port_reg->serr = serr;
+
+	if ((serr & 0xFFFF) != 0)
+	{
+		printk("Ahci port serr %i\n", serr);
+	}
 }
 
 int ahci_port_disable(ahci_port_t* port)

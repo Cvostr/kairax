@@ -42,7 +42,7 @@ void ahci_int_handler(interrupt_frame_t* frame, void* data)
 	if (interrupt_pending == 0)
 		return;
 
-	//printk("AHCI %i\n", interrupt_pending);
+	//printk("AHCI Interrupt %i\n", interrupt_pending);
 	for (int i = 0; i < 32; i++) {
 		if (interrupt_pending & (1 << i)) {
 			if (controller->ports[i].implemented) {

@@ -242,6 +242,8 @@ int pci_device_set_msi_vector(struct device* device, uint32_t vector)
 
 		cap_reg = (cap >> 8) & 0xFF;
 	}
+
+	return -2;
 }
 
 char* pci_get_device_name(uint8_t class, uint8_t subclass, uint8_t pif)
