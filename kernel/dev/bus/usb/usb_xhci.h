@@ -18,6 +18,7 @@
 #define XHCI_STS_NOT_READY  	(1 << 11)
 #define XHCI_STS_HCE			(1 << 12) // Host Controller Error
 
+// Port Status
 #define XHCI_PORTSC_CCS			(1) 		// Current Connect Status
 #define XHCI_POSRTSC_PED		(1 << 1) 	// Port Enabled-Disabled
 #define XHCI_PORTSC_OCA			(1 << 3) 	// Overcurrent Active
@@ -25,8 +26,9 @@
 #define XHCI_PORTSC_PORTPOWER	(1 << 9)
 #define XHCI_PORTSC_CSC			(1 << 17)	// Connect Status Change
 #define XHCI_PORTSC_PEC			(1 << 18)	// Port Enable Disable Change
+#define XHCI_PORTSC_WRC			(1 << 19)	// Warm Port Reset Change
 #define XHCI_PORTSC_PRC			(1 << 21)	// Port Reset Change
-#define XHCI_PORTSC_WPR			(1 << 31)	// Port Warm Reset on USB3
+#define XHCI_PORTSC_WPR			(1U << 31)	// Port Warm Reset on USB3
 
 #define XHCI_CR_CYCLE_STATE (1)
 #define XHCI_CR_CMD_STOP 	(1 << 1)
@@ -57,6 +59,22 @@
 #define XHCI_TRB_CONFIGURE_ENDPOINT_CMD	12
 #define XHCI_TRB_GET_PORT_BANDWIDTH_CMD	21
 #define XHCI_TRB_NO_OP_CMD				23
+// TRB events
+#define XHCI_TRB_TRANSFER_EVENT				32
+#define XHCI_TRB_CMD_COMPLETION_EVENT		33
+#define XHCI_TRB_PORT_STATUS_CHANGE_EVENT	34
+#define XHCI_TRB_BANDWIDTH_REQUEST_EVENT	35
+#define XHCI_TRB_DOORBELL_EVENT				36
+#define XHCI_TRB_HOST_CONTROLLER_EVENT		37
+#define XHCI_TRB_DEVICE_NOTIFICATION_EVENT	38
+// TODO: wrap event (39)
+
+
+#define XHCI_LEGACY_SMI_ENABLE               (1 << 0)   // USB SMI Enable
+#define XHCI_LEGACY_SMI_ON_OS_OWNERSHIP      (1 << 13)  // SMI on OS Ownership Enable
+#define XHCI_LEGACY_SMI_ON_HOST_ERROR        (1 << 4)   // SMI on Host System Error
+#define XHCI_LEGACY_SMI_ON_PCI_COMMAND       (1 << 14)  // SMI on PCI Command
+#define XHCI_LEGACY_SMI_ON_BAR               (1 << 15)  // SMI on BAR (Base Address Register)
 
 struct xhci_cap_regs {
 	uint8_t caplen;
@@ -72,7 +90,7 @@ struct xhci_cap_regs {
 } PACKED;
 
 struct xhci_port_regs {
-	uint32_t status;
+	volatile uint32_t status;
 	uint32_t pm_status;
 	uint32_t link_info;
 	uint32_t lpm_control;
@@ -107,12 +125,16 @@ struct xhci_extended_cap {
 
 struct xhci_legacy_support_cap
 {
+	// USBLEGSUP
 	uint32_t capability_id          : 8;
 	uint32_t next_capability        : 8;
 	uint32_t bios_owned_semaphore 	: 1;
-	uint32_t                        : 7;
+	uint32_t rsvdP                  : 7;
 	uint32_t os_owned_semaphore   	: 1;
-	uint32_t                        : 7;
+	uint32_t rsvdP1                 : 7;
+	// USBLEGCTLSTS
+	uint32_t usblegctlsts;
+	
 } PACKED;
 
 struct xhci_protocol_cap {
@@ -150,12 +172,12 @@ struct xhci_runtime_regs {
 // Transfer ring block
 struct xhci_trb {
 
-	uint64_t parameter;
-	uint32_t status;
-
 	union 
 	{
 		struct {
+			uint64_t parameter;
+			uint32_t status;
+
 			uint16_t cycle    	: 1;
 			uint16_t ent      	: 1;	// Evaluate next TRB
 			// Bits
@@ -174,19 +196,38 @@ struct xhci_trb {
 
 		struct 
 		{
+			uint64_t parameter;
+			uint32_t status;
 			uint32_t control;
 		} raw;
 
 		struct 
 		{
+			uint64_t address;
+			uint32_t status;
 			uint16_t cycle    		: 1;
 			uint16_t cycle_enable 	: 1;
 			uint16_t reserved 		: 8;
 			uint16_t type 			: 6;
 			uint16_t reserved2;
 		} link;
+
+		struct
+		{
+			uint32_t rsvd0   : 24;
+			uint32_t port_id : 8;
+
+			uint32_t rsvd1;
+
+			uint32_t rsvd2           : 24;
+        	uint32_t completion_code : 8;
+
+			uint32_t cycle_bit  : 1;
+        	uint32_t rsvd3      : 9;
+        	uint32_t trb_type   : 6;
+        	uint32_t rsvd4      : 16;
+		} port_status_change;
 	};
-	
 } PACKED;
 
 struct xhci_event_ring_seg_table_entry {
@@ -236,12 +277,13 @@ struct xhci_event_ring
 
 struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments);
 int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb);
+void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_ring *ring);
 
 struct xhci_port_desc
 {
-	/*uint8_t revision_major;
+	uint8_t revision_major;
 	uint8_t revision_minor;
-	uint8_t slot_id;*/
+	uint8_t slot_id;
 	struct xhci_protocol_cap* proto_cap;
 	struct xhci_port_regs*  port_regs;
 };
@@ -257,9 +299,6 @@ struct xhci_controller
 	struct xhci_runtime_regs* runtime;
 	union xhci_doorbell_register* doorbell;
 
-	//uintptr_t ersts_phys;
-	//struct xhci_event_ring_seg_table_entry* ersts;
-
 	uint8_t slots;
 	uint8_t ports_num;
 	uint16_t interrupters;
@@ -272,7 +311,6 @@ struct xhci_controller
 	struct xhci_port_desc *ports;
 
 	uintptr_t* dcbaa;
-	//void* event_ring;
 };
 
 void xhci_controller_stop(struct xhci_controller* controller);
@@ -281,8 +319,20 @@ int xhci_controller_start(struct xhci_controller* controller);
 int xhci_controller_check_ext_caps(struct xhci_controller* controller);
 int xhci_controller_init_scratchpad(struct xhci_controller* controller);
 int xhci_controller_init_interrupts(struct xhci_controller* controller, struct xhci_event_ring* event_ring);
-
+void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event);
 void xhci_controller_init_ports(struct xhci_controller* controller);
+
+/// @brief 
+/// @param controller указатель на объект контроллера xhci
+/// @param port_id номер порта (0-255)
+/// @return TRUE при успехе включения, или если устройство уже было включено 
+int xhci_controller_poweron(struct xhci_controller* controller, uint8_t port_id);
+
+/// @brief 
+/// @param controller указатель на объект контроллера xhci
+/// @param port_id номер порта (0-255)
+/// @return TRUE при успехе сброса порта
+int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_id);
 
 void xhci_int_hander();
 

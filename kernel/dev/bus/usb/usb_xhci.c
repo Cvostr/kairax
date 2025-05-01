@@ -109,8 +109,8 @@ int xhci_device_probe(struct device *dev)
     }
 	register_irq_handler(irq, xhci_int_hander, cntrl);
 
-	xhci_controller_init_interrupts(cntrl, cntrl->event_ring);
 	xhci_controller_init_scratchpad(cntrl);
+	xhci_controller_init_interrupts(cntrl, cntrl->event_ring);
 	
 	if ((rc = xhci_controller_start(cntrl)) != 0)
 	{
@@ -161,6 +161,81 @@ void xhci_controller_init_ports(struct xhci_controller* controller)
 	}
 }
 
+int xhci_controller_poweron(struct xhci_controller* controller, uint8_t port_id)
+{
+	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
+
+	if ((port_regs->status & XHCI_PORTSC_PORTPOWER) == XHCI_PORTSC_PORTPOWER)
+	{
+		return TRUE;
+	}
+
+	port_regs->status = XHCI_PORTSC_PORTPOWER;
+	hpet_sleep(20);
+
+	if (!(port_regs->status & XHCI_PORTSC_PORTPOWER))
+	{
+		return FALSE;
+	} 
+	else
+	{
+		return TRUE;
+	}
+}
+
+int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_id)
+{
+	struct xhci_port_desc *port = &controller->ports[port_id];
+	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
+
+	int is_usb3 = port->revision_major == 3;
+
+	if (xhci_controller_poweron(controller, port_id) == FALSE)
+	{
+		return FALSE;
+	}
+
+	// Очистить флаги статуса
+	port_regs->status |= (XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC);
+
+	// Для USB 3.0 можно использовать новомодный Warm Port Reset
+	uint32_t status_reset_flag = is_usb3 ? XHCI_PORTSC_WPR : XHCI_PORTSC_PORTRESET;
+	uint32_t status_reset_expect_flag = is_usb3 ? XHCI_PORTSC_WRC : XHCI_PORTSC_PRC;
+	// Сброс порта
+	port_regs->status |= status_reset_flag;
+
+	uint16_t tries = 100;
+	while ((tries > 0) && ((port_regs->status & status_reset_expect_flag) == 0))
+	{
+		tries--;
+		hpet_sleep(1);
+	}
+	if (tries == 0)
+	{
+		return FALSE;
+	}
+
+	hpet_sleep(3);
+
+	// Очистить флаги статуса
+	uint32_t pstatus = port_regs->status;
+	pstatus |= (XHCI_PORTSC_PRC | XHCI_PORTSC_WRC | XHCI_PORTSC_CSC | XHCI_PORTSC_PEC);
+	// TODO: нужно ли?
+	pstatus &= (~XHCI_POSRTSC_PED);
+	port_regs->status = pstatus;
+
+	hpet_sleep(3);
+
+	// This case could happen when the port has been reset after
+    // a device disconnect event, and no device has connected since.
+	if ((port_regs->status & XHCI_POSRTSC_PED) == 0)
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 // eXtensible Host Controller Interface for Universal Serial Bus (xHCI) (4.20)
 int xhci_controller_init_scratchpad(struct xhci_controller* controller)
 {
@@ -190,14 +265,58 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 	interrupter->erstba = event_ring->segment_table_phys;
 	interrupter->erstsz = event_ring->segment_count;
 
-	uintptr_t trb_offset = event_ring->trbs_phys + event_ring->next_trb_index * sizeof(struct xhci_trb);
-	interrupter->erdp = trb_offset | XHCI_EVENT_HANDLER_BUSY;
+	xhci_interrupter_upd_erdp(interrupter, event_ring);
+	//uintptr_t trb_offset = event_ring->trbs_phys + event_ring->next_trb_index * sizeof(struct xhci_trb);
+	//interrupter->erdp = trb_offset | XHCI_EVENT_HANDLER_BUSY;
 
 	// Включить прерывания на этом interrupter
 	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING | XHCI_IMAN_INTERRUPT_ENABLE;
 
 	// Сбросить флаг прерывания (если было необработанное прерывание)
 	controller->op->usbsts |= XHCI_STS_EINTERRUPT;
+}
+
+void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event)
+{
+	int rc = 0;
+	switch (event->type)
+	{
+		case XHCI_TRB_PORT_STATUS_CHANGE_EVENT:
+			uint8_t port_id = event->port_status_change.port_id - 1;
+			printk("XHCI: port (%i) status change event\n", port_id);
+			struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
+			if ((port_regs->status & XHCI_PORTSC_CSC) == XHCI_PORTSC_CSC)
+			{	
+				if ((port_regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS)
+				{
+					printk("XHCI: new port connection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
+					rc = xhci_controller_reset_port(controller, port_id);
+					if (rc == TRUE)
+					{
+						printk("XHCI: Port reset successful\n");
+						// порт успешно сбошен, можно инициализировать устройство
+						// TODO: инициализировать
+					} else
+					{
+						printk("XHCI: Port reset failed\n");
+					}
+				} 
+				else
+				{
+					printk("XHCI: port disconnection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
+					rc = xhci_controller_reset_port(controller, port_id);
+				}
+			}
+			break;
+		case XHCI_TRB_CMD_COMPLETION_EVENT:
+			printk("XHCI: command completed!\n");
+			break;
+		case XHCI_TRB_TRANSFER_EVENT:
+			printk("XHCI: transfer event!\n");
+			break;
+		default:
+			printk("XHCI: unimplemented event %i\n", event->type);
+	}
 }
 
 struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
@@ -216,7 +335,7 @@ struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
 	cmdring->trbs[ntrbs - 1].type = XHCI_TRB_TYPE_LINK;
 	cmdring->trbs[ntrbs - 1].link.cycle = cmdring->cycle_bit;
 	cmdring->trbs[ntrbs - 1].link.cycle_enable = 1;
-	cmdring->trbs[ntrbs - 1].parameter = cmdring->trbs_phys;
+	cmdring->trbs[ntrbs - 1].link.address = cmdring->trbs_phys;
 
 	return cmdring;
 }
@@ -264,6 +383,8 @@ struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments)
 	primary_entry->rsba = eventring->trbs_phys;
 	primary_entry->rsz = ntrbs;
 	primary_entry->rsvd = 0;
+
+	return eventring;
 }
 
 int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
@@ -276,11 +397,21 @@ int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
 
 	memcpy(trb, dequed, sizeof(struct xhci_trb));
 
-	if (++ring->next_trb_index >= ring->trb_count)
+	// Увеличить позицию
+	ring->next_trb_index++;
+
+	// Если считали полный круг - возвращаемся в начало
+	if (ring->next_trb_index >= ring->trb_count)
 	{
 		ring->next_trb_index = 0;
 		ring->cycle_bit = !ring->cycle_bit;
 	}
+}
+
+void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_ring *ring)
+{
+	uintptr_t trb_offset = ring->trbs_phys + ring->next_trb_index * sizeof(struct xhci_trb);
+	intr->erdp = trb_offset | XHCI_EVENT_HANDLER_BUSY;
 }
 
 void xhci_controller_stop(struct xhci_controller* controller)
@@ -372,22 +503,35 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 			printk("XHCI: compatible port count %i\n", prot_cap->compatible_port_count);
 			for (size_t i = 0; i < prot_cap->compatible_port_count; i++)
 			{
-				struct xhci_port_desc* port = &controller->ports[prot_cap->compatible_port_offset + i - 1];
+				uint8_t port_id = prot_cap->compatible_port_offset + i - 1;
+				struct xhci_port_desc* port = &controller->ports[port_id];
 				port->proto_cap = prot_cap;
-				//port->revision_major = prot_cap->major_revision;
-				//port->revision_minor = prot_cap->minor_revision;
-				//printk("XHCI: port %i, revision major %i, revision minor %i\n", i, port->revision_major, port->revision_minor);
+				port->revision_major = prot_cap->major_revision;
+				port->revision_minor = prot_cap->minor_revision;
+				//printk("XHCI: port %i, revision major %i, revision minor %i\n", port_id, port->revision_major, port->revision_minor);
 			}
 		} else if (cap->capability_id == XHCI_EXT_CAP_LEGACY_SUPPORT)
 		{
-			printk("XHCI: legacy support capability\n");
+			//printk("XHCI: legacy support capability\n");
 
 			struct xhci_legacy_support_cap* legacy_cap = (struct xhci_legacy_support_cap*) ext_cap_ptr;
 			
+			uint32_t mask = (XHCI_LEGACY_SMI_ENABLE | 
+							XHCI_LEGACY_SMI_ON_OS_OWNERSHIP | 
+							XHCI_LEGACY_SMI_ON_HOST_ERROR |
+							XHCI_LEGACY_SMI_ON_PCI_COMMAND |
+				 			XHCI_LEGACY_SMI_ON_BAR);
+
+			// Выключить все SMI
+			//legacy_cap->usblegctlsts &= ~mask;
+			//hpet_sleep(10);
+
+			// Если BIOS владеет устройством, значит надо его отобрать у него
 			if (legacy_cap->bios_owned_semaphore) 
 			{
 				printk("XHCI: Performing handoff\n");
 				legacy_cap->os_owned_semaphore = 1;
+				hpet_sleep(10);
 			}
 
 			// TODO: add semaphore
@@ -416,6 +560,20 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 
 	printk("XHCI: interrupt\n");
 
+	struct xhci_interrupter* interrupter = &data->runtime->interrupters[0];
+
+	struct xhci_trb event;
+	while (xhci_event_ring_deque(data->event_ring, &event))
+	{
+		xhci_controller_process_event(data, &event);
+	}
+	// ??? может это надо делать внутри цикла ???
+	xhci_interrupter_upd_erdp(interrupter, data->event_ring);
+
+	// IMAN - acknowledge
+	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING;
+
+	// Очистить флаг прерывания в статусе
 	data->op->usbsts = XHCI_STS_EINTERRUPT;
 }
 
