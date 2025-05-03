@@ -190,60 +190,96 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 	return -1;
 }
 
+int pci_device_get_capability_register(struct pci_device_info* device, uint32_t capability, uint32_t *reg)
+{
+	if ((device->status & PCI_STATUS_CAPABILITIES_LIST) == 0) 
+	{
+		return FALSE;
+	}
+
+	uint32_t cap_reg = i_pci_config_read32(device->bus, device->device, device->function, PCI_CAPABILITIES_LIST);
+	cap_reg &= 0xFF;
+
+	while (cap_reg != 0) 
+	{
+		uint32_t cap = i_pci_config_read32(device->bus, device->device, device->function, cap_reg);
+		uint8_t type = cap & 0xFF;
+
+		if (type == capability) 
+		{
+			// Номер Capability совпал
+			if (reg != NULL)
+			{
+				// Запишем номер регистра
+				*reg = cap_reg;
+			}
+			
+			return TRUE;
+		}
+
+		// Переход на следующую capability
+		cap_reg = (cap >> 8) & 0xFF;
+	}
+
+	return FALSE;
+}
+
 extern uint64_t arch_get_msi_address(uint64_t *data, size_t vector, uint32_t processor, uint8_t edgetrigger, uint8_t deassert);
 
 int pci_device_is_msi_capable(struct pci_device_info* device)
 {
-	return (device->status & PCI_STATUS_MSI_CAPABLE) == PCI_STATUS_MSI_CAPABLE;
+	return (pci_device_get_capability_register(device, PCI_CAPABILITY_MSI, NULL) == TRUE);
+}
+
+int pci_device_is_msix_capable(struct pci_device_info* device)
+{
+	return (pci_device_get_capability_register(device, PXI_CAPABILITY_MSI_X, NULL) == TRUE);
 }
 
 int pci_device_set_msi_vector(struct device* device, uint32_t vector)
 {
-	if (pci_device_is_msi_capable(device->pci_info) == 0) {
+	if ((device->pci_info->status & PCI_STATUS_CAPABILITIES_LIST) == 0) 
+	{
 		return -1;
 	}
 
-	uint32_t cap_reg = pci_config_read32(device, 0x34);
-	cap_reg &= 0xFF;
-
-	while (cap_reg != 0) {
-		uint32_t cap = pci_config_read32(device, cap_reg);
-
-		uint8_t type = cap & 0xFF;
-
-		if (type == 0x05) {
-			uint16_t messctl = cap >> 16;
-			int msi_64bit_cap = (messctl & (1 << 7));
-			int mask = (messctl & (1 << 8));
-
-			uint64_t msi_data = 0;
-			uint64_t msi_addr = arch_get_msi_address(&msi_data, vector, 0, 1, 0);
-
-			// Записать адрес и msi_data
-			pci_config_write32(device, cap_reg + 0x04, msi_addr & UINT32_MAX);
-
-			if (msi_64bit_cap) {
-				pci_config_write32(device, cap_reg + 0x8, msi_addr >> 32);
-				pci_config_write16(device, cap_reg + 0xC, msi_data & UINT16_MAX);
-			} else {
-				pci_config_write16(device, cap_reg + 0x8, msi_data & UINT16_MAX);
-			}
-
-			if (mask)
-				pci_config_write32(device, cap_reg + 0x10, 0);
-
-			// Записать Enable Bit
-			messctl |= 1;
-			cap = (((uint32_t) messctl) << 16) | cap & UINT16_MAX;
-			pci_config_write32(device, cap_reg, cap);
-
-			return 0;
-		}
-
-		cap_reg = (cap >> 8) & 0xFF;
+	uint32_t msi_register;
+	if (pci_device_get_capability_register(device->pci_info, PCI_CAPABILITY_MSI, &msi_register) != TRUE)
+	{
+		return -2;
 	}
 
-	return -2;
+	// Считать первую DWORD с Message Control
+	uint32_t cap = pci_config_read32(device, msi_register);
+	uint16_t messctl = cap >> 16;
+
+	int msi_64bit_cap = (messctl & (1 << 7));
+	int mask = (messctl & (1 << 8));
+
+	// Получение параметров MSI для текущей архитектуры CPU
+	uint64_t msi_data = 0;
+	uint64_t msi_addr = arch_get_msi_address(&msi_data, vector, 0, 1, 0);
+
+	// Записать адрес и msi_data
+	pci_config_write32(device, msi_register + 0x04, msi_addr & UINT32_MAX);
+
+	if (msi_64bit_cap) 
+	{
+		pci_config_write32(device, msi_register + 0x8, msi_addr >> 32);
+		pci_config_write16(device, msi_register + 0xC, msi_data & UINT16_MAX);
+	} else {
+		pci_config_write16(device, msi_register + 0x8, msi_data & UINT16_MAX);
+	}
+
+	if (mask)
+		pci_config_write32(device, msi_register + 0x10, 0);
+
+	// Записать Enable Bit
+	messctl |= 1;
+	cap = (((uint32_t) messctl) << 16) | cap & UINT16_MAX;
+	pci_config_write32(device, msi_register, cap);
+
+	return 0;
 }
 
 char* pci_get_device_name(uint8_t class, uint8_t subclass, uint8_t pif)

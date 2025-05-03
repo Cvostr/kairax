@@ -42,10 +42,18 @@ struct pci_device_info {
 #define PCI_DEVCMD_IO_ENABLE		0x1
 #define PCI_DEVCMP_INTERRUPTS_DISABLE (1 << 10)
 
-#define PCI_STATUS_MSI_CAPABLE			(1 << 4)
+#define PCI_STATUS_INTERRUPT_STATUS			(1 << 3)
+#define PCI_STATUS_CAPABILITIES_LIST		(1 << 4)
+#define PCI_STATUS_66_MHZ_CAPABLE			(1 << 5)
+#define PCI_STATUS_FAST_BACK_BACK_CAPABLE 	(1 << 7)
+#define PCI_STATUS_MASTER_DATA_PATIRY_ERROR (1 << 8)
 
-#define PCI_VENDOR_ID	0
-#define PCI_PRODUCT_ID	2
+#define PCI_VENDOR_ID			0
+#define PCI_PRODUCT_ID			2
+#define PCI_CAPABILITIES_LIST	0x34
+
+#define PCI_CAPABILITY_MSI		0x5
+#define PXI_CAPABILITY_MSI_X	0x11
 
 #define PCI_HEADER_TYPE_NORMAL	0
 #define PCI_HEADER_TYPE_BRIDGE	0x01
@@ -73,7 +81,9 @@ void pci_set_command_reg(struct pci_device_info* device, uint16_t flags);
 // Включить или выключить прерывания
 void pci_device_set_enable_interrupts(struct pci_device_info* device, int enable);
 
+int pci_device_get_capability_register(struct pci_device_info* device, uint32_t capability, uint32_t *reg);
 int pci_device_is_msi_capable(struct pci_device_info* device);
+int pci_device_is_msix_capable(struct pci_device_info* device);
 
 // Назначить устройству номер MSI прерывания
 // Включает MSI прерывания
