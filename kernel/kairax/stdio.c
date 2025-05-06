@@ -130,7 +130,7 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 			written += len;
 		} else if (*format == 'i') {
 			format++;
-			size_t integer = va_arg(args, size_t);
+			int64 integer = va_arg(args, long);
 			char* str = itoa(integer, 10);
 			size_t len = strlen(str);
 			if (maxrem < len) {
@@ -139,6 +139,18 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 			if (!f(str, len, arg))
 				return -1;
 			written += len;
+		} else if (*format == 'u') {
+			format++;
+			size_t integer = va_arg(args, size_t);
+			char* str = ulltoa(integer, 10);
+			size_t len = strlen(str);
+			if (maxrem < len) {
+				return -1;
+			}
+			if (!f(str, len, arg))
+				return -1;
+			written += len;
+		
 		} else {
 			format = format_begun_at;
 			size_t len = strlen(format);

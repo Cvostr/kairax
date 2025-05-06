@@ -14,3 +14,4 @@ kernel/bin
 *.vhdx
 *.elf
 *.pcap
+*.log

@@ -28,7 +28,12 @@ int xhci_device_probe(struct device *dev)
 		pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE | ~PCI_DEVCMD_IO_ENABLE);
     pci_device_set_enable_interrupts(dev->pci_info, 1);
 
-	if (pci_device_is_msi_capable(dev->pci_info) == 0) 
+	int msi_capable = pci_device_is_msi_capable(dev->pci_info);
+	int msix_capable = pci_device_is_msix_capable(dev->pci_info);
+		
+	//printk("XHCI: MSI capable: %i MSI-X capable: %i\n", msi_capable, msix_capable);
+
+	if (msi_capable == FALSE && msix_capable == FALSE) 
 	{
 		printk("XHCI: Controller does not support MSI interrupts\n");
 		return -1;
@@ -45,7 +50,7 @@ int xhci_device_probe(struct device *dev)
 	cntrl->op = (struct xhci_op_regs*) (cntrl->mmio_addr + cntrl->cap->caplen);
 	cntrl->ports_regs = cntrl->op->portregs;
 	cntrl->runtime = (struct xhci_runtime_regs*) (cntrl->mmio_addr + (cntrl->cap->rtsoff & ~0x1Fu));
-	cntrl->doorbell = (union xhci_doorbell_register*) (cntrl->mmio_addr + (cntrl->cap->dboff & ~0x3));
+	cntrl->doorbell = (union xhci_doorbell_register*) (cntrl->mmio_addr + (cntrl->cap->dboff));// & ~0x3));
 
 	// Получение свойств
 	cntrl->slots = cntrl->cap->hcsparams1 & 0xFF;
@@ -102,10 +107,14 @@ int xhci_device_probe(struct device *dev)
 	uint8_t irq = alloc_irq(0, "xhci");
     printk("XHCI: using IRQ %i\n", irq);
     rc = pci_device_set_msi_vector(dev, irq);
-    if (rc == -1)
+    if (rc != 0)
 	{
-        printk("XHCI: Error assigning MSI IRQ vector: %i\n", rc);
-        return -1;
+		rc = pci_device_set_msix_vector(dev, irq);
+
+		if (rc != 0) {
+			printk("XHCI: Error assigning MSI IRQ vector: %i\n", rc);
+			return -1;
+		}
     }
 	register_irq_handler(irq, xhci_int_hander, cntrl);
 
@@ -121,16 +130,16 @@ int xhci_device_probe(struct device *dev)
 	// Сохранить указатель на структуру
 	dev->dev_data = cntrl;
 
-	/*
-	struct xhci_trb test_trb = {0,};
+	
+	/*struct xhci_trb test_trb = {0,};
 	test_trb.interrupt_on_completion = 1;
 	test_trb.type = XHCI_TRB_NO_OP_CMD;
 
 	xhci_command_enqueue(cntrl->cmdring, &test_trb);
-	cntrl->doorbell[0].doorbell = 0;*/
-
+	cntrl->doorbell[0].doorbell = 0;
+*/
 	//while (1) {
-	//xhci_controller_init_ports(cntrl);
+	xhci_controller_init_ports(cntrl);
 	//}
 
     return 0;
@@ -145,7 +154,7 @@ void xhci_controller_init_ports(struct xhci_controller* controller)
 		//if (port->revision_major == 0)
 		//	continue;
 
-		if (!(port->port_regs->status & XHCI_PORTSC_PORTPOWER))
+		/*if (!(port->port_regs->status & XHCI_PORTSC_PORTPOWER))
 			continue;
 
 		port->port_regs->status = XHCI_PORTSC_CSC | XHCI_PORTSC_PRC | XHCI_PORTSC_PORTPOWER;
@@ -157,6 +166,18 @@ void xhci_controller_init_ports(struct xhci_controller* controller)
 			printk("ERR ");
 		} else {
 			printk("SUCCESS ");
+		}*/
+
+		int rc = xhci_controller_reset_port(controller, i);
+		if (rc = 0)
+		{
+			printk("XHCI: Port reset error\n");
+		} else {
+
+			hpet_sleep(100);
+			printk("XHCI: Port reset successful\n");
+			// порт успешно сбошен, можно инициализировать устройство
+			xhci_controller_init_device(controller, i);
 		}
 	}
 }
@@ -291,11 +312,13 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 				{
 					printk("XHCI: new port connection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
 					rc = xhci_controller_reset_port(controller, port_id);
+					hpet_sleep(100);
 					if (rc == TRUE)
 					{
 						printk("XHCI: Port reset successful\n");
 						// порт успешно сбошен, можно инициализировать устройство
 						// TODO: инициализировать
+						xhci_controller_init_device(controller, port_id);
 					} else
 					{
 						printk("XHCI: Port reset failed\n");
@@ -309,7 +332,7 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 			}
 			break;
 		case XHCI_TRB_CMD_COMPLETION_EVENT:
-			printk("XHCI: command completed!\n");
+			printk("XHCI: command completed on slot (%i)!\n", event->cmd_completion.slot_id);
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
 			printk("XHCI: transfer event!\n");
@@ -319,6 +342,44 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 	}
 }
 
+int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port_id)
+{
+	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
+	static const char* xhci_speed_string[7] = {
+        "Invalid",
+        "Full Speed (12 MB/s - USB2.0)",
+        "Low Speed (1.5 Mb/s - USB 2.0)",
+        "High Speed (480 Mb/s - USB 2.0)",
+        "Super Speed (5 Gb/s - USB3.0)",
+        "Super Speed Plus (10 Gb/s - USB 3.1)",
+        "Undefined"
+    };
+	uint8_t port_speed = (port_regs->status >> 10) & 0b1111;
+	printk("XHCI: port speed: %s\n", xhci_speed_string[port_speed]);
+
+	uint8_t slot = xhci_controller_alloc_slot(controller);
+}
+
+uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller)
+{
+	struct xhci_trb enable_slot_trb;
+	memset(&enable_slot_trb, 0, sizeof(struct xhci_trb));
+	//enable_slot_trb.interrupt_on_completion = 1;
+	enable_slot_trb.type = XHCI_TRB_ENABLE_SLOT_CMD;
+
+	xhci_command_enqueue(controller->cmdring, &enable_slot_trb);
+	controller->doorbell[0].doorbell = 0;
+
+	/*uint64_t flag = (1 << 3);
+	while ((controller->op->crcr & flag) == 0)
+	{
+		printk("XHCI: CRCR %s\n", ulltoa(controller->op->crcr, 16));
+	}*/
+
+	// TODO: implement
+	return 0;
+}
+
 struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
 {
 	struct xhci_command_ring *cmdring = kmalloc(sizeof(struct xhci_command_ring));
@@ -326,14 +387,16 @@ struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
 	cmdring->cycle_bit = XHCI_CR_CYCLE_STATE;
 	cmdring->next_trb_index = 0;
 
+	size_t cmd_ring_pages = 0;
 	size_t cmd_ring_sz = ntrbs * sizeof(struct xhci_trb);
-	cmdring->trbs_phys = (uintptr_t) pmm_alloc(cmd_ring_sz, NULL);
+	cmdring->trbs_phys = (uintptr_t) pmm_alloc(cmd_ring_sz, &cmd_ring_pages);
+	//printk("XHCI: cmd ring size %i pages %i\n", cmd_ring_sz, cmd_ring_pages);
 	cmdring->trbs = (struct xhci_trb*) map_io_region(cmdring->trbs_phys, cmd_ring_sz);
 	memset(cmdring->trbs, 0, cmd_ring_sz);
 
 	// Установить последнее TRB как ссылку на первое
 	cmdring->trbs[ntrbs - 1].type = XHCI_TRB_TYPE_LINK;
-	cmdring->trbs[ntrbs - 1].link.cycle = cmdring->cycle_bit;
+	cmdring->trbs[ntrbs - 1].link.cycle_bit = cmdring->cycle_bit;
 	cmdring->trbs[ntrbs - 1].link.cycle_enable = 1;
 	cmdring->trbs[ntrbs - 1].link.address = cmdring->trbs_phys;
 
@@ -343,14 +406,14 @@ struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
 void xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb)
 {
 	// Запишем Cycle State (чтобы на следующем круге XHCI видел это как невыполненное)
-	trb->cycle = ring->cycle_bit;
+	trb->cycle_bit = ring->cycle_bit;
 
 	memcpy(&ring->trbs[ring->next_trb_index], trb, sizeof(struct xhci_trb));
 
 	if (++ring->next_trb_index == ring->trbs_num - 1)
 	{
 		// Достигли конечной TRB
-		ring->trbs[ring->trbs_num - 1].link.cycle = ring->cycle_bit;
+		ring->trbs[ring->trbs_num - 1].link.cycle_bit = ring->cycle_bit;
 		// Сбрасываем указатель на 0
 		ring->next_trb_index = 0;
 		// Инвертируем Cycle State
@@ -390,7 +453,7 @@ struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments)
 int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
 {
 	struct xhci_trb* dequed = &ring->trbs[ring->next_trb_index];
-	if (dequed->cycle != ring->cycle_bit)
+	if (dequed->cycle_bit != ring->cycle_bit)
 	{
 		return 0;
 	}
@@ -500,7 +563,7 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 				return -1;
 			}
 
-			printk("XHCI: compatible port count %i\n", prot_cap->compatible_port_count);
+			//printk("XHCI: compatible port count %i\n", prot_cap->compatible_port_count);
 			for (size_t i = 0; i < prot_cap->compatible_port_count; i++)
 			{
 				uint8_t port_id = prot_cap->compatible_port_offset + i - 1;

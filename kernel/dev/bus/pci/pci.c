@@ -5,6 +5,8 @@
 #include "stdio.h"
 #include "mem/kheap.h"
 #include "dev/device_man.h"
+#include "mem/iomem.h"
+#include "kstdlib.h"
 
 #define PCI_BAR_IO 0x01
 #define PCI_BAR_LOWMEM 0x02
@@ -79,12 +81,12 @@ void read_pci_bar(uint32_t bus, uint32_t device, uint32_t func, uint32_t bar_ind
 
 void pci_set_command_reg(struct pci_device_info* device, uint16_t flags)
 {
-	i_pci_config_write16(device->bus, device->device, device->function, 0x4, flags);
+	i_pci_config_write16(device->bus, device->device, device->function, PCI_CMD_REG, flags);
 }
 
 uint16_t pci_get_command_reg(struct pci_device_info* device)
 {
-	return i_pci_config_read16(device->bus, device->device, device->function, 0x4);
+	return i_pci_config_read16(device->bus, device->device, device->function, PCI_CMD_REG);
 }
 
 void pci_device_set_enable_interrupts(struct pci_device_info* device, int enable)
@@ -233,7 +235,7 @@ int pci_device_is_msi_capable(struct pci_device_info* device)
 
 int pci_device_is_msix_capable(struct pci_device_info* device)
 {
-	return (pci_device_get_capability_register(device, PXI_CAPABILITY_MSI_X, NULL) == TRUE);
+	return (pci_device_get_capability_register(device, PCI_CAPABILITY_MSI_X, NULL) == TRUE);
 }
 
 int pci_device_set_msi_vector(struct device* device, uint32_t vector)
@@ -280,6 +282,85 @@ int pci_device_set_msi_vector(struct device* device, uint32_t vector)
 	pci_config_write32(device, msi_register, cap);
 
 	return 0;
+}
+
+extern uint64_t arch_get_msix_address(uint64_t *data, size_t vector, uint32_t processor, uint8_t edgetrigger, uint8_t deassert);
+
+int pci_device_set_msix_vector(struct device* device, uint32_t vector)
+{
+	if ((device->pci_info->status & PCI_STATUS_CAPABILITIES_LIST) == 0) 
+	{
+		return -1;
+	}
+
+	uint32_t msix_register;
+	if (pci_device_get_capability_register(device->pci_info, PCI_CAPABILITY_MSI_X, &msix_register) != TRUE)
+	{
+		return -2;
+	}
+
+	// Получение параметров MSI для текущей архитектуры CPU
+	uint64_t msi_data = 0;
+	uint64_t msi_addr = arch_get_msix_address(&msi_data, vector, 0, 1, 0);
+
+	//
+	uint32_t cap = pci_config_read32(device, msix_register);
+	uint32_t table_bir_reg = pci_config_read32(device, msix_register + 0x4);
+	uint32_t pending_bir_reg = pci_config_read32(device, msix_register + 0x8);
+
+	printk("PCI MSI-X: 1: %u 2: %i 3: %i\n", cap, table_bir_reg, pending_bir_reg);
+
+	uint16_t message_ctl = cap >> 16;
+	// Table Size is N - 1 encoded, and is the number of entries in the MSI-X table
+	uint16_t table_size = (message_ctl & 0x7FF) + 1;
+
+	// Снять Enable Bit
+	cap &= ~(1U << 31);
+	pci_config_write32(device, msix_register, cap);
+
+	// BAR для MSIX таблицы
+	uint32_t table_bar = table_bir_reg & 0b111U;
+	struct pci_device_bar* table_bar_ptr = &device->pci_info->BAR[table_bar];
+	char* table_mapped_bar = map_io_region(table_bar_ptr->address, table_bar_ptr->size);
+	uint32_t table_offset = table_bir_reg & ~(0b111U);
+	printk("PCI MSI-X: table size: %i BIR: %i table offset: %i\n", table_size, table_bar, table_offset);
+
+	// BAR для PBA
+	uint32_t pba_bar = pending_bir_reg & 0b111U;
+	struct pci_device_bar* pba_bar_ptr = &device->pci_info->BAR[pba_bar];
+	char* pba_mapped_bar = map_io_region(pba_bar_ptr->address, pba_bar_ptr->size);
+	uint32_t pba_offset = pending_bir_reg & ~(0b111U);
+	printk("PCI MSI-X: pba bar: %i pba offset: %i\n", pba_bar, pba_offset);
+
+	// Адреса со смещениями
+	struct msix_table_entry* msix_table_base = table_mapped_bar + table_offset;//align(table_offset, 4096);
+	char* msix_pba_base = pba_mapped_bar + pba_offset;
+
+	// Заполнить структуру MSIX table entry
+	struct msix_table_entry* msix_entry = &msix_table_base[0];
+	msix_entry->message_address = msi_addr;
+	msix_entry->message_data = msi_data;
+	msix_entry->vector_control = 0; // Masked если 1
+
+	pci_device_clear_msix_pending_bit(msix_pba_base, 0);
+	
+	// Снять Function Mask
+	cap &= ~(1U << 30);
+	// Взвести Enable Bit
+	cap |= (1U << 31);
+	pci_config_write32(device, msix_register, cap);
+
+	return 0;
+}
+
+void pci_device_clear_msix_pending_bit(char* pba_base, uint32_t vector)
+{
+	size_t byte_offset = (vector / 8);
+    size_t bit_offset = (vector % 8);
+    uint8_t* byte_ptr = pba_base + byte_offset;
+
+    // Clear the corresponding bit
+    *byte_ptr &= ~(1 << bit_offset);
 }
 
 char* pci_get_device_name(uint8_t class, uint8_t subclass, uint8_t pif)

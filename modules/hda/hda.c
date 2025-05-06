@@ -278,7 +278,7 @@ int hda_device_probe(struct device *dev)
     uint8_t irq = alloc_irq(0, "hda");
     printk("Using IRQ : %i\n", irq);
     int rc = pci_device_set_msi_vector(dev, irq);
-    if (rc == -1) {
+    if (rc != 0) {
         printk("Error: Device doesn't support MSI\n");
         return -1;
     }

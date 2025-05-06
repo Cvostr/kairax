@@ -37,6 +37,8 @@ struct pci_device_info {
 	//uint8_t 		interrupt_pin;
 } PACKED;
 
+#define PCI_CMD_REG					0x4
+
 #define PCI_DEVCMD_BUSMASTER_ENABLE 0x4
 #define PCI_DEVCMD_MSA_ENABLE 		0x2
 #define PCI_DEVCMD_IO_ENABLE		0x1
@@ -53,12 +55,18 @@ struct pci_device_info {
 #define PCI_CAPABILITIES_LIST	0x34
 
 #define PCI_CAPABILITY_MSI		0x5
-#define PXI_CAPABILITY_MSI_X	0x11
+#define PCI_CAPABILITY_MSI_X	0x11
 
 #define PCI_HEADER_TYPE_NORMAL	0
 #define PCI_HEADER_TYPE_BRIDGE	0x01
 #define PCI_HEADER_TYPE_CARDBUS	0x02
 #define PCI_HEADER_TYPE_MULTI	0x80	// Многофункциональное устройство (уже встречали на XHCI)
+
+struct msix_table_entry {
+    uint64_t message_address;
+    uint32_t message_data; 
+    uint32_t vector_control;
+} PACKED;
 
 struct device;
 
@@ -88,6 +96,9 @@ int pci_device_is_msix_capable(struct pci_device_info* device);
 // Назначить устройству номер MSI прерывания
 // Включает MSI прерывания
 int pci_device_set_msi_vector(struct device* device, uint32_t vector);
+
+int pci_device_set_msix_vector(struct device* device, uint32_t vector);
+void pci_device_clear_msix_pending_bit(char* pba_base, uint32_t vector);
 
 // Попыпаться получить устройство по указанным параметрам
 // Если устройство есть - будет зарегистрировано через register_device

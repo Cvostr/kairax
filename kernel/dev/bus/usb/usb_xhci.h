@@ -178,7 +178,7 @@ struct xhci_trb {
 			uint64_t parameter;
 			uint32_t status;
 
-			uint16_t cycle    	: 1;
+			uint16_t cycle_bit  : 1;
 			uint16_t ent      	: 1;	// Evaluate next TRB
 			// Bits
 			uint32_t interrupt_on_short_packet : 1;
@@ -205,7 +205,7 @@ struct xhci_trb {
 		{
 			uint64_t address;
 			uint32_t status;
-			uint16_t cycle    		: 1;
+			uint16_t cycle_bit    	: 1;
 			uint16_t cycle_enable 	: 1;
 			uint16_t reserved 		: 8;
 			uint16_t type 			: 6;
@@ -227,6 +227,20 @@ struct xhci_trb {
         	uint32_t trb_type   : 6;
         	uint32_t rsvd4      : 16;
 		} port_status_change;
+
+		struct 
+		{
+			uint64_t cmd_trb_ptr;
+
+			uint32_t completion_param : 24;
+			uint8_t  completion_code;
+
+			uint32_t cycle_bit  : 1;
+        	uint32_t rsvd1      : 9;
+        	uint32_t type    	: 6;
+        	uint32_t vf_id       : 8;
+        	uint32_t slot_id    : 8;
+		} cmd_completion;
 	};
 } PACKED;
 
@@ -240,9 +254,9 @@ union xhci_doorbell_register {
 
 	uint32_t doorbell;
 	struct {
-		uint32_t target : 8; // 0 for host command ring
-		uint32_t rsvdZ : 8;
-		uint32_t streamID : 16; // Should be 0 for host controller doorbells
+		uint8_t target; // 0 for host command ring
+		uint8_t rsvdZ;
+		uint16_t stream_id; // Should be 0 for host controller doorbells
 	} PACKED;
 } PACKED;
 
@@ -333,6 +347,10 @@ int xhci_controller_poweron(struct xhci_controller* controller, uint8_t port_id)
 /// @param port_id номер порта (0-255)
 /// @return TRUE при успехе сброса порта
 int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_id);
+
+int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port_id);
+
+uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller);
 
 void xhci_int_hander();
 
