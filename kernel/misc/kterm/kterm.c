@@ -21,12 +21,12 @@ void kterm_process_start()
 {
     // Первоначальный процесс kterm
 	kterm_process = create_new_process(NULL);
-	strcpy(kterm_process->name, "kterm");
+	process_set_name(kterm_process, "kterm");
 	// Добавить в список и назначить pid
     process_add_to_list(kterm_process);
 
 	struct thread* kterm_thr = create_kthread(kterm_process, kterm_main, NULL);
-	strcpy(kterm_thr->name, "kterm main thread");
+	thread_set_name(kterm_thr, "kterm main thread");
 	scheduler_add_thread(kterm_thr);
 	process_add_to_list((struct process*) kterm_thr);
 }
@@ -58,7 +58,7 @@ struct terminal_session* new_kterm_session(int create_console)
 	}
 
 	struct thread* tty_read_thread = create_kthread(kterm_process, kterm_tty_master_read_routine, session);
-	strcpy(tty_read_thread->name, "kterm reading thread");
+	thread_set_name(tty_read_thread, "kterm reading thread");
 	process_add_to_list((struct process*) tty_read_thread);
 	scheduler_add_thread(tty_read_thread);
 

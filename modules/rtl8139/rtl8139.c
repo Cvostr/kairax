@@ -10,6 +10,7 @@
 
 //#define LOG_ENABLED
 //#define ON_RECEIVE_LOG_ENABLED
+//#define IRQ_LOG_ENABLED
 #define FAILURE_LOG_ENABLED
 
 void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev);
@@ -88,7 +89,7 @@ int rtl8139_device_probe(struct device *dev)
     // Включение rx + tx
     outb(rtl_dev->io_addr + RTL8139_CMD, RTL8139_CMD_TX_ENB | RTL8139_CMD_RX_ENB);
 
-    int irq = dev->pci_info->interrupt_line;
+    int irq = pci_device_get_irq_line(dev->pci_info);
 #ifdef LOG_ENABLED
     printk("IRQ %i\n", irq);
 #endif
@@ -229,7 +230,9 @@ void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev)
 {
     uint16_t status = inw(rtl_dev->io_addr + RTL8139_ISR);
 	outw(rtl_dev->io_addr + RTL8139_ISR, 0x05);
-    //printk("rtl8139_irq_handler() %i\n", status);
+#ifdef IRQ_LOG_ENABLED
+    printk("rtl8139_irq_handler() %i\n", status);
+#endif
 
     if (status & (RTL1839_TXOK | RTL8139_TXERR)) {
 

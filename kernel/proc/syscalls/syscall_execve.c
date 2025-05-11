@@ -68,14 +68,16 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         }
         if (argc > PROCESS_MAX_ARGS) {
             // Слишком много аргументов, выйти с ошибкой
-            return -E2BIG;
+            rc = -E2BIG;
+            goto error;
         }
     }
 
     // Проверка суммарного размера аргументов в памяти
     if (summary_size > PROCESS_MAX_ARGS_SIZE) {
         // Суммарный размер аргуменов большой, выйти с ошибкой
-        return -ERROR_ARGS_BUFFER_BIG;
+        rc = -ERROR_ARGS_BUFFER_BIG;
+        goto error;
     }
 
     if (envp != NULL) {
@@ -177,7 +179,7 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
     }
 
     // Меняем имя процесса, пока адресное пространство целое
-    strncpy(process->name, filepath, PROCESS_NAME_MAX_LEN);
+    process_set_name(process, filepath);
     goto next;
 
 error:

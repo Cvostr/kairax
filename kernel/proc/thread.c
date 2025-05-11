@@ -21,6 +21,11 @@ struct thread* new_thread(struct process* process)
     return thread;
 }
 
+void thread_set_name(struct thread* thread, const char* name)
+{
+    strncpy(thread->name, name, PROCESS_NAME_MAX_LEN - 1);
+}
+
 void thread_become_zombie(struct thread* thread)
 {
     thread->state = STATE_ZOMBIE;

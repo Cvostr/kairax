@@ -125,8 +125,8 @@ void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_
     struct process* process = thread->process;
 
     // Название потока
-    strcpy(thread->name, process->name);
-    strcat(thread->name, "#");
+    thread_set_name(thread, process->name);
+    //strcat(thread->name, "#");
 
     thread->stack_mapping = process_alloc_stack_memory(process, DEFAULT_STACK_SIZE, 1);
     thread->stack_ptr = (thread->stack_mapping->base + thread->stack_mapping->length);

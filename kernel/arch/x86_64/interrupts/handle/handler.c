@@ -6,10 +6,18 @@
 #include "../ioapic.h"
 #include "kairax/signal.h"
 
-void (*interrupt_handlers[256])(interrupt_frame_t*, void*);
-void* interrupt_datas[256];
+typedef void (*interrupt_handler) (interrupt_frame_t*, void*);
 
-void init_interrupts_handler(){
+struct irq_handler
+{
+	interrupt_handler handler;
+	void* data;
+};
+
+struct irq_handler irq_handlers[256];
+
+void init_interrupts_handler()
+{
 	
 }
 
@@ -25,10 +33,10 @@ void int_handler(interrupt_frame_t* frame)
 		return;
 	}
 
-	void (*handler)() = interrupt_handlers[frame->int_no];
+	interrupt_handler handler = irq_handlers[frame->int_no].handler;
 
 	if (handler)
-		handler(frame, interrupt_datas[frame->int_no]);
+		handler(frame, irq_handlers[frame->int_no].data);
 
 	if (frame->cs == 0x23) {
 		process_handle_signals();
@@ -41,9 +49,10 @@ void int_handler(interrupt_frame_t* frame)
 
 void register_interrupt_handler(int interrupt_num, void* handler_func, void* data)
 {
-	if (interrupt_num <= 255) {
-		interrupt_handlers[interrupt_num] = handler_func;
-		interrupt_datas[interrupt_num] = data;
+	if (interrupt_num <= 255) 
+	{
+		irq_handlers[interrupt_num].handler = handler_func;
+		irq_handlers[interrupt_num].data = data; 
 	}
 }
 

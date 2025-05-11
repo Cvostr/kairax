@@ -8,6 +8,7 @@
 #include "dev/device.h"
 #include "mem/iomem.h"
 #include "dev/device_man.h"
+#include "interrupts/handle/handler.h"
 
 //#define NVME_LOG_CONTROLLER_ID
 //#define NVME_LOG_QUEUES_STRIDE
@@ -23,6 +24,11 @@ uint32_t* nvme_calc_submission_doorbell_addr(struct nvme_controller* controller,
 uint32_t* nvme_calc_completion_doorbell_addr(struct nvme_controller* controller, int id)
 {
 	return (uint32_t*) (((uintptr_t) controller->bar0) + 0x1000 + (2 * id + 1) * (4 << controller->stride));
+}
+
+void nvme_int_handler(interrupt_frame_t* frame, void* data) 
+{
+	printk("NVME: Interrupt\n");
 }
 
 struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, size_t slots)
@@ -178,7 +184,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 	//printk("BAR0 %s SIZE %i\n", ulltoa(device_desc->BAR[0].address, 16), device_desc->BAR[0].size);
 
 	pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
-			
+
 	// Выключить контроллер если включен
 	uint32_t conf = device->bar0->conf;
 	uint32_t reinit_conf = (0 << 4) | (0 << 11) | (0 << 14) | (6 << 16) | (4 << 20) | (1 << 0);
@@ -271,6 +277,14 @@ int nvme_ctlr_device_probe(struct device *dev)
 		struct nvme_queue* queue = nvme_create_io_queue(device, device->queue_entries_num);
 		device->io_queues[queue->id - 1] = queue;
 	}
+
+    if (pci_device_is_msix_capable(dev->pci_info)) 
+	{
+		uint8_t irq = alloc_irq(0, "nvme");
+		printk("NVME: Using IRQ %i\n", irq);
+    	pci_device_set_msix_vector(dev, irq);
+		register_irq_handler(irq, nvme_int_handler, device);
+    }
 
 	char* ns_identity_buffer = pmm_alloc_page();
 	memset(P2V(ns_identity_buffer), 0, PAGE_SIZE);

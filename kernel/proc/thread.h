@@ -61,6 +61,7 @@ struct main_thread_create_info {
 };
 
 struct thread* new_thread(struct process* process);
+void thread_set_name(struct thread* thread, const char* name);
 
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
 struct thread* create_thread(struct process* process, void* entry, void* arg1, int stack_size, struct main_thread_create_info* info);

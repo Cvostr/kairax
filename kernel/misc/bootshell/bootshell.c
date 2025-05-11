@@ -11,12 +11,12 @@
 struct process* bootshell_spawn_new_process(struct process* parent)
 {
     struct process* proc = create_new_process(parent);
-	strcpy(proc->name, "bootshell");
+	process_set_name(proc, "bootshell");
 	// Добавить в список и назначить pid
     process_add_to_list(proc);
 
     struct thread* thr = create_kthread(proc, bootshell, NULL);
-    strcpy(thr->name, "bootshell main thread");
+    thread_set_name(thr, "bootshell main thread");
 	process_add_to_list((struct process*) thr);
 	scheduler_add_thread(thr);
 

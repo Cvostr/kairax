@@ -13,6 +13,8 @@ struct tm* gmtime_r(const time_t* t, struct tm* r);
 
 time_t timegm(struct tm *timeptr);
 
+struct tm* localtime(const time_t* t) __THROW;
+
 time_t mktime(struct tm *timeptr);
 
 time_t time(time_t *t);

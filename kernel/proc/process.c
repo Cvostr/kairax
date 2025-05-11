@@ -49,6 +49,11 @@ struct process*  create_new_process(struct process* parent)
     return process;
 }
 
+void process_set_name(struct process* process, const char* name)
+{
+    strncpy(process->name, name, PROCESS_NAME_MAX_LEN - 1);
+}
+
 void free_process(struct process* process)
 {
     // Данную функцию можно вызывать только для процессов - зомби

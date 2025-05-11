@@ -1,4 +1,5 @@
 #include "time.h"
+#include <sys/time.h>
 #include "stddef.h"
 #include "syscalls.h"
 #include "errno.h"
@@ -62,6 +63,19 @@ int nanosleep(const struct timespec *req, struct timespec *rem)
 {
     int rc = syscall_sleep(req->tv_sec, req->tv_nsec);
     __set_errno(rc);
+}
+
+// TODO: test!
+struct tm* localtime(const time_t* t)
+{
+    static struct tm tmtmp;
+    time_t tmp = *t;
+
+    struct timezone tz;
+    gettimeofday(0, &tz);
+    tmp += tz.tz_minuteswest * 60;
+
+    return gmtime_r(&tmp, &tmtmp);
 }
 
 struct tm* gmtime(const time_t* time)

@@ -116,8 +116,8 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 
     	device_desc->vendor_id = i_pci_config_read16(bus,device, func, PCI_VENDOR_ID); //Смещение 0, размер 2б - номер производителя
     	device_desc->device_id = i_pci_config_read16(bus,device, func, PCI_PRODUCT_ID); //Смещение 2, размер 2 - ID устройства
-		device_desc->status = i_pci_config_read16(bus,device, func, 6); //Смещение 6, размер 2 - Статус
-    	uint16_t devclass = i_pci_config_read16(bus,device, func, 10);  //Смещение 10, размер 2 (Класс - Подкласс)
+		device_desc->status = 	 i_pci_config_read16(bus,device, func, PCI_STATUS); // Смещение 6, размер 2 - Статус
+    	uint16_t devclass = 	 i_pci_config_read16(bus,device, func, PCI_DEVCLASS);  // Смещение 10, размер 2 (Класс - Подкласс)
     	device_desc->device_class = (uint8_t)((devclass >> 8) & 0xFF);		//Старшие 8 бит - класс
     	device_desc->device_subclass = (uint8_t)(devclass & 0xFF);		//Младшие 8 бит - подкласс
 
@@ -167,8 +167,8 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 			//Чтение 32х битного указателя на структуру cardbus
 			device_desc->cardbus_ptr = i_pci_config_read32(bus, device, func, 0x28);
 
-			uint16_t interrupts = i_pci_config_read16(bus,device, func, 0x3C); //Смещение 0x3C, размер 2 - данные о прерываниях
-			device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
+			uint16_t interrupts = i_pci_config_read16(bus,device, func, PCI_INTERRUPTS); //Смещение 0x3C, размер 2 - данные о прерываниях
+			//device_desc->interrupt_line = (uint8_t)(interrupts & 0xFF);
 			//device_desc->interrupt_pin = (uint8_t)((interrupts >> 8) & 0xFF);
 			//Отключение прерываний у устройства
 			pci_device_set_enable_interrupts(device_desc, 0);
@@ -190,6 +190,12 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 	}
 	
 	return -1;
+}
+
+uint16_t pci_device_get_irq_line(struct pci_device_info* device)
+{	
+	uint16_t interrupts = i_pci_config_read16(device->bus, device->device, device->function, PCI_INTERRUPTS);
+	return (uint8_t)(interrupts & 0xFF);
 }
 
 int pci_device_get_capability_register(struct pci_device_info* device, uint32_t capability, uint32_t *reg)
@@ -308,7 +314,7 @@ int pci_device_set_msix_vector(struct device* device, uint32_t vector)
 	uint32_t table_bir_reg = pci_config_read32(device, msix_register + 0x4);
 	uint32_t pending_bir_reg = pci_config_read32(device, msix_register + 0x8);
 
-	printk("PCI MSI-X: 1: %u 2: %i 3: %i\n", cap, table_bir_reg, pending_bir_reg);
+	//printk("PCI MSI-X: 1: %u 2: %i 3: %i\n", cap, table_bir_reg, pending_bir_reg);
 
 	uint16_t message_ctl = cap >> 16;
 	// Table Size is N - 1 encoded, and is the number of entries in the MSI-X table
@@ -323,14 +329,14 @@ int pci_device_set_msix_vector(struct device* device, uint32_t vector)
 	struct pci_device_bar* table_bar_ptr = &device->pci_info->BAR[table_bar];
 	char* table_mapped_bar = map_io_region(table_bar_ptr->address, table_bar_ptr->size);
 	uint32_t table_offset = table_bir_reg & ~(0b111U);
-	printk("PCI MSI-X: table size: %i BIR: %i table offset: %i\n", table_size, table_bar, table_offset);
+	//printk("PCI MSI-X: table size: %i BIR: %i table offset: %i\n", table_size, table_bar, table_offset);
 
 	// BAR для PBA
 	uint32_t pba_bar = pending_bir_reg & 0b111U;
 	struct pci_device_bar* pba_bar_ptr = &device->pci_info->BAR[pba_bar];
 	char* pba_mapped_bar = map_io_region(pba_bar_ptr->address, pba_bar_ptr->size);
 	uint32_t pba_offset = pending_bir_reg & ~(0b111U);
-	printk("PCI MSI-X: pba bar: %i pba offset: %i\n", pba_bar, pba_offset);
+	//printk("PCI MSI-X: pba bar: %i pba offset: %i\n", pba_bar, pba_offset);
 
 	// Адреса со смещениями
 	struct msix_table_entry* msix_table_base = table_mapped_bar + table_offset;//align(table_offset, 4096);

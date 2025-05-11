@@ -32,12 +32,7 @@ struct pci_device_info {
 	struct pci_device_bar		BAR[6];
 
 	uint32_t 		cardbus_ptr;
-
-	uint8_t 		interrupt_line;
-	//uint8_t 		interrupt_pin;
 } PACKED;
-
-#define PCI_CMD_REG					0x4
 
 #define PCI_DEVCMD_BUSMASTER_ENABLE 0x4
 #define PCI_DEVCMD_MSA_ENABLE 		0x2
@@ -52,7 +47,11 @@ struct pci_device_info {
 
 #define PCI_VENDOR_ID			0
 #define PCI_PRODUCT_ID			2
+#define PCI_CMD_REG				0x4
+#define PCI_STATUS				6
+#define PCI_DEVCLASS			0xA
 #define PCI_CAPABILITIES_LIST	0x34
+#define PCI_INTERRUPTS			0x3C
 
 #define PCI_CAPABILITY_MSI		0x5
 #define PCI_CAPABILITY_MSI_X	0x11
@@ -92,6 +91,7 @@ void pci_device_set_enable_interrupts(struct pci_device_info* device, int enable
 int pci_device_get_capability_register(struct pci_device_info* device, uint32_t capability, uint32_t *reg);
 int pci_device_is_msi_capable(struct pci_device_info* device);
 int pci_device_is_msix_capable(struct pci_device_info* device);
+uint16_t pci_device_get_irq_line(struct pci_device_info* device);
 
 // Назначить устройству номер MSI прерывания
 // Включает MSI прерывания
