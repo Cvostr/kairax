@@ -52,6 +52,7 @@
 #define XHCI_TRB_TYPE_DATA			3
 #define XHCI_TRB_TYPE_STATUS		4
 #define XHCI_TRB_TYPE_LINK			6
+#define XHCI_TRB_TYPE_EVENT_DATA	7
 // TRB command types
 #define XHCI_TRB_ENABLE_SLOT_CMD		9
 #define XHCI_TRB_DISABLE_SLOT_CMD		10
@@ -69,12 +70,32 @@
 #define XHCI_TRB_DEVICE_NOTIFICATION_EVENT	38
 // TODO: wrap event (39)
 
-
+// XHCI - SMI
 #define XHCI_LEGACY_SMI_ENABLE               (1 << 0)   // USB SMI Enable
 #define XHCI_LEGACY_SMI_ON_OS_OWNERSHIP      (1 << 13)  // SMI on OS Ownership Enable
 #define XHCI_LEGACY_SMI_ON_HOST_ERROR        (1 << 4)   // SMI on Host System Error
 #define XHCI_LEGACY_SMI_ON_PCI_COMMAND       (1 << 14)  // SMI on PCI Command
 #define XHCI_LEGACY_SMI_ON_BAR               (1 << 15)  // SMI on BAR (Base Address Register)
+
+#define XHCI_DOORBELL_COMMAND_RING       0
+#define XHCI_DOORBELL_CONTROL_EP_RING    1
+
+// USB Speeds
+#define XHCI_USB_SPEED_UNDEFINED            0
+#define XHCI_USB_SPEED_FULL_SPEED           1 // 12 MB/s USB 2.0
+#define XHCI_USB_SPEED_LOW_SPEED            2 // 1.5 Mb/s USB 2.0
+#define XHCI_USB_SPEED_HIGH_SPEED           3 // 480 Mb/s USB 2.0
+#define XHCI_USB_SPEED_SUPER_SPEED          4 // 5 Gb/s (Gen1 x1) USB 3.0
+#define XHCI_USB_SPEED_SUPER_SPEED_PLUS     5 // 10 Gb/s (Gen2 x1) USB 3.1
+
+#define XHCI_DESCRIPTOR_TYPE_DEVICE			1
+#define XHCI_DESCRIPTOR_TYPE_CONFIGURATION	2
+#define XHCI_DESCRIPTOR_TYPE_STRING			3
+#define XHCI_DESCRIPTOR_TYPE_INTERFACE		4
+#define XHCI_DESCRIPTOR_TYPE_ENDPOINT		5
+#define XHCI_DESCRIPTOR_TYPE_DEVICE_QUALIFIER	6
+#define XHCI_DESCRIPTOR_TYPE_OTHER_SPEED_CONFIG	7
+#define XHCI_DESCRIPTOR_TYPE_INTERFACE_POWER	8			
 
 struct xhci_cap_regs {
 	uint8_t caplen;
@@ -169,6 +190,54 @@ struct xhci_runtime_regs {
 	struct xhci_interrupter interrupters[];
 } PACKED;
 
+#define XHCI_DEVICE_REQ_RECIPIENT_DEVICE	0
+#define XHCI_DEVICE_REQ_RECIPIENT_INTERFACE	1
+#define XHCI_DEVICE_REQ_RECIPIENT_ENDPOINT	2
+#define XHCI_DEVICE_REQ_RECIPIENT_OTHER		3
+#define XHCI_DEVICE_REQ_RECIPIENT_RESERVED	4
+
+#define XHCI_DEVICE_REQ_TYPE_STANDART		0
+#define XHCI_DEVICE_REQ_TYPE_CLASS			1
+#define XHCI_DEVICE_REQ_TYPE_VENDOR			2
+#define XHCI_DEVICE_REQ_TYPE_RSVD			3
+
+#define XHCI_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE	0
+#define XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST	1
+
+#define XHCI_DEVICE_REQ_GET_STATUS			0
+#define XHCI_DEVICE_REQ_CLEAR_FEATURE		1
+#define XHCI_DEVICE_REQ_SET_FEATURE			2
+#define XHCI_DEVICE_REQ_SET_ADDRESS			5
+#define XHCI_DEVICE_REQ_GET_DESCRIPTOR		6
+#define XHCI_DEVICE_REQ_SET_DESCRIPTOR		7
+#define XHCI_DEVICE_REQ_GET_CONFIGURATION	8
+#define XHCI_DEVICE_REQ_SET_CONFIGURATION	9
+#define XHCI_DEVICE_REQ_GET_INTERFACE		10
+#define XHCI_DEVICE_REQ_SET_INTERFACE		11
+#define XHCI_DEVICE_REQ_SYNC_FRAME			12
+struct xhci_device_request {
+    
+    uint8_t recipient           : 5;
+    uint8_t type                : 2;
+	uint8_t transfer_direction  : 1;
+
+    uint8_t 	bRequest;
+    uint16_t 	wValue;
+    uint16_t 	wIndex;
+    uint16_t 	wLength;
+};
+
+#define XHCI_SETUP_STAGE_TRT_NO_DATA	0
+#define XHCI_SETUP_STAGE_TRT_RESERVED	1
+#define XHCI_SETUP_STAGE_TRT_OUT		2
+#define XHCI_SETUP_STAGE_TRT_IN			3
+
+#define XHCI_DATA_STAGE_DIRECTION_OUT	0
+#define XHCI_DATA_STAGE_DIRECTION_IN	1
+
+#define XHCI_STATUS_STAGE_DIRECTION_OUT	0
+#define XHCI_STATUS_STAGE_DIRECTION_IN	1
+
 // Transfer ring block
 struct xhci_trb {
 
@@ -230,6 +299,18 @@ struct xhci_trb {
 
 		struct 
 		{
+			uint64_t input_context_pointer     : 64;
+			uint32_t                           : 32;
+			uint32_t cycle_bit                 : 1;
+			uint32_t                           : 8;
+			uint32_t block_set_address_request : 1;
+			uint32_t trb_type                  : 6;
+			uint32_t                           : 8;
+			uint32_t slot_id                   : 8;
+		} address_device;
+
+		struct 
+		{
 			uint64_t cmd_trb_ptr;
 
 			uint32_t completion_param : 24;
@@ -238,9 +319,84 @@ struct xhci_trb {
 			uint32_t cycle_bit  : 1;
         	uint32_t rsvd1      : 9;
         	uint32_t type    	: 6;
-        	uint32_t vf_id       : 8;
+        	uint32_t vf_id      : 8;
         	uint32_t slot_id    : 8;
 		} cmd_completion;
+
+		struct
+		{
+			uint64_t trb_pointer         : 64;
+
+			uint32_t trb_transfer_length : 24;
+			uint32_t completion_code     : 8;
+
+			uint32_t cycle_bit           : 1;
+			uint32_t                     : 1;
+			uint32_t event_data          : 1;
+			uint32_t                     : 7;
+			uint32_t trb_type            : 6;
+			uint32_t endpoint_id         : 5;
+			uint32_t                     : 3;
+			uint32_t slot_id             : 8;
+		} transfer_event;
+
+		struct
+		{
+			struct xhci_device_request 		 req;
+
+			uint32_t trb_transfer_length     : 17;
+			uint32_t                         : 5;
+			uint32_t interrupt_target        : 10;
+
+			uint32_t cycle_bit               : 1;
+			uint32_t                         : 4;
+			uint32_t interrupt_on_completion : 1;
+			uint32_t immediate_data          : 1;
+			uint32_t                         : 3;
+			uint32_t trb_type                : 6;
+			uint32_t transfer_type           : 2;
+			uint32_t                         : 14;
+		} setup_stage;
+
+		struct
+		{
+			uint64_t data_buffer       		   : 64;
+
+			uint32_t trb_transfer_length       : 17;
+			uint32_t td_size                   : 5;
+			uint32_t interrupt_target          : 10;
+
+			uint32_t cycle_bit                 : 1;
+			uint32_t evaluate_next_trb         : 1;
+			uint32_t interrupt_on_short_packet : 1;
+			uint32_t no_snoop                  : 1;
+			uint32_t chain_bit                 : 1;
+			uint32_t interrupt_on_completion   : 1;
+			uint32_t immediate_data            : 1;
+			uint32_t                           : 3;
+			uint32_t trb_type                  : 6;
+			uint32_t direction                 : 1;
+			uint32_t                           : 15;
+		} data_stage;
+
+		struct
+		{
+			uint32_t rsvd0                   : 32;
+			uint32_t rsvd1                   : 32;
+
+			uint32_t                         : 22;
+			uint32_t interrupter_target      : 10;
+
+			uint32_t cycle_bit               : 1;
+			uint32_t evaluate_next_trb       : 1;
+			uint32_t                         : 2;
+			uint32_t chain_bit               : 1;
+			uint32_t interrupt_on_completion : 1;
+			uint32_t                         : 4;
+			uint32_t trb_type                : 6;
+			uint32_t direction               : 1;
+			uint32_t                         : 15;
+		} status_stage;
 	};
 } PACKED;
 
@@ -268,11 +424,13 @@ struct xhci_command_ring
 	struct xhci_trb* 	trbs;
 	uintptr_t 			trbs_phys;
 
+	struct xhci_trb*	completions;
+
 	uint8_t	cycle_bit;
 };
 
 struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs);
-void xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb);
+size_t xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb);
 
 struct xhci_event_ring
 {
@@ -293,6 +451,23 @@ struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments);
 int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb);
 void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_ring *ring);
 
+struct xhci_transfer_ring
+{
+	size_t trb_count;
+
+	size_t enqueue_ptr;
+	size_t dequeue_ptr;
+
+	struct xhci_trb* 	trbs;
+	uintptr_t 			trbs_phys;
+
+	uint8_t 	cycle_bit;
+};
+struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs);
+void xhci_free_transfer_ring(struct xhci_transfer_ring *ring);
+void xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb* trb);
+uintptr_t xhci_transfer_ring_get_cur_phys_ptr(struct xhci_transfer_ring *ring);
+
 struct xhci_port_desc
 {
 	uint8_t revision_major;
@@ -300,6 +475,7 @@ struct xhci_port_desc
 	uint8_t slot_id;
 	struct xhci_protocol_cap* proto_cap;
 	struct xhci_port_regs*  port_regs;
+	int status_changed; // flag
 };
 
 struct xhci_controller 
@@ -319,13 +495,18 @@ struct xhci_controller
 	uint32_t max_scratchpad_buffers;
 	uint32_t pagesize;
 	uint16_t ext_cap_offset;
+	uint8_t context_size; // 1 - 64bit, 0 - 32 
 
 	struct xhci_command_ring *cmdring;
 	struct xhci_event_ring* event_ring;
 	struct xhci_port_desc *ports;
 
 	uintptr_t* dcbaa;
+
+	int port_status_changed;
 };
+
+int xhci_controller_enqueue_cmd_wait(struct xhci_controller* controller, struct xhci_command_ring *ring, struct xhci_trb* trb, struct xhci_trb* result);
 
 void xhci_controller_stop(struct xhci_controller* controller);
 int xhci_controller_reset(struct xhci_controller* controller);
@@ -335,6 +516,33 @@ int xhci_controller_init_scratchpad(struct xhci_controller* controller);
 int xhci_controller_init_interrupts(struct xhci_controller* controller, struct xhci_event_ring* event_ring);
 void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event);
 void xhci_controller_init_ports(struct xhci_controller* controller);
+
+void xhci_controller_event_thread_routine(struct xhci_controller* controller);
+
+struct xhci_device {
+	struct xhci_controller* controller;
+	uint8_t port_id;
+	uint8_t slot_id;
+	uint8_t port_speed;
+	uint8_t ctx_size;
+
+	void* input_ctx;
+	uintptr_t input_ctx_phys;
+
+	void* device_ctx;
+	uintptr_t device_ctx_phys;
+
+	struct xhci_input_control_context32* input_control_context;
+	struct xhci_slot_context32* slot_ctx;
+	struct xhci_endpoint_context32* control_endpoint_ctx;
+
+	struct xhci_transfer_ring* transfer_ring;
+};
+struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id);
+void xhci_free_device(struct xhci_device* dev);
+int xhci_device_init_contexts(struct xhci_device* dev);
+void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_t max_packet_size);
+void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci
@@ -351,6 +559,7 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port_id);
 
 uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller);
+int xhci_controller_address_device(struct xhci_controller* controller, uintptr_t address, uint8_t slot_id, int bsr);
 
 void xhci_int_hander();
 

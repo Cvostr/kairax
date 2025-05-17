@@ -8,11 +8,23 @@
 #include "mem/kheap.h"
 #include "mem/pmm.h"
 #include "string.h"
-#include "stdio.h"
+#include "kairax/stdio.h"
 #include "kstdlib.h"
+#include "proc/process.h"
+#include "proc/thread.h"
 
 #define XHCI_CRCR_ENTRIES 256
 #define XHCI_EVENT_RING_ENTIRIES 256
+
+static const char* xhci_speed_string[7] = {
+	"Invalid",
+	"Full Speed (12 MB/s - USB2.0)",
+	"Low Speed (1.5 Mb/s - USB 2.0)",
+	"High Speed (480 Mb/s - USB 2.0)",
+	"Super Speed (5 Gb/s - USB3.0)",
+	"Super Speed Plus (10 Gb/s - USB 3.1)",
+	"Undefined"
+};
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -32,6 +44,12 @@ int xhci_device_probe(struct device *dev)
 	int msix_capable = pci_device_is_msix_capable(dev->pci_info);
 		
 	//printk("XHCI: MSI capable: %i MSI-X capable: %i\n", msi_capable, msix_capable);
+
+	if (sizeof(struct xhci_trb) != 16)
+	{
+		printk("XHCI: Wrong size of struct xhci_trb\n");
+		return -1;
+	}
 
 	if (msi_capable == FALSE && msix_capable == FALSE) 
 	{
@@ -56,7 +74,9 @@ int xhci_device_probe(struct device *dev)
 	cntrl->slots = cntrl->cap->hcsparams1 & 0xFF;
 	cntrl->ports_num = cntrl->cap->hcsparams1 >> 24;
 	cntrl->interrupters = (cntrl->cap->hcsparams1 >> 8) & 0b11111111111;
-	printk("XHCI: caplen: %i version: %i, slots: %i, ports: %i, ints: %i\n", (cntrl->cap->caplen), (cntrl->cap->version) & 0xFFFF, cntrl->slots, cntrl->ports_num, cntrl->interrupters);
+	cntrl->context_size = (cntrl->cap->hcsparams1 >> 2) & 0b1;
+	printk("XHCI: caplen: %i version: %i, slots: %i, ports: %i, ints: %i, csz: %i\n",
+		(cntrl->cap->caplen), (cntrl->cap->version) & 0xFFFF, cntrl->slots, cntrl->ports_num, cntrl->interrupters, cntrl->context_size);
 
 	cntrl->ports = kmalloc(cntrl->ports_num * sizeof(struct xhci_port_desc));
 
@@ -130,54 +150,98 @@ int xhci_device_probe(struct device *dev)
 	// Сохранить указатель на структуру
 	dev->dev_data = cntrl;
 
-	
-	/*struct xhci_trb test_trb = {0,};
+	// Отправляем тестовую команду
+	/*printk("Sending test command!!!\n");
+	struct xhci_trb test_trb = {0,};
 	test_trb.interrupt_on_completion = 1;
 	test_trb.type = XHCI_TRB_NO_OP_CMD;
-
 	xhci_command_enqueue(cntrl->cmdring, &test_trb);
-	cntrl->doorbell[0].doorbell = 0;
-*/
-	//while (1) {
-	xhci_controller_init_ports(cntrl);
-	//}
+	cntrl->doorbell[0].doorbell = 0;*/
+
+	/*uint64_t flag = (1 << 3);
+	while ((controller->op->crcr & flag) == 0)
+	{
+		printk("XHCI: CRCR %s\n", ulltoa(controller->op->crcr, 16));
+	}*/
+
+	// Процесс и поток с обраюотчиком событий
+	struct process* xhci_process = create_new_process(NULL);
+	process_set_name(xhci_process, "xhci");
+    struct thread* xhci_event_thr = create_kthread(xhci_process, xhci_controller_event_thread_routine, cntrl);
+    scheduler_add_thread(xhci_event_thr);
 
     return 0;
 }
 
-void xhci_controller_init_ports(struct xhci_controller* controller)
+int xhci_controller_enqueue_cmd_wait(struct xhci_controller* controller, struct xhci_command_ring *ring, struct xhci_trb* trb, struct xhci_trb* result)
 {
-	for (size_t i = 0; i < controller->ports_num; i ++)
+	size_t index = xhci_command_enqueue(ring, trb);
+
+	struct xhci_trb* completion_trb = &ring->completions[index];
+	memset(completion_trb, 0, sizeof(struct xhci_trb));
+
+	controller->doorbell[0].doorbell = XHCI_DOORBELL_COMMAND_RING;
+
+	while (completion_trb->raw.status == 0)
 	{
-		struct xhci_port_desc* port = &controller->ports[i];
-		port->port_regs = &controller->ports_regs[i];
-		//if (port->revision_major == 0)
-		//	continue;
+		// wait
+	}
 
-		/*if (!(port->port_regs->status & XHCI_PORTSC_PORTPOWER))
-			continue;
+	if (completion_trb->cmd_completion.completion_code != 1)
+	{
+		return completion_trb->cmd_completion.completion_code;
+	}
 
-		port->port_regs->status = XHCI_PORTSC_CSC | XHCI_PORTSC_PRC | XHCI_PORTSC_PORTPOWER;
+	memcpy(result, completion_trb, sizeof(struct xhci_trb));
 
-		hpet_sleep(20);
+	return 0;
+}
 
-		if (!(port->port_regs->status & XHCI_PORTSC_CCS))
+void xhci_controller_event_thread_routine(struct xhci_controller* controller)
+{
+	struct xhci_interrupter* interrupter = &controller->runtime->interrupters[0];
+	int rc;
+	while (1)
+	{
+		if (controller->port_status_changed == 1) 
 		{
-			printk("ERR ");
-		} else {
-			printk("SUCCESS ");
-		}*/
+			for (uint8_t port_id = 0; port_id < controller->ports_num; port_id ++)
+			{
+				struct xhci_port_desc* port = &controller->ports[port_id];
 
-		int rc = xhci_controller_reset_port(controller, i);
-		if (rc = 0)
-		{
-			printk("XHCI: Port reset error\n");
-		} else {
+				if (port->status_changed == 1)
+				{
+					struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
+					if ((port_regs->status & XHCI_PORTSC_CSC) == XHCI_PORTSC_CSC)
+					{	
+						if ((port_regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS)
+						{
+							printk("XHCI: new port connection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
+							rc = xhci_controller_reset_port(controller, port_id);
+							hpet_sleep(100);
+							if (rc == TRUE)
+							{
+								printk("XHCI: Port reset successful\n");
+								// порт успешно сбошен, можно инициализировать устройство
+								// TODO: инициализировать
+								xhci_controller_init_device(controller, port_id);
+							} else
+							{
+								printk("XHCI: Port reset failed\n");
+							}
+						} 
+						else
+						{
+							printk("XHCI: port disconnection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
+							rc = xhci_controller_reset_port(controller, port_id);
+						}
+					}
 
-			hpet_sleep(100);
-			printk("XHCI: Port reset successful\n");
-			// порт успешно сбошен, можно инициализировать устройство
-			xhci_controller_init_device(controller, i);
+					port->status_changed = 0;
+				}
+			}
+
+			controller->port_status_changed = 0;
 		}
 	}
 }
@@ -305,7 +369,9 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 		case XHCI_TRB_PORT_STATUS_CHANGE_EVENT:
 			uint8_t port_id = event->port_status_change.port_id - 1;
 			printk("XHCI: port (%i) status change event\n", port_id);
-			struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
+			controller->ports[port_id].status_changed = 1;
+			controller->port_status_changed = 1;
+			/*struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
 			if ((port_regs->status & XHCI_PORTSC_CSC) == XHCI_PORTSC_CSC)
 			{	
 				if ((port_regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS)
@@ -329,55 +395,124 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 					printk("XHCI: port disconnection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
 					rc = xhci_controller_reset_port(controller, port_id);
 				}
-			}
+			}*/
 			break;
 		case XHCI_TRB_CMD_COMPLETION_EVENT:
-			printk("XHCI: command completed on slot (%i)!\n", event->cmd_completion.slot_id);
+			size_t cmd_trb_index = (event->cmd_completion.cmd_trb_ptr - controller->cmdring->trbs_phys) / sizeof(struct xhci_trb);
+			printk("XHCI: command (%i) completed on slot (%i)!\n", cmd_trb_index, event->cmd_completion.slot_id);
+
+			memcpy(&controller->cmdring->completions[cmd_trb_index], event, sizeof(struct xhci_trb));
+
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
-			printk("XHCI: transfer event!\n");
+			printk("XHCI: transfer event on slot (%i) with code (%i)!\n", event->transfer_event.slot_id, event->transfer_event.completion_code);
 			break;
 		default:
 			printk("XHCI: unimplemented event %i\n", event->type);
 	}
 }
 
+uint16_t xhci_get_device_max_initial_packet_size(uint8_t port_speed)
+{
+    uint16_t initial_max_packet_size = 0;
+
+    switch (port_speed) 
+	{
+		case XHCI_USB_SPEED_LOW_SPEED: 
+			initial_max_packet_size = 8;
+			break;
+		case XHCI_USB_SPEED_FULL_SPEED:
+		case XHCI_USB_SPEED_HIGH_SPEED: 
+			initial_max_packet_size = 64;
+			break;
+		case XHCI_USB_SPEED_SUPER_SPEED:
+		case XHCI_USB_SPEED_SUPER_SPEED_PLUS:
+		default: initial_max_packet_size = 512;
+			break;
+    }
+
+    return initial_max_packet_size;
+}
+
 int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port_id)
 {
 	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
-	static const char* xhci_speed_string[7] = {
-        "Invalid",
-        "Full Speed (12 MB/s - USB2.0)",
-        "Low Speed (1.5 Mb/s - USB 2.0)",
-        "High Speed (480 Mb/s - USB 2.0)",
-        "Super Speed (5 Gb/s - USB3.0)",
-        "Super Speed Plus (10 Gb/s - USB 3.1)",
-        "Undefined"
-    };
+
 	uint8_t port_speed = (port_regs->status >> 10) & 0b1111;
 	printk("XHCI: port speed: %s\n", xhci_speed_string[port_speed]);
 
+	uint16_t max_initial_packet_size = xhci_get_device_max_initial_packet_size(port_speed);
+
 	uint8_t slot = xhci_controller_alloc_slot(controller);
+	if (slot == 0 || slot > controller->slots)
+	{
+		printk("XHCI: xhci_controller_alloc_slot() returned invalid slot (%i)\n", slot);
+		return -1;
+	}
+	printk("XHCI: allocated slot (%i)\n", slot);
+
+	// Создать объект устройства
+	struct xhci_device* device = new_xhci_device(controller, port_id, slot);
+	device->port_speed = port_speed;
+	// Инициализировать контексты
+	int rc = xhci_device_init_contexts(device);
+
+	xhci_device_configure_control_endpoint_ctx(device, max_initial_packet_size);
+
+	// Записать адрес на контекст output в DCBAA
+	controller->dcbaa[slot] = device->device_ctx_phys;
+
+	// Сначала выполняем с BSR = 1. Это может быть необходимо для некоторых старых устройств
+	rc = xhci_controller_address_device(controller, device->input_ctx_phys, slot, TRUE);
+	if (rc != 0)
+	{
+		printk("xhci device address error (%i)\n", rc);	
+	}
+
+	printk("xhci device address finish\n");
+
+	struct xhci_device_request req;
+	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+	req.wValue = (XHCI_DESCRIPTOR_TYPE_DEVICE << 8);
+	req.wIndex = 0;
+	req.wLength = 8;
+
+	uint8_t result[8];
+	xhci_device_send_usb_request(device, &req, result, 8);
+
+	/*rc = xhci_controller_address_device(controller, device->input_ctx_phys, slot, FALSE);
+	if (rc != 0)
+	{
+		printk("xhci device address error 2 (%i)\n", rc);	
+	}*/
 }
 
 uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller)
 {
 	struct xhci_trb enable_slot_trb;
 	memset(&enable_slot_trb, 0, sizeof(struct xhci_trb));
-	//enable_slot_trb.interrupt_on_completion = 1;
 	enable_slot_trb.type = XHCI_TRB_ENABLE_SLOT_CMD;
 
-	xhci_command_enqueue(controller->cmdring, &enable_slot_trb);
-	controller->doorbell[0].doorbell = 0;
+	struct xhci_trb result;
+	xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &enable_slot_trb, &result);
 
-	/*uint64_t flag = (1 << 3);
-	while ((controller->op->crcr & flag) == 0)
-	{
-		printk("XHCI: CRCR %s\n", ulltoa(controller->op->crcr, 16));
-	}*/
+	return result.cmd_completion.slot_id;
+}
 
-	// TODO: implement
-	return 0;
+int xhci_controller_address_device(struct xhci_controller* controller, uintptr_t address, uint8_t slot_id, int bsr)
+{
+	struct xhci_trb address_device_trb;
+	memset(&address_device_trb, 0, sizeof(struct xhci_trb));
+	address_device_trb.type = XHCI_TRB_ADDRESS_DEVICE_CMD;
+	address_device_trb.address_device.input_context_pointer = address;
+	address_device_trb.address_device.slot_id = slot_id;
+	address_device_trb.address_device.block_set_address_request = (bsr == TRUE) ? 1 : 0;
+
+	struct xhci_trb result;
+	return xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &address_device_trb, &result);
 }
 
 struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
@@ -387,12 +522,16 @@ struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
 	cmdring->cycle_bit = XHCI_CR_CYCLE_STATE;
 	cmdring->next_trb_index = 0;
 
+	// Выделить память под TRB
 	size_t cmd_ring_pages = 0;
 	size_t cmd_ring_sz = ntrbs * sizeof(struct xhci_trb);
 	cmdring->trbs_phys = (uintptr_t) pmm_alloc(cmd_ring_sz, &cmd_ring_pages);
-	//printk("XHCI: cmd ring size %i pages %i\n", cmd_ring_sz, cmd_ring_pages);
 	cmdring->trbs = (struct xhci_trb*) map_io_region(cmdring->trbs_phys, cmd_ring_sz);
 	memset(cmdring->trbs, 0, cmd_ring_sz);
+
+	// Выделить память под completions
+	cmdring->completions = kmalloc(cmd_ring_sz);
+	memset(cmdring->completions, 0, cmd_ring_sz);
 
 	// Установить последнее TRB как ссылку на первое
 	cmdring->trbs[ntrbs - 1].type = XHCI_TRB_TYPE_LINK;
@@ -403,11 +542,12 @@ struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)
 	return cmdring;
 }
 
-void xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb)
+size_t xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb)
 {
 	// Запишем Cycle State (чтобы на следующем круге XHCI видел это как невыполненное)
 	trb->cycle_bit = ring->cycle_bit;
 
+	size_t tmp_index = ring->next_trb_index;
 	memcpy(&ring->trbs[ring->next_trb_index], trb, sizeof(struct xhci_trb));
 
 	if (++ring->next_trb_index == ring->trbs_num - 1)
@@ -419,6 +559,8 @@ void xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb)
 		// Инвертируем Cycle State
 		ring->cycle_bit = !ring->cycle_bit;
 	}
+
+	return tmp_index;
 }
 
 struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments)
@@ -469,6 +611,59 @@ int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
 		ring->next_trb_index = 0;
 		ring->cycle_bit = !ring->cycle_bit;
 	}
+}
+
+struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs)
+{
+	struct xhci_transfer_ring *transfer_ring = kmalloc(sizeof(struct xhci_transfer_ring));
+	transfer_ring->trb_count = ntrbs;
+	transfer_ring->cycle_bit = XHCI_CR_CYCLE_STATE;
+	transfer_ring->enqueue_ptr = 0;
+	transfer_ring->dequeue_ptr = 0;
+
+	size_t transfer_ring_buffer_size = ntrbs * sizeof(struct xhci_trb);
+	// Выделить память
+	transfer_ring->trbs_phys = (uintptr_t) pmm_alloc(transfer_ring_buffer_size, NULL);
+	transfer_ring->trbs = map_io_region(transfer_ring->trbs_phys, transfer_ring_buffer_size);
+	memset(transfer_ring->trbs, 0, transfer_ring_buffer_size);
+
+	// Установить последнее TRB как ссылку на первое
+	transfer_ring->trbs[ntrbs - 1].type = XHCI_TRB_TYPE_LINK;
+	transfer_ring->trbs[ntrbs - 1].link.cycle_bit = transfer_ring->cycle_bit;
+	transfer_ring->trbs[ntrbs - 1].link.cycle_enable = 1;
+	transfer_ring->trbs[ntrbs - 1].link.address = transfer_ring->trbs_phys;
+
+	return transfer_ring;
+}
+
+void xhci_free_transfer_ring(struct xhci_transfer_ring *ring)
+{
+	// TODO: implement
+
+	kfree(ring);
+}
+
+void xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb* trb)
+{
+	// Запишем Cycle State (чтобы на следующем круге XHCI видел это как невыполненное)
+	trb->cycle_bit = ring->cycle_bit;
+
+	memcpy(&ring->trbs[ring->enqueue_ptr], trb, sizeof(struct xhci_trb));
+
+	if (++ring->enqueue_ptr == ring->trb_count - 1)
+	{
+		// Достигли конечной TRB
+		ring->trbs[ring->trb_count - 1].link.cycle_bit = ring->cycle_bit;
+		// Сбрасываем указатель на 0
+		ring->enqueue_ptr = 0;
+		// Инвертируем Cycle State
+		ring->cycle_bit = !ring->cycle_bit;
+	}
+}
+
+uintptr_t xhci_transfer_ring_get_cur_phys_ptr(struct xhci_transfer_ring *ring)
+{
+	return ring->trbs_phys + ring->enqueue_ptr * sizeof(struct xhci_trb);
 }
 
 void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_ring *ring)
@@ -571,7 +766,7 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 				port->proto_cap = prot_cap;
 				port->revision_major = prot_cap->major_revision;
 				port->revision_minor = prot_cap->minor_revision;
-				//printk("XHCI: port %i, revision major %i, revision minor %i\n", port_id, port->revision_major, port->revision_minor);
+				//printk("XHCI: port %i, version (%i.%i)\n", port_id, port->revision_major, port->revision_minor);
 			}
 		} else if (cap->capability_id == XHCI_EXT_CAP_LEGACY_SUPPORT)
 		{
@@ -618,26 +813,42 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 
 void xhci_int_hander(void* regs, struct xhci_controller* data) 
 {
-	if (!(data->op->usbsts & XHCI_STS_EINTERRUPT))
-		return;
-
-	printk("XHCI: interrupt\n");
-
 	struct xhci_interrupter* interrupter = &data->runtime->interrupters[0];
-
-	struct xhci_trb event;
-	while (xhci_event_ring_deque(data->event_ring, &event))
+	volatile uint32_t usbsts = data->op->usbsts;
+	
+	if ((usbsts & XHCI_STS_HALT) == XHCI_STS_HALT)
 	{
-		xhci_controller_process_event(data, &event);
+		printk("XHCI: Host Controller Halted\n");
 	}
-	// ??? может это надо делать внутри цикла ???
-	xhci_interrupter_upd_erdp(interrupter, data->event_ring);
+
+	if ((usbsts & XHCI_STS_HSE) == XHCI_STS_HSE)
+	{
+		printk("XHCI: Host System Error\n");
+	}
+
+	if ((usbsts & XHCI_STS_HCE) == XHCI_STS_HCE)
+	{
+		printk("XHCI: Host Controller Error\n");
+	}
+
+	if ((usbsts & XHCI_STS_EINTERRUPT) == XHCI_STS_EINTERRUPT)
+	{
+		printk("XHCI: Event Interrupt\n");
+
+		struct xhci_trb event;
+		while (xhci_event_ring_deque(data->event_ring, &event))
+		{
+			xhci_controller_process_event(data, &event);
+		}
+		// ??? может это надо делать внутри цикла ???
+		xhci_interrupter_upd_erdp(interrupter, data->event_ring);
+	}
 
 	// IMAN - acknowledge
 	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING;
 
 	// Очистить флаг прерывания в статусе
-	data->op->usbsts = XHCI_STS_EINTERRUPT;
+	data->op->usbsts = usbsts;
 }
 
 struct pci_device_id xhci_ctrl_ids[] = {
