@@ -367,35 +367,11 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 	switch (event->type)
 	{
 		case XHCI_TRB_PORT_STATUS_CHANGE_EVENT:
+			// По умолчанию для xhci номер порта начинается с 1
 			uint8_t port_id = event->port_status_change.port_id - 1;
 			printk("XHCI: port (%i) status change event\n", port_id);
 			controller->ports[port_id].status_changed = 1;
 			controller->port_status_changed = 1;
-			/*struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
-			if ((port_regs->status & XHCI_PORTSC_CSC) == XHCI_PORTSC_CSC)
-			{	
-				if ((port_regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS)
-				{
-					printk("XHCI: new port connection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
-					rc = xhci_controller_reset_port(controller, port_id);
-					hpet_sleep(100);
-					if (rc == TRUE)
-					{
-						printk("XHCI: Port reset successful\n");
-						// порт успешно сбошен, можно инициализировать устройство
-						// TODO: инициализировать
-						xhci_controller_init_device(controller, port_id);
-					} else
-					{
-						printk("XHCI: Port reset failed\n");
-					}
-				} 
-				else
-				{
-					printk("XHCI: port disconnection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
-					rc = xhci_controller_reset_port(controller, port_id);
-				}
-			}*/
 			break;
 		case XHCI_TRB_CMD_COMPLETION_EVENT:
 			size_t cmd_trb_index = (event->cmd_completion.cmd_trb_ptr - controller->cmdring->trbs_phys) / sizeof(struct xhci_trb);
@@ -427,7 +403,8 @@ uint16_t xhci_get_device_max_initial_packet_size(uint8_t port_speed)
 			break;
 		case XHCI_USB_SPEED_SUPER_SPEED:
 		case XHCI_USB_SPEED_SUPER_SPEED_PLUS:
-		default: initial_max_packet_size = 512;
+		default: 
+			initial_max_packet_size = 512;
 			break;
     }
 
@@ -467,9 +444,8 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	if (rc != 0)
 	{
 		printk("xhci device address error (%i)\n", rc);	
+		return -1;
 	}
-
-	printk("xhci device address finish\n");
 
 	struct xhci_device_request req;
 	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;

@@ -22,7 +22,10 @@ struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t 
 
 void xhci_free_device(struct xhci_device* dev)
 {
+    xhci_free_transfer_ring(dev->transfer_ring);
 
+    // TODO: use refcount
+    kfree(dev);
 }
 
 int xhci_device_init_contexts(struct xhci_device* dev)
@@ -47,7 +50,7 @@ int xhci_device_init_contexts(struct xhci_device* dev)
     }
     else
     {
-        struct xhci_input_context64* input_ctx = dev->input_ctx;
+        struct xhci_input_context32* input_ctx = dev->input_ctx;
         dev->input_control_context = &input_ctx->input_ctrl_ctx;
         dev->slot_ctx = &input_ctx->device_ctx.slot_context;
         dev->control_endpoint_ctx = &input_ctx->device_ctx.control_ep_context;
@@ -67,7 +70,7 @@ void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_
     struct xhci_slot_context32* slot_ctx = dev->slot_ctx;
     slot_ctx->context_entries = 1;
     slot_ctx->speed = dev->port_speed;
-    slot_ctx->root_hub_port_num = dev->port_id;
+    slot_ctx->root_hub_port_num = dev->port_id + 1; // приводим к 1 - ...
     slot_ctx->route_string = 0;
     slot_ctx->interrupter_target = 0;
 
@@ -113,12 +116,12 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
     struct xhci_trb setup_stage;
     memset(&setup_stage, 0, sizeof(struct xhci_trb));
     setup_stage.type = XHCI_TRB_TYPE_SETUP;
-    setup_stage.setup_stage.req = *req;
     setup_stage.setup_stage.trb_transfer_length = 8;
     setup_stage.setup_stage.interrupt_target = 0;
     setup_stage.setup_stage.transfer_type = setup_stage_transfer_type;
     setup_stage.immediate_data = 1;
     setup_stage.setup_stage.interrupt_on_completion = 0;
+    memcpy(&setup_stage.setup_stage.req, req, sizeof(struct xhci_device_request));
 
     size_t tmp_data_buffer_pages = 0;
     uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(length, &tmp_data_buffer_pages);
@@ -134,22 +137,13 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
     data_stage.data_stage.td_size = 0;
     data_stage.data_stage.interrupt_target = 0;
     data_stage.data_stage.direction = data_stage_direction;
-    data_stage.data_stage.chain_bit = 1;
+    data_stage.data_stage.chain_bit = 0;
     data_stage.data_stage.interrupt_on_completion = 0;
     data_stage.data_stage.immediate_data = 0;
 
-/*
-    struct xhci_trb event_data_first;
-    memset(&data_stage, 0, sizeof(struct xhci_trb));
-    event_data_first.type = XHCI_TRB_TYPE_EVENT_DATA;
-    event_data_first.data = xhci_get_physical_addr(transfer_status_buffer);
-    event_data_first.interrupter_target = 0;
-    event_data_first.chain = 0;
-    event_data_first.ioc = 1;
-*/
-
     struct xhci_trb status_stage;
     memset(&status_stage, 0, sizeof(struct xhci_trb));
+    status_stage.type = XHCI_TRB_TYPE_STATUS;
     status_stage.status_stage.direction = status_stage_direction;
     status_stage.status_stage.chain_bit = 0;
     status_stage.status_stage.interrupt_on_completion = 1;
@@ -158,10 +152,9 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
     xhci_transfer_ring_enqueue(dev->transfer_ring, &data_stage);
     xhci_transfer_ring_enqueue(dev->transfer_ring, &status_stage);
 
-    printk("XHC: QUEUED\n");
-    hpet_sleep(300);
-
     dev->controller->doorbell[dev->slot_id].doorbell = XHCI_DOORBELL_CONTROL_EP_RING;
+
+    hpet_sleep(300);
 
     // Скопировать результат
     memcpy(out, tmp_data_buffer, length);
