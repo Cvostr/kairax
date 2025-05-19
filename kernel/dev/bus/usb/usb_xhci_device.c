@@ -5,7 +5,7 @@
 #include "mem/iomem.h"
 #include "mem/pmm.h"
 
-#define XHCI_TRANSFER_RING_ENTIRIES 256
+#define XHCI_TRANSFER_RING_ENTITIES 256
 
 struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id)
 {
@@ -22,7 +22,7 @@ struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t 
 
 void xhci_free_device(struct xhci_device* dev)
 {
-    xhci_free_transfer_ring(dev->transfer_ring);
+    xhci_free_transfer_ring(dev->control_transfer_ring);
 
     // TODO: use refcount
     kfree(dev);
@@ -56,7 +56,7 @@ int xhci_device_init_contexts(struct xhci_device* dev)
         dev->control_endpoint_ctx = &input_ctx->device_ctx.control_ep_context;
     }
 
-    dev->transfer_ring = xhci_create_transfer_ring(XHCI_TRANSFER_RING_ENTIRIES);
+    dev->control_transfer_ring = xhci_create_transfer_ring(XHCI_TRANSFER_RING_ENTITIES);
 
     return 0;
 }
@@ -80,14 +80,114 @@ void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_
     ctrl_endpoint_ctx->interval = 0;
     ctrl_endpoint_ctx->error_count = 3;
     ctrl_endpoint_ctx->max_packet_size = max_packet_size;
-    ctrl_endpoint_ctx->transfer_ring_dequeue_ptr = xhci_transfer_ring_get_cur_phys_ptr(dev->transfer_ring);
-    ctrl_endpoint_ctx->dcs = dev->transfer_ring->cycle_bit;
+    ctrl_endpoint_ctx->transfer_ring_dequeue_ptr = xhci_transfer_ring_get_cur_phys_ptr(dev->control_transfer_ring);
+    ctrl_endpoint_ctx->dcs = dev->control_transfer_ring->cycle_bit;
     ctrl_endpoint_ctx->max_esit_payload_lo = 0;
     ctrl_endpoint_ctx->max_esit_payload_hi = 0;
     ctrl_endpoint_ctx->average_trb_length = 8;
 }
 
-void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length)
+int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event)
+{
+    uint32_t endpoint_id = event->transfer_event.endpoint_id;
+
+    if (endpoint_id == 0)
+    {
+        printk("XHCI: incorrect endpoint_id\n");
+        return -1;
+    }
+
+    if (endpoint_id == 1)
+    {
+        // TODO; атомарность
+        memcpy(&dev->control_completion_trb, event, sizeof(struct xhci_trb));
+    }
+}
+
+int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length)
+{
+    struct xhci_device_request req;
+	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+	req.wValue = (XHCI_DESCRIPTOR_TYPE_DEVICE << 8);
+	req.wIndex = 0;
+	req.wLength = length;
+
+    return xhci_device_send_usb_request(dev, &req, descr, length);
+}
+
+int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct usb_string_language_descriptor* descr)
+{
+    int rc = 0;
+
+    struct xhci_device_request req;
+	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+	req.wValue = (XHCI_DESCRIPTOR_TYPE_STRING << 8);
+	req.wIndex = 0;
+	req.wLength = sizeof(struct usb_descriptor_header);
+
+    // Считываем только заголовок, чтобы узнать реальный размер дескриптора
+    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    req.wLength = descr->header.bLength;
+
+    // Считываем дескриптор
+    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return 0;
+}
+
+int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr)
+{
+    int rc = 0;
+
+    struct xhci_device_request req;
+	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+	req.wValue = (XHCI_DESCRIPTOR_TYPE_STRING << 8) | index;
+	req.wIndex = language_id;
+	req.wLength = sizeof(struct usb_descriptor_header);
+
+    // Считываем только заголовок, чтобы узнать реальный размер дескриптора
+    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    req.wLength = descr->header.bLength;
+
+    // Считываем дескриптор
+    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return 0;
+}
+
+int xhci_device_get_configuration_descriptor(struct xhci_device* dev, struct usb_configuration_descriptor* descr)
+{
+    
+}
+
+int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length)
 {
     // Определим значение TRT для Setup Stage
     uint32_t setup_stage_transfer_type = XHCI_SETUP_STAGE_TRT_NO_DATA;
@@ -125,7 +225,7 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
 
     size_t tmp_data_buffer_pages = 0;
     uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(length, &tmp_data_buffer_pages);
-	uintptr_t tmp_data_buffer = map_io_region(dev->input_ctx_phys, tmp_data_buffer_pages * PAGE_SIZE);
+	uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
     memset(tmp_data_buffer, 0, tmp_data_buffer_pages * PAGE_SIZE); 
 
     // Подготовим структуру Data Stage
@@ -141,6 +241,7 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
     data_stage.data_stage.interrupt_on_completion = 0;
     data_stage.data_stage.immediate_data = 0;
 
+    // Подготовим структуру Status Stage
     struct xhci_trb status_stage;
     memset(&status_stage, 0, sizeof(struct xhci_trb));
     status_stage.type = XHCI_TRB_TYPE_STATUS;
@@ -148,13 +249,24 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
     status_stage.status_stage.chain_bit = 0;
     status_stage.status_stage.interrupt_on_completion = 1;
 
-    xhci_transfer_ring_enqueue(dev->transfer_ring, &setup_stage);
-    xhci_transfer_ring_enqueue(dev->transfer_ring, &data_stage);
-    xhci_transfer_ring_enqueue(dev->transfer_ring, &status_stage);
+    // Занулить ответную структуру
+    memset(&dev->control_completion_trb, 0, sizeof(struct xhci_trb));
 
+    // Отправить все структуры
+    xhci_transfer_ring_enqueue(dev->control_transfer_ring, &setup_stage);
+    xhci_transfer_ring_enqueue(dev->control_transfer_ring, &data_stage);
+    xhci_transfer_ring_enqueue(dev->control_transfer_ring, &status_stage);
+
+    // Запустить выполнение
     dev->controller->doorbell[dev->slot_id].doorbell = XHCI_DOORBELL_CONTROL_EP_RING;
 
-    hpet_sleep(300);
+	while (dev->control_completion_trb.raw.status == 0)
+	{
+		// wait
+	}
+
+    // TODO: костыль, так как нет атомарности
+    hpet_sleep(10);
 
     // Скопировать результат
     memcpy(out, tmp_data_buffer, length);
@@ -162,4 +274,11 @@ void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_re
     // освободить временный буфер
     unmap_io_region(tmp_data_buffer, tmp_data_buffer_pages * PAGE_SIZE);
     pmm_free_pages(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
+
+    if (dev->control_completion_trb.transfer_event.completion_code != 1)
+	{
+		return dev->control_completion_trb.transfer_event.completion_code;
+	}
+
+    return 0;
 }

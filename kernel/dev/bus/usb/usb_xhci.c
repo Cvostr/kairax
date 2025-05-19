@@ -78,7 +78,14 @@ int xhci_device_probe(struct device *dev)
 	printk("XHCI: caplen: %i version: %i, slots: %i, ports: %i, ints: %i, csz: %i\n",
 		(cntrl->cap->caplen), (cntrl->cap->version) & 0xFFFF, cntrl->slots, cntrl->ports_num, cntrl->interrupters, cntrl->context_size);
 
-	cntrl->ports = kmalloc(cntrl->ports_num * sizeof(struct xhci_port_desc));
+	// Выделить память под массивы структур
+	size_t ports_mem_bytes = cntrl->ports_num * sizeof(struct xhci_port_desc);
+	cntrl->ports = kmalloc(ports_mem_bytes);
+	memset(cntrl->ports, 0, ports_mem_bytes);
+
+	size_t devices_mem_bytes = (cntrl->slots * sizeof(struct xhci_device*)); 
+	cntrl->devices_by_slots = kmalloc(devices_mem_bytes);
+	memset(cntrl->devices_by_slots, 0, devices_mem_bytes);
 
 	// Остановка и сброс контроллера
 	xhci_controller_stop(cntrl);
@@ -216,7 +223,7 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 					{	
 						if ((port_regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS)
 						{
-							printk("XHCI: new port connection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
+							printk("XHCI: new port (%i) connection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
 							rc = xhci_controller_reset_port(controller, port_id);
 							hpet_sleep(100);
 							if (rc == TRUE)
@@ -232,7 +239,7 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 						} 
 						else
 						{
-							printk("XHCI: port disconnection: %i\n", port_regs->status & XHCI_PORTSC_CCS);
+							printk("XHCI: port (%i) disconnection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
 							rc = xhci_controller_reset_port(controller, port_id);
 						}
 					}
@@ -381,7 +388,15 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
-			printk("XHCI: transfer event on slot (%i) with code (%i)!\n", event->transfer_event.slot_id, event->transfer_event.completion_code);
+			printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i) PTR (%i)!\n", 
+				event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code, event->transfer_event.trb_pointer);
+			uint32_t slot_id = event->transfer_event.slot_id;
+			struct xhci_device* device = controller->devices_by_slots[slot_id - 1];
+			if (device != NULL)
+			{
+				xhci_device_handle_transfer_event(device, event);
+			}
+
 			break;
 		default:
 			printk("XHCI: unimplemented event %i\n", event->type);
@@ -431,9 +446,12 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	// Создать объект устройства
 	struct xhci_device* device = new_xhci_device(controller, port_id, slot);
 	device->port_speed = port_speed;
+	// Сохранить указатель в массиве по номеру слота (0 - ...)
+	controller->devices_by_slots[slot - 1] = device;
 	// Инициализировать контексты
 	int rc = xhci_device_init_contexts(device);
 
+	// Настройка контекстов с базовым размером пакета
 	xhci_device_configure_control_endpoint_ctx(device, max_initial_packet_size);
 
 	// Записать адрес на контекст output в DCBAA
@@ -443,27 +461,82 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	rc = xhci_controller_address_device(controller, device->input_ctx_phys, slot, TRUE);
 	if (rc != 0)
 	{
-		printk("xhci device address error (%i)\n", rc);	
+		printk("XHCI: device address error (%i)!\n", rc);	
 		return -1;
 	}
 
-	struct xhci_device_request req;
-	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
-	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
-	req.wValue = (XHCI_DESCRIPTOR_TYPE_DEVICE << 8);
-	req.wIndex = 0;
-	req.wLength = 8;
+	struct usb_device_descriptor device_descriptor;
+	memset(&device_descriptor, 0, sizeof(struct usb_device_descriptor));
 
-	uint8_t result[8];
-	xhci_device_send_usb_request(device, &req, result, 8);
+	// Запросим первые 8 байт дескриптора устройства
+	rc = xhci_device_get_descriptor(device, &device_descriptor, 8);
+	if (rc != 0) 
+	{
+		printk("XHCI: device descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
 
-	/*rc = xhci_controller_address_device(controller, device->input_ctx_phys, slot, FALSE);
+	printk("XHCI: header type %i, size %i, actual packet size: %i\n", 
+		device_descriptor.header.bDescriptorType, device_descriptor.header.bLength, device_descriptor.bMaxPacketSize0);
+	
+	uint16_t actual_max_packet_size = device_descriptor.bMaxPacketSize0;  
+	
+	// Вроде как, если устройство USB3.0, то оно отдаст значение в виде 2^x
+	if (port_speed == XHCI_USB_SPEED_SUPER_SPEED)
+	{
+		actual_max_packet_size = (1 << device_descriptor.bMaxPacketSize0);
+	}
+	
+	// Сравнить реальный размер пакета с тем, что расчитали по типу соединения
+	if (actual_max_packet_size != max_initial_packet_size)
+	{
+		printk("XHCI: actual max packet size (%i) differs (%i). updating packet size\n", actual_max_packet_size, max_initial_packet_size);
+		//TODO: реализовать
+	}
+
+	// Еще раз выполним, но уже без BSR
+	rc = xhci_controller_address_device(controller, device->input_ctx_phys, slot, FALSE);
 	if (rc != 0)
 	{
-		printk("xhci device address error 2 (%i)\n", rc);	
-	}*/
+		printk("XHCI: device address 2 error (%i)!\n", rc);	
+		return -1;
+	}
+
+	// Еще раз запросим дескриптор, но уже в полном объеме
+	rc = xhci_device_get_descriptor(device, &device_descriptor, device_descriptor.header.bLength);
+	if (rc != 0) 
+	{
+		printk("XHCI: device descriptor 2 request error (%i)!\n", rc);	
+		return -1;
+	}
+
+	//printk("XHCI: Requesting languages\n");
+
+	struct usb_string_language_descriptor lang_descriptor;
+	rc = xhci_device_get_string_language_descriptor(device, &lang_descriptor);
+	if (rc != 0) 
+	{
+		printk("XHCI: device string language descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
+
+	struct usb_string_descriptor str_descr;
+	rc = xhci_device_get_string_descriptor(device, lang_descriptor.lang_ids[0], device_descriptor.iProduct, &str_descr);
+	if (rc != 0) 
+	{
+		printk("XHCI: device string product descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
+
+	//printk("XHCI: %s\n", str_descr.unicode_string);
+
+	struct usb_configuration_descriptor config_descriptor;
+	rc = xhci_device_get_configuration_descriptor(device, &config_descriptor);
+	if (rc != 0) 
+	{
+		printk("XHCI: device configuration descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
 }
 
 uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller)
@@ -809,7 +882,7 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 
 	if ((usbsts & XHCI_STS_EINTERRUPT) == XHCI_STS_EINTERRUPT)
 	{
-		printk("XHCI: Event Interrupt\n");
+		//printk("XHCI: Event Interrupt\n");
 
 		struct xhci_trb event;
 		while (xhci_event_ring_deque(data->event_ring, &event))

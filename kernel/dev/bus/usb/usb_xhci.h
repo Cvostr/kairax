@@ -2,6 +2,7 @@
 #define _USB_XHCI_H
 
 #include "kairax/types.h"
+#include "usb.h"
 
 #define XHCI_CMD_RUN        (1 << 0)
 #define XHCI_CMD_RESET      (1 << 1)
@@ -478,6 +479,7 @@ struct xhci_port_desc
 	int status_changed; // flag
 };
 
+struct xhci_device;
 struct xhci_controller 
 {
     char* mmio_addr;
@@ -499,7 +501,12 @@ struct xhci_controller
 
 	struct xhci_command_ring *cmdring;
 	struct xhci_event_ring* event_ring;
+
+	// Структуры по портам
 	struct xhci_port_desc *ports;
+
+	// Указатели на устройства по номерам слотов
+	struct xhci_device** devices_by_slots;
 
 	uintptr_t* dcbaa;
 
@@ -517,8 +524,6 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event);
 void xhci_controller_init_ports(struct xhci_controller* controller);
 
-void xhci_controller_event_thread_routine(struct xhci_controller* controller);
-
 struct xhci_device {
 	struct xhci_controller* controller;
 	uint8_t port_id;
@@ -526,23 +531,32 @@ struct xhci_device {
 	uint8_t port_speed;
 	uint8_t ctx_size;
 
+	// Input Context
 	void* input_ctx;
 	uintptr_t input_ctx_phys;
 
+	// Output Context
 	void* device_ctx;
 	uintptr_t device_ctx_phys;
 
+	// Указатели на базовые структуры Input Context
 	struct xhci_input_control_context32* input_control_context;
 	struct xhci_slot_context32* slot_ctx;
 	struct xhci_endpoint_context32* control_endpoint_ctx;
 
-	struct xhci_transfer_ring* transfer_ring;
+	struct xhci_trb control_completion_trb;
+	struct xhci_transfer_ring* control_transfer_ring;
 };
 struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id);
 void xhci_free_device(struct xhci_device* dev);
 int xhci_device_init_contexts(struct xhci_device* dev);
 void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_t max_packet_size);
-void xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length);
+int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length);
+int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length);
+int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct usb_string_language_descriptor* descr);
+int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr);
+int xhci_device_get_configuration_descriptor(struct xhci_device* dev, struct usb_configuration_descriptor* descr);
+int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci
@@ -556,11 +570,17 @@ int xhci_controller_poweron(struct xhci_controller* controller, uint8_t port_id)
 /// @return TRUE при успехе сброса порта
 int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_id);
 
+/// @brief 
+/// @param controller указатель на объект контроллера xhci
+/// @param port_id номер порта (0-255)
+/// @return TRUE при успехе инициализации устройства
 int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port_id);
 
 uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller);
 int xhci_controller_address_device(struct xhci_controller* controller, uintptr_t address, uint8_t slot_id, int bsr);
 
-void xhci_int_hander();
+// Общий обработчик прерывания
+void xhci_int_hander(void* regs, struct xhci_controller* data);
+void xhci_controller_event_thread_routine(struct xhci_controller* controller);
 
 #endif
