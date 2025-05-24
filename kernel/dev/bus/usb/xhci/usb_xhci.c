@@ -1,5 +1,5 @@
 #include "dev/bus/pci/pci.h"
-#include "usb.h"
+#include "../usb_descriptors.h"
 #include "usb_xhci.h"
 #include "dev/device_drivers.h"
 #include "dev/device.h"
@@ -230,7 +230,6 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 							{
 								printk("XHCI: Port reset successful\n");
 								// порт успешно сбошен, можно инициализировать устройство
-								// TODO: инициализировать
 								xhci_controller_init_device(controller, port_id);
 							} else
 							{
@@ -240,6 +239,19 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 						else
 						{
 							printk("XHCI: port (%i) disconnection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
+							
+							// Получить указатель на устройство в порту
+							struct xhci_device* device = controller->ports[port_id].bound_device;
+							
+							if (device)
+							{
+								uint8_t slot = device->slot_id;
+								controller->devices_by_slots[slot] = NULL;
+								controller->ports[port_id].bound_device = NULL;
+								xhci_controller_disable_slot(controller, slot);
+								xhci_free_device(device);
+							}
+
 							rc = xhci_controller_reset_port(controller, port_id);
 						}
 					}
@@ -388,8 +400,10 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
-			printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i) PTR (%i)!\n", 
-				event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code, event->transfer_event.trb_pointer);
+			//printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i) PTR (%i)!\n", 
+			//	event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code, event->transfer_event.trb_pointer);
+			printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i)!\n", 
+				event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code);
 			uint32_t slot_id = event->transfer_event.slot_id;
 			struct xhci_device* device = controller->devices_by_slots[slot_id - 1];
 			if (device != NULL)
@@ -446,8 +460,13 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	// Создать объект устройства
 	struct xhci_device* device = new_xhci_device(controller, port_id, slot);
 	device->port_speed = port_speed;
+	
 	// Сохранить указатель в массиве по номеру слота (0 - ...)
 	controller->devices_by_slots[slot - 1] = device;
+	
+	// Записать устройство в порт
+	controller->ports[port_id].bound_device = device;
+	
 	// Инициализировать контексты
 	int rc = xhci_device_init_contexts(device);
 
@@ -512,7 +531,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 
 	//printk("XHCI: Requesting languages\n");
 
-	struct usb_string_language_descriptor lang_descriptor;
+	/*struct usb_string_language_descriptor lang_descriptor;
 	rc = xhci_device_get_string_language_descriptor(device, &lang_descriptor);
 	if (rc != 0) 
 	{
@@ -526,17 +545,61 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	{
 		printk("XHCI: device string product descriptor request error (%i)!\n", rc);	
 		return -1;
-	}
+	}*/
 
 	//printk("XHCI: %s\n", str_descr.unicode_string);
-
 	struct usb_configuration_descriptor config_descriptor;
-	rc = xhci_device_get_configuration_descriptor(device, &config_descriptor);
-	if (rc != 0) 
+
+	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
 	{
-		printk("XHCI: device configuration descriptor request error (%i)!\n", rc);	
-		return -1;
+		// Считать конфигурацию по номеру
+		rc = xhci_device_get_configuration_descriptor(device, i, &config_descriptor, sizeof(struct usb_configuration_descriptor));
+		if (rc != 0) 
+		{
+			printk("XHCI: device configuration descriptor (%i) request error (%i)!\n", i, rc);	
+			return -1;
+		}
+		
+		//printk("XHCI: set config\n");
+
+		// Включаем конфигурацию
+		rc = xhci_device_set_configuration(device, config_descriptor.bConfigurationValue);
+		if (rc != 0) 
+		{
+			printk("XHCI: device configuration descriptor setting (%i) error (%i)!\n", i, rc);	
+			return -1;
+		}
+
+		// Парсим конфигурацию
+		uint8_t* conf_buffer = config_descriptor.data;
+		size_t offset = 0;
+		size_t len = config_descriptor.wTotalLength;
+
+		while (offset < len)
+		{
+			struct usb_descriptor_header* config_header = (struct usb_descriptor_header*) &(conf_buffer[offset]);
+
+			switch (config_header->bDescriptorType)
+			{
+				case USB_DESCRIPTOR_INTERFACE:
+					struct usb_interface_descriptor* iface_descr = (struct usb_interface_descriptor*) config_header; 
+					printk("XHCI: interface class %i\n", iface_descr->bInterfaceClass);
+					break;
+				case USB_DESCRIPTOR_ENDPOINT:
+					printk("XHCI: endpoint\n");
+					break;
+				case USB_DESCRIPTOR_HID:
+					printk("XHCI: HID\n");
+					break;
+				default:
+					printk("XHCI: unsupported device config %i\n", config_header->bDescriptorType);
+			}
+
+			offset += config_header->bLength;
+		}
 	}
+
+	return 0;
 }
 
 uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller)
@@ -549,6 +612,17 @@ uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller)
 	xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &enable_slot_trb, &result);
 
 	return result.cmd_completion.slot_id;
+}
+
+int xhci_controller_disable_slot(struct xhci_controller* controller, uint8_t slot)
+{
+	struct xhci_trb disable_slot_trb;
+	memset(&disable_slot_trb, 0, sizeof(struct xhci_trb));
+	disable_slot_trb.type = XHCI_TRB_DISABLE_SLOT_CMD;
+	disable_slot_trb.disable_slot_command.slot_id = slot;
+
+	struct xhci_trb result;
+	return xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &disable_slot_trb, &result);
 }
 
 int xhci_controller_address_device(struct xhci_controller* controller, uintptr_t address, uint8_t slot_id, int bsr)

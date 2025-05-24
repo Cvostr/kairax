@@ -9,7 +9,7 @@
 
 #include "drivers/storage/ahci/ahci.h"
 #include "drivers/storage/nvme/nvme.h"
-#include "dev/bus/usb/usb_xhci.h"
+#include "dev/bus/usb/xhci/usb_xhci.h"
 
 #include "memory/mem_layout.h"
 #include "mem/pmm.h"

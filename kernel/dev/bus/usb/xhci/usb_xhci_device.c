@@ -24,6 +24,8 @@ void xhci_free_device(struct xhci_device* dev)
 {
     xhci_free_transfer_ring(dev->control_transfer_ring);
 
+    // free contexts
+
     // TODO: use refcount
     kfree(dev);
 }
@@ -152,8 +154,6 @@ int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct u
 
 int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr)
 {
-    int rc = 0;
-
     struct xhci_device_request req;
 	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
 	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
@@ -164,7 +164,7 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
 	req.wLength = sizeof(struct usb_descriptor_header);
 
     // Считываем только заголовок, чтобы узнать реальный размер дескриптора
-    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    int rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
     if (rc != 0)
     {
         return rc;
@@ -182,13 +182,77 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
     return 0;
 }
 
-int xhci_device_get_configuration_descriptor(struct xhci_device* dev, struct usb_configuration_descriptor* descr)
+int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor* descr, size_t buffer_size)
 {
-    
+    struct xhci_device_request req;
+	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+	req.wValue = (XHCI_DESCRIPTOR_TYPE_CONFIGURATION << 8) | configuration;
+	req.wIndex = 0;
+	req.wLength = sizeof(struct usb_descriptor_header);
+
+    // Считываем только заголовок, чтобы узнать реальный размер дескриптора
+    int rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    req.wLength = descr->header.bLength;
+
+    // Считываем дескриптор без данных
+    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    //printk("XHCI: BUFSZ %i TOTALSZ %i\n", buffer_size, descr->wTotalLength);
+    // Сверяем размер
+    if (buffer_size < descr->wTotalLength)
+    {
+        return -10;
+    }
+
+    req.wLength = descr->wTotalLength;
+
+    // Считываем дескриптор со всеми данными
+    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return 0;
+}
+
+int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration)
+{
+    struct xhci_device_request req;
+	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = XHCI_DEVICE_REQ_SET_CONFIGURATION;
+	req.wValue = configuration;
+	req.wIndex = 0;
+	req.wLength = 0; // Данный вид запроса не имеет выходных данных
+
+    return xhci_device_send_usb_request(dev, &req, NULL, 0);
 }
 
 int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length)
 {
+    struct xhci_trb setup_stage;
+    struct xhci_trb data_stage;
+    struct xhci_trb status_stage;
+
+    // Для временной памяти
+    size_t tmp_data_buffer_pages = 0;
+    uintptr_t tmp_data_buffer_phys;
+    uintptr_t tmp_data_buffer;
+
     // Определим значение TRT для Setup Stage
     uint32_t setup_stage_transfer_type = XHCI_SETUP_STAGE_TRT_NO_DATA;
     if (length > 0)
@@ -213,7 +277,6 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
         (length > 0 && req->transfer_direction == XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST) ? XHCI_STATUS_STAGE_DIRECTION_OUT : XHCI_STATUS_STAGE_DIRECTION_IN;
 
     // Подготовим структуру Setup Stage
-    struct xhci_trb setup_stage;
     memset(&setup_stage, 0, sizeof(struct xhci_trb));
     setup_stage.type = XHCI_TRB_TYPE_SETUP;
     setup_stage.setup_stage.trb_transfer_length = 8;
@@ -223,26 +286,29 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
     setup_stage.setup_stage.interrupt_on_completion = 0;
     memcpy(&setup_stage.setup_stage.req, req, sizeof(struct xhci_device_request));
 
-    size_t tmp_data_buffer_pages = 0;
-    uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(length, &tmp_data_buffer_pages);
-	uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
-    memset(tmp_data_buffer, 0, tmp_data_buffer_pages * PAGE_SIZE); 
+    if (length > 0)
+    {
+        // Данная операция будет возвращать данные
 
-    // Подготовим структуру Data Stage
-    struct xhci_trb data_stage;
-    memset(&data_stage, 0, sizeof(struct xhci_trb));
-    data_stage.type = XHCI_TRB_TYPE_DATA;
-    data_stage.data_stage.data_buffer = tmp_data_buffer_phys;
-    data_stage.data_stage.trb_transfer_length = length;
-    data_stage.data_stage.td_size = 0;
-    data_stage.data_stage.interrupt_target = 0;
-    data_stage.data_stage.direction = data_stage_direction;
-    data_stage.data_stage.chain_bit = 0;
-    data_stage.data_stage.interrupt_on_completion = 0;
-    data_stage.data_stage.immediate_data = 0;
+        // Для начала выделим временную память под выходные данные
+        tmp_data_buffer_phys = (uintptr_t) pmm_alloc(length, &tmp_data_buffer_pages);
+        tmp_data_buffer = map_io_region(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
+        memset(tmp_data_buffer, 0, tmp_data_buffer_pages * PAGE_SIZE); 
+
+        // Затем подготовим структуру Data Stage
+        memset(&data_stage, 0, sizeof(struct xhci_trb));
+        data_stage.type = XHCI_TRB_TYPE_DATA;
+        data_stage.data_stage.data_buffer = tmp_data_buffer_phys;
+        data_stage.data_stage.trb_transfer_length = length;
+        data_stage.data_stage.td_size = 0;
+        data_stage.data_stage.interrupt_target = 0;
+        data_stage.data_stage.direction = data_stage_direction;
+        data_stage.data_stage.chain_bit = 0;
+        data_stage.data_stage.interrupt_on_completion = 0;
+        data_stage.data_stage.immediate_data = 0;
+    }
 
     // Подготовим структуру Status Stage
-    struct xhci_trb status_stage;
     memset(&status_stage, 0, sizeof(struct xhci_trb));
     status_stage.type = XHCI_TRB_TYPE_STATUS;
     status_stage.status_stage.direction = status_stage_direction;
@@ -254,7 +320,10 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
 
     // Отправить все структуры
     xhci_transfer_ring_enqueue(dev->control_transfer_ring, &setup_stage);
-    xhci_transfer_ring_enqueue(dev->control_transfer_ring, &data_stage);
+    if (length > 0)
+    {
+        xhci_transfer_ring_enqueue(dev->control_transfer_ring, &data_stage);
+    }
     xhci_transfer_ring_enqueue(dev->control_transfer_ring, &status_stage);
 
     // Запустить выполнение
@@ -268,12 +337,15 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
     // TODO: костыль, так как нет атомарности
     hpet_sleep(10);
 
-    // Скопировать результат
-    memcpy(out, tmp_data_buffer, length);
+    if (length > 0)
+    {
+        // Скопировать результат
+        memcpy(out, tmp_data_buffer, length);
 
-    // освободить временный буфер
-    unmap_io_region(tmp_data_buffer, tmp_data_buffer_pages * PAGE_SIZE);
-    pmm_free_pages(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
+        // освободить временный буфер
+        unmap_io_region(tmp_data_buffer, tmp_data_buffer_pages * PAGE_SIZE);
+        pmm_free_pages(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
+    }
 
     if (dev->control_completion_trb.transfer_event.completion_code != 1)
 	{
