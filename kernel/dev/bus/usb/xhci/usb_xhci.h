@@ -59,6 +59,7 @@
 #define XHCI_TRB_DISABLE_SLOT_CMD		10
 #define XHCI_TRB_ADDRESS_DEVICE_CMD 	11
 #define XHCI_TRB_CONFIGURE_ENDPOINT_CMD	12
+#define XHCI_TRB_EVALUATE_CONTEXT_CMD	13
 #define XHCI_TRB_GET_PORT_BANDWIDTH_CMD	21
 #define XHCI_TRB_NO_OP_CMD				23
 // TRB events
@@ -573,6 +574,7 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
 int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor* descr, size_t buffer_size);
 int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
+int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci

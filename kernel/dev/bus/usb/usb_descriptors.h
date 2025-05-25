@@ -78,6 +78,13 @@ struct usb_endpoint_descriptor {
     uint8_t bInterval;
 } PACKED;
 
+struct usb_ss_ep_companion_descriptor {
+	struct usb_descriptor_header header;
+	uint8_t bMaxBurst;
+	uint8_t bmAttributes;
+	uint16_t wBytesPerInterval;
+} PACKED;
+
 struct usb_hid_descriptor {
     struct usb_descriptor_header header;
     uint16_t bcdHID;
@@ -86,7 +93,7 @@ struct usb_hid_descriptor {
     struct {
         uint8_t  bDescriptorType;
         uint16_t wDescriptorLength;
-    } __attribute__((packed)) desc[1];
+    } PACKED descriptors[];
 } PACKED;
 
 #endif

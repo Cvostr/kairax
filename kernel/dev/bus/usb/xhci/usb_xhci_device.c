@@ -5,6 +5,8 @@
 #include "mem/iomem.h"
 #include "mem/pmm.h"
 
+#include "../usb.h"
+
 #define XHCI_TRANSFER_RING_ENTITIES 256
 
 struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id)
@@ -209,10 +211,10 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
         return rc;
     }
 
-    //printk("XHCI: BUFSZ %i TOTALSZ %i\n", buffer_size, descr->wTotalLength);
     // Сверяем размер
     if (buffer_size < descr->wTotalLength)
     {
+        printk("XHCI: BUFSZ %i < TOTALSZ %i\n", buffer_size, descr->wTotalLength);
         return -10;
     }
 
@@ -240,6 +242,98 @@ int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration
 	req.wLength = 0; // Данный вид запроса не имеет выходных данных
 
     return xhci_device_send_usb_request(dev, &req, NULL, 0);
+}
+
+int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx)
+{
+    struct usb_configuration_descriptor config_descriptor;
+    memset(&config_descriptor, 0, sizeof(struct usb_configuration_descriptor));
+
+    // Считать конфигурацию по номеру
+	int rc = xhci_device_get_configuration_descriptor(device, configuration_idx, &config_descriptor, sizeof(struct usb_configuration_descriptor));
+	if (rc != 0) 
+	{
+		printk("XHCI: device configuration descriptor (%i) request error (%i)!\n", configuration_idx, rc);	
+		return -1;
+	}
+
+	// Включаем конфигурацию
+	rc = xhci_device_set_configuration(device, config_descriptor.bConfigurationValue);
+	if (rc != 0) 
+	{
+		printk("XHCI: device configuration descriptor setting (%i) error (%i)!\n", configuration_idx, rc);	
+		return -1;
+	}
+
+	// Парсим конфигурацию
+	uint8_t* conf_buffer = config_descriptor.data;
+	size_t offset = 0;
+	size_t len = config_descriptor.wTotalLength - config_descriptor.header.bLength;
+
+    // Указатель на текущий обрабатываемый интерфейс
+    struct usb_interface* current_interface = NULL;
+    // Количество прочитанных эндпоинтов у текущего интерфейса
+    size_t processed_endpoints = 0;
+    // Указатель на текущий обрабатываемый эндпоинт
+    struct usb_endpoint* current_endpoint = NULL;
+
+	while (offset < len)
+	{
+        // Заголовок
+		struct usb_descriptor_header* config_header = (struct usb_descriptor_header*) &(conf_buffer[offset]);
+
+		switch (config_header->bDescriptorType)
+		{
+			case USB_DESCRIPTOR_INTERFACE:
+				struct usb_interface_descriptor* iface_descr = (struct usb_interface_descriptor*) config_header; 
+
+                // Создать общий объект интерфейса
+                current_interface = new_usb_interface(iface_descr);
+                current_interface->endpoints = new_usb_endpoint_array(iface_descr->bNumEndpoints);
+
+                // Сбросить счетчик эндпоинтов 
+                processed_endpoints = 0;
+                current_endpoint = NULL;
+
+				printk("XHCI: interface class %i\n", iface_descr->bInterfaceClass);
+				break;
+			case USB_DESCRIPTOR_ENDPOINT:
+                if (current_interface != NULL)
+                {
+                    // Скопировать информацию об endpoint
+                    struct usb_endpoint* endpoint = &current_interface->endpoints[processed_endpoints++];
+                    memcpy(&endpoint->descriptor, config_header, sizeof(struct usb_endpoint));
+                    current_endpoint = endpoint;
+                    //printk("XHCI: endpoint\n");
+                } 
+                else 
+                {
+                    printk("XHCI: No interface descriptor before this endpoint descriptor");
+                }
+				break;
+            case USB_DESCRIPTOR_SUPERSPEED_ENDPOINT_COMPANION:
+                // Записать дескриптор
+                if (current_endpoint != NULL)
+                {
+                    memcpy(&current_endpoint->super_speed_companion, config_header, sizeof(struct usb_ss_ep_companion_descriptor));
+                    //printk("XHCI: Super Speed companion\n");
+                }
+                else
+                {
+                    printk("XHCI: No endpoint descriptor before this super speed companion descriptor");
+                }
+                break;
+			case USB_DESCRIPTOR_HID:
+				printk("XHCI: HID\n");
+				break;
+			default:
+				printk("XHCI: unsupported device config %i\n", config_header->bDescriptorType);
+		}
+
+		offset += config_header->bLength;
+	}
+
+    return 0;
 }
 
 int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length)

@@ -529,6 +529,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 		return -1;
 	}
 
+	printk("XHCI: Vendor: 0x%x idProduct: 0x%x bcdDevice: 0x%x\n", device_descriptor.idVendor, device_descriptor.idProduct, device_descriptor.bcdDevice);
 	//printk("XHCI: Requesting languages\n");
 
 	/*struct usb_string_language_descriptor lang_descriptor;
@@ -548,55 +549,10 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	}*/
 
 	//printk("XHCI: %s\n", str_descr.unicode_string);
-	struct usb_configuration_descriptor config_descriptor;
 
 	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
 	{
-		// Считать конфигурацию по номеру
-		rc = xhci_device_get_configuration_descriptor(device, i, &config_descriptor, sizeof(struct usb_configuration_descriptor));
-		if (rc != 0) 
-		{
-			printk("XHCI: device configuration descriptor (%i) request error (%i)!\n", i, rc);	
-			return -1;
-		}
-		
-		//printk("XHCI: set config\n");
-
-		// Включаем конфигурацию
-		rc = xhci_device_set_configuration(device, config_descriptor.bConfigurationValue);
-		if (rc != 0) 
-		{
-			printk("XHCI: device configuration descriptor setting (%i) error (%i)!\n", i, rc);	
-			return -1;
-		}
-
-		// Парсим конфигурацию
-		uint8_t* conf_buffer = config_descriptor.data;
-		size_t offset = 0;
-		size_t len = config_descriptor.wTotalLength;
-
-		while (offset < len)
-		{
-			struct usb_descriptor_header* config_header = (struct usb_descriptor_header*) &(conf_buffer[offset]);
-
-			switch (config_header->bDescriptorType)
-			{
-				case USB_DESCRIPTOR_INTERFACE:
-					struct usb_interface_descriptor* iface_descr = (struct usb_interface_descriptor*) config_header; 
-					printk("XHCI: interface class %i\n", iface_descr->bInterfaceClass);
-					break;
-				case USB_DESCRIPTOR_ENDPOINT:
-					printk("XHCI: endpoint\n");
-					break;
-				case USB_DESCRIPTOR_HID:
-					printk("XHCI: HID\n");
-					break;
-				default:
-					printk("XHCI: unsupported device config %i\n", config_header->bDescriptorType);
-			}
-
-			offset += config_header->bLength;
-		}
+		xhci_device_process_configuration(device, i);
 	}
 
 	return 0;

@@ -70,6 +70,7 @@ gcc $GCC_ARGS $KAIRAX_PATH/version.c -o ./bin/version.o
 gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o
 gcc $GCC_ARGS dev/device_man.c -o ./bin/device_man.o
 gcc $GCC_ARGS dev/bus/pci/pci.c -o ./bin/pci.o
+gcc $GCC_ARGS dev/bus/usb/usb.c -o ./bin/usb.o
 gcc $GCC_ARGS dev/bus/usb/xhci/usb_xhci.c -o ./bin/usb_xhci.o
 gcc $GCC_ARGS dev/bus/usb/xhci/usb_xhci_device.c -o ./bin/usb_xhci_device.o
 gcc $GCC_ARGS dev/interrupts.c -o ./bin/interrupts.o
