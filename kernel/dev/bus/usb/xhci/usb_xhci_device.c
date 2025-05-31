@@ -4,8 +4,10 @@
 #include "string.h"
 #include "mem/iomem.h"
 #include "mem/pmm.h"
-
+#include "kairax/kstdlib.h"
 #include "../usb.h"
+#include "dev/device.h"
+#include "dev/device_man.h"
 
 #define XHCI_TRANSFER_RING_ENTITIES 256
 
@@ -110,11 +112,11 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
 
 int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length)
 {
-    struct xhci_device_request req;
-	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
-	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
 	req.wValue = (XHCI_DESCRIPTOR_TYPE_DEVICE << 8);
 	req.wIndex = 0;
 	req.wLength = length;
@@ -126,11 +128,11 @@ int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct u
 {
     int rc = 0;
 
-    struct xhci_device_request req;
-	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
-	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
 	req.wValue = (XHCI_DESCRIPTOR_TYPE_STRING << 8);
 	req.wIndex = 0;
 	req.wLength = sizeof(struct usb_descriptor_header);
@@ -156,11 +158,11 @@ int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct u
 
 int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr)
 {
-    struct xhci_device_request req;
-	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
-	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
 	req.wValue = (XHCI_DESCRIPTOR_TYPE_STRING << 8) | index;
 	req.wIndex = language_id;
 	req.wLength = sizeof(struct usb_descriptor_header);
@@ -186,11 +188,11 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
 
 int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor* descr, size_t buffer_size)
 {
-    struct xhci_device_request req;
-	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
-	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = XHCI_DEVICE_REQ_GET_DESCRIPTOR;
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
 	req.wValue = (XHCI_DESCRIPTOR_TYPE_CONFIGURATION << 8) | configuration;
 	req.wIndex = 0;
 	req.wLength = sizeof(struct usb_descriptor_header);
@@ -232,16 +234,67 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
 
 int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration)
 {
-    struct xhci_device_request req;
-	req.type = XHCI_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = XHCI_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
-	req.recipient = XHCI_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = XHCI_DEVICE_REQ_SET_CONFIGURATION;
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_SET_CONFIGURATION;
 	req.wValue = configuration;
 	req.wIndex = 0;
 	req.wLength = 0; // Данный вид запроса не имеет выходных данных
 
     return xhci_device_send_usb_request(dev, &req, NULL, 0);
+}
+
+int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device)
+{
+    struct usb_device_descriptor* dev_descriptor = &device->descriptor;
+
+    struct usb_string_language_descriptor lang_descriptor;
+    struct usb_string_descriptor str_descr;
+
+    // Сначала считаем языковые дескрипторы
+	int rc = xhci_device_get_string_language_descriptor(xhci_device, &lang_descriptor);
+	if (rc != 0) 
+	{
+		printk("XHCI: device string language descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
+
+    // считывание продукта
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    rc = xhci_device_get_string_descriptor(xhci_device, lang_descriptor.lang_ids[0], dev_descriptor->iProduct, &str_descr);
+    if (rc != 0) 
+    {
+        printk("XHCI: device string product descriptor request error (%i)!\n", rc);	
+        return -1;
+    }
+    device->product = kmalloc(255);
+    seize_str(str_descr.unicode_string, device->product);
+
+    // Считывание производителя
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    rc = xhci_device_get_string_descriptor(xhci_device, lang_descriptor.lang_ids[0], dev_descriptor->iManufacturer, &str_descr);
+    if (rc != 0) 
+    {
+        printk("XHCI: device string manufacturer descriptor request error (%i)!\n", rc);	
+        return -1;
+    }
+    device->manufacturer = kmalloc(255);
+    seize_str(str_descr.unicode_string, device->manufacturer);
+
+    // Считывание серийного номера
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    rc = xhci_device_get_string_descriptor(xhci_device, lang_descriptor.lang_ids[0], dev_descriptor->iSerialNumber, &str_descr);
+    if (rc != 0) 
+    {
+        printk("XHCI: device string serial descriptor request error (%i)!\n", rc);	
+        return -1;
+    }
+    device->serial = kmalloc(255);
+    seize_str(str_descr.unicode_string, device->serial);
+
+    return 0;
 }
 
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx)
@@ -265,11 +318,16 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 		return -1;
 	}
 
+    // Создаем струтуру конфигурации
+    struct usb_config* usb_conf = new_usb_config(&config_descriptor);
+    device->usb_device->configs[configuration_idx] = usb_conf;
+
 	// Парсим конфигурацию
 	uint8_t* conf_buffer = config_descriptor.data;
 	size_t offset = 0;
 	size_t len = config_descriptor.wTotalLength - config_descriptor.header.bLength;
 
+    size_t processed_interfaces = 0;
     // Указатель на текущий обрабатываемый интерфейс
     struct usb_interface* current_interface = NULL;
     // Количество прочитанных эндпоинтов у текущего интерфейса
@@ -294,6 +352,9 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
                 // Сбросить счетчик эндпоинтов 
                 processed_endpoints = 0;
                 current_endpoint = NULL;
+
+                // Добавить в массив структуры конфигурации
+                usb_conf->interfaces[processed_interfaces++] = current_interface;
 
 				printk("XHCI: interface class %i\n", iface_descr->bInterfaceClass);
 				break;
@@ -333,10 +394,30 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 		offset += config_header->bLength;
 	}
 
+    for (uint8_t iface_i = 0; iface_i < config_descriptor.bNumInterfaces; iface_i ++)
+    {
+        struct usb_interface* iface = usb_conf->interfaces[iface_i];
+
+        struct device* usb_dev = new_device();
+        device_set_name(usb_dev, device->usb_device->product);
+        usb_dev->dev_type = 0;
+        usb_dev->dev_bus = DEVICE_BUS_USB;
+        usb_dev->dev_data = device;
+        usb_dev->usb_info.usb_device = device->usb_device;
+        usb_dev->usb_info.usb_interface = iface;
+
+        register_device(usb_dev);
+    }
+
     return 0;
 }
 
-int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length)
+int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length)
+{
+    return xhci_device_send_usb_request(dev->controller_device_data, req, out, length);
+}
+
+int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length)
 {
     struct xhci_trb setup_stage;
     struct xhci_trb data_stage;
@@ -351,7 +432,7 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
     uint32_t setup_stage_transfer_type = XHCI_SETUP_STAGE_TRT_NO_DATA;
     if (length > 0)
     {
-        if (req->transfer_direction == XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST)
+        if (req->transfer_direction == USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST)
         {
             setup_stage_transfer_type = XHCI_SETUP_STAGE_TRT_IN;
         } 
@@ -364,11 +445,11 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
     // Table 4.7
     // Определим значение DIR для Data Stage
     uint32_t data_stage_direction = 
-        (req->transfer_direction == XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST) ? XHCI_DATA_STAGE_DIRECTION_IN : XHCI_DATA_STAGE_DIRECTION_OUT;
+        (req->transfer_direction == USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST) ? XHCI_DATA_STAGE_DIRECTION_IN : XHCI_DATA_STAGE_DIRECTION_OUT;
 
     // Значение DIR для Status Stage
     uint32_t status_stage_direction = 
-        (length > 0 && req->transfer_direction == XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST) ? XHCI_STATUS_STAGE_DIRECTION_OUT : XHCI_STATUS_STAGE_DIRECTION_IN;
+        (length > 0 && req->transfer_direction == USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST) ? XHCI_STATUS_STAGE_DIRECTION_OUT : XHCI_STATUS_STAGE_DIRECTION_IN;
 
     // Подготовим структуру Setup Stage
     memset(&setup_stage, 0, sizeof(struct xhci_trb));
@@ -378,7 +459,7 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_req
     setup_stage.setup_stage.transfer_type = setup_stage_transfer_type;
     setup_stage.immediate_data = 1;
     setup_stage.setup_stage.interrupt_on_completion = 0;
-    memcpy(&setup_stage.setup_stage.req, req, sizeof(struct xhci_device_request));
+    memcpy(&setup_stage.setup_stage.req, req, sizeof(struct usb_device_request));
 
     if (length > 0)
     {

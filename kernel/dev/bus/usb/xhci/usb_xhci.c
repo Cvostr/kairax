@@ -3,6 +3,7 @@
 #include "usb_xhci.h"
 #include "dev/device_drivers.h"
 #include "dev/device.h"
+#include "dev/device_man.h"
 #include "dev/interrupts.h"
 #include "mem/iomem.h"
 #include "mem/kheap.h"
@@ -25,6 +26,9 @@ static const char* xhci_speed_string[7] = {
 	"Super Speed Plus (10 Gb/s - USB 3.1)",
 	"Undefined"
 };
+
+//#define XHCI_LOG_CMD_COMPLETION
+//#define XHCI_LOG_TRANSFER
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -394,16 +398,19 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 			break;
 		case XHCI_TRB_CMD_COMPLETION_EVENT:
 			size_t cmd_trb_index = (event->cmd_completion.cmd_trb_ptr - controller->cmdring->trbs_phys) / sizeof(struct xhci_trb);
+#ifdef XHCI_LOG_CMD_COMPLETION
 			printk("XHCI: command (%i) completed on slot (%i)!\n", cmd_trb_index, event->cmd_completion.slot_id);
-
+#endif
 			memcpy(&controller->cmdring->completions[cmd_trb_index], event, sizeof(struct xhci_trb));
 
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
+#ifdef XHCI_LOG_TRANSFER
 			//printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i) PTR (%i)!\n", 
 			//	event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code, event->transfer_event.trb_pointer);
 			printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i)!\n", 
 				event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code);
+#endif
 			uint32_t slot_id = event->transfer_event.slot_id;
 			struct xhci_device* device = controller->devices_by_slots[slot_id - 1];
 			if (device != NULL)
@@ -449,6 +456,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 
 	uint16_t max_initial_packet_size = xhci_get_device_max_initial_packet_size(port_speed);
 
+	// Попросить контроллер выделить слот (1 - ...)
 	uint8_t slot = xhci_controller_alloc_slot(controller);
 	if (slot == 0 || slot > controller->slots)
 	{
@@ -509,7 +517,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	// Сравнить реальный размер пакета с тем, что расчитали по типу соединения
 	if (actual_max_packet_size != max_initial_packet_size)
 	{
-		printk("XHCI: actual max packet size (%i) differs (%i). updating packet size\n", actual_max_packet_size, max_initial_packet_size);
+		printk("XHCI: Actual max packet size (%i) differs (%i). updating packet size\n", actual_max_packet_size, max_initial_packet_size);
 		//TODO: реализовать
 	}
 
@@ -530,30 +538,34 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	}
 
 	printk("XHCI: Vendor: 0x%x idProduct: 0x%x bcdDevice: 0x%x\n", device_descriptor.idVendor, device_descriptor.idProduct, device_descriptor.bcdDevice);
-	//printk("XHCI: Requesting languages\n");
 
-	/*struct usb_string_language_descriptor lang_descriptor;
-	rc = xhci_device_get_string_language_descriptor(device, &lang_descriptor);
-	if (rc != 0) 
-	{
-		printk("XHCI: device string language descriptor request error (%i)!\n", rc);	
-		return -1;
-	}
+	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
+	struct usb_device* usb_device = new_usb_device(&device_descriptor, device);
+	usb_device->slot_id = slot;
+	usb_device->send_request = xhci_drv_device_send_usb_request;
+	
+	// Получение информации о названии устройства
+	xhci_device_get_product_strings(device, usb_device);
+	printk("XHCI: Product: %s Man: %s Serial: %s\n", usb_device->product, usb_device->manufacturer, usb_device->serial);
 
-	struct usb_string_descriptor str_descr;
-	rc = xhci_device_get_string_descriptor(device, lang_descriptor.lang_ids[0], device_descriptor.iProduct, &str_descr);
-	if (rc != 0) 
-	{
-		printk("XHCI: device string product descriptor request error (%i)!\n", rc);	
-		return -1;
-	}*/
+	// Создать объект устройства
+	struct device* composite_dev = new_device();
+	device_set_name(composite_dev, usb_device->product);
+	composite_dev->dev_type = DEVICE_TYPE_USB_COMPOSITE;
+	composite_dev->dev_bus = DEVICE_BUS_USB;
+	composite_dev->usb_info.usb_device = usb_device;
+	//composite_dev->dev_parent = 
+	
+	device->usb_device = usb_device;
+	device->composite_dev = composite_dev;
 
-	//printk("XHCI: %s\n", str_descr.unicode_string);
-
+	// Обработка всех конфигураций
 	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
 	{
 		xhci_device_process_configuration(device, i);
 	}
+
+	rc = register_device(composite_dev);
 
 	return 0;
 }

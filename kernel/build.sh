@@ -81,6 +81,7 @@ gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o
 gcc $GCC_ARGS drivers/storage/ahci/ahci_port.c -o ./bin/ahci_port.o
 gcc $GCC_ARGS drivers/storage/nvme/nvme.c -o ./bin/nvme.o
 gcc $GCC_ARGS drivers/storage/nvme/nvme_ns.c -o ./bin/nvme_ns.o
+gcc $GCC_ARGS drivers/storage/usb/usb_mass_storage.c -o ./bin/usb_mass_storage.o
 gcc $GCC_ARGS drivers/storage/devices/storage_devices.c -o ./bin/storage_devices.o
 gcc $GCC_ARGS drivers/storage/partitions/storage_partitions.c -o ./bin/storage_partitions.o
 gcc $GCC_ARGS drivers/storage/partitions/formats/gpt.c -o ./bin/gpt.o

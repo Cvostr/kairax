@@ -126,7 +126,7 @@ int usb_device_id_equals(struct usb_device_id* req_usb_dev_id, struct usb_device
     }
 
     // Проверка bIntefaceProtocol
-    if (((drv_usb_dev_id->match_flags & USB_DEVICE_ID_MATCH_INT_PROTOCOL) == USB_DEVICE_ID_MATCH_INT_PROTOCOL) && (req_usb_dev_id->bIntefaceProtocol != drv_usb_dev_id->bIntefaceProtocol))
+    if (((drv_usb_dev_id->match_flags & USB_DEVICE_ID_MATCH_INT_PROTOCOL) == USB_DEVICE_ID_MATCH_INT_PROTOCOL) && (req_usb_dev_id->bInterfaceProtocol != drv_usb_dev_id->bInterfaceProtocol))
     {
         return FALSE;
     }

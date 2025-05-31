@@ -132,3 +132,18 @@ char* ulltoa(uint64_t number, int base)
 
     return destination;
 }
+
+void seize_str(uint16_t* in, char* out)
+{
+    size_t i = 0;
+
+    while (in[i] != 0)
+    {
+        uint16_t val = in[i];
+        out[i] = (char) val;
+
+        i++;
+    }
+
+    out[i] = '\0';
+}

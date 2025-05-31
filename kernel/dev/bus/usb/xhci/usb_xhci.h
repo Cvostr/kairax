@@ -3,6 +3,7 @@
 
 #include "kairax/types.h"
 #include "../usb_descriptors.h"
+#include "../usb.h"
 
 #define XHCI_CMD_RUN        (1 << 0)
 #define XHCI_CMD_RESET      (1 << 1)
@@ -192,42 +193,6 @@ struct xhci_runtime_regs {
 	struct xhci_interrupter interrupters[];
 } PACKED;
 
-#define XHCI_DEVICE_REQ_RECIPIENT_DEVICE	0
-#define XHCI_DEVICE_REQ_RECIPIENT_INTERFACE	1
-#define XHCI_DEVICE_REQ_RECIPIENT_ENDPOINT	2
-#define XHCI_DEVICE_REQ_RECIPIENT_OTHER		3
-#define XHCI_DEVICE_REQ_RECIPIENT_RESERVED	4
-
-#define XHCI_DEVICE_REQ_TYPE_STANDART		0
-#define XHCI_DEVICE_REQ_TYPE_CLASS			1
-#define XHCI_DEVICE_REQ_TYPE_VENDOR			2
-#define XHCI_DEVICE_REQ_TYPE_RSVD			3
-
-#define XHCI_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE	0
-#define XHCI_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST	1
-
-#define XHCI_DEVICE_REQ_GET_STATUS			0
-#define XHCI_DEVICE_REQ_CLEAR_FEATURE		1
-#define XHCI_DEVICE_REQ_SET_FEATURE			2
-#define XHCI_DEVICE_REQ_SET_ADDRESS			5
-#define XHCI_DEVICE_REQ_GET_DESCRIPTOR		6
-#define XHCI_DEVICE_REQ_SET_DESCRIPTOR		7
-#define XHCI_DEVICE_REQ_GET_CONFIGURATION	8
-#define XHCI_DEVICE_REQ_SET_CONFIGURATION	9
-#define XHCI_DEVICE_REQ_GET_INTERFACE		10
-#define XHCI_DEVICE_REQ_SET_INTERFACE		11
-#define XHCI_DEVICE_REQ_SYNC_FRAME			12
-struct xhci_device_request {
-    
-    uint8_t recipient           : 5;
-    uint8_t type                : 2;
-	uint8_t transfer_direction  : 1;
-
-    uint8_t 	bRequest;
-    uint16_t 	wValue;
-    uint16_t 	wIndex;
-    uint16_t 	wLength;
-};
 
 #define XHCI_SETUP_STAGE_TRT_NO_DATA	0
 #define XHCI_SETUP_STAGE_TRT_RESERVED	1
@@ -322,6 +287,18 @@ struct xhci_trb {
 			uint32_t slot_id   : 8;
 		} disable_slot_command;
 
+		struct
+		{
+			uint64_t input_context_pointer : 64;
+			uint32_t                       : 32;
+			uint32_t cycle_bit             : 1;
+			uint32_t                       : 8;
+			uint32_t deconfigure           : 1;
+			uint32_t trb_type              : 6;
+			uint32_t                       : 8;
+			uint32_t slot_id               : 8;
+		} configure_endpoint_command;
+
 		struct 
 		{
 			uint64_t cmd_trb_ptr;
@@ -355,7 +332,7 @@ struct xhci_trb {
 
 		struct
 		{
-			struct xhci_device_request 		 req;
+			struct usb_device_request 		 req;
 
 			uint32_t trb_transfer_length     : 17;
 			uint32_t                         : 5;
@@ -500,7 +477,7 @@ struct xhci_controller
 {
     char* mmio_addr;
     uintptr_t mmio_addr_phys;
-
+	
     struct xhci_cap_regs*   cap;  
     struct xhci_op_regs*    op;
     struct xhci_port_regs*  ports_regs;
@@ -547,6 +524,9 @@ struct xhci_device {
 	uint8_t port_speed;
 	uint8_t ctx_size;
 
+	struct usb_device* usb_device;
+	struct device* composite_dev;
+
 	// Input Context
 	void* input_ctx;
 	uintptr_t input_ctx_phys;
@@ -567,7 +547,7 @@ struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t 
 void xhci_free_device(struct xhci_device* dev);
 int xhci_device_init_contexts(struct xhci_device* dev);
 void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_t max_packet_size);
-int xhci_device_send_usb_request(struct xhci_device* dev, struct xhci_device_request* req, void* out, uint32_t length);
+int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length);
 int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length);
 int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct usb_string_language_descriptor* descr);
 int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr);
@@ -575,6 +555,9 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
 int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx);
+int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device);
+// функции для указателей
+int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci

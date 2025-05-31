@@ -305,10 +305,15 @@ void bootshell_process_cmd(char* cmdline)
 
             if(dev != NULL) {
                 printf_stdout("Device %s.\n", dev->dev_name);
-                printf_stdout("\tID: %i-%i-%i-%i-%i\n", dev->id.d1, dev->id.d2, dev->id.d3, dev->id.d4, dev->id.d5);
+                //printf_stdout("\tID: %i-%i-%i-%i-%i\n", dev->id.d1, dev->id.d2, dev->id.d3, dev->id.d4, dev->id.d5);
                 if (dev->dev_bus == DEVICE_BUS_PCI) {
                     struct pci_device_info* desc = dev->pci_info;
                     printf_stdout("\tPCI: %i:%i:%i class %i, subclass %i, pif %i\n", desc->bus, desc->device, desc->function, desc->device_class, desc->device_subclass, desc->prog_if);
+                }
+                if (dev->dev_bus == DEVICE_BUS_USB) {
+                    struct usb_device* usbdev = dev->usb_info.usb_device;
+                    struct usb_device_descriptor* devdescr = &usbdev->descriptor;
+                    printf_stdout("\tUSB: class %i, subclass %i, vendor %x product %x\n", devdescr->bDeviceClass, devdescr->bDeviceSubClass, devdescr->idVendor, devdescr->idProduct);
                 }
                 if (dev->dev_type == DEVICE_TYPE_NETWORK_ADAPTER) {
                     

@@ -47,7 +47,7 @@ struct usb_device_id {
     // Для поиска по классу интерфейса
     uint8_t     bInterfaceClass;
     uint8_t     bInterfaceSubclass;
-    uint8_t     bIntefaceProtocol;
+    uint8_t     bInterfaceProtocol;
 };
 
 // USB - Для поиска по продукту

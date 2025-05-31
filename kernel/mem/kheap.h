@@ -4,6 +4,8 @@
 #include "types.h"
 #include "memory/paging.h"
 
+#define KFREE_SAFE(x) if (x) {kfree(x);}
+
 struct kheap_item
 {
     struct kheap_item* next;

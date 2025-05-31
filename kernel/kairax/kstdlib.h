@@ -7,6 +7,8 @@ uint64_t align(uint64_t val, size_t alignment);
 
 uint64_t align_down(uint64_t val, size_t alignment);
 
+void seize_str(uint16_t* in, char* out);
+
 void reverse(char *str);
 
 char* itoa(int64 number, int base);

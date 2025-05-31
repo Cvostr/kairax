@@ -15,6 +15,11 @@ struct device* new_device()
     return dev;
 }
 
+void device_set_name(struct device* dev, const char* name)
+{
+    strncpy(dev->dev_name, name, DEVICE_NAME_LEN);
+}
+
 int register_device(struct device* dev)
 {
     dev->dev_state = DEVICE_STATE_UNINITIALIZED;
@@ -61,12 +66,26 @@ exit:
     return result;
 }
 
+void to_usb_device_id(struct usb_device* device, struct usb_interface* iface, struct usb_device_id* id)
+{
+    id->idProduct = device->descriptor.idProduct;
+    id->idVendor = device->descriptor.idVendor;
+    id->bDeviceClass = device->descriptor.bDeviceClass;
+    id->bDeviceSubclass = device->descriptor.bDeviceSubClass;
+    id->bDeviceProtocol = device->descriptor.bDeviceProtocol;
+    id->bcdDevice = device->descriptor.bcdDevice;
+
+    id->bInterfaceClass = iface->descriptor.bInterfaceClass;
+    id->bInterfaceSubclass = iface->descriptor.bInterfaceSubClass;
+    id->bInterfaceProtocol = iface->descriptor.bInterfaceProtocol;
+}
+
 void probe_device(struct device* dev)
 {
     if (dev->dev_state == DEVICE_STATE_UNINITIALIZED) {
 
-        if (dev->dev_bus == DEVICE_BUS_PCI) {
-
+        if (dev->dev_bus == DEVICE_BUS_PCI) 
+        {
             struct pci_device_info* pci_info = dev->pci_info;
             struct pci_device_id id = {
                 .dev_class = pci_info->device_class,
@@ -91,6 +110,31 @@ void probe_device(struct device* dev)
                     }
                 }
             }                
+        } else if (dev->dev_bus == DEVICE_BUS_USB)
+        {
+            if (dev->usb_info.usb_interface == NULL)
+            {
+                // Это корневое устройство без интерфейса
+                return;
+            }
+
+            struct usb_device_id usbid;
+            to_usb_device_id(dev->usb_info.usb_device, dev->usb_info.usb_interface, &usbid);
+
+            struct usb_device_driver* drv = drivers_get_for_usb_device(&usbid);
+            if (drv != NULL) 
+            {
+                dev->dev_driver = drv;
+
+                if (drv->ops->probe) {
+                    dev->dev_status_code = drv->ops->probe(dev);
+                    if (dev->dev_status_code < 0) {
+                        dev->dev_state = DEVICE_STATE_INIT_ERROR;
+                    } else {
+                        dev->dev_state = DEVICE_STATE_INITIALIZED;
+                    }
+                }
+            }
         }
     }
 }
