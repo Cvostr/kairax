@@ -16,6 +16,7 @@
 #define USB_DESCRIPTOR_OTG                              0x09
 #define USB_DESCRIPTOR_HID                              0x21
 #define USB_DESCRIPTOR_SUPERSPEED_ENDPOINT_COMPANION    0x30
+#define USB_DESCRIPTOR_SUPERSPEEDPLUS_ISO_ENDPOINT_COMPANION 0x31
 
 struct usb_descriptor_header {
     uint8_t bLength;
@@ -70,6 +71,23 @@ struct usb_interface_descriptor {
     uint8_t iInterface;
 } PACKED;
 
+#define USB_ENDPOINT_ADDR_NUMBER_MASK       0b111
+#define USB_ENDPOINT_ADDR_DIRECTION_MASK    (1 << 7)
+#define USB_ENDPOINT_ADDR_DIRECTION_IN      (1 << 7)
+#define USB_ENDPOINT_ADDR_DIRECTION_OUT     (0 << 7)
+
+// Значения для bmAttributes
+#define USB_ENDPOINT_ATTR_TT_MASK       0b11
+#define USB_ENDPOINT_ATTR_TT_CONTROL    0b00
+#define USB_ENDPOINT_ATTR_TT_ISOCH      0b01
+#define USB_ENDPOINT_ATTR_TT_BULK       0b10
+#define USB_ENDPOINT_ATTR_TT_INTERRUPT  0b11
+
+#define USB_ENDPOINT_IS_CONTROL(attr) ((attr & USB_ENDPOINT_ATTR_TT_MASK) == USB_ENDPOINT_ATTR_TT_CONTROL)
+#define USB_ENDPOINT_IS_BULK(attr) ((attr & USB_ENDPOINT_ATTR_TT_MASK) == USB_ENDPOINT_ATTR_TT_BULK)
+#define USB_ENDPOINT_IS_ISOCH(attr) ((attr & USB_ENDPOINT_ATTR_TT_MASK) == USB_ENDPOINT_ATTR_TT_ISOCH)
+#define USB_ENDPOINT_IS_INT(attr) ((attr & USB_ENDPOINT_ATTR_TT_MASK) == USB_ENDPOINT_ATTR_TT_INTERRUPT)
+
 struct usb_endpoint_descriptor {
     struct usb_descriptor_header header;
     uint8_t bEndpointAddress;
@@ -83,6 +101,12 @@ struct usb_ss_ep_companion_descriptor {
 	uint8_t bMaxBurst;
 	uint8_t bmAttributes;
 	uint16_t wBytesPerInterval;
+} PACKED;
+
+struct usb_ssp_isoc_ep_companion_descriptor {
+    struct usb_descriptor_header header;
+	uint16_t wReseved;
+	uint32_t dwBytesPerInterval;
 } PACKED;
 
 struct usb_hid_descriptor {

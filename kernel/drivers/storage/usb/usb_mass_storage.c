@@ -42,6 +42,49 @@ int usb_mass_device_probe(struct device *dev)
 
     rc = usb_device_send_request(device, &req, &lun, 1);
     printk("USB Mass: lun req result %i, lun = %i\n", rc, lun);
+
+	struct usb_endpoint* builk_in = NULL;
+	struct usb_endpoint* builk_out = NULL;
+
+	for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
+	{
+		struct usb_endpoint* ep = &interface->endpoints[i];
+
+		if (ep->descriptor.bmAttributes != USB_ENDPOINT_ATTR_TT_BULK)
+			continue;
+
+		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
+		{
+			// IN
+			printk("USB: Mass storage IN %i\n", i);
+			builk_in = ep;
+		}
+		else 
+		{
+			// OUT
+			printk("USB: Mass storage OUT %i\n", i);
+			builk_out = ep;
+		}
+	}
+
+	if (builk_out == NULL || builk_in == NULL)
+	{
+		return -1;
+	}
+
+	rc = usb_device_configure_endpoint(device, builk_in);
+	if (rc != 0)
+	{
+		printk("USB: Error initialize IN endpoint (%i)\n", rc);
+		return -1;
+	}
+
+	rc = usb_device_configure_endpoint(device, builk_out);
+	if (rc != 0)
+	{
+		printk("USB: Error initialize OUT endpoint (%i)\n", rc);
+		return -1;
+	}
 }
 
 struct device_driver_ops usb_mass_ops = {

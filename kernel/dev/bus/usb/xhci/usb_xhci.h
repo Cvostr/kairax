@@ -535,6 +535,8 @@ struct xhci_device {
 	void* device_ctx;
 	uintptr_t device_ctx_phys;
 
+	uint8_t max_configured_endpoint_id;
+
 	// Указатели на базовые структуры Input Context
 	struct xhci_input_control_context32* input_control_context;
 	struct xhci_slot_context32* slot_ctx;
@@ -547,6 +549,7 @@ struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t 
 void xhci_free_device(struct xhci_device* dev);
 int xhci_device_init_contexts(struct xhci_device* dev);
 void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_t max_packet_size);
+int xhci_device_update_actual_max_packet_size(struct xhci_device* dev, uint32_t max_packet_size);
 int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length);
 int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length);
 int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct usb_string_language_descriptor* descr);
@@ -556,8 +559,10 @@ int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx);
 int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device);
+int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint* endpoint);
 // функции для указателей
 int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length);
+int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci
@@ -580,6 +585,8 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 uint8_t xhci_controller_alloc_slot(struct xhci_controller* controller);
 int xhci_controller_disable_slot(struct xhci_controller* controller, uint8_t slot);
 int xhci_controller_address_device(struct xhci_controller* controller, uintptr_t address, uint8_t slot_id, int bsr);
+int xhci_controller_device_eval_ctx(struct xhci_controller* controller, uintptr_t address, uint8_t slot);
+int xhci_controller_configure_endpoint(struct xhci_controller* controller, uint8_t slot, uintptr_t address, uint8_t deconfigure);
 
 // Общий обработчик прерывания
 void xhci_int_hander(void* regs, struct xhci_controller* data);

@@ -518,7 +518,13 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	if (actual_max_packet_size != max_initial_packet_size)
 	{
 		printk("XHCI: Actual max packet size (%i) differs (%i). updating packet size\n", actual_max_packet_size, max_initial_packet_size);
-		//TODO: реализовать
+		// Обновим параметр в Endpoint Context
+		rc = xhci_device_update_actual_max_packet_size(device, actual_max_packet_size);
+		if (rc != 0) 
+		{
+			printk("XHCI: error during updating device ctrl endpoint packet size (%i)!\n", rc);	
+			return -1;
+		}
 	}
 
 	// Еще раз выполним, но уже без BSR
@@ -543,6 +549,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	struct usb_device* usb_device = new_usb_device(&device_descriptor, device);
 	usb_device->slot_id = slot;
 	usb_device->send_request = xhci_drv_device_send_usb_request;
+	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
 	
 	// Получение информации о названии устройства
 	xhci_device_get_product_strings(device, usb_device);
@@ -562,7 +569,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	// Обработка всех конфигураций
 	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
 	{
-		xhci_device_process_configuration(device, i);
+		rc = xhci_device_process_configuration(device, i);
 	}
 
 	rc = register_device(composite_dev);
@@ -604,6 +611,34 @@ int xhci_controller_address_device(struct xhci_controller* controller, uintptr_t
 
 	struct xhci_trb result;
 	return xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &address_device_trb, &result);
+}
+
+int xhci_controller_device_eval_ctx(struct xhci_controller* controller, uintptr_t address, uint8_t slot)
+{
+	struct xhci_trb address_device_trb;
+	memset(&address_device_trb, 0, sizeof(struct xhci_trb));
+	address_device_trb.type = XHCI_TRB_EVALUATE_CONTEXT_CMD;
+	// Можем использовать структуру от address device
+	address_device_trb.address_device.input_context_pointer = address;
+	address_device_trb.address_device.slot_id = slot;
+	address_device_trb.address_device.block_set_address_request = 0;
+
+	struct xhci_trb result;
+	return xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &address_device_trb, &result);
+}
+
+int xhci_controller_configure_endpoint(struct xhci_controller* controller, uint8_t slot, uintptr_t address, uint8_t deconfigure)
+{
+	struct xhci_trb configure_ep_trb;
+	memset(&configure_ep_trb, 0, sizeof(struct xhci_trb));
+	configure_ep_trb.type = XHCI_TRB_CONFIGURE_ENDPOINT_CMD;
+
+	configure_ep_trb.configure_endpoint_command.slot_id = slot;
+	configure_ep_trb.configure_endpoint_command.input_context_pointer = address;
+	configure_ep_trb.configure_endpoint_command.deconfigure = deconfigure;
+
+	struct xhci_trb result;
+	return xhci_controller_enqueue_cmd_wait(controller, controller->cmdring, &configure_ep_trb, &result);
 }
 
 struct xhci_command_ring *xhci_create_command_ring(size_t ntrbs)

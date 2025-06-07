@@ -47,12 +47,19 @@ struct device;
 
 struct usb_endpoint {
     struct usb_endpoint_descriptor descriptor;
-    struct usb_ss_ep_companion_descriptor super_speed_companion;
+    struct usb_ss_ep_companion_descriptor ss_companion;
+    struct usb_ssp_isoc_ep_companion_descriptor ssp_isoc_companion;
+
+    uint8_t ss_companion_present : 1;
+    uint8_t ssp_isoc_companion_present : 1;
 };
 
 struct usb_interface {
     struct usb_interface_descriptor descriptor;
+    // Эндпоинты в количестве bNumEndpoints
     struct usb_endpoint* endpoints;
+    // HID дескриптор (NULL, если отсутствует)
+    struct usb_hid_descriptor* hid_descriptor;
     // Основное составное устройство
     struct device* root_device;
     // Устройство - интерфейс
@@ -76,6 +83,7 @@ struct usb_device {
     uint8_t slot_id;
 
     int (*send_request) (struct usb_device*, struct usb_device_request*, void*, uint32_t);
+    int (*configure_endpoint) (struct usb_device*, struct usb_endpoint*);
 };
 
 // Создание и уничтожение

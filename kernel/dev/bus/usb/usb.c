@@ -33,6 +33,11 @@ int usb_device_send_request(struct usb_device* device, struct usb_device_request
     return device->send_request(device, req, out, length);
 }
 
+int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint* endpoint)
+{
+    return device->configure_endpoint(device, endpoint);
+}
+
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor)
 {
     struct usb_config* result = kmalloc(sizeof(struct usb_config));
@@ -60,7 +65,10 @@ struct usb_interface* new_usb_interface(struct usb_interface_descriptor* descrip
     memset(result, 0, sizeof(struct usb_interface));
 
     // Записать информацию о дескрипторе
-    memcpy(&result->descriptor, descriptor, sizeof(struct usb_interface));
+    memcpy(&result->descriptor, descriptor, sizeof(struct usb_interface_descriptor));
+    
+    // Выделить память под массив эндпоинтов
+    result->endpoints = new_usb_endpoint_array(descriptor->bNumEndpoints);
 
     return result;
 }
@@ -68,7 +76,8 @@ struct usb_interface* new_usb_interface(struct usb_interface_descriptor* descrip
 void free_usb_interface(struct usb_interface* iface)
 {
     // TODO: implement
-    kfree(iface->endpoints);
+    KFREE_SAFE(iface->hid_descriptor)
+    KFREE_SAFE(iface->endpoints);
     kfree(iface);
 }
 
