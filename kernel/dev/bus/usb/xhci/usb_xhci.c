@@ -762,19 +762,27 @@ struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs)
 	return transfer_ring;
 }
 
+void xhci_transfer_ring_create_compl_table(struct xhci_transfer_ring *ring)
+{
+	size_t compl_sz = sizeof(struct xhci_transfer_ring_completion) * ring->trb_count;
+	ring->compl = kmalloc(compl_sz);
+	memset(ring->compl, 0, compl_sz);
+}
+
 void xhci_free_transfer_ring(struct xhci_transfer_ring *ring)
 {
 	// TODO: implement
-
+	KFREE_SAFE(ring->compl);
 	kfree(ring);
 }
 
-void xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb* trb)
+size_t xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb* trb)
 {
 	// Запишем Cycle State (чтобы на следующем круге XHCI видел это как невыполненное)
 	trb->cycle_bit = ring->cycle_bit;
 
-	memcpy(&ring->trbs[ring->enqueue_ptr], trb, sizeof(struct xhci_trb));
+	size_t tmp_index = ring->enqueue_ptr;
+	memcpy(&ring->trbs[tmp_index], trb, sizeof(struct xhci_trb));
 
 	if (++ring->enqueue_ptr == ring->trb_count - 1)
 	{
@@ -785,6 +793,8 @@ void xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb
 		// Инвертируем Cycle State
 		ring->cycle_bit = !ring->cycle_bit;
 	}
+
+	return tmp_index;
 }
 
 uintptr_t xhci_transfer_ring_get_cur_phys_ptr(struct xhci_transfer_ring *ring)

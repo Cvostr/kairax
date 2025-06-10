@@ -71,7 +71,7 @@ struct usb_interface_descriptor {
     uint8_t iInterface;
 } PACKED;
 
-#define USB_ENDPOINT_ADDR_NUMBER_MASK       0b111
+#define USB_ENDPOINT_ADDR_NUMBER_MASK       0b1111
 #define USB_ENDPOINT_ADDR_DIRECTION_MASK    (1 << 7)
 #define USB_ENDPOINT_ADDR_DIRECTION_IN      (1 << 7)
 #define USB_ENDPOINT_ADDR_DIRECTION_OUT     (0 << 7)

@@ -52,6 +52,8 @@ struct usb_endpoint {
 
     uint8_t ss_companion_present : 1;
     uint8_t ssp_isoc_companion_present : 1;
+
+    void* transfer_ring;
 };
 
 struct usb_interface {

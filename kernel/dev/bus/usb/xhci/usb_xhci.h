@@ -230,6 +230,26 @@ struct xhci_trb {
 			uint16_t control;
 		};
 
+		struct {
+			uint64_t data_buffer_pointer       : 64;
+
+			uint32_t trb_transfer_length       : 17;
+			uint32_t td_size                   : 5;
+			uint32_t interrupt_target          : 10;
+
+			uint32_t cycle_bit                 : 1;
+			uint32_t evaluate_next_trb         : 1;
+			uint32_t interrupt_on_short_packet : 1;
+			uint32_t no_snoop                  : 1;
+			uint32_t chain_bit                 : 1;
+			uint32_t interrupt_on_completion   : 1;
+			uint32_t immediate_data            : 1;
+			uint32_t                           : 2;
+			uint32_t block_event_interrupt     : 1;
+			uint32_t trb_type                  : 6;
+			uint32_t                           : 16;
+		} normal;
+
 		struct 
 		{
 			uint64_t parameter;
@@ -441,6 +461,10 @@ struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments);
 int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb);
 void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_ring *ring);
 
+struct xhci_transfer_ring_completion
+{
+	struct xhci_trb 	trb;
+};
 struct xhci_transfer_ring
 {
 	size_t trb_count;
@@ -451,11 +475,14 @@ struct xhci_transfer_ring
 	struct xhci_trb* 	trbs;
 	uintptr_t 			trbs_phys;
 
+	struct xhci_transfer_ring_completion* compl;
+
 	uint8_t 	cycle_bit;
 };
 struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs);
+void xhci_transfer_ring_create_compl_table(struct xhci_transfer_ring *ring);
 void xhci_free_transfer_ring(struct xhci_transfer_ring *ring);
-void xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb* trb);
+size_t xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_trb* trb);
 uintptr_t xhci_transfer_ring_get_cur_phys_ptr(struct xhci_transfer_ring *ring);
 
 struct xhci_device;
@@ -526,6 +553,7 @@ struct xhci_device {
 
 	struct usb_device* usb_device;
 	struct device* composite_dev;
+	struct usb_endpoint* eps[30];
 
 	// Input Context
 	void* input_ctx;
@@ -560,6 +588,7 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx);
 int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device);
 int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint* endpoint);
+int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep, void* data, uint32_t size);
 // функции для указателей
 int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length);
 int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint);
