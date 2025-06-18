@@ -1,9 +1,9 @@
 #ifndef _CTYPE_H_
 #define _CTYPE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 extern int isspace(int c);
 extern int isdigit(int c);
@@ -15,8 +15,9 @@ extern int isalnum(int c);
 extern int isupper (int c);
 extern int islower (int c);
 
-#ifdef __cplusplus
-}
-#endif
+extern int isascii (int c);
+extern int toascii (int c);
+
+__END_DECLS
 
 #endif

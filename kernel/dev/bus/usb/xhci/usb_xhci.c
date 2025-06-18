@@ -28,7 +28,6 @@ static const char* xhci_speed_string[7] = {
 };
 
 //#define XHCI_LOG_CMD_COMPLETION
-//#define XHCI_LOG_TRANSFER
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -405,12 +404,6 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
-#ifdef XHCI_LOG_TRANSFER
-			//printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i) PTR (%i)!\n", 
-			//	event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code, event->transfer_event.trb_pointer);
-			printk("XHCI: transfer event on slot (%i) on endpoint (%i) with code (%i)!\n", 
-				event->transfer_event.slot_id, event->transfer_event.endpoint_id, event->transfer_event.completion_code);
-#endif
 			uint32_t slot_id = event->transfer_event.slot_id;
 			struct xhci_device* device = controller->devices_by_slots[slot_id - 1];
 			if (device != NULL)
@@ -749,7 +742,7 @@ struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs)
 
 	size_t transfer_ring_buffer_size = ntrbs * sizeof(struct xhci_trb);
 	// Выделить память
-	transfer_ring->trbs_phys = (uintptr_t) pmm_alloc(transfer_ring_buffer_size, NULL);
+	transfer_ring->trbs_phys = (uintptr_t) pmm_alloc(transfer_ring_buffer_size, &transfer_ring->trbs_numpages);
 	transfer_ring->trbs = map_io_region(transfer_ring->trbs_phys, transfer_ring_buffer_size);
 	memset(transfer_ring->trbs, 0, transfer_ring_buffer_size);
 
@@ -771,7 +764,7 @@ void xhci_transfer_ring_create_compl_table(struct xhci_transfer_ring *ring)
 
 void xhci_free_transfer_ring(struct xhci_transfer_ring *ring)
 {
-	// TODO: implement
+	pmm_free_pages(ring->trbs_phys, ring->trbs_numpages);
 	KFREE_SAFE(ring->compl);
 	kfree(ring);
 }

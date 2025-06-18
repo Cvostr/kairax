@@ -45,3 +45,13 @@ int islower (int c)
   	unsigned char x = c & 0xff;
   	return (x >= 'a' && x <= 'z');
 }
+
+int isascii(int c) 
+{
+    return (unsigned int)c < 128u;
+}
+
+int toascii(int c) 
+{
+	return (c&0x7f);
+}

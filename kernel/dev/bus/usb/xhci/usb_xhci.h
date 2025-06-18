@@ -472,6 +472,7 @@ struct xhci_transfer_ring
 	size_t enqueue_ptr;
 	size_t dequeue_ptr;
 
+	size_t 				trbs_numpages;
 	struct xhci_trb* 	trbs;
 	uintptr_t 			trbs_phys;
 
