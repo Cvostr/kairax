@@ -100,6 +100,10 @@ void free_usb_device(struct usb_device* device);
 /// @param length длина выходных данных
 /// @return 0 - при успехе
 int usb_device_send_request(struct usb_device* device, struct usb_device_request* req, void* out, uint32_t length);
+/// @brief сконфигурировать эндпоинт для работы с ним
+/// @param device объект устройства
+/// @param endpoint объект эндпоинта
+/// @return 0 - при успехе
 int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint* endpoint);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
