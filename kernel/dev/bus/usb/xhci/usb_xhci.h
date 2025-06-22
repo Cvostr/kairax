@@ -599,6 +599,7 @@ int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep,
 // функции для указателей
 int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length);
 int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint);
+int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci

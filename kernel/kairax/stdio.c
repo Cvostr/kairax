@@ -162,6 +162,18 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 				return -1;
 			written += len;
 		
+		} else if (*format == 'p') {
+			format++;
+			size_t integer = va_arg(args, uintptr_t);
+			char* str = ulltoa(integer, 16);
+			size_t len = strlen(str);
+			if (maxrem < len) {
+				return -1;
+			}
+			if (!f(str, len, arg))
+				return -1;
+			written += len;
+		
 		} else {
 			format = format_begun_at;
 			size_t len = strlen(format);

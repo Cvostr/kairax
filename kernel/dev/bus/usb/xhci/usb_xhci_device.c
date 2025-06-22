@@ -475,6 +475,11 @@ int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoi
     return xhci_device_configure_endpoint(dev->controller_device_data, endpoint);
 }
 
+int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length)
+{
+    return xhci_device_send_bulk_data(dev->controller_device_data, endpoint, data, length);
+}
+
 int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length)
 {
     struct xhci_trb setup_stage;
@@ -772,7 +777,7 @@ int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint*
     return xhci_controller_configure_endpoint(dev->controller, dev->slot_id, dev->input_ctx_phys, FALSE);
 }
 
-// Возвращает код возврата USB (1 - успешный) (1024 - stall)
+// Возвращает код возврата USB (0 - успешный) (1024 - stall)
 // data - физический адрес
 int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep, void* data, uint32_t size)
 {
@@ -807,7 +812,7 @@ int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep,
 
     if (status == XHCI_COMPLETION_CODE_STALL)
     {
-        return 1024;
+        return USB_COMPLETION_CODE_STALL;
     }
 
 	if (status != XHCI_COMPLETION_CODE_SUCCESS)

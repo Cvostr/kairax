@@ -499,6 +499,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	printk("XHCI: header type %i, size %i, actual packet size: %i\n", 
 		device_descriptor.header.bDescriptorType, device_descriptor.header.bLength, device_descriptor.bMaxPacketSize0);
 	
+	// Теперь получим настоящий максимальный размер пакета
 	uint16_t actual_max_packet_size = device_descriptor.bMaxPacketSize0;  
 	
 	// Вроде как, если устройство USB3.0, то оно отдаст значение в виде 2^x
@@ -543,6 +544,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	usb_device->slot_id = slot;
 	usb_device->send_request = xhci_drv_device_send_usb_request;
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
+	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
 	
 	// Получение информации о названии устройства
 	xhci_device_get_product_strings(device, usb_device);

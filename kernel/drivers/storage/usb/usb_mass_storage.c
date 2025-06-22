@@ -5,6 +5,7 @@
 #include "string.h"
 #include "kairax/kstdlib.h"
 #include "kairax/in.h"
+#include "kairax/stdio.h"
 
 struct command_block_wrapper {
     uint32_t signature;
@@ -195,7 +196,7 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 	memcpy(tmp_data_buffer, cbw, CBW_SIZE);
 
 	// отправка CBW на выполнение
-	rc = xhci_device_send_bulk_data(dev->usb_dev->controller_device_data, dev->out_ep, tmp_data_buffer_phys, CBW_SIZE);
+	rc = usb_device_bulk_msg(dev->usb_dev, dev->out_ep, tmp_data_buffer_phys, CBW_SIZE);
 	if (rc != 0)
 	{
 		printk("USB Mass: Error sending CBW %i\n", rc);
@@ -205,8 +206,8 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 	if (len) 
 	{
 		// прием ответа
-		rc = xhci_device_send_bulk_data(dev->usb_dev->controller_device_data, dev->in_ep, tmp_data_buffer_phys, len);
-		if (rc == 1024)
+		rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, len);
+		if (rc == USB_COMPLETION_CODE_STALL)
 		{
 			// printk("STALL\n");
 			// STALL - штатная ситуация
@@ -218,14 +219,26 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 				goto cleanup_exit;
 			}
 			// И попробовать еще раз
-			rc = xhci_device_send_bulk_data(dev->usb_dev->controller_device_data, dev->in_ep, tmp_data_buffer_phys, len);
+			rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, len);
 		}
 		// копирование ответа
 		memcpy(out, tmp_data_buffer, len);
 	}
 
 	// Прием данных CSW
-	rc = xhci_device_send_bulk_data(dev->usb_dev->controller_device_data, dev->in_ep, tmp_data_buffer_phys, sizeof(struct command_status_wrapper));
+	rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, sizeof(struct command_status_wrapper));
+	if (rc == USB_COMPLETION_CODE_STALL)
+	{
+		// Надо отресетить эндпоинт
+		rc = usb_mass_device_clear_feature(dev->usb_dev, dev->in_ep);
+		if (rc != 0)
+		{
+			printk("USB Mass: Error resetting IN endpoint %i\n", rc);
+			goto cleanup_exit;
+		}
+		// И попробовать еще раз
+		rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, sizeof(struct command_status_wrapper));
+	}
 
 	struct command_status_wrapper* csw = (tmp_data_buffer);
 	if (csw->signature != CSW_SIGNATURE)
@@ -280,6 +293,7 @@ void usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
     cbw.data[7] = (uint8_t) ((count >> 8) & 0xFF);
     cbw.data[8] = (uint8_t) ((count) & 0xFF);
 
+	// TODO: вывести
 	char* temp = kmalloc(bytes_to_read);
 
 	struct inquiry_block_result inq_result;
@@ -512,5 +526,4 @@ struct usb_device_driver usb_mass_storage_driver = {
 void usb_mass_init()
 {
 	register_usb_device_driver(&usb_mass_storage_driver);
-
 }

@@ -38,6 +38,11 @@ int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint
     return device->configure_endpoint(device, endpoint);
 }
 
+int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length)
+{
+	return device->bulk_msg(device, endpoint, data, length);
+}
+
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor)
 {
     struct usb_config* result = kmalloc(sizeof(struct usb_config));

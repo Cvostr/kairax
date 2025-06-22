@@ -4,6 +4,9 @@
 #include "kairax/types.h"
 #include "usb_descriptors.h"
 
+#define USB_COMPLETION_CODE_SUCCESS     0
+#define USB_COMPLETION_CODE_STALL       1024
+
 // Request Direction
 #define USB_DEVICE_REQ_RECIPIENT_DEVICE	0
 #define USB_DEVICE_REQ_RECIPIENT_INTERFACE	1
@@ -45,6 +48,7 @@ struct usb_device_request {
 // контроллеро-независимые представления
 struct device;
 
+// Структура эндпоинта устройства
 struct usb_endpoint {
     struct usb_endpoint_descriptor descriptor;
     struct usb_ss_ep_companion_descriptor ss_companion;
@@ -73,6 +77,7 @@ struct usb_config {
     struct usb_interface**              interfaces;
 };
 
+// Описывает USB устройство в системе
 struct usb_device {
     struct usb_device_descriptor    descriptor;
     struct usb_config**             configs;
@@ -86,6 +91,7 @@ struct usb_device {
 
     int (*send_request) (struct usb_device*, struct usb_device_request*, void*, uint32_t);
     int (*configure_endpoint) (struct usb_device*, struct usb_endpoint*);
+    int (*bulk_msg) (struct usb_device*, struct usb_endpoint*, void*, uint32_t);
 };
 
 // Создание и уничтожение
@@ -93,7 +99,7 @@ struct usb_device* new_usb_device(struct usb_device_descriptor* descriptor, void
 void free_usb_device(struct usb_device* device);
 // Общие функции управления
 
-/// @brief 
+/// @brief послать запрос к usb устройству на default control endpoint
 /// @param device объект устройства
 /// @param req указатель на структуру запроса
 /// @param out указатель на буфер, куда читать
@@ -105,6 +111,13 @@ int usb_device_send_request(struct usb_device* device, struct usb_device_request
 /// @param endpoint объект эндпоинта
 /// @return 0 - при успехе
 int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint* endpoint);
+/// @brief сообщение в bulk endpoint (отправка или получение)
+/// @param device объект устройства
+/// @param endpoint объект endpoint
+/// @param data указатель на физический адрес
+/// @param length размер данных
+/// @return 0 - при успехе, 1024 при stall, иначе код ошибки контроллера
+int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void free_usb_config(struct usb_config* config);
