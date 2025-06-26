@@ -318,6 +318,10 @@ void bootshell_process_cmd(char* cmdline)
                 if (dev->dev_type == DEVICE_TYPE_NETWORK_ADAPTER) {
                     
                 }
+                if (dev->dev_type == DEVICE_TYPE_DRIVE) {
+                    struct drive_device_info* drive_info = dev->drive_info;
+                    printf_stdout("\tDrive: Blocks %i Size %i MiB\n", drive_info->sectors, drive_info->nbytes / 1024 / 1024);
+                }
             }
         }
     }

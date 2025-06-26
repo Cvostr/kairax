@@ -251,6 +251,7 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 								uint8_t slot = device->slot_id;
 								controller->devices_by_slots[slot] = NULL;
 								controller->ports[port_id].bound_device = NULL;
+								unregister_device(device->composite_dev);
 								xhci_controller_disable_slot(controller, slot);
 								xhci_free_device(device);
 							}
@@ -741,6 +742,7 @@ struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs)
 	transfer_ring->cycle_bit = XHCI_CR_CYCLE_STATE;
 	transfer_ring->enqueue_ptr = 0;
 	transfer_ring->dequeue_ptr = 0;
+	transfer_ring->compl = NULL;
 
 	size_t transfer_ring_buffer_size = ntrbs * sizeof(struct xhci_trb);
 	// Выделить память
@@ -766,6 +768,7 @@ void xhci_transfer_ring_create_compl_table(struct xhci_transfer_ring *ring)
 
 void xhci_free_transfer_ring(struct xhci_transfer_ring *ring)
 {
+	unmap_io_region(ring->trbs, ring->trbs_numpages * PAGE_SIZE);
 	pmm_free_pages(ring->trbs_phys, ring->trbs_numpages);
 	KFREE_SAFE(ring->compl);
 	kfree(ring);

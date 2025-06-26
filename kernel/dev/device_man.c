@@ -31,6 +31,11 @@ int register_device(struct device* dev)
     probe_device(dev);
 }
 
+void unregister_device(struct device* dev)
+{
+    // TODO: implement
+}
+
 struct device* get_device(int index)
 {
     return get_device_with_type(DEVICE_TYPE_ANY, index);

@@ -304,7 +304,7 @@ void usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 	}
 }
 
-int usb_mass_inquiry(struct usb_mass_storage_device* dev)
+int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result)
 {
 	struct command_block_wrapper cbw;
 	memset(&cbw, 0, sizeof(struct command_block_wrapper));
@@ -322,19 +322,7 @@ int usb_mass_inquiry(struct usb_mass_storage_device* dev)
     cbw.data[4] = sizeof(struct inquiry_block_result);
     cbw.data[5] = 0;
 
-	struct inquiry_block_result inq_result;
-	int rc = usb_mass_exec_cmd(dev, &cbw, FALSE, &inq_result, sizeof(struct inquiry_block_result));
-	if (rc != 0)
-	{
-		return rc;
-	}
-
-	dev->peripheral_device_type = inq_result.peripheral_device_type;
-	dev->peripheral_qualifier = inq_result.peripheral_qualifier;
-	printk("INQUIRY result: %s, %s, DT %i, Q %i\n", inq_result.t10_vendor_identification, inq_result.product_identification,
-		dev->peripheral_device_type, dev->peripheral_qualifier);
-
-	return 0;
+	return usb_mass_exec_cmd(dev, &cbw, FALSE, inq_result, sizeof(struct inquiry_block_result));
 }
 
 int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev)
@@ -384,7 +372,7 @@ int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks,
 	}
 
 	// Результат будет с порядком байт Big Endian
-	*blocks = ntohl(capacity_result.logical_block_address + 1);
+	*blocks = ntohl(capacity_result.logical_block_address) + 1;
 	*block_size = ntohl(capacity_result.block_length);
 	
 	return 0;
@@ -470,17 +458,26 @@ int usb_mass_device_probe(struct device *dev)
 		usb_mass->usb_iface = interface;
 
 		// Сначала запросим информацию
-		rc = usb_mass_inquiry(usb_mass);
+		struct inquiry_block_result inq_result;
+		rc = usb_mass_inquiry(usb_mass, &inq_result);
 		if (rc != 0)
 		{
+			kfree(usb_mass);
 			printk("USB Mass: inqury error with code %i\n", rc);
 			continue;
 		}
+		usb_mass->peripheral_device_type = inq_result.peripheral_device_type;
+		usb_mass->peripheral_qualifier = inq_result.peripheral_qualifier;
+/*		
+		printk("INQUIRY result: %s, %s, DT %i, Q %i\n", inq_result.t10_vendor_identification, inq_result.product_identification,
+			usb_mass->peripheral_device_type, usb_mass->peripheral_qualifier);
+*/
 
 		// Некоторые устройства хотят TEST UNIT
 		rc = usb_mass_test_unit_ready(usb_mass);
 		if (rc != 0)
 		{
+			kfree(usb_mass);
 			printk("USB Mass: Test Unit error with code %i\n", rc);
 			continue;
 		}
@@ -491,30 +488,41 @@ int usb_mass_device_probe(struct device *dev)
 		rc = usb_mass_get_capacity(usb_mass, &blocks, &block_sz);
 		if (rc != 0)
 		{
+			kfree(usb_mass);
 			printk("USB Mass: get capacity error with code %i\n", rc);
 			continue;
 		}
-		printk("CAPACITY result: LBA %i, BS %i\n", blocks, block_sz);
 
 		// Собрать структуру диска
-		struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
-		memset(drive_info, 0, sizeof(struct drive_device_info));
+		struct drive_device_info* drive_info = new_drive_device_info();
 		drive_info->sectors = blocks;
 		drive_info->nbytes = blocks * block_sz;
 
-		// Сохраним в структуре указатель на usb_mass_storage_device
-		//dev->dev_data = usb_mass;
-		//dev->drive_info = drive_info;
+		struct device* lun_dev = new_device();
+		lun_dev->dev_type = DEVICE_TYPE_DRIVE;
+		lun_dev->dev_parent = dev;
+		lun_dev->dev_data = usb_mass;
+		lun_dev->drive_info = drive_info;
+		strncpy(lun_dev->dev_name, inq_result.t10_vendor_identification, 8);
+		strncat(lun_dev->dev_name, inq_result.product_identification, sizeof(inq_result.product_identification));
+
+		register_device(lun_dev);
 
 		//usb_mass_read(usb_mass, 0, 3);
 		//usb_mass_read(usb_mass, 0, 5);
 	}
 }
 
+int usb_mass_device_remove(struct device *dev) 
+{
+	printk("USB BBB Device Remove\n");
+	return 0;
+}
+
 struct device_driver_ops usb_mass_ops = {
 
-    .probe = usb_mass_device_probe
-    //void (*remove) (struct device *dev);
+    .probe = usb_mass_device_probe,
+    .remove = usb_mass_device_remove
     //void (*shutdown) (struct device *dev);
 };
 

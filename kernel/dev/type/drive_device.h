@@ -15,4 +15,6 @@ struct drive_device_info {
     int (*write) (struct device*, uint64_t, uint64_t, const char*);    
 };
 
+struct drive_device_info* new_drive_device_info();
+
 #endif

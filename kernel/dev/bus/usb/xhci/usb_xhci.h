@@ -563,10 +563,12 @@ struct xhci_device {
 	struct usb_endpoint* eps[30];
 
 	// Input Context
+	size_t input_ctx_pages;
 	void* input_ctx;
 	uintptr_t input_ctx_phys;
 
 	// Output Context
+	size_t device_ctx_pages;
 	void* device_ctx;
 	uintptr_t device_ctx_phys;
 

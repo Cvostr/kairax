@@ -177,8 +177,7 @@ int ahci_device_probe(struct device *dev)
 			uint32_t cmd_sets;
 
 			// новый вариант
-			struct drive_device_info* drive_info = kmalloc(sizeof(struct drive_device_info));
-			memset(drive_info, 0, sizeof(struct drive_device_info));
+			struct drive_device_info* drive_info = new_drive_device_info();
 			
 			struct device* drive_dev = new_device();
 			drive_dev->dev_type = DEVICE_TYPE_DRIVE;

@@ -33,6 +33,11 @@ void xhci_free_device(struct xhci_device* dev)
     xhci_free_transfer_ring(dev->control_transfer_ring);
 
     // free contexts
+    unmap_io_region(dev->input_ctx, dev->input_ctx_pages * PAGE_SIZE);
+    pmm_free_pages(dev->input_ctx_phys, dev->input_ctx_pages);
+
+    unmap_io_region(dev->device_ctx, dev->device_ctx_pages * PAGE_SIZE);
+    pmm_free_pages(dev->device_ctx_phys, dev->device_ctx_pages);
 
     // TODO: use refcount
     kfree(dev);
@@ -44,12 +49,12 @@ int xhci_device_init_contexts(struct xhci_device* dev)
     size_t device_context_sz = dev->ctx_size == 1 ? sizeof(struct xhci_device_context64) : sizeof(struct xhci_device_context32);   
 
     // Выделить память под Input Context
-    dev->input_ctx_phys = (uintptr_t) pmm_alloc(input_context_sz, NULL);
+    dev->input_ctx_phys = (uintptr_t) pmm_alloc(input_context_sz, &dev->input_ctx_pages);
 	dev->input_ctx = map_io_region(dev->input_ctx_phys, input_context_sz);
     memset(dev->input_ctx, 0, input_context_sz);
 
     // Выделить память под Device Output Context (управляется устройством)
-    dev->device_ctx_phys = (uintptr_t) pmm_alloc(device_context_sz, NULL);
+    dev->device_ctx_phys = (uintptr_t) pmm_alloc(device_context_sz, &dev->device_ctx_pages);
 	dev->device_ctx = map_io_region(dev->device_ctx_phys, device_context_sz);
     memset(dev->device_ctx, 0, device_context_sz);
 
@@ -606,7 +611,7 @@ uint32_t xhci_ep_compute_interval(struct usb_endpoint* endpoint, uint32_t port_s
     }
 
     // Спизжено из haiku
-    switch(port_speed)
+    switch (port_speed)
     {
         case XHCI_USB_SPEED_FULL_SPEED:
             if (type == USB_ENDPOINT_ATTR_TT_ISOCH)
