@@ -29,6 +29,8 @@ int register_device(struct device* dev)
     release_spinlock(&devices_lock);
 
     probe_device(dev);
+
+    return 0;
 }
 
 void unregister_device(struct device* dev)

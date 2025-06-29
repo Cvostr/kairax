@@ -1,0 +1,13 @@
+#ifndef _HID_H
+#define _HID_H
+
+#define HID_SET_PROTOCOL 0x0B
+
+#define HID_PROTOCOL_BOOT   0
+#define HID_PROTOCOL_REPORT 1
+
+#define HID_DESCRIPTOR_HID 0x21
+#define HID_DESCRIPTOR_REPORT 0x22
+#define HID_DESCRIPTOR_PHYSICAL 0x23
+
+#endif

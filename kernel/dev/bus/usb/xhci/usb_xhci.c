@@ -28,6 +28,8 @@ static const char* xhci_speed_string[7] = {
 };
 
 //#define XHCI_LOG_CMD_COMPLETION
+//#define XHCI_LOG_PORT_RESET_SUCCESS
+//#define XHCI_LOG_PORT_STATUS_CHANGE
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -231,7 +233,9 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 							hpet_sleep(100);
 							if (rc == TRUE)
 							{
+#ifdef XHCI_LOG_PORT_RESET_SUCCESS
 								printk("XHCI: Port reset successful\n");
+#endif
 								// порт успешно сбошен, можно инициализировать устройство
 								xhci_controller_init_device(controller, port_id);
 							} else
@@ -392,7 +396,9 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 		case XHCI_TRB_PORT_STATUS_CHANGE_EVENT:
 			// По умолчанию для xhci номер порта начинается с 1
 			uint8_t port_id = event->port_status_change.port_id - 1;
+#ifdef XHCI_LOG_PORT_STATUS_CHANGE
 			printk("XHCI: port (%i) status change event\n", port_id);
+#endif
 			controller->ports[port_id].status_changed = 1;
 			controller->port_status_changed = 1;
 			break;

@@ -30,6 +30,7 @@
 #define	ENOMEM                      ERROR_NO_MEMORY
 #define	EACCES		                13
 #define	EEXIST		                17
+#define ENODEV		                19
 #define EINVAL                      ERROR_INVALID_VALUE
 #define	ESPIPE		                29
 #define EPIPE		                32

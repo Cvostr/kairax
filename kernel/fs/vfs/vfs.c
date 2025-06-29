@@ -55,12 +55,18 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         return -ERROR_BUSY;
     }
 
+    filesystem_t *filesystem = filesystem_get_by_name(fsname); 
+    if (filesystem == NULL)
+    {
+        return -ENODEV;
+    }
+
     struct superblock* sb = new_superblock();
-    sb->filesystem = filesystem_get_by_name(fsname); 
+    sb->filesystem = filesystem; 
     sb->partition = partition;
 
     //вызов функции монтирования, если она определена
-    if(sb->filesystem->mount) {
+    if (sb->filesystem->mount) {
         struct inode* root_inode = sb->filesystem->mount(partition, sb);
 
         if(root_inode == NULL) {
