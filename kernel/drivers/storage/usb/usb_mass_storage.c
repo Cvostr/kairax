@@ -91,8 +91,13 @@ struct read_capacity_result
 
 #define SCSI_TEST_UNIT_READY	0x00
 #define SCSI_INQUIRY			0x12
-#define SCSI_READ_10 			0x28
 #define SCSI_READ_CAPACITY      0x25
+#define SCSI_READ_10 			0x28
+#define SCSI_WRITE_10 			0x2A
+#define SCSI_READ_12			0xA8
+#define SCSI_WRITE_12			0xAA
+#define SCSI_READ_16			0x88
+#define SCSI_WRITE_16			0x8A
 
 #define CBW_TO_DEVICE	0x00
 #define CBW_TO_HOST		0x80
@@ -180,6 +185,26 @@ int usb_mass_reset_recovery(struct usb_mass_storage_device* dev)
 	return 0;
 }
 
+int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length)
+{
+	int rc = usb_device_bulk_msg(device, endpoint, data, length);
+	if (rc == USB_COMPLETION_CODE_STALL)
+	{
+		printk("USB Mass: STALL\n");
+		// STALL - штатная ситуация. Надо отресетить эндпоинт
+		rc = usb_mass_device_clear_feature(device, endpoint);
+		if (rc != 0)
+		{
+			printk("USB Mass: Error resetting endpoint %i\n", rc);
+			return rc;
+		}
+		// И попробовать еще раз
+		rc = usb_device_bulk_msg(device, endpoint, data, length);
+	}
+
+	return rc;
+}
+
 int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_wrapper* cbw, int is_output, void* out, uint32_t len)
 {
 	int rc = 0;
@@ -205,39 +230,35 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 
 	if (len) 
 	{
-		// прием ответа
-		rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, len);
-		if (rc == USB_COMPLETION_CODE_STALL)
+		if (is_output == FALSE)
 		{
-			// printk("STALL\n");
-			// STALL - штатная ситуация
-			// Надо отресетить эндпоинт
-			rc = usb_mass_device_clear_feature(dev->usb_dev, dev->in_ep);
+			// прием ответа
+			rc = usb_mass_bulk_msg_with_stall_recovery(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, len);
 			if (rc != 0)
 			{
-				printk("USB Mass: Error resetting IN endpoint %i\n", rc);
 				goto cleanup_exit;
 			}
-			// И попробовать еще раз
-			rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, len);
+			// копирование ответа
+			memcpy(out, tmp_data_buffer, len);
+		} 
+		else 
+		{
+			// копирование данных
+			memcpy(tmp_data_buffer, out, len);
+			// отправка данных
+			rc = usb_mass_bulk_msg_with_stall_recovery(dev->usb_dev, dev->out_ep, tmp_data_buffer_phys, len);
+			if (rc != 0)
+			{
+				goto cleanup_exit;
+			}
 		}
-		// копирование ответа
-		memcpy(out, tmp_data_buffer, len);
 	}
 
 	// Прием данных CSW
-	rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, sizeof(struct command_status_wrapper));
-	if (rc == USB_COMPLETION_CODE_STALL)
+	rc = usb_mass_bulk_msg_with_stall_recovery(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, sizeof(struct command_status_wrapper));
+	if (rc != 0)
 	{
-		// Надо отресетить эндпоинт
-		rc = usb_mass_device_clear_feature(dev->usb_dev, dev->in_ep);
-		if (rc != 0)
-		{
-			printk("USB Mass: Error resetting IN endpoint %i\n", rc);
-			goto cleanup_exit;
-		}
-		// И попробовать еще раз
-		rc = usb_device_bulk_msg(dev->usb_dev, dev->in_ep, tmp_data_buffer_phys, sizeof(struct command_status_wrapper));
+		goto cleanup_exit;
 	}
 
 	struct command_status_wrapper* csw = (tmp_data_buffer);
@@ -268,7 +289,7 @@ cleanup_exit:
 	return rc;
 }
 
-void usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count)
+int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out)
 {
 	size_t bytes_to_read = count * 512;
 
@@ -293,15 +314,7 @@ void usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
     cbw.data[7] = (uint8_t) ((count >> 8) & 0xFF);
     cbw.data[8] = (uint8_t) ((count) & 0xFF);
 
-	// TODO: вывести
-	char* temp = kmalloc(bytes_to_read);
-
-	struct inquiry_block_result inq_result;
-	int rc = usb_mass_exec_cmd(dev, &cbw, FALSE, temp, bytes_to_read);
-	if (rc != 0)
-	{
-		return rc;
-	}
+	return usb_mass_exec_cmd(dev, &cbw, FALSE, out, bytes_to_read);
 }
 
 int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result)
@@ -376,6 +389,16 @@ int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks,
 	*block_size = ntohl(capacity_result.block_length);
 	
 	return 0;
+}
+
+int usb_mass_device_read_lba(struct device *device, uint64_t start, uint64_t count, const char *buf)
+{
+	return usb_mass_read(device->dev_data, start, (uint32_t) count, buf);
+}
+
+int usb_mass_device_write_lba(struct device *device, uint64_t start, uint64_t count, char *buf)
+{
+	return -1;
 }
 
 int usb_mass_device_probe(struct device *dev) 
@@ -496,7 +519,13 @@ int usb_mass_device_probe(struct device *dev)
 		// Собрать структуру диска
 		struct drive_device_info* drive_info = new_drive_device_info();
 		drive_info->sectors = blocks;
+		drive_info->block_size = block_sz;
 		drive_info->nbytes = blocks * block_sz;
+
+		drive_info->read = usb_mass_device_read_lba;
+		drive_info->write = usb_mass_device_write_lba;
+		// TEMP
+		strcpy(drive_info->blockdev_name, "usb0");
 
 		struct device* lun_dev = new_device();
 		lun_dev->dev_type = DEVICE_TYPE_DRIVE;
@@ -508,12 +537,12 @@ int usb_mass_device_probe(struct device *dev)
 
 		register_device(lun_dev);
 
-		//usb_mass_read(usb_mass, 0, 3);
-		//usb_mass_read(usb_mass, 0, 5);
+		// TODO: move??
+		add_partitions_from_device(lun_dev);
 	}
 }
 
-int usb_mass_device_remove(struct device *dev) 
+void usb_mass_device_remove(struct device *dev) 
 {
 	printk("USB BBB Device Remove\n");
 	return 0;

@@ -4,6 +4,7 @@
 #include "mem/pmm.h"
 #include "dev/device.h"
 #include "mem/iomem.h"
+#include "mem/vmm.h"
 #include "stdio.h"
 
 struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32_t id, struct nvme_namespace_id* nsid)
@@ -30,6 +31,7 @@ struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32
 
 int nvme_read_lba(struct device* dev, uint64_t start, uint64_t count, unsigned char *buf)
 {
+    buf = (char*) vmm_get_physical_address(buf);
     return nvme_namespace_read(dev->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 
@@ -66,6 +68,7 @@ int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count,
 
 int nvme_write_lba(struct device* dev, uint64_t start, uint64_t count, const unsigned char *buf)
 {
+    buf = (char*) vmm_get_physical_address(buf);
     return nvme_namespace_write(dev->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 

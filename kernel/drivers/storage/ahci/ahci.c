@@ -196,7 +196,8 @@ int ahci_device_probe(struct device *dev)
 
 			pmm_free_page(identity_buffer);
 
-			drive_info->nbytes = (uint64_t)drive_info->sectors * 512;
+			drive_info->block_size = 512;
+			drive_info->nbytes = drive_info->sectors * drive_info->block_size;
 			drive_info->uses_lba48 = cmd_sets & (1 << 26);
 			drive_info->write = ahci_port_write_lba;
 			drive_info->read = ahci_port_read_lba;

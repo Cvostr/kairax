@@ -237,8 +237,6 @@ int ext2_truncate(struct inode* inode);
 
 int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inode* newparent, const char* newname);
 
-struct dirent* ext2_readdir(struct inode* dir, uint32_t index);
-
 struct dirent* ext2_file_readdir(struct file* dir, uint32_t index);
 
 ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset);

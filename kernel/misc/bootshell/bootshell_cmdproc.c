@@ -68,6 +68,7 @@ void bootshell_process_cmd(char* cmdline)
 
         char* partition_name = args[1];
         char* mnt_path = args[2];
+        char* fs = args[3];
 
         printf_stdout("Mounting partition %s to path %s\n", partition_name, mnt_path);
 
@@ -77,7 +78,7 @@ void bootshell_process_cmd(char* cmdline)
             goto exit;
         }
 
-        int result = vfs_mount_fs(mnt_path, partition, "ext2");
+        int result = vfs_mount_fs(mnt_path, partition, fs);
         if (result < 0) {
             printf_stdout("ERROR: vfs_mount returned with code %i\n", -result);
         }else{

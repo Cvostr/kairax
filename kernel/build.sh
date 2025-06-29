@@ -91,10 +91,12 @@ gcc $GCC_ARGS drivers/tty/tty.c -o ./bin/tty.o
 gcc $GCC_ARGS drivers/char/random.c -o ./bin/random.o
 gcc $GCC_ARGS drivers/char/zero.c -o ./bin/zero.o
 gcc $GCC_ARGS drivers/char/null.c -o ./bin/null.o
+gcc $GCC_ARGS drivers/hid/usb_hid_kbd.c -o ./bin/usb_hid_kbd.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
 gcc $GCC_ARGS fs/ext2/ext2.c -o ./bin/ext2.o
+gcc $GCC_ARGS fs/fat/fat.c -o ./bin/fat.o
 gcc $GCC_ARGS fs/vfs/vfs.c -o ./bin/vfs.o
 gcc $GCC_ARGS fs/vfs/filesystems.c -o ./bin/filesystems.o
 gcc $GCC_ARGS fs/vfs/inode.c -o ./bin/inode.o

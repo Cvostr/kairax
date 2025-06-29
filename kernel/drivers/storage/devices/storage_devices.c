@@ -8,7 +8,8 @@ int drive_device_read( struct device* drive,
                             uint64_t count,
                             char* buffer)
 {
-    return drive->drive_info->read(drive, start_lba, count, buffer);
+    struct drive_device_info* drive_info = drive->drive_info;
+    return drive_info->read(drive, start_lba, count, buffer);
 }
 
 int drive_device_write(struct device* drive,
@@ -16,6 +17,6 @@ int drive_device_write(struct device* drive,
                             uint64_t count,
                             char* buffer)
 {
-    return drive->drive_info->write(drive, start_lba, count, buffer);
+    struct drive_device_info* drive_info = drive->drive_info;
+    return drive_info->write(drive, start_lba, count, buffer);
 }
-

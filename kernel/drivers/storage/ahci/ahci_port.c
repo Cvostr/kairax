@@ -9,6 +9,7 @@
 #include "kstdlib.h"
 #include "dev/device.h"
 #include "mem/iomem.h"
+#include "mem/vmm.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
@@ -409,7 +410,9 @@ uint32_t parse_identity_buffer(char* buffer,
 	}
 }
 
-int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, char *buf){
+int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, char *buf)
+{
+	buf = (char*) vmm_get_physical_address(buf);
 	return ahci_port_read_lba48(device->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 
@@ -505,7 +508,9 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	return 1;
 }
 
-int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, const char *buf){
+int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, const char *buf)
+{
+	buf = (char*) vmm_get_physical_address(buf);
 	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, (uint16_t*) buf);
 }
 

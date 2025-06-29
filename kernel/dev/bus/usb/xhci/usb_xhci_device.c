@@ -384,7 +384,8 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 		{
 			case USB_DESCRIPTOR_INTERFACE:
 				struct usb_interface_descriptor* iface_descr = (struct usb_interface_descriptor*) config_header; 
-
+                printk("XHCI: interface class %i subcl %i prot %i with %i endpoints\n", iface_descr->bInterfaceClass, iface_descr->bInterfaceSubClass, iface_descr->bInterfaceProtocol, iface_descr->bNumEndpoints);
+				
                 if (processed_interfaces >= config_descriptor.bNumInterfaces)
                 {
                     // В буфере оказалось больше интерфейсов, чем указано в конфигурации, это ненормальная ситуация
@@ -402,9 +403,7 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 
                 // Добавить в массив структуры конфигурации
                 usb_conf->interfaces[processed_interfaces++] = current_interface;
-
-				printk("XHCI: interface class %i with %i endpoints\n", iface_descr->bInterfaceClass, iface_descr->bNumEndpoints);
-				break;
+                break;
 			case USB_DESCRIPTOR_ENDPOINT:
                 if (current_interface != NULL)
                 {

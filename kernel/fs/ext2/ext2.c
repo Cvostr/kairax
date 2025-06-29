@@ -62,13 +62,15 @@ ext2_inode_t* new_ext2_inode()
     return ext2_inode;
 }
 
-uint32_t ext2_partition_read_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer){
+uint32_t ext2_partition_read_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
+{
     uint64_t    start_lba = block_start * (inst->block_size / 512);
     uint64_t    lba_count = blocks  * (inst->block_size / 512);
     return partition_read(inst->partition, start_lba, lba_count, buffer);
 }
 
-uint32_t ext2_partition_write_block(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer){
+uint32_t ext2_partition_write_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
+{
     uint64_t    start_lba = block_start * inst->block_size / 512;
     uint64_t    lba_count = blocks  * inst->block_size / 512;
     return partition_write(inst->partition, start_lba, lba_count, buffer);
@@ -78,18 +80,16 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
 {
     uint32_t level = inst->block_size / 4;
     int d, e, f, g;
-    if(inode_block_index < EXT2_DIRECT_BLOCKS) {
+    if (inode_block_index < EXT2_DIRECT_BLOCKS) {
         return inode->blocks[inode_block_index];
     }
 
     int a = inode_block_index - EXT2_DIRECT_BLOCKS;
     //Выделение временной памяти под считываемые блоки
     uint32_t* tmp = kmalloc(inst->block_size);
-    //Получение физического адреса выделенной памяти
-    char* tmp_phys = (char*)vmm_get_physical_address(tmp);
     int b = a - level;
     if(b < 0) {
-        ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, tmp_phys);
+        ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, tmp);
         uint32_t result = tmp[a];
         kfree(tmp);
         return result;
@@ -98,8 +98,8 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
     if(c < 0) {
         c = b / level;
         d = b - c * level;
-        ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, tmp_phys);
-        ext2_partition_read_block(inst, tmp[c], 1, tmp_phys);
+        ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, tmp);
+        ext2_partition_read_block_virt(inst, tmp[c], 1, tmp);
         uint32_t result = tmp[d];
         kfree(tmp);
         return result;
@@ -109,9 +109,9 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
         e = c / (level * level);
         f = (c - e * level * level) / level;
         g = (c - e * level * level - f * level);
-        ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 2], 1, tmp_phys);
-        ext2_partition_read_block(inst, tmp[e], 1, tmp_phys);
-        ext2_partition_read_block(inst, tmp[f], 1, tmp_phys);
+        ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 2], 1, tmp);
+        ext2_partition_read_block_virt(inst, tmp[e], 1, tmp);
+        ext2_partition_read_block_virt(inst, tmp[f], 1, tmp);
         uint32_t result = tmp[g];
         kfree(tmp);
         return result;
@@ -151,13 +151,13 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
         }
 
         // Считать блок по адресу
-        ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, buffer);
 
         // Записать адрес блока в дополнительный блок
         ((uint32_t*)buffer)[inode_block - EXT2_DIRECT_BLOCKS] = abs_block;
 
         // Записать измененный блок
-        ext2_partition_write_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_write_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, buffer);
         
         rc = 1;
         goto exit;
@@ -181,7 +181,7 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
         }
 
         // Считать блок по адресу
-        ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, buffer);
 
         if (!((uint32_t*)buffer)[c]) {
             // Адрес доп. блока не задан - выделяем блок и задаем адрес
@@ -191,18 +191,18 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 goto exit;
             }
             ((uint32_t*)buffer)[c] = new_block_index;
-            ext2_partition_write_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, (char*)kheap_get_phys_address(buffer));
+            ext2_partition_write_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, buffer);
         }
 
         uint32_t saved_block = ((uint32_t*)buffer)[c];
         // Считать блок по адресу
-        ext2_partition_read_block(inst, saved_block, 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block_virt(inst, saved_block, 1, buffer);
 
         // Записать адрес блока в дополнительный блок
         ((uint32_t*)buffer)[d] = abs_block;
 
         // Записать измененный блок
-        ext2_partition_write_block(inst, saved_block, 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_write_block_virt(inst, saved_block, 1, buffer);
         
         rc = 1;
         goto exit;
@@ -229,7 +229,7 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
         }
 
         // Считать блок по адресу
-        ext2_partition_read_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 2], 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 2], 1, buffer);
 
         if (!((uint32_t*)buffer)[d]) {
             // Адрес доп. блока не задан - выделяем блок и задаем адрес
@@ -239,12 +239,12 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 goto exit;
             }
             ((uint32_t*)buffer)[d] = new_block_index;
-            ext2_partition_write_block(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, (char*)kheap_get_phys_address(buffer));
+            ext2_partition_write_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, buffer);
         }
 
         uint32_t saved_block = ((uint32_t*)buffer)[d];
         // Считать блок по адресу
-        ext2_partition_read_block(inst, saved_block, 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block_virt(inst, saved_block, 1, buffer);
 
         if (!((uint32_t*)buffer)[f]) {
             // Адрес доп. блока не задан - выделяем блок и задаем адрес
@@ -254,18 +254,18 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 goto exit;
             }
             ((uint32_t*)buffer)[f] = new_block_index;
-            ext2_partition_write_block(inst, saved_block, 1, (char*)kheap_get_phys_address(buffer));
+            ext2_partition_write_block_virt(inst, saved_block, 1, buffer);
         }
 
         saved_block = ((uint32_t*)buffer)[f];
         // Считать блок по адресу
-        ext2_partition_read_block(inst, ((uint32_t*)buffer)[f], 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_read_block_virt(inst, ((uint32_t*)buffer)[f], 1, buffer);
 
         // Записать адрес блока в дополнительный блок
         ((uint32_t*)buffer)[g] = abs_block;
 
         // Записать измененный блок
-        ext2_partition_write_block(inst, saved_block, 1, (char*)kheap_get_phys_address(buffer));
+        ext2_partition_write_block_virt(inst, saved_block, 1, buffer);
 
         rc = 1;
         goto exit;
@@ -278,14 +278,14 @@ exit:
     return rc;
 }
 
-uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer)
+uint32_t ext2_read_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer)
 {
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
-    return ext2_partition_read_block(inst, inode_block_abs, 1, buffer);
+    return ext2_partition_read_block_virt(inst, inode_block_abs, 1, buffer);
 }
 
-uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer)
+uint32_t ext2_write_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer)
 {
     uint32_t blksize512 = inst->block_size / 512;
     // Если пытаемся записать в невыделенный номер блока
@@ -299,7 +299,7 @@ uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint
 
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
-    return ext2_partition_write_block(inst, inode_block_abs, 1, buffer);
+    return ext2_partition_write_block_virt(inst, inode_block_abs, 1, buffer);
 }
 
 int ext2_unmount(struct superblock* sb)
@@ -321,10 +321,10 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     instance->superblock = (ext2_superblock_t*)kmalloc(sizeof(ext2_superblock_t));
     instance->block_size = EXT2_SUPERBLOCK_SIZE;
     // Считать суперблок
-    ext2_partition_read_block(instance, 1, 1, (char*)kheap_get_phys_address(instance->superblock));
+    ext2_partition_read_block_virt(instance, 1, 1, instance->superblock);
     
     // Проверить магическую константу ext2
-    if(instance->superblock->ext2_magic != EXT2_MAGIC) {
+    if (instance->superblock->ext2_magic != EXT2_MAGIC) {
         kfree(instance->superblock);
         kfree(instance);
         return NULL;
@@ -351,10 +351,10 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     // Если больше - то номер блока BGD - 1
     instance->bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
-    ext2_partition_read_block(instance, 
+    ext2_partition_read_block_virt(instance, 
         instance->bgd_start_block,
         instance->bgds_blocks, 
-        (char*)kheap_get_phys_address(instance->bgds));
+        instance->bgds);
     //Чтение корневой иноды с индексом 2
     ext2_inode_t* ext2_inode_root = new_ext2_inode();
     ext2_inode(instance, ext2_inode_root, 2);
@@ -364,7 +364,6 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     kfree(ext2_inode_root);
 
     //printk("Block size %i\n", instance->block_size);
-    //printk("BPG %i\n", instance->superblock->blocks_per_group);
 
     // Данные суперблока
     sb->fs_info = instance;
@@ -376,17 +375,17 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
 
 void ext2_write_bgds(ext2_instance_t* inst)
 {
-    ext2_partition_write_block( inst, 
+    ext2_partition_write_block_virt( inst, 
                                 inst->bgd_start_block,
                                 inst->bgds_blocks,
-                                (char*)kheap_get_phys_address(inst->bgds));
+                                inst->bgds);
 }
 
 void ext2_rewrite_superblock(ext2_instance_t* inst)
 {
     uint64_t    start_lba = 1024 / 512;
     uint64_t    lba_count = EXT2_SUPERBLOCK_SIZE / 512;
-    partition_write(inst->partition, start_lba, lba_count, (char*) kheap_get_phys_address(inst->superblock));
+    partition_write(inst->partition, start_lba, lba_count, inst->superblock);
 }
 
 uint32_t ext2_alloc_inode(ext2_instance_t* inst)
@@ -402,7 +401,7 @@ uint32_t ext2_alloc_inode(ext2_instance_t* inst)
         // номер блока битмапы, в котором есть свободный номер inode
         uint32_t bitmap_block_index = inst->bgds[bgd_i].inode_bitmap;
         // считываем этот блок
-        ext2_partition_read_block(inst, bitmap_block_index, 1, (char*)kheap_get_phys_address(bitmap_buffer));
+        ext2_partition_read_block_virt(inst, bitmap_block_index, 1, bitmap_buffer);
 
         for (uint32_t j = 0; j < inst->block_size / 4; j ++) {
             uint32_t bitmap = bitmap_buffer[j];
@@ -414,7 +413,7 @@ uint32_t ext2_alloc_inode(ext2_instance_t* inst)
                     // Найден номер свободной inode
                     bitmap_buffer[j] |= (1U << bit_i);
                     // Запишем обновленную битмапу с занятым битом
-                    ext2_partition_write_block(inst, bitmap_block_index, 1, (char*)kheap_get_phys_address(bitmap_buffer));
+                    ext2_partition_write_block_virt(inst, bitmap_block_index, 1, bitmap_buffer);
                     // Уменьшим количество свободных inode в выбранном BGD
                     inst->bgds[bgd_i].free_inodes --;
                     // Запишем изменения на диск
@@ -496,13 +495,13 @@ skip_block_purge:
 
     // Выделение памяти под временный буфер для блока
     uint8_t* buffer = (uint8_t*) kmalloc(inst->block_size);
-    uint8_t* buffer_phys = (uint8_t*) kheap_get_phys_address(buffer);
 
-    ext2_partition_read_block(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer_phys);
+    // Обновить битмапу с inodes
+    ext2_partition_read_block_virt(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer);
 
     buffer[inode_bitmap_idx / 8] &= ~(1 << (inode_bitmap_idx % 8));
 
-    ext2_partition_write_block(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer_phys);
+    ext2_partition_write_block_virt(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer);
 
     // Увеличить количество свободных инодов в группе
     inst->bgds[inode_group_idx].free_inodes++;
@@ -536,7 +535,7 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
 
             bitmap_index = 0;
 
-            ext2_partition_read_block(inst, inst->bgds[bgd_i].block_bitmap, 1, (char*)kheap_get_phys_address(buffer));
+            ext2_partition_read_block_virt(inst, inst->bgds[bgd_i].block_bitmap, 1, buffer);
 
             while ( ( buffer[bitmap_index / 8] & (1U << (bitmap_index % 8)) ) > 0) {
                 bitmap_index++;
@@ -557,11 +556,9 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
         goto exit;
     }
 
-    //printk("block %i bitmap %i\n", block_index, bitmap_index);
-
     // Пометить блок в битмапе как занятый
     buffer[bitmap_index / 8] |= (1 << (bitmap_index % 8));
-    ext2_partition_write_block(inst, inst->bgds[group_index].block_bitmap, 1, (uint8_t*)kheap_get_phys_address(buffer));
+    ext2_partition_write_block_virt(inst, inst->bgds[group_index].block_bitmap, 1, buffer);
 
     // Уменьшить количество свободных блоков в группе и записать на диск
     inst->bgds[group_index].free_blocks--;
@@ -572,7 +569,7 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
     ext2_rewrite_superblock(inst);
 
     memset(buffer, 0, inst->block_size);
-    ext2_partition_write_block(inst, block_index, 1, (uint8_t*)kheap_get_phys_address(buffer));
+    ext2_partition_write_block_virt(inst, block_index, 1, buffer);
 
 exit:
     kfree(buffer);
@@ -587,10 +584,9 @@ int ext2_free_block_tree(ext2_instance_t* inst, uint64_t root, int level)
 
     // Подготовить буфер для основного блока
     uint32* block_list = kmalloc(inst->block_size);
-    uint8_t* block_list_phys = (uint8_t*) kheap_get_phys_address(block_list);
 
     // Cчитать блок
-    ext2_partition_read_block(inst, root, 1, block_list_phys);
+    ext2_partition_read_block_virt(inst, root, 1, block_list);
 
     for (size_t i = 0; i < inst->block_size / sizeof(uint32_t); i ++) {
         uint32_t subblock_idx = block_list[i];
@@ -605,7 +601,7 @@ int ext2_free_block_tree(ext2_instance_t* inst, uint64_t root, int level)
     }
 
     memset(block_list, 0, inst->block_size);
-    ext2_partition_write_block(inst, root, 1, block_list_phys);
+    ext2_partition_write_block_virt(inst, root, 1, block_list);
 
     ext2_free_block(inst, root);
     kfree(block_list);
@@ -618,15 +614,14 @@ int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
     uint64_t block_bgd_idx = (block_idx / inst->superblock->blocks_per_group);
 
     uint8_t* buffer = (uint8_t*) kmalloc(inst->block_size);
-    uint8_t* buffer_phys = (uint8_t*) kheap_get_phys_address(buffer);
 
     // Считать блок с BGD
-    ext2_partition_read_block(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer_phys);
+    ext2_partition_read_block_virt(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer);
 
     buffer[block_bitmap_idx / 8] &= ~(1 << (block_bitmap_idx % 8));
 
     // Записать измененный блок с BGD
-    ext2_partition_write_block(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer_phys);
+    ext2_partition_write_block_virt(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer);
 
     // Увеличить количество свободных блоков в группе
     inst->bgds[block_bgd_idx].free_blocks++;
@@ -689,7 +684,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     int modify = -1;
     ext2_direntry_t* previous;
 
-    ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+    ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
 
     while (offset < e2_inode->size) {
         // dirent выравнены по размеру блока
@@ -698,7 +693,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
             // Считать следующий блок
             block_index++;
             in_block_offset -= inst->block_size;
-            ext2_read_inode_block(inst, e2_inode, block_index, (char*)kheap_get_phys_address(buffer));
+            ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
         }
 
         ext2_direntry_t* direntry = (ext2_direntry_t*)(buffer + in_block_offset);
@@ -749,7 +744,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 	new_direntry->type = type;
 	memcpy(new_direntry->name, name, strlen(name));
     // записать блок
-	ext2_write_inode_block(inst, e2_inode, parent->inode, block_index, (char*)kheap_get_phys_address(buffer));
+	ext2_write_inode_block_virt(inst, e2_inode, parent->inode, block_index, buffer);
 
     kfree(buffer);
     kfree(e2_inode);
@@ -771,13 +766,12 @@ ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t of
     off_t end_size = end_offset - end_inode_block * inst->block_size;
 
     char* temp_buffer = (char*)kmalloc(inst->block_size);
-    char* temp_buffer_phys = (char*)kheap_get_phys_address(temp_buffer);
     off_t current_offset = 0;
 
     for (off_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++) {
         off_t left_offset = (block_i == start_inode_block) ? start_block_offset : 0;
         off_t right_offset = (block_i == end_inode_block) ? (end_size - 1) : (inst->block_size - 1);
-        ext2_read_inode_block(inst, inode, block_i, temp_buffer_phys);
+        ext2_read_inode_block_virt(inst, inode, block_i, temp_buffer);
 
         memcpy(buf + current_offset, temp_buffer + left_offset, (right_offset - left_offset + 1));
         current_offset += (right_offset - left_offset + 1);
@@ -832,13 +826,12 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
     off_t end_size = write_end - end_inode_block * inst->block_size;
 
     char* temp_buffer = kmalloc(inst->block_size);
-    char* phys_temp_buffer = (char*)kheap_get_phys_address(temp_buffer);
 
     if (start_inode_block == end_inode_block) {
         // Размер данных входит в 1 блок
-        ext2_read_inode_block(inst, inode, start_inode_block, phys_temp_buffer);
+        ext2_read_inode_block_virt(inst, inode, start_inode_block, temp_buffer);
         memcpy(temp_buffer + start_block_offset, buf, size);
-        ext2_write_inode_block(inst, inode, inode_num, start_inode_block, phys_temp_buffer);
+        ext2_write_inode_block_virt(inst, inode, inode_num, start_inode_block, temp_buffer);
         goto exit;
     } else {
         
@@ -853,29 +846,28 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
             if (block_i == start_inode_block) {
                 // Возможно, у нас есть неполный блок в начале
                 // Считаем блок
-                ext2_read_inode_block(inst, inode, start_inode_block, phys_temp_buffer);
+                ext2_read_inode_block_virt(inst, inode, start_inode_block, temp_buffer);
                 // Скопируем новую часть блока
                 memcpy(temp_buffer + start_block_offset, buf, inst->block_size - start_block_offset);
                 // Запишем на диск
-                ext2_write_inode_block(inst, inode, inode_num, start_inode_block, phys_temp_buffer);
+                ext2_write_inode_block_virt(inst, inode, inode_num, start_inode_block, temp_buffer);
             } else {
-                //ext2_read_inode_block(inst, inode, block_i, phys_temp_buffer);
                 // Скопировать в буфер данные для записи
                 memcpy(temp_buffer, buf + buffer_offset, inst->block_size);
                 // Запишем на диск
-                ext2_write_inode_block(inst, inode, inode_num, block_i, phys_temp_buffer);
+                ext2_write_inode_block_virt(inst, inode, inode_num, block_i, temp_buffer);
             }
         }
 
         if (end_size > 0) {
             // Есть остатки данных
             // Считать блок
-            ext2_read_inode_block(inst, inode, end_inode_block, phys_temp_buffer);
+            ext2_read_inode_block_virt(inst, inode, end_inode_block, temp_buffer);
             // Скопировать в буфер данные для записи
             size_t buffer_offset = written_blocks * inst->block_size - start_block_offset;
             memcpy(temp_buffer, buf + buffer_offset, end_size);
             // Запишем на диск
-            ext2_write_inode_block(inst, inode, inode_num, end_inode_block, phys_temp_buffer);
+            ext2_write_inode_block_virt(inst, inode, inode_num, end_inode_block, temp_buffer);
         }
     }
 
@@ -900,7 +892,7 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 
     // Считать данные inode
     char* buffer = kmalloc(inst->block_size);
-    ext2_partition_read_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
+    ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer);
     memcpy(inode, buffer + offset_in_block * inst->superblock->inode_size, sizeof(ext2_inode_t));
     //Освободить временный буфер
     kfree(buffer);
@@ -921,11 +913,11 @@ void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 
     // Считать целый блок
     char* buffer = kmalloc(inst->block_size);
-    ext2_partition_read_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
+    ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer);
     // Заменить в нем область байт данной inode
     memcpy(buffer + offset_in_block * inst->superblock->inode_size, inode, sizeof(ext2_inode_t));
     // Записать измененный блок обратно на диск
-    ext2_partition_write_block(inst, inode_table_block + block_offset, 1, (char*)kheap_get_phys_address(buffer));
+    ext2_partition_write_block_virt(inst, inode_table_block + block_offset, 1, buffer);
     //Освободить временный буфер
     kfree(buffer);
 }
@@ -1226,16 +1218,15 @@ int ext2_rmdir(struct inode* inode, struct dentry* dentry)
     uint32_t in_block_offset = 0;
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = (char*) vmm_get_physical_address(buffer);
     //Прочитать начальный блок иноды
-    ext2_read_inode_block(inst, dir_inode, block_offset, buffer_phys);
+    ext2_read_inode_block_virt(inst, dir_inode, block_offset, buffer);
     //Проверка, не прочитан ли весь блок?
     while (curr_offset < dir_inode->size) {
 
         if (in_block_offset >= inst->block_size) {
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block(inst, dir_inode, block_offset, buffer_phys);
+            ext2_read_inode_block_virt(inst, dir_inode, block_offset, buffer);
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
@@ -1363,7 +1354,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     dot_direntry->name[1] = '.';
 
     // записать блок в inode
-    ext2_write_inode_block(inst, inode, inode_num, 0, (char*)kheap_get_phys_address(block_temp));
+    ext2_write_inode_block_virt(inst, inode, inode_num, 0, block_temp);
     kfree(block_temp);
 
     // Увеличить количество ссылок родительской иноды
@@ -1615,16 +1606,15 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     uint32_t passed_entries = 0;
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = (char*) vmm_get_physical_address(buffer);
     //Прочитать начальный блок иноды
-    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+    ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
     //Проверка, не прочитан ли весь блок?
     while (curr_offset < parent_inode->size) {
 
         if (in_block_offset >= inst->block_size) {
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+            ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
@@ -1658,7 +1648,6 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 
     // Подготовить буфер для блоков
     char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = (char*)kheap_get_phys_address(buffer);
     // смещение относительно данных inode
     uint64_t offset = 0;
     uint64_t offset_in_block = 0;
@@ -1667,7 +1656,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     size_t name_len = strlen(name);
 
     // Считать первый блок
-    ext2_read_inode_block(inst, e2_inode, block_index, buffer_phys);
+    ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
 
     while (offset < e2_inode->size) {
         
@@ -1676,7 +1665,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
             // Считать следующий блок
             block_index++;
             offset_in_block = 0;
-            ext2_read_inode_block(inst, e2_inode, block_index, buffer_phys);
+            ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + offset_in_block);
@@ -1688,7 +1677,7 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
                 *orig_type = curr_entry->type;
             }
             // Записать изменения на диск
-            ext2_write_inode_block(inst, e2_inode, parent->inode, block_index, buffer_phys);
+            ext2_write_inode_block_virt(inst, e2_inode, parent->inode, block_index, buffer);
             rc = 0;
             goto exit;
         }
@@ -1737,10 +1726,9 @@ uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, co
     
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
-    char* buffer_phys = (char*)kheap_get_phys_address(buffer);
     
     //Прочитать начальный блок иноды
-    ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+    ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
     //Пока не прочитаны все блоки
     while(curr_offset < parent_inode->size) {
 
@@ -1748,7 +1736,7 @@ uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, co
         if(in_block_offset >= inst->block_size){
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block(inst, parent_inode, block_offset, buffer_phys);
+            ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
         }
 
         // Считанный dirent

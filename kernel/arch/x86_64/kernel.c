@@ -27,6 +27,7 @@
 
 #include "fs/vfs/vfs.h"
 #include "fs/ext2/ext2.h"
+#include "fs/fat/fat.h"
 #include "fs/devfs/devfs.h"
 
 #include "misc/bootshell/bootshell.h"
@@ -168,6 +169,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	vfs_init();
 	ext2_init();
+	fat_init();
 	devfs_init();
 	ahci_init();	
 	init_nvme();
@@ -175,6 +177,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	tty_init();
 
 	usb_mass_init();
+	usb_hid_kbd_init();
 
 	vga_init_dev();
 	random_init();
