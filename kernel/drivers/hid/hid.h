@@ -1,6 +1,7 @@
 #ifndef _HID_H
 #define _HID_H
 
+#define HID_SET_IDLE     0x0A
 #define HID_SET_PROTOCOL 0x0B
 
 #define HID_PROTOCOL_BOOT   0

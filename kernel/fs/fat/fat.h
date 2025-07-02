@@ -22,7 +22,7 @@ struct fat_ext_pbp_32 {
 	uint16_t extended_flags;
 	uint16_t filesystem_version;
 	uint32_t root_cluster;
-	uint16_t filesystem_info;
+	uint16_t filesystem_info; // Fat32 FSinfo
 	uint16_t backup_boot_sector;
 	uint8_t reserved0[12];
 	uint8_t drive_number;
@@ -56,17 +56,90 @@ struct fat_bpb {
 	};
 } PACKED;
 
+struct fat_fsinfo32 {
+	uint32_t 	lead_signature;
+	uint8_t		rsvd[480];
+	uint32_t 	signature;
+	uint32_t	last_free_cluster_count; // Contains the last known free cluster count on the volume
+	uint32_t 	look_from; // Indicates the cluster number at which the filesystem driver should start looking for available clusters.
+	uint8_t		rsvd1[12];
+	uint32_t	trail_signature;
+} PACKED;
+
+struct fat_date {
+	uint16_t day   : 5;
+	uint16_t month : 4;
+	uint16_t year  : 7;
+};
+
+struct fat_time {
+	uint16_t second : 5;
+	uint16_t minute : 6;
+	uint16_t hour   : 5;
+};
+
+struct fat_direntry {
+	uint8_t		name[11];
+	uint8_t		attr;
+	uint8_t		nt_reserved;
+	uint8_t		creat_time_hundredths;
+	struct fat_time creat_time;
+	struct fat_date creat_date;
+	struct fat_date last_access_date;
+	uint16_t	first_cluster_hi;
+	struct fat_time write_time;
+	struct fat_date write_date;
+	uint16_t	first_cluster_lo;
+	uint32_t	file_size;
+} PACKED;
+
+struct fat_lfn {
+	uint8_t		order;
+	uint16_t	name_0[5];
+	uint8_t		attr;
+	uint8_t		type;
+	uint8_t		checksum;
+	uint16_t	name_1[6];
+	uint16_t 	zero;
+	uint16_t	name_2[2];
+} PACKED;
+
 struct fat_instance {
     struct superblock*  vfs_sb;
     drive_partition_t*  partition;
     
     struct fat_bpb*     bpb;
+	struct fat_fsinfo32* fsinfo32;
+	uint32_t			sectors_count;
+	uint32_t 			fat_size;
+	uint32_t			root_dir_sectors;
+	uint32_t 			first_fat_sector;
+	uint32_t			first_data_sector;
+	uint32_t			data_sectors;
+	uint32_t 			total_clusters;
+	int 				fs_type;
 };
+
+#define FS_FAT12 	1
+#define FS_FAT16	2
+#define FS_FAT32	3
+
+#define FILE_ATTR_RDONLY	0x01
+#define FILE_ATTR_HIDDEN	0x02
+#define FILE_ATTR_SYSTEM	0x04
+#define FILE_ATTR_VOLUME_ID	0x08
+#define FILE_ATTR_DIRECTORY	0x10
+#define FILE_ATTR_ARCHIVE	0x20
+#define FILE_ATTR_LFN		(FILE_ATTR_RDONLY | FILE_ATTR_HIDDEN | FILE_ATTR_SYSTEM | FILE_ATTR_VOLUME_ID)
 
 // Вызывается VFS при монтировании
 struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb);
 
 // Вызывается при размонтировании
 int fat_unmount(struct superblock* sb);
+
+int fat_statfs(struct superblock *sb, struct statfs* stat);
+
+struct dirent* fat_file_readdir(struct file* dir, uint32_t index);
 
 #endif
