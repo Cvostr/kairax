@@ -196,9 +196,9 @@ exit:
     return result;
 }
 
-uint64 devfs_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type)
+uint64 devfs_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type)
 {
-    if (parent_inode_index != DEVFS_ROOT_INODE) {
+    if (parent_inode->inode != DEVFS_ROOT_INODE) {
         return WRONG_INODE_INDEX;
     }
 

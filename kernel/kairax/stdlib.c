@@ -133,6 +133,13 @@ char* ulltoa(uint64_t number, int base)
     return destination;
 }
 
+int tolower(int c)
+{
+	if ('A' <= c && c <= 'Z')
+    	c += 'a' - 'A';
+  	return c;
+}
+
 void seize_str(uint16_t* in, char* out)
 {
     size_t i = 0;

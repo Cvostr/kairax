@@ -1708,7 +1708,7 @@ int ext2_statfs(struct superblock *sb, struct statfs* stat)
     return 0;
 }
 
-uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type)
+uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode, const char *name, int* type)
 {
     uint64_t result = WRONG_INODE_INDEX;
     ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
@@ -1717,7 +1717,7 @@ uint64_t ext2_find_dentry(struct superblock* sb, uint64_t parent_inode_index, co
 
     //Получить родительскую иноду
     ext2_inode_t* parent_inode = new_ext2_inode();
-    ext2_inode(inst, parent_inode, parent_inode_index);
+    ext2_inode(inst, parent_inode, vfs_parent_inode->inode);
 
     //Переменные
     uint32_t curr_offset = 0;

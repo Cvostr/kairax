@@ -108,6 +108,7 @@ struct fat_lfn {
 
 struct fat_instance {
     struct superblock*  vfs_sb;
+	struct inode*		vfs_root_inode;
     drive_partition_t*  partition;
     
     struct fat_bpb*     bpb;
@@ -115,6 +116,7 @@ struct fat_instance {
 	uint16_t 			bytes_per_sector;
 	uint32_t			sectors_count;
 	uint32_t 			fat_size;
+	uint32_t			root_dir_sector;
 	uint32_t			root_dir_sectors;
 	uint32_t 			first_fat_sector;
 	uint32_t			first_data_sector;
@@ -128,6 +130,7 @@ struct fat_instance {
 #define BOOTABLE_PARTITION_SIGNATURE	0xAA55
 
 #define FAT_DIRENTRY_SZ		32
+#define FAT_LFN_MAX_SZ		256
 
 #define FAT_EOC		0x0FFFFFF8
 #define EXFAT_EOC	0xFFFFFFF8
@@ -145,6 +148,9 @@ struct fat_instance {
 #define FILE_ATTR_ARCHIVE	0x20
 #define FILE_ATTR_LFN		(FILE_ATTR_RDONLY | FILE_ATTR_HIDDEN | FILE_ATTR_SYSTEM | FILE_ATTR_VOLUME_ID)
 
+#define FILE_NTRES_NAME_LOWERCASE	0x8
+#define FILE_NTRES_EXT_LOWERCASE	0x10
+
 #define FAT_DIRENTRY_GET_CLUSTER(x) ((((uint32_t) x.first_cluster_hi) << 16) | x.first_cluster_lo)
 
 // Вызывается VFS при монтировании
@@ -154,7 +160,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb);
 int fat_unmount(struct superblock* sb);
 
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num);
-uint64_t fat_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type);
+uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type);
 int fat_statfs(struct superblock *sb, struct statfs* stat);
 
 struct dirent* fat_file_readdir(struct file* dir, uint32_t index);

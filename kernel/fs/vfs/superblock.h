@@ -42,7 +42,7 @@ struct super_operations {
 
     struct inode* (*read_inode)(struct superblock *sb, uint64_t ino_num);
 
-    uint64_t (*find_dentry)(struct superblock *sb, uint64_t parent_num, const char* name, int* type);
+    uint64_t (*find_dentry)(struct superblock *sb, struct inode* parent_inode, const char* name, int* type);
 
     int (*stat)(struct superblock *sb, struct statfs*);
 };

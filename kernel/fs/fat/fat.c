@@ -4,6 +4,7 @@
 #include "mem/kheap.h"
 #include "kairax/stdio.h"
 #include "string.h"
+#include "kairax/kstdlib.h"
 
 struct super_operations fat_sb_ops;
 
@@ -103,8 +104,9 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     // Сохранить размер FAT (в секторах)
     instance->fat_size = (bpb->fat_size16 == 0) ? bpb->ext_32.fat_size : bpb->fat_size16;
 
-    // Размер корневой директории
-    uint32_t root_dir_sector = bpb->reserved_sector_count + (bpb->fats_count * instance->fat_size);
+    // Первый сектор корневой директории (FAT12 FAT16)
+    instance->root_dir_sector = bpb->reserved_sector_count + (bpb->fats_count * instance->fat_size);
+    // Размер корневой директории в секторах (FAT12 FAT16)
     instance->root_dir_sectors = ((bpb->root_entry_count * 32) + (bpb->bytes_per_sector - 1)) / bpb->bytes_per_sector;
 
     instance->first_fat_sector = bpb->reserved_sector_count;
@@ -152,18 +154,19 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         bpb->sectors_per_cluster);
 
     // Собрать номер иноды из номера сектора и смещения
-    uint64_t ino_num = ((uint64_t)root_dir_sector) << 32 | 0;
+    uint64_t ino_num = ((uint64_t)instance->root_dir_sector) << 32 | 0;
 
     struct fat_direntry root_direntry;
     fat_read_dentry(instance, ino_num, &root_direntry, NULL);
-    printk("FAT: Root dentry name %s cluster %i size %i\n", root_direntry.name, FAT_DIRENTRY_GET_CLUSTER(root_direntry), root_direntry.file_size);
+    printk("FAT: Root dentry name %s sector %i sectors %i\n", root_direntry.name, instance->root_dir_sector, instance->root_dir_sectors);
 
     struct inode* result = new_vfs_inode();
+    instance->vfs_root_inode = result;
     result->inode = ino_num;
     result->sb = sb;
     result->uid = 0;
     result->gid = 0;
-    result->size = root_direntry.file_size;
+    result->size = 0;
     result->mode = INODE_TYPE_DIRECTORY;
     result->access_time = 0;
     result->create_time = 0;
@@ -296,25 +299,116 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     return NULL;
 }
 
-uint64_t fat_find_dentry(struct superblock* sb, uint64_t parent_inode_index, const char *name, int* type)
+uint32_t fat_get_first_cluster_idx(struct fat_instance* inst, struct fat_direntry* entry)
 {
-    printk("fat_find_dentry (%i %s)\n", parent_inode_index, name);
+    return ((((uint32_t) entry->first_cluster_hi) << 16) | entry->first_cluster_lo);
+}
+
+#define FAT_DIR_LAST_CLUSTER 100000
+int fat_read_directory_cluster(struct fat_instance* inst, struct fat_direntry* direntry, int is_root, uint32_t index, char* buffer)
+{
+    uint32_t current_cluster = fat_get_first_cluster_idx(inst, direntry);
+    uint32_t cluster_sz = inst->bpb->sectors_per_cluster * inst->bytes_per_sector;
+
+    if (is_root == TRUE)
+    {
+        // Жуткий костыль для корневой директории
+        switch (inst->fs_type) {
+            case FS_FAT12:
+            case FS_FAT16:
+                // для Fat12 и Fat16 корневая директория состоит из секторов, а не из кластеров. Пиздец....
+
+                if (index >= inst->root_dir_sectors)
+                {
+                    return FAT_DIR_LAST_CLUSTER;
+                }
+
+                current_cluster = inst->root_dir_sector + index;
+                fat_read_sector(inst, current_cluster, 1, buffer);
+                return 0;
+                break;
+            case FS_FAT32:
+                // Для Fat32 кластер корневой директории задан в заголовке
+                current_cluster = inst->bpb->ext_32.root_cluster;
+        }
+    }
+
+    // Вычислим номер нужного кластера
+    for (uint32_t i = 0; i < index; i ++)
+    {
+        current_cluster = fat_get_next_cluster(inst, current_cluster);
+    }
+
+    if (current_cluster == FAT_EOC)
+    {
+        return FAT_DIR_LAST_CLUSTER;
+    }
+
+    return fat_read_cluster(inst, current_cluster, buffer);
+}
+
+void fat_nseize_str(uint16_t* in, size_t len, char* out)
+{
+    size_t i = 0;
+
+    for (i; i < len; i ++)
+    {
+        uint16_t val = in[i];
+        out[i] = (char) val;
+    }
+}
+
+void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn)
+{
+    uint8_t order = lfn->order & (~0x40); 
+    uint32_t lfn_pos = (order - 1) * 13;
+
+    //printk("LFN lfn_pos=%i order=%i\n", lfn_pos, order);
+
+    // TODO: Unicode?
+    fat_nseize_str(lfn->name_0, sizeof(lfn->name_0) / 2, namebuffer + lfn_pos);
+    lfn_pos += sizeof(lfn->name_0) / 2;
+    fat_nseize_str(lfn->name_1, sizeof(lfn->name_1) / 2, namebuffer + lfn_pos);
+    lfn_pos += sizeof(lfn->name_1) / 2;
+    fat_nseize_str(lfn->name_2, sizeof(lfn->name_2) / 2, namebuffer + lfn_pos);
+    lfn_pos += sizeof(lfn->name_2) / 2;
+
+    if ((lfn->order & 0x40) == 0x40)
+    {
+        namebuffer[lfn_pos] = '\0';
+    }
+}
+
+uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type)
+{
     struct fat_instance* inst = sb->fs_info;
+    int is_root_directory = parent_inode == inst->vfs_root_inode;
+    uint64_t result_inode = WRONG_INODE_INDEX;
+
+    printk("fat_find_dentry (ino %i (root = %i) name %s)\n", parent_inode->inode, is_root_directory, name);
 
     // Найти и считать direntry
     struct fat_direntry dir_direntry;
-    fat_read_dentry(inst, parent_inode_index, &dir_direntry, NULL);
+    fat_read_dentry(inst, parent_inode->inode, &dir_direntry, NULL);
 
     size_t namelen = strlen(name);
     // Буфер под кластер
     uint32_t cluster_sz = inst->bpb->sectors_per_cluster * inst->bytes_per_sector;
-    char* cluster_buffer = kmalloc(cluster_sz);
-    // Текущий кластер
-    uint32_t current_cluster = FAT_DIRENTRY_GET_CLUSTER(dir_direntry);
 
-    while (current_cluster != FAT_EOC)
+    if (is_root_directory) {
+        // для Fat12 и Fat16 корневая директория состоит из секторов, а не из кластеров. Пиздец....
+        if (inst->fs_type == FS_FAT12 || inst->fs_type == FS_FAT16)
+            cluster_sz = inst->bytes_per_sector;
+    }
+
+    char* checking_name = kmalloc(FAT_LFN_MAX_SZ + 1);
+    char* cluster_buffer = kmalloc(cluster_sz);
+    uint32_t current_cluster_idx = 0;
+
+    checking_name[0] = '\0';
+
+    while (fat_read_directory_cluster(inst, &dir_direntry, is_root_directory, current_cluster_idx ++, cluster_buffer) != FAT_DIR_LAST_CLUSTER)
     {
-        fat_read_cluster(inst, current_cluster, cluster_buffer);
         uint32_t pos = 0;
 
         struct fat_direntry*    d_ptr;
@@ -325,23 +419,71 @@ uint64_t fat_find_dentry(struct superblock* sb, uint64_t parent_inode_index, con
             d_ptr = &cluster_buffer[pos];
 
             if (d_ptr->attr == FILE_ATTR_LFN) {
+                // Встретилась запись LFN
                 d_lfn = d_ptr;
+                fat_apply_lfn(checking_name, d_lfn);
                 pos += sizeof(struct fat_lfn);
-                // TODO: fill LFN name
                 continue;
             } else {
-                printk("SFN %s\n", d_ptr->name);
-                //if (strcmp(d_ptr->name, name))
+
+                if (strlen(checking_name) == 0)
+                {
+                    // Если не было LFN, используем SFN
+                    strncpy(checking_name, d_ptr->name, sizeof(d_ptr->name));
+
+                    uint8_t i;
+                    // Сначала удалить все пробелы справа (1 пробел вначале лучше оставить)
+                    for (i = 10; (i > 0) && (checking_name[i] == ' '); i --)
+                        checking_name[i] = '\0';
+
+                    // TODO: удалить пробелы между именем и расширением
+
+                    // Снизить регистр имени, если установлен соответствующий флаг
+                    if (d_ptr->nt_reserved & FILE_NTRES_NAME_LOWERCASE) {
+                        for (i = 0; i < 8; i ++)
+                            checking_name[i] = tolower(checking_name[i]);
+                    }
+                    // Снизить регистр расширения, если установлен соответствующий флаг
+                    if (d_ptr->nt_reserved & FILE_NTRES_EXT_LOWERCASE) {
+                        for (i = 8; i < 11; i ++)
+                            checking_name[i] = tolower(checking_name[i]);
+                    }
+                }
+
+                // Пустые dentry - не тратим время, сразу выходим 
+                if (checking_name[0] == 0)
+                {
+                    result_inode = WRONG_INODE_INDEX;
+                    goto exit;
+                }
+
+                // dentry не удалена и не является меткой тома
+                if ((d_ptr->name[0] != 0xE5) && (d_ptr->attr & FILE_ATTR_VOLUME_ID) == 0)
+                {
+                    //printk("Name '%s' Attr %x\n", checking_name, d_ptr->attr);
+                    if (strcmp(checking_name, name) == 0)
+                    {
+                        int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
+                        *type = is_dir ? DT_DIR : DT_REG; 
+                        printk("FOUND");
+                        goto exit;
+                    }
+                }
+
+                // Сброс буфера LFN
+                checking_name[0] = '\0';
+                // Увеличить смещение
+                pos += sizeof(struct fat_direntry);
+
+                continue;
             }
-
-            break;
         }
-
-        current_cluster = fat_get_next_cluster(inst, current_cluster);
     }
 
+exit:
+    kfree(checking_name);
     kfree(cluster_buffer);
-    return WRONG_INODE_INDEX;
+    return result_inode;
 }
 
 int fat_statfs(struct superblock *sb, struct statfs* stat)
