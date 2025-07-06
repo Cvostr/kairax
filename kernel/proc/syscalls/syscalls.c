@@ -263,7 +263,13 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     // Загрузка исполняемого файла
     size_t size = file->inode->size;
     char* image_data = kmalloc(size);
-    file_read(file, size, image_data);
+    ssize_t readed = file_read(file, size, image_data);
+    if (readed < 0)
+    {
+        kfree(image_data);
+        free_process(new_process);
+        return readed;
+    }
 
     // Попытаемся загрузить файл программы
     pid_t rc = elf_load_process(new_process, image_data, 0, &program_start_ip, interp_path);

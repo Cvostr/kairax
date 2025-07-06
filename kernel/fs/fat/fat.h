@@ -153,6 +153,8 @@ struct fat_instance {
 
 #define FAT_DIRENTRY_GET_CLUSTER(x) ((((uint32_t) x.first_cluster_hi) << 16) | x.first_cluster_lo)
 
+uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster);
+
 // Вызывается VFS при монтировании
 struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb);
 
@@ -164,5 +166,7 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
 int fat_statfs(struct superblock *sb, struct statfs* stat);
 
 struct dirent* fat_file_readdir(struct file* dir, uint32_t index);
+
+ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 
 #endif

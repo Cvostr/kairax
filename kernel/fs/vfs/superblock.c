@@ -82,13 +82,20 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
     uint64_t inode = sb->operations->find_dentry(sb, parent->d_inode, name, &dentry_type);
     release_spinlock(&sb->spinlock);
 
-    if (inode != WRONG_INODE_INDEX) {
+    if (inode != WRONG_INODE_INDEX) 
+    {
+        struct inode* d_inode = superblock_get_inode(sb, inode);
+        if (d_inode == NULL)
+        {
+            return NULL;
+        }
+        
         // нашелся объект с указанным именем
         result = new_dentry();
         strncpy(result->name, name, MAX_DIRENT_NAME_LEN);
         result->parent = parent;
         result->sb = sb;
-        result->d_inode = superblock_get_inode(sb, inode);
+        result->d_inode = d_inode;
         inode_open(result->d_inode, 0);
 
         switch (dentry_type) {
