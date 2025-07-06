@@ -119,6 +119,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     //printk("FAT bsize %i\n", bsize);
     if (bsize < 512)
     {
+        printk("FAT: Disk block size (%i) is lower than minimum required 512!\n");
         fat_free_instance(instance);
         return NULL;
     }
@@ -129,6 +130,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
 
     if (partition_read(drive, 0, 1, instance->bpb) != 0)
     {
+        printk("FAT: Error reading BPB!\n");
         fat_free_instance(instance);
         return NULL;
     }
@@ -137,6 +139,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     int jmp_op_valid = (jmp_op[0] == 0xEB && jmp_op[2] == 0x90) || (jmp_op[0] == 0xE9);
     if (jmp_op_valid == FALSE)
     {
+        printk("FAT: Incorrect JMP command!\n");
         fat_free_instance(instance);
         return NULL;
     }
@@ -225,7 +228,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
 
     struct fat_direntry root_direntry;
     fat_read_dentry(instance, ino_num, &root_direntry, NULL);
-    //printk("FAT: Root dentry name %s sector %i sectors %i\n", root_direntry.name, instance->root_dir_sector, instance->root_dir_sectors);
+    printk("FAT: Root dentry name %s sector %i sectors %i\n", root_direntry.name, instance->root_dir_sector, instance->root_dir_sectors);
 
     struct inode* result = new_vfs_inode();
     instance->vfs_root_inode = result;
@@ -756,6 +759,9 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
         current_cluster = fat_get_next_cluster(inst, current_cluster);
         current_cluster_num ++;
     }
+
+    // Сдвинуть
+    file->pos += readed;
 
     kfree(cluster_buffer);
     return readed;

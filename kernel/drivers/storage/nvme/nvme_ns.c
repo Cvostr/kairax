@@ -31,7 +31,6 @@ struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32
 
 int nvme_read_lba(struct device* dev, uint64_t start, uint64_t count, unsigned char *buf)
 {
-    buf = (char*) vmm_get_physical_address(buf);
     return nvme_namespace_read(dev->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 
@@ -59,16 +58,15 @@ int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count,
         return -1;
     }
 
-    memcpy(P2V(out), ns->buffer, count * 512);
+    memcpy(out, ns->buffer, count * 512);
 
     release_spinlock(&ns->lock);
 
-    return 1;
+    return 0;
 }
 
 int nvme_write_lba(struct device* dev, uint64_t start, uint64_t count, const unsigned char *buf)
 {
-    buf = (char*) vmm_get_physical_address(buf);
     return nvme_namespace_write(dev->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 
@@ -89,7 +87,7 @@ int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count
     struct nvme_completion completion;
     memset(&completion, 0, sizeof(struct nvme_completion));
 
-    memcpy(ns->buffer, P2V(in), count * 512);
+    memcpy(ns->buffer, in, count * 512);
 
     nvme_queue_submit_wait(queue, &read_cmd, &completion);
 
@@ -99,4 +97,6 @@ int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count
     }
 
     release_spinlock(&ns->lock);
+
+    return 0;
 }

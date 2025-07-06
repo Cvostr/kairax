@@ -1124,7 +1124,7 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
         return -ERROR_OTHER_DEVICE;
     }
 
-    if (ext2_find_dentry(oldpinst->vfs_sb, newparent->inode, newname, NULL) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(oldpinst->vfs_sb, newparent, newname, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1163,7 +1163,7 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
 
     // Получить удаляемую inode
     uint32_t unlink_inode_idx = 0;
-    if ((unlink_inode_idx = ext2_find_dentry(parent->sb, parent->inode, dent->name, NULL)) == WRONG_INODE_INDEX) {
+    if ((unlink_inode_idx = ext2_find_dentry(parent->sb, parent, dent->name, NULL)) == WRONG_INODE_INDEX) {
         kfree(e2_parent_inode);
         return -ERROR_NO_FILE;
     }
@@ -1291,7 +1291,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
     
-    if (ext2_find_dentry(parent->sb, parent->inode, dir_name, NULL) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent, dir_name, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1378,7 +1378,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
-    if (ext2_find_dentry(parent->sb, parent->inode, file_name, NULL) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent, file_name, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1427,7 +1427,7 @@ int ext2_mknod (struct inode* parent, const char* name, mode_t mode)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
-    if (ext2_find_dentry(parent->sb, parent->inode, name, NULL) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent, name, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1477,7 +1477,7 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
 {
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
-    if (ext2_find_dentry(parent->sb, parent->inode, name, NULL) != WRONG_INODE_INDEX) {
+    if (ext2_find_dentry(parent->sb, parent, name, NULL) != WRONG_INODE_INDEX) {
         return -ERROR_ALREADY_EXISTS;
     }
 
@@ -1563,7 +1563,7 @@ int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name
 {
     ext2_instance_t* inst = (ext2_instance_t*) dst_dir->sb->fs_info;
 
-    if (ext2_find_dentry(dst_dir->sb, dst_dir->inode, dst_name, NULL) != WRONG_INODE_INDEX) 
+    if (ext2_find_dentry(dst_dir->sb, dst_dir, dst_name, NULL) != WRONG_INODE_INDEX) 
     {
         return -ERROR_ALREADY_EXISTS;
     }
