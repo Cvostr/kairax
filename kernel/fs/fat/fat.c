@@ -182,16 +182,24 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     // Определить тип файловой системы
     if (bpb->bytes_per_sector == 0) {
         instance->fs_type = FS_EXFAT;
+        // Размер для буфера FAT
+        instance->fat_buffer_size = instance->bytes_per_sector;
         // пока не реализовано полноценно
         printk("exFAT is unsupported!\n");
         fat_free_instance(instance);
         return NULL;
     } else if(instance->total_clusters < 4085) {
         instance->fs_type = FS_FAT12;
+        // Размер для буфера FAT
+        instance->fat_buffer_size = instance->bytes_per_sector * 2;
     } else if(instance->total_clusters < 65525) {
         instance->fs_type = FS_FAT16;
+        // Размер для буфера FAT
+        instance->fat_buffer_size = instance->bytes_per_sector;
     } else {
         instance->fs_type = FS_FAT32;
+        // Размер для буфера FAT
+        instance->fat_buffer_size = instance->bytes_per_sector;
         // Чтение структуры FSINFO32
         instance->fsinfo32 = kmalloc(bsize);
         partition_read(drive, 0, 1, instance->fsinfo32);
@@ -301,11 +309,19 @@ int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_di
     return rc;
 }
 
-uint32_t 
-fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
+uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
+{
+    // Выделить буфер под FAT
+    char* fat_buffer = kmalloc(inst->fat_buffer_size);
+    uint32_t result = fat_get_next_cluster_ex(inst, cluster, fat_buffer);
+    KFREE_SAFE(fat_buffer);
+
+    return result;
+}
+
+uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer)
 {
     uint32_t result = 0;
-    char* fat_buffer = NULL;
     uint32_t fat_offset = 0;    // Смещение внутри таблицы FAT в байтах
     uint32_t fat_sector = 0;    // Номер сектора в таблице FAT (Смещение внутри таблицы FAT в секторах)
     uint32_t sector_offset = 0; // Смещение внутри сектора таблицы FAT
@@ -313,7 +329,6 @@ fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
     switch (inst->fs_type)
     {
         case FS_FAT12:
-            fat_buffer = kmalloc(inst->bytes_per_sector * 2);
             fat_offset = cluster + (cluster / 2);  
             fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector); 
             sector_offset = fat_offset % inst->bytes_per_sector;
@@ -324,7 +339,6 @@ fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
             result = (cluster & 1) ? result >> 4 : result & 0xfff;
             break;
         case FS_FAT16:
-            fat_buffer = kmalloc(inst->bytes_per_sector);
             fat_offset = cluster * sizeof(uint16_t);
             fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
             sector_offset = fat_offset % inst->bytes_per_sector;
@@ -335,7 +349,6 @@ fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
             break;
         case FS_FAT32:
         case FS_EXFAT:
-            fat_buffer = kmalloc(inst->bytes_per_sector);
             fat_offset = cluster * sizeof(uint32_t);
             fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
             sector_offset = fat_offset % inst->bytes_per_sector;
@@ -350,7 +363,6 @@ fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
             break;
     }
 
-    KFREE_SAFE(fat_buffer);
     return result;
 }
 
@@ -586,7 +598,6 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
                 // dentry не удалена и не является меткой тома
                 if ((d_ptr->name[0] != 0xE5) && (d_ptr->attr & FILE_ATTR_VOLUME_ID) == 0)
                 {
-                    //printk("Name '%s' Attr %x\n", checking_name, d_ptr->attr);
                     if (strcmp(checking_name, name) == 0)
                     {
                         int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
@@ -737,6 +748,10 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     uint32_t current_cluster = fat_get_first_cluster_idx(inst, &direntry);
     uint32_t current_cluster_num = 0;
 
+    // Выделим буфер под FAT таблицу для переходов по кластерам
+    // Чтобы постоянно не перевыделять эту память в fat_get_next_cluster() 
+    char* fat_buffer = kmalloc(inst->fat_buffer_size);
+
     // порядковый номер кластера, с которого надо начать читать с учетом смещения
     uint32_t reqd_cluster = offset / cluster_sz;
     // Смещение внутри первого кластера, с которого надо начать читать
@@ -756,13 +771,19 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
             readed += available_data;
         }
 
-        current_cluster = fat_get_next_cluster(inst, current_cluster);
+        if ((count - readed) <= 0)
+        {
+            break;
+        }
+
+        current_cluster = fat_get_next_cluster_ex(inst, current_cluster, fat_buffer);
         current_cluster_num ++;
     }
 
     // Сдвинуть
     file->pos += readed;
 
+    kfree(fat_buffer);
     kfree(cluster_buffer);
     return readed;
 }

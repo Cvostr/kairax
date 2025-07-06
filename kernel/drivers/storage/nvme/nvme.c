@@ -320,7 +320,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 		memset(drive_info, 0, sizeof(struct drive_device_info));
 		drive_info->block_size = ns->block_size;
 		drive_info->nbytes = ns->disk_size * drive_info->block_size;
-		drive_info->sectors = ns->disk_size; // ? 
+		drive_info->sectors = ns->disk_size;
 		drive_info->uses_lba48 = 1; // ???
 
 		drive_info->read = nvme_read_lba;

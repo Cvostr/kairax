@@ -113,6 +113,7 @@ struct fat_instance {
     
     struct fat_bpb*     bpb;
 	struct fat_fsinfo32* fsinfo32;
+	uint32_t			fat_buffer_size;	// Размер буфера для чтения FAT
 	uint16_t 			bytes_per_sector;
 	uint32_t			sectors_count;
 	uint32_t 			fat_size;
@@ -153,6 +154,8 @@ struct fat_instance {
 
 #define FAT_DIRENTRY_GET_CLUSTER(x) ((((uint32_t) x.first_cluster_hi) << 16) | x.first_cluster_lo)
 
+// Функции для получения номера следующего кластера в цепочке
+uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer);
 uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster);
 
 // Вызывается VFS при монтировании
