@@ -29,7 +29,7 @@ void fat_init()
     fat_file_ops.read = fat_file_read;
 }
 
-uint32_t fat_read_sector(struct fat_instance* inst, uint64_t block_start, uint64_t blocks, char* buffer)
+int fat_read_sector(struct fat_instance* inst, uint64_t block_start, uint64_t blocks, char* buffer)
 {
     uint32_t    bps = inst->bytes_per_sector;
     uint64_t    start_lba = block_start * bps / 512;
@@ -38,8 +38,14 @@ uint32_t fat_read_sector(struct fat_instance* inst, uint64_t block_start, uint64
     return partition_read(inst->partition, start_lba, lba_count, buffer);
 }
 
-uint32_t fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
+int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
 {
+    if (cluster > inst->total_clusters)
+    {   
+        printk("FAT: Cluster %i is outside of disk\n");
+        return -E2BIG;
+    }
+
     uint32_t    spc = inst->bpb->sectors_per_cluster;
     uint32_t    bps = inst->bytes_per_sector;
     uint32_t    bpc = spc * bps;
@@ -79,7 +85,7 @@ uint32_t fat_get_directory_buffer_size(struct fat_instance* inst, int is_root)
             return inst->bytes_per_sector;
     }
 
-    return inst->bpb->sectors_per_cluster * inst->bytes_per_sector;
+    return inst->bytes_per_cluster;
 }
 
 time_t fat_date_to_epoch(struct fat_date* date, struct fat_time* time)
@@ -159,8 +165,12 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     }
 
     instance->bytes_per_sector = bpb->bytes_per_sector;
+    
     // Сохранить кол-во секторов
     instance->sectors_count = (bpb->total_sectors16 == 0) ? bpb->total_sectors32 : bpb->total_sectors16;
+
+    // Байт в кластере
+    instance->bytes_per_cluster = ((uint32_t) instance->bpb->sectors_per_cluster) * instance->bytes_per_sector;
 
     // Сохранить размер FAT (в секторах)
     instance->fat_size = (bpb->fat_size16 == 0) ? bpb->ext_32.fat_size : bpb->fat_size16;
@@ -192,14 +202,20 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         instance->fs_type = FS_FAT12;
         // Размер для буфера FAT
         instance->fat_buffer_size = instance->bytes_per_sector * 2;
+        // значение EOC
+        instance->eoc_value = FAT12_EOC;
     } else if(instance->total_clusters < 65525) {
         instance->fs_type = FS_FAT16;
         // Размер для буфера FAT
         instance->fat_buffer_size = instance->bytes_per_sector;
+        // значение EOC
+        instance->eoc_value = FAT16_EOC;
     } else {
         instance->fs_type = FS_FAT32;
         // Размер для буфера FAT
         instance->fat_buffer_size = instance->bytes_per_sector;
+        // значение EOC
+        instance->eoc_value = FAT32_EOC;
         // Чтение структуры FSINFO32
         instance->fsinfo32 = kmalloc(bsize);
         partition_read(drive, 0, 1, instance->fsinfo32);
@@ -335,7 +351,7 @@ uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, ch
             
             fat_read_sector(inst, fat_sector, 2, fat_buffer);
             
-            result = *((uint16_t*) &fat_buffer [sector_offset]);
+            result = *((uint16_t*) &fat_buffer[sector_offset]);
             result = (cluster & 1) ? result >> 4 : result & 0xfff;
             break;
         case FS_FAT16:
@@ -345,7 +361,7 @@ uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, ch
 
             fat_read_sector(inst, fat_sector, 1, fat_buffer);
 
-            result = result = *((uint16_t*) &fat_buffer [sector_offset]);
+            result = result = *((uint16_t*) &fat_buffer[sector_offset]);
             break;
         case FS_FAT32:
         case FS_EXFAT:
@@ -355,7 +371,7 @@ uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, ch
 
             fat_read_sector(inst, fat_sector, 1, fat_buffer);
 
-            result = result = *((uint32_t*) &fat_buffer [sector_offset]);
+            result = result = *((uint32_t*) &fat_buffer[sector_offset]);
             if (inst->fs_type == FS_FAT32)
             {
                 result = result &= 0x0FFFFFFF;
@@ -409,7 +425,6 @@ int fat_read_directory_cluster( struct fat_instance* inst,
                                 uint64_t* ino_num_base)
 {
     uint32_t current_cluster = fat_get_first_cluster_idx(inst, direntry);
-    uint32_t cluster_sz = inst->bpb->sectors_per_cluster * inst->bytes_per_sector;
 
     if (is_root == TRUE)
     {
@@ -443,7 +458,8 @@ int fat_read_directory_cluster( struct fat_instance* inst,
         current_cluster = fat_get_next_cluster(inst, current_cluster);
     }
 
-    if (current_cluster == FAT_EOC)
+    uint32_t EOC = inst->eoc_value;
+    if (current_cluster == EOC)
     {
         return FAT_DIR_LAST_CLUSTER;
     }
@@ -676,7 +692,6 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
                 d_lfn = d_ptr;
                 fat_apply_lfn(checking_name, d_lfn);
                 pos += sizeof(struct fat_lfn);
-                continue;
             } else {
 
                 if (strlen(checking_name) == 0)
@@ -737,8 +752,14 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     struct fat_direntry direntry;
     fat_read_dentry(inst, vfs_inode->inode, &direntry, NULL);
 
+    // Ограничение по размеру файла
+    if (direntry.file_size < offset + count)
+    {
+        count = direntry.file_size - offset;
+    }
+
     // Буфер под кластер
-    uint32_t cluster_sz = inst->bpb->sectors_per_cluster * inst->bytes_per_sector;
+    uint32_t cluster_sz = inst->bytes_per_cluster;
     char* cluster_buffer = kmalloc(cluster_sz);
     if (cluster_buffer == NULL)
     {
@@ -757,9 +778,10 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     // Смещение внутри первого кластера, с которого надо начать читать
     uint32_t cluster_offset = offset % cluster_sz;
 
+    uint32_t EOC = inst->eoc_value;
     size_t readed = 0;
 
-    while (current_cluster != FAT_EOC && (count - readed) > 0)
+    while (current_cluster < EOC && (count - readed) > 0)
     {
         if (current_cluster_num >= reqd_cluster)
         {

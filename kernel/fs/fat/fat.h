@@ -115,6 +115,7 @@ struct fat_instance {
 	struct fat_fsinfo32* fsinfo32;
 	uint32_t			fat_buffer_size;	// Размер буфера для чтения FAT
 	uint16_t 			bytes_per_sector;
+	uint32_t			bytes_per_cluster;
 	uint32_t			sectors_count;
 	uint32_t 			fat_size;
 	uint32_t			root_dir_sector;
@@ -124,6 +125,7 @@ struct fat_instance {
 	uint32_t			data_sectors;
 	uint32_t 			total_clusters;
 	int 				fs_type;
+	uint32_t			eoc_value;
 };
 
 #define FSINFO32_SIGNATURE				0x41615252
@@ -133,8 +135,14 @@ struct fat_instance {
 #define FAT_DIRENTRY_SZ		32
 #define FAT_LFN_MAX_SZ		256
 
-#define FAT_EOC		0x0FFFFFF8
+#define FAT12_EOC	0xFF8
+#define FAT12_BAD	0xFF7
+#define FAT16_EOC	0xFFF8
+#define FAT16_BAD	0xFFF7
+#define FAT32_EOC	0x0FFFFFF8
+#define FAT32_BAD	0x0FFFFFF7
 #define EXFAT_EOC	0xFFFFFFF8
+#define EXFAT_BAD	0xFFFFFFF7
 
 #define FS_FAT12 	1
 #define FS_FAT16	2

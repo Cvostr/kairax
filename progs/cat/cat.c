@@ -2,7 +2,7 @@
 #include "unistd.h"
 #include "fcntl.h"
 
-#define REGION_LEN 15
+#define REGION_LEN 512
 char region[REGION_LEN];
 
 int main(int argc, char** argv) {
