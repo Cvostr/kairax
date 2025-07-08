@@ -124,6 +124,7 @@ struct fat_instance {
 	uint32_t			first_data_sector;
 	uint32_t			data_sectors;
 	uint32_t 			total_clusters;
+	uint32_t 			free_clusters;
 	int 				fs_type;
 	uint32_t			eoc_value;
 };
@@ -163,8 +164,17 @@ struct fat_instance {
 #define FAT_DIRENTRY_GET_CLUSTER(x) ((((uint32_t) x.first_cluster_hi) << 16) | x.first_cluster_lo)
 
 // Функции для получения номера следующего кластера в цепочке
-uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer);
+uint32_t fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer, uint32_t* last_sector);
 uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster);
+
+int fat_read_directory_cluster( struct fat_instance* inst, 
+                                struct fat_direntry* direntry,
+                                int is_root,
+                                uint32_t index,
+                                char* buffer,
+                                uint64_t* ino_num_base);
+
+uint32_t fat_calc_free_clusters(struct fat_instance* inst);
 
 // Вызывается VFS при монтировании
 struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb);
