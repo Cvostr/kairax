@@ -105,14 +105,28 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         goto error;
     }
 
-    // Чтение исполняемого файла
+    // Размер исполняемого файла
     fsize = exec_file->inode->size;
+    if (fsize == 0)
+    {
+        rc = -ERROR_BAD_EXEC_FORMAT;
+        goto error;
+    }
+
+    // Выделить память под данные исполняемого файла
     process_image_data = kmalloc(fsize);
     if (process_image_data == NULL) {
         rc = -ENOMEM;
         goto error;
     }
-    file_read(exec_file, fsize, process_image_data);
+    
+    // Чтение исполняемого файла
+    ssize_t readed = file_read(exec_file, fsize, process_image_data);
+    if (readed == 0 || readed != fsize)
+    {
+        rc = -ERROR_BAD_EXEC_FORMAT;
+        goto error;
+    }
 
     // Проверка заголовка
     struct elf_header* elf_header = (struct elf_header*) process_image_data;

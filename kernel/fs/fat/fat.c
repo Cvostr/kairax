@@ -46,7 +46,7 @@ int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t s
 
 int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
 {
-    if (cluster >= inst->total_clusters)
+    if (cluster < 2 || cluster >= inst->total_clusters)
     {   
         printk("FAT: Cluster %i is outside of disk\n", cluster);
         return -E2BIG;
@@ -612,7 +612,6 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
     // буфер под кластер
     cluster_buffer = kmalloc(cluster_sz);
     if (cluster_buffer == NULL) {
-        kfree(checking_name);
         result_inode = WRONG_INODE_INDEX;
         goto exit;
     }
@@ -800,10 +799,22 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
         return rc;
     }
 
+    if (direntry.file_size < offset)
+    {
+        // Смещение больше размера файла
+        return 0;
+    }
+
     // Ограничение по размеру файла
     if (direntry.file_size < offset + count)
     {
         count = direntry.file_size - offset;
+    }
+
+    if (count == 0)
+    {
+        // Нечего читать - выходим
+        return 0;
     }
 
     // Буфер под кластер
