@@ -10,6 +10,7 @@
 #include "dev/device.h"
 #include "mem/iomem.h"
 #include "mem/vmm.h"
+#include "kairax/errors.h"
 
 #define LO32(val) ((uint32_t)(uint64_t)(val))
 #define HI32(val) ((uint32_t)(((uint64_t)(val)) >> 32))
@@ -61,12 +62,13 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 
 	// Выделение памяти под буфер порта
 	char* port_mem = (char*)pmm_alloc_page();
-	uint64_t pageFlags = PAGE_WRITABLE | PAGE_PRESENT | PAGE_UNCACHED;
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
 	map_io_region(port_mem, PAGE_SIZE);
 
-    port->command_list = (HBA_COMMAND*)port_mem;
-    port->fis = (fis_t*)(port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT);
+    port->command_list = (HBA_COMMAND*) port_mem;
+	port->command_list_virt = P2V(port->command_list);
+
+    port->fis = (fis_t*) (port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT);
     //Записать адрес списка команд
     port_desc->clb  = LO32(port->command_list);
 	port_desc->clbu = HI32(port->command_list);
@@ -317,8 +319,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer)
 	if (slot == -1)
 		return 0;
 
-	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
-	cmdheader += slot;
+	HBA_COMMAND *cmdheader = &port->command_list_virt[slot];
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
 	cmdheader->write = 0;		// Чтение с диска
 	cmdheader->prdtl = 1;		// количество PRDT
@@ -416,16 +417,16 @@ int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, ch
 	return ahci_port_read_lba48(device->dev_data, start, (uint32_t)count, (uint16_t*) buf);
 }
 
-int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint16_t *buf){
+int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint8_t *buf)
+{
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; 
 	int slot = ahci_port_get_free_cmdslot(port);
 	if (slot == -1)
-		return 0;
+		return -EIO;
 
-	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
-	cmdheader += slot;
+	HBA_COMMAND *cmdheader = &port->command_list_virt[slot];
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
 	cmdheader->write = 0;									// Чтение с диска
 	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// необходимое количество PRDT
@@ -433,22 +434,23 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)P2V(((uintptr_t)cmdheader->ctdba_up << 32) | cmdheader->ctdba_low);
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE) +
  		(cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
-	
-	// 8K bytes (16 sectors) per PRDT
+
+	// 4K bytes (8 sectors) per PRDT
 	for (int i = 0; i < cmdheader->prdtl - 1; i++)
 	{
 		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
 		cmdtbl->prdt_entry[i].dbau = (uint32_t) ((uintptr_t) buf >> 32);
-		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
+		cmdtbl->prdt_entry[i].dbc = 4 * 1024 - 1;	// 4K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = AHCI_INT_ON_COMPLETION;
-		buf += 4 * 1024;	// 4K слов
-		count -= 16;	// 16 секторов
+		
+		buf += 4 * 1024;			// 4K байт
+		count -= 8;		// 8 секторов
 	}
 	
 	// Last entry
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dba = (uint32_t) ((uintptr_t)buf & 0xFFFFFFFF);
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbau = (uint32_t) ((uintptr_t)buf >> 32);
-	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count << 9) - 1;	// 512 байт в секторе
+	cmdtbl->prdt_entry[cmdheader->prdtl - 1].dbc = (count * 512) - 1;	// 512 байт в секторе
 	cmdtbl->prdt_entry[cmdheader->prdtl - 1].i = AHCI_INT_ON_COMPLETION;
 	
 	// Подготовить команду
@@ -478,7 +480,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	if (spin == 1000000)
 	{
 		printf("Port is hung\n");
-		return 0;
+		return -EIO;
 	}
 
 	hba_port->ci = (1 << slot);	// Выполнить команду
@@ -494,7 +496,7 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
 		{
 			printf("Read disk error (%i, %i)\n", start, count);
-			return 0;
+			return -EIO;
 		}
 	}
  
@@ -502,19 +504,20 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 	if (hba_port->is & HBA_PxIS_TFE)
 	{
 		printf("Read disk error (%i, %i)\n", start, count);
-		return 0;
+		return -EIO;
 	}
 
-	return 1;
+	return 0;
 }
 
 int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, const char *buf)
 {
 	buf = (char*) vmm_get_physical_address(buf);
-	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, (uint16_t*) buf);
+	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, (uint8_t*) buf);
 }
 
-int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint16_t *buf){
+int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint8_t *buf)
+{
 	HBA_PORT* hba_port = port->port_reg;
 	hba_port->is = (uint32_t) -1;		// Clear pending interrupt bits
 	int spin = 0; // Spin lock timeout counter
@@ -522,8 +525,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	while (slot == -1)
 		slot = ahci_port_get_free_cmdslot(port);
 
-	HBA_COMMAND *cmdheader = (HBA_COMMAND*)P2V(((uintptr_t)hba_port->clbu << 32) | hba_port->clb);
-	cmdheader += slot;
+	HBA_COMMAND *cmdheader = &port->command_list_virt[slot];
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Command FIS size
 	cmdheader->write = 1;									// Запись на устройство
 	cmdheader->prdtl = (uint16_t)((count - 1) >> 4) + 1;	// PRDT entries count
@@ -532,15 +534,15 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	memset(cmdtbl, 0, sizeof(HBA_COMMAND_TABLE) +
  		(cmdheader->prdtl - 1) * sizeof(HBA_PRDT_ENTRY));
 	
-	// 8K bytes (16 sectors) per PRDT
+	// 4K bytes (8 sectors) per PRDT
 	for (int i = 0; i < cmdheader->prdtl - 1; i++)
 	{
 		cmdtbl->prdt_entry[i].dba = (uint32_t) ((uintptr_t) buf & 0xFFFFFFFF);
 		cmdtbl->prdt_entry[i].dbau = (uint32_t) ((uintptr_t) buf >> 32);
-		cmdtbl->prdt_entry[i].dbc = 8 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
+		cmdtbl->prdt_entry[i].dbc = 4 * 1024 - 1;	// 8K bytes (this value should always be set to 1 less than the actual value)
 		cmdtbl->prdt_entry[i].i = AHCI_INT_ON_COMPLETION;
-		buf += 4 * 1024;	// 4K words
-		count -= 16;	// 16 sectors
+		buf += 4 * 1024;	// 4K bytes
+		count -= 8;			// 8 sectors
 	}
 	
 	// Last entry
@@ -576,7 +578,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	if (spin == 1000000)
 	{
 		printf("Port is hung\n");
-		return 0;
+		return -1;
 	}
 	hba_port->ci = (1 << slot);	// Issue command
  
@@ -590,7 +592,7 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 		if (hba_port->is & HBA_PxIS_TFE)	// Task file error
 		{
 			printf("Write disk error\n");
-			return 0;
+			return -2;
 		}
 	}
  
@@ -598,8 +600,8 @@ int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, u
 	if (hba_port->is & HBA_PxIS_TFE)
 	{
 		printf("Write disk error\n");
-		return 0;
+		return -3;
 	}
  
-	return 1;
+	return 0;
 }
