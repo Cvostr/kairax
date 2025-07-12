@@ -6,6 +6,7 @@
 #include "kairax/kstdlib.h"
 #include "kairax/in.h"
 #include "kairax/stdio.h"
+#include "kairax/errors.h"
 
 struct command_block_wrapper {
     uint32_t signature;
@@ -118,6 +119,8 @@ struct usb_mass_storage_device {
 	struct usb_interface* usb_iface;
 	struct usb_endpoint* in_ep;
 	struct usb_endpoint* out_ep;
+
+	uint32_t blocksize;
 
 	uint8_t peripheral_device_type : 5;
 	uint8_t peripheral_qualifier   : 3;
@@ -265,6 +268,8 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 	if (csw->signature != CSW_SIGNATURE)
 	{
 		printk("CSW Signature incorrect!\n");
+		rc = -EIO;
+		goto cleanup_exit;
 	}
 
 	switch (csw->status)
@@ -291,30 +296,63 @@ cleanup_exit:
 
 int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out)
 {
-	size_t bytes_to_read = count * 512;
+	size_t max_pckt_sz = dev->in_ep->descriptor.wMaxPacketSize;
+	int rc = 0;
+
+	// Сколько блоков можем считать за один пакет
+	uint32_t blocks_per_packet = max_pckt_sz / dev->blocksize;
+	// Сколько байт можем считать за один пакет
+	// Вычисляем, потому что значение wMaxPacketSize может быть не кратно dev->blocksize
+	uint32_t bytes_per_packet = blocks_per_packet * dev->blocksize;
+	// Сколько будет пакетов
+	uint32_t packets = count / blocks_per_packet;  
+
+	if (packets % blocks_per_packet != 0)
+		packets++;
 
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
 	cbw.tag = 0;
-    cbw.length = bytes_to_read;
     cbw.flags = CBW_TO_HOST;
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
 
-    cbw.data[0] = SCSI_READ_10;
-    // reserved
-    cbw.data[1] = 0;
-    // lba
-    cbw.data[2] = (uint8_t) ((sector >> 24) & 0xFF);
-    cbw.data[3] = (uint8_t) ((sector >> 16) & 0xFF);
-    cbw.data[4] = (uint8_t) ((sector >> 8) & 0xFF);
-    cbw.data[5] = (uint8_t) ((sector) & 0xFF);
-    // counter
-    cbw.data[6] = 0;
-    cbw.data[7] = (uint8_t) ((count >> 8) & 0xFF);
-    cbw.data[8] = (uint8_t) ((count) & 0xFF);
+	uint32_t remaining_blocks = count;
 
-	return usb_mass_exec_cmd(dev, &cbw, FALSE, out, bytes_to_read);
+	for (uint32_t i = 0; i < packets; i ++)
+	{
+		// Сколько блоков будем читать
+		uint32_t blocks_for_read = MIN(remaining_blocks, blocks_per_packet);
+		// Сколько байт будем читать?
+		uint32_t bytes_for_read = blocks_for_read * dev->blocksize;
+
+		cbw.length = bytes_for_read;
+
+		cbw.data[0] = SCSI_READ_10;
+		// reserved
+		cbw.data[1] = 0;
+		// lba
+		cbw.data[2] = (uint8_t) ((sector >> 24) & 0xFF);
+		cbw.data[3] = (uint8_t) ((sector >> 16) & 0xFF);
+		cbw.data[4] = (uint8_t) ((sector >> 8) & 0xFF);
+		cbw.data[5] = (uint8_t) ((sector) & 0xFF);
+		// counter
+		cbw.data[6] = 0;
+		cbw.data[7] = (uint8_t) ((blocks_for_read >> 8) & 0xFF);
+		cbw.data[8] = (uint8_t) ((blocks_for_read) & 0xFF);
+
+		// Выполним команду
+		rc = usb_mass_exec_cmd(dev, &cbw, FALSE, out + i * bytes_per_packet, bytes_for_read);
+		if (rc != 0)
+		{
+			return -EIO;
+		}
+
+		sector += blocks_for_read;
+		remaining_blocks -= blocks_for_read;
+	}
+
+	return 0;
 }
 
 int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result)
@@ -507,8 +545,7 @@ int usb_mass_device_probe(struct device *dev)
 
 		// Считаем объем устройства
 		uint64_t blocks;
-		uint32_t block_sz;
-		rc = usb_mass_get_capacity(usb_mass, &blocks, &block_sz);
+		rc = usb_mass_get_capacity(usb_mass, &blocks, &usb_mass->blocksize);
 		if (rc != 0)
 		{
 			kfree(usb_mass);
@@ -519,8 +556,8 @@ int usb_mass_device_probe(struct device *dev)
 		// Собрать структуру диска
 		struct drive_device_info* drive_info = new_drive_device_info();
 		drive_info->sectors = blocks;
-		drive_info->block_size = block_sz;
-		drive_info->nbytes = blocks * block_sz;
+		drive_info->block_size = usb_mass->blocksize;
+		drive_info->nbytes = blocks * usb_mass->blocksize;
 
 		drive_info->read = usb_mass_device_read_lba;
 		drive_info->write = usb_mass_device_write_lba;

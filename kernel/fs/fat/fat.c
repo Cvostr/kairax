@@ -429,8 +429,6 @@ struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
         return NULL;
     }
 
-    //printk("Reading name %s Size %i\n", direntry.name, direntry.file_size);
-
     int is_dir = ((direntry.attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
 
     struct inode* result = new_vfs_inode();
@@ -642,7 +640,7 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
 
         while (pos < cluster_sz) 
         {
-            d_ptr = &cluster_buffer[pos];
+            d_ptr = (struct fat_direntry*) &cluster_buffer[pos];
 
             if (d_ptr->attr == FILE_ATTR_LFN) {
                 // Встретилась запись LFN
@@ -739,7 +737,7 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
 
         while (pos < cluster_sz) 
         {
-            d_ptr = &cluster_buffer[pos];
+            d_ptr = (struct fat_direntry*) &cluster_buffer[pos];
 
             if (d_ptr->attr == FILE_ATTR_LFN) 
             {
@@ -866,8 +864,8 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
                 readed = rc;
                 goto exit;   
             }
+
             ssize_t available_data = MIN(count - readed, cluster_sz - cluster_offset);
-            //printk("READED %i AVAIL %i\n", readed, available_data);
             memcpy(buffer + readed, cluster_buffer + cluster_offset, available_data);
             cluster_offset = 0;
             readed += available_data;
@@ -878,6 +876,7 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
             break;
         }
 
+        // Получить номер следующего кластера
         current_cluster = fat_get_next_cluster_ex(inst, current_cluster, fat_buffer, &last_sector);
         current_cluster_num ++;
     }

@@ -195,6 +195,12 @@ void kfree(void* mem)
     release_spinlock(&kheap_lock);
 }
 
+uint64_t kheap_get_size(void* mem)
+{
+    kheap_item_t* item = (kheap_item_t*)mem - 1;
+    return item->size;
+}
+
 kheap_item_t* kheap_get_head_item()
 {
     return kheap.head;
