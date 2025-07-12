@@ -25,6 +25,7 @@
 #define	ENOENT                      ERROR_NO_FILE
 #define	ESRCH		                3
 #define	EINTR                       4
+#define EIO		                    5
 #define	E2BIG                       7
 #define	EAGAIN                      11
 #define	ENOMEM                      ERROR_NO_MEMORY

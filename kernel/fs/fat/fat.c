@@ -8,8 +8,13 @@
 
 struct super_operations fat_sb_ops;
 
+// ---- file operations
 struct file_operations fat_dir_ops;
 struct file_operations fat_file_ops;
+
+// ---- inode operations
+struct inode_operations fat_file_inode_ops;
+struct inode_operations fat_dir_inode_ops;
 
 void fat_init()
 {
@@ -24,8 +29,10 @@ void fat_init()
     fat_sb_ops.stat = fat_statfs;
     fat_sb_ops.find_dentry = fat_find_dentry;
 
+    memset(&fat_dir_ops, 0, sizeof(struct file_operations));
     fat_dir_ops.readdir = fat_file_readdir;
 
+    memset(&fat_file_ops, 0, sizeof(struct file_operations));
     fat_file_ops.read = fat_file_read;
 }
 
@@ -265,7 +272,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
 
 /*
     struct fat_direntry root_direntry;
-    fat_read_dentry(instance, ino_num, &root_direntry, NULL);
+    fat_read_dentry(instance, ino_num, &root_direntry);
     printk("FAT: Root dentry name %s sector %i sectors %i\n", root_direntry.name, instance->root_dir_sector, instance->root_dir_sectors);
 */
     struct inode* result = new_vfs_inode();
@@ -275,13 +282,14 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     result->uid = 0;
     result->gid = 0;
     result->size = 0;
-    result->mode = INODE_TYPE_DIRECTORY;
+    result->mode = INODE_TYPE_DIRECTORY | 0777;
     result->access_time = 0;
     result->create_time = 0;
     result->modify_time = 0;
     result->hard_links = 1;
     result->device = (dev_t) instance;
     result->file_ops = &fat_dir_ops;
+    result->operations = &fat_dir_inode_ops;
 
     sb->fs_info = instance;
     sb->blocksize = bpb->bytes_per_sector;
@@ -306,20 +314,26 @@ uint32_t fat_calc_free_clusters(struct fat_instance* inst)
     return counter;
 }
 
-int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry, char* lfn_buffer) 
+int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry) 
 {
+    if (inode_num == WRONG_INODE_INDEX)
+    {
+        return -ENOENT;
+    }
+
     uint32_t sector = inode_num >> 32;
     uint32_t offset = inode_num & UINT32_MAX;
 
-    uint32_t sector_sz = inst->bytes_per_sector;
+    if (offset % 32 != 0)
+    {
+        return -ENOENT;
+    }
 
-    char* sector_buffer = kmalloc(sector_sz);
+    char* sector_buffer = kmalloc(inst->bytes_per_sector);
     if (sector_buffer == NULL)
     {
         return -ENOMEM;
     }
-
-    //printk("fat_read_dentry %i %i\n", sector, offset);
 
     int rc = fat_read_sector(inst, sector, 1, sector_buffer);
     if (rc != 0)
@@ -328,30 +342,17 @@ int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_di
         return rc;
     }
 
-    uint32_t pos = offset;
+    struct fat_direntry* d_ptr = (struct fat_direntry*) (sector_buffer + offset);
 
-    struct fat_direntry*    d_ptr;
-
-    // Если файл не найдем - то будет ошибка
-    rc = -ERROR_NO_FILE;
-    // Ищем
-    while (pos < sector_sz) 
+    if ((d_ptr->name[0] == 0) || (d_ptr->name[0] == 0xE5))
     {
-        d_ptr = &sector_buffer[pos];
-
-        if (d_ptr->attr == FILE_ATTR_LFN) 
-        {
-            pos += sizeof(struct fat_lfn);
-            continue;
-        }
-
-        rc = 0;
-        memcpy(dentry, d_ptr, sizeof(struct fat_direntry));
-        break;
+        kfree(sector_buffer);
+        return -ENOENT;
     }
 
+    memcpy(dentry, d_ptr, sizeof(struct fat_direntry));
     kfree(sector_buffer);
-    return rc;
+    return 0;
 }
 
 uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
@@ -423,7 +424,7 @@ struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
     //printk("fat_read_node (%i)\n", ino_num);
 
     struct fat_direntry direntry;
-    if (fat_read_dentry(inst, ino_num, &direntry, NULL) != 0)
+    if (fat_read_dentry(inst, ino_num, &direntry) != 0)
     {
         return NULL;
     }
@@ -446,10 +447,13 @@ struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
     result->hard_links = 1;
     result->device = (dev_t) inst;
 
-    if (is_dir)
+    if (is_dir) {
         result->file_ops = &fat_dir_ops;
-    else
+        result->operations = &fat_dir_inode_ops;
+    } else {
         result->file_ops = &fat_file_ops;
+        result->operations = &fat_file_inode_ops;
+    }
 
     return result;
 }
@@ -476,9 +480,14 @@ int fat_read_directory_cluster( struct fat_instance* inst,
                 {
                     return FAT_DIR_LAST_CLUSTER;
                 }
-
+                // Абсолютный номер сектора
                 current_cluster = inst->root_dir_sector + index;
-                fat_read_sector(inst, current_cluster, 1, buffer);
+                // Считать сектор
+                int rc = fat_read_sector(inst, current_cluster, 1, buffer);
+                if (rc != 0)
+                {
+                    return rc;
+                }
 
                 *ino_num_base = fat_to_inode_num_sector(current_cluster, 0);
 
@@ -523,6 +532,10 @@ void fat_nseize_str(uint16_t* in, size_t len, char* out)
 void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn)
 {
     uint8_t order = lfn->order & (~0x40); 
+
+    if (order < 1 || order > 20)
+        return;
+
     uint32_t lfn_pos = (order - 1) * 13;
 
     // TODO: Unicode?
@@ -595,7 +608,7 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
     if (is_root_directory == FALSE) 
     {
         // Читаем только если директория не корневая, так как dentry корневой директории не существует
-        if (fat_read_dentry(inst, parent_inode->inode, &dir_direntry, NULL) != 0) {
+        if (fat_read_dentry(inst, parent_inode->inode, &dir_direntry) != 0) {
             return WRONG_INODE_INDEX;
         }
     }
@@ -635,7 +648,6 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
                 // Встретилась запись LFN
                 fat_apply_lfn(checking_name, (struct fat_lfn*) d_ptr);
                 pos += sizeof(struct fat_lfn);
-                continue;
             } else {
 
                 if (strlen(checking_name) == 0)
@@ -660,8 +672,7 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
                     {
                         int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
                         *type = is_dir ? DT_DIR : DT_REG; 
-                        //printk("FOUND");
-                        result_inode = inode_num_base + pos;
+                        result_inode = inode_num_base | pos;
                         goto exit;
                     }
                 }
@@ -670,8 +681,6 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
                 checking_name[0] = '\0';
                 // Увеличить смещение
                 pos += sizeof(struct fat_direntry);
-
-                continue;
             }
         }
     }
@@ -692,15 +701,16 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     char* cluster_buffer = NULL;
     char* checking_name = NULL;
     int is_root_directory = vfs_inode == inst->vfs_root_inode;
-
-    //printk("fat_file_readdir (is root = %i)\n", is_root_directory);
-
+    
     // Считать direntry
     struct fat_direntry direntry;
     if (is_root_directory == FALSE) 
     {
         // Нет необходимости делать это, так как dentry корневой директории не существует
-        fat_read_dentry(inst, vfs_inode->inode, &direntry, NULL);
+        if (fat_read_dentry(inst, vfs_inode->inode, &direntry) != 0) 
+        {
+            return NULL;
+        }
     }
 
     // Буфер под кластер
@@ -721,12 +731,11 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     uint32_t current_cluster_idx = 0;
     uint64_t inode_num_base = 0;
     uint32_t dentry_iter = 0;
+    struct fat_direntry*    d_ptr;
     
     while (fat_read_directory_cluster(inst, &direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &inode_num_base) != FAT_DIR_LAST_CLUSTER)
     {
         uint32_t pos = 0;
-
-        struct fat_direntry*    d_ptr;
 
         while (pos < cluster_sz) 
         {
@@ -761,7 +770,7 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
                         int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
 
                         result = new_vfs_dirent();
-                        result->inode = inode_num_base + pos;
+                        result->inode = inode_num_base | pos;
                         strncpy(result->name, checking_name, FAT_LFN_MAX_SZ);
                         result->type = is_dir ? DT_DIR : DT_REG;
 
@@ -793,7 +802,7 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     //printk("Fat read inode %i offset %i count %i\n", vfs_inode->inode, offset, count);
 
     struct fat_direntry direntry;
-    int rc = fat_read_dentry(inst, vfs_inode->inode, &direntry, NULL);
+    int rc = fat_read_dentry(inst, vfs_inode->inode, &direntry);
     if (rc != 0)
     {
         return rc;
@@ -824,9 +833,6 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     {
         return -ENOMEM;
     }
-    // Текущий кластер
-    uint32_t current_cluster = fat_get_first_cluster_idx(inst, &direntry);
-    uint32_t current_cluster_num = 0;
 
     // Выделим буфер под FAT таблицу для переходов по кластерам
     // Чтобы постоянно не перевыделять эту память в fat_get_next_cluster() 
@@ -836,6 +842,10 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
         kfree(cluster_buffer);
         return -ENOMEM;
     }
+
+    // Текущий кластер
+    uint32_t current_cluster = fat_get_first_cluster_idx(inst, &direntry);
+    uint32_t current_cluster_num = 0;
 
     // порядковый номер кластера, с которого надо начать читать с учетом смещения
     uint32_t first_cluster = offset / cluster_sz;
@@ -850,7 +860,12 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     {
         if (current_cluster_num >= first_cluster)
         {
-            fat_read_cluster(inst, current_cluster, cluster_buffer);
+            rc = fat_read_cluster(inst, current_cluster, cluster_buffer);
+            if (rc != 0)
+            {
+                readed = rc;
+                goto exit;   
+            }
             ssize_t available_data = MIN(count - readed, cluster_sz - cluster_offset);
             //printk("READED %i AVAIL %i\n", readed, available_data);
             memcpy(buffer + readed, cluster_buffer + cluster_offset, available_data);
@@ -870,6 +885,7 @@ ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offs
     // Сдвинуть
     file->pos += readed;
 
+exit:
     kfree(fat_buffer);
     kfree(cluster_buffer);
     return readed;
