@@ -17,9 +17,9 @@
 
 # Сборка
 Для сборки необходим Linux и зависимости. Установка зависимостей для Ubuntu
-``
-sudo apt install  make build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo nasm qemu mtools wget unzip fuse libfuse-dev uuid-dev gcc binutils parted qemu-system-x86 xorriso grub-pc-bin
-``
+``sudo apt install  make build-essential bison flex libgmp3-dev libmpc-dev libmpfr-dev texinfo nasm qemu mtools wget unzip fuse libfuse-dev uuid-dev gcc binutils parted qemu-system-x86 xorriso grub-pc-bin``
+Дополнительно для сборки и запуска с aarch64
+``sudo apt install gcc-aarch64-linux-gnu qemu-system-arm``
 Для сборки ядра и образа достаточно выполнить
 ``sh mkboot.sh``
 Для сборки SDK:

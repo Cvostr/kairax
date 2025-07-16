@@ -71,7 +71,7 @@ void net_buffer_shift(struct net_buffer* nbuffer, int offset)
     nbuffer->cur_len -= offset;
 }
 
-void net_buffer_add_front(struct net_buffer* nbuffer, const unsigned char* data, size_t size)
+void net_buffer_add_front(struct net_buffer* nbuffer, const void* data, size_t size)
 {
     nbuffer->cursor -= size;
     nbuffer->cur_len += size;

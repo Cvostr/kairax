@@ -32,7 +32,6 @@ void raw4_accept_packet(int protocol, struct net_buffer* nbuffer)
 
         if (sock->protocol == protocol)
         {
-            //printk("Found rawsock\n");
             raw_ip4_put_to_rx_queue(sock, nbuffer);
         }
 
@@ -150,7 +149,7 @@ ssize_t sock_raw4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     }
 
     struct net_buffer* nbuffer = list_dequeue(&sock_data->rx_queue);
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
     release_spinlock(&sock_data->rx_queue_lock);
 

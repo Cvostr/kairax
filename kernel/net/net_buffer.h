@@ -43,6 +43,6 @@ void net_buffer_acquire(struct net_buffer* nbuffer);
 void net_buffer_free(struct net_buffer* nbuffer);
 void net_buffer_shift(struct net_buffer* nbuffer, int offset);
 
-void net_buffer_add_front(struct net_buffer* nbuffer, const unsigned char* data, size_t size);
+void net_buffer_add_front(struct net_buffer* nbuffer, const void* data, size_t size);
 
 #endif

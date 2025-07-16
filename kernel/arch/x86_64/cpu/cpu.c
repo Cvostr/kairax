@@ -1,6 +1,7 @@
 #include "../../cpu/cpu.h"
 #include "cpuid.h"
 #include "string.h"
+#include "dev/acpi/acpi.h"
 
 int cpu_get_info(struct cpu* cpuinf)
 {

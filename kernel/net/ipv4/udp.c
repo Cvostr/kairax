@@ -43,7 +43,7 @@ int udp_ip4_handle(struct net_buffer* nbuffer)
     struct udp4_socket_data* sock_data = NULL;
     struct udp_packet* udphdr = (struct udp_packet*) nbuffer->transp_header;
 
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
     nbuffer->payload = udphdr->datagram;
     nbuffer->payload_size = ntohs(udphdr->len) - sizeof(struct udp_packet);
@@ -164,8 +164,8 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     }
 
     struct net_buffer* nbuffer = list_dequeue(&sock_data->rx_queue);
-    struct udp_packet* udpp = nbuffer->transp_header;
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct udp_packet* udpp = (struct udp_packet*) nbuffer->transp_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
     release_spinlock(&sock_data->rx_queue_lock);
 
