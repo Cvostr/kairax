@@ -43,6 +43,11 @@ int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint
 	return device->bulk_msg(device, endpoint, data, length);
 }
 
+int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint, struct usb_msg *msg)
+{
+    return device->async_msg(device, endpoint, msg);
+}
+
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor)
 {
     struct usb_config* result = kmalloc(sizeof(struct usb_config));

@@ -178,6 +178,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 
 	usb_mass_init();
 	usb_hid_kbd_init();
+	usb_hid_mouse_init();
 
 	vga_init_dev();
 	random_init();

@@ -77,6 +77,14 @@ struct usb_config {
     struct usb_interface**              interfaces;
 };
 
+struct usb_msg {
+    void* data;
+    uint32_t length;
+    void (*callback) (struct usb_msg*);
+
+    void* private;
+};
+
 // Описывает USB устройство в системе
 struct usb_device {
     struct usb_device_descriptor    descriptor;
@@ -92,6 +100,7 @@ struct usb_device {
     int (*send_request) (struct usb_device*, struct usb_device_request*, void*, uint32_t);
     int (*configure_endpoint) (struct usb_device*, struct usb_endpoint*);
     int (*bulk_msg) (struct usb_device*, struct usb_endpoint*, void*, uint32_t);
+    int (*async_msg) (struct usb_device*, struct usb_endpoint*, struct usb_msg*);
 };
 
 // Создание и уничтожение
@@ -118,6 +127,8 @@ int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint
 /// @param length размер данных
 /// @return 0 - при успехе, 1024 при stall, иначе код ошибки контроллера
 int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length);
+
+int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint, struct usb_msg *msg);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void free_usb_config(struct usb_config* config);

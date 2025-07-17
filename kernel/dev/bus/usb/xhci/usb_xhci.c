@@ -552,6 +552,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	usb_device->send_request = xhci_drv_device_send_usb_request;
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
 	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
+	usb_device->async_msg = xhci_drv_send_async_msg;
 	
 	// Получение информации о названии устройства
 	xhci_device_get_product_strings(device, usb_device);

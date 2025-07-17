@@ -12,7 +12,7 @@
 #define XHCI_TRANSFER_RING_ENTITIES 256
 #define XHCI_CONTROL_EP_AVG_TRB_LEN 8
 
-#define XHCI_LOG_TRANSFER
+//#define XHCI_LOG_TRANSFER
 #define XHCI_LOG_EP_CONFIGURE
 
 struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id)
@@ -145,6 +145,12 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
 #endif
         struct xhci_transfer_ring_completion* compl = &ep_ring->compl[cmd_trb_index];
         memcpy(compl, event, sizeof(struct xhci_trb));
+
+        struct usb_msg* msg = compl->msg;
+        if (msg && msg->callback)
+        {
+            msg->callback(msg);
+        }
     }
 }
 
@@ -484,6 +490,11 @@ int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoi
     return xhci_device_send_bulk_data(dev->controller_device_data, endpoint, data, length);
 }
 
+int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg)
+{
+    return xhci_device_msg_async(dev->controller_device_data, endpoint, msg);
+}
+
 int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length)
 {
     struct xhci_trb setup_stage;
@@ -597,6 +608,15 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
     return 0;
 }
 
+uint32_t xhci_ilog2(uint32_t val)
+{
+    uint32_t result;
+	for (result = 0; val != 1; result++)
+		val = val >> 1;
+
+    return result;
+}
+
 uint32_t xhci_ep_compute_interval(struct usb_endpoint* endpoint, uint32_t port_speed)
 {
     struct usb_endpoint_descriptor* descr = &endpoint->descriptor;
@@ -620,19 +640,16 @@ uint32_t xhci_ep_compute_interval(struct usb_endpoint* endpoint, uint32_t port_s
             }
         case XHCI_USB_SPEED_LOW_SPEED:
             // Convert 1ms-255ms into 3-10.
-            uint32_t temp = MIN(MAX(interval, 1), 255);
-            uint32_t result;
-			for (result = 0; temp != 1; result++)
-				temp = temp >> 1;
+            uint32_t temp = CLAMP(interval * 8, 1, 255);
+            uint32_t result = xhci_ilog2(temp);
 
-			return result + 3;
-        
+			return CLAMP(result, 3, 10);
         default:
             // Convert 1-16 into 0-15.
             return MIN(MAX(interval, 1), 16) - 1;
     }
 
-    return 6;
+    return 0;
 }
 
 uint8_t xhci_ep_get_type(struct usb_endpoint_descriptor* descr)
@@ -721,7 +738,6 @@ int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint*
     if (endpoint->ss_companion_present == 1)
     {
         max_burst_size = endpoint->ss_companion.bMaxBurst;
-        //printk("XHCI: SSP Streams %i\n", endpoint->ss_companion.bmAttributes);
     } 
     else if (ep_type == USB_ENDPOINT_ATTR_TT_ISOCH || ep_type == USB_ENDPOINT_ATTR_TT_INTERRUPT)
     {
@@ -729,13 +745,22 @@ int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint*
         max_burst_size = (max_packet_size & 0x1800) >> 11;
     }
 
+    // XHCI 4.11.7.1 (236)
     uint32_t max_burst_payload = (max_burst_size + 1) * max_packet_size;
-    // По умолчанию для USB2 без компанионов
-    uint32_t max_esit_payload = max_packet_size * (max_burst_size + 1);
-    if (endpoint->ss_companion_present)
+    // XHCI 4.14.2 (258)
+    uint32_t max_esit_payload = 0;
+    if (ep_type == USB_ENDPOINT_ATTR_TT_ISOCH || ep_type == USB_ENDPOINT_ATTR_TT_INTERRUPT)
     {
-        //if (endpoint->ssp_isoc_companion_present && )
-        max_esit_payload = endpoint->ss_companion.wBytesPerInterval;
+        if (endpoint->ss_companion_present == TRUE)
+        {
+            //if (endpoint->ssp_isoc_companion_present && )
+            max_esit_payload = endpoint->ss_companion.wBytesPerInterval;
+        } 
+        else 
+        {
+            // По умолчанию для USB2 без компанионов
+            max_esit_payload = max_packet_size * (max_burst_size + 1);
+        }
     }
 
     // Актуально для interrupt и isoch
@@ -823,6 +848,33 @@ int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep,
 	{
 		return status;
 	}
+
+    return 0;
+}
+
+int xhci_device_msg_async(struct xhci_device* dev, struct usb_endpoint* ep, struct usb_msg* msg)
+{
+    struct xhci_trb transfer_trb;
+    transfer_trb.type = XHCI_TRB_TYPE_NORMAL;
+    transfer_trb.normal.data_buffer_pointer       = msg->data;
+	transfer_trb.normal.trb_transfer_length       = msg->length;
+	transfer_trb.normal.td_size                   = 0;
+	transfer_trb.normal.interrupt_target          = 0;
+	transfer_trb.normal.interrupt_on_completion   = 1;
+    transfer_trb.normal.interrupt_on_short_packet = 1;
+
+    struct xhci_transfer_ring* ep_ring = ep->transfer_ring;
+
+    // Добавить в очередь
+    size_t index = xhci_transfer_ring_enqueue(ep_ring, &transfer_trb);
+
+    // Сбросить
+    struct xhci_transfer_ring_completion* compl = &ep_ring->compl[index];
+    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
+    compl->msg = msg;
+
+    // Запустить выполнение
+    dev->controller->doorbell[dev->slot_id].doorbell = xhci_ep_get_absolute_id(&ep->descriptor);
 
     return 0;
 }
