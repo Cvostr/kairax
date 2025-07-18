@@ -1,121 +1,30 @@
 #include "int_keyboard.h"
 #include "interrupts/pic.h"
 #include "io.h"
-#include "fs/devfs/devfs.h"
 #include "mem/kheap.h"
 #include "keycodes.h"
 #include "sync/spinlock.h"
 #include "string.h"
 #include "dev/interrupts.h"
 #include "interrupts/ioapic.h"
-
-struct file_operations int_keyb_fops;
-
-struct keyboard_buffer* key_buffers[KEY_BUFFERS_MAX];
-spinlock_t              key_buffers_lock = 0;
-struct keyboard_buffer* main_key_buffer = NULL;
+#include "drivers/char/input/keyboard.h"
 
 int tag_E0 = 0;
 
-struct keyboard_buffer* new_keyboard_buffer() 
-{
-    struct keyboard_buffer* result = NULL;
-    acquire_spinlock(&key_buffers_lock);
-
-    for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
-        if (key_buffers[i] == NULL) {
-
-            // Создать буфер
-            result = kmalloc(sizeof(struct keyboard_buffer));
-            memset(result, 0, sizeof(struct keyboard_buffer));
-
-            key_buffers[i] = result;
-            goto exit;
-        }
-    }
-
-exit:
-    release_spinlock(&key_buffers_lock);
-    return result;
-}
-
-void keyboard_buffer_destroy(struct keyboard_buffer* kbuffer)
-{
-    acquire_spinlock(&key_buffers_lock);
-
-    for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
-        if (key_buffers[i] == kbuffer) {
-
-            // Освободить буфер
-            kfree(kbuffer);
-            key_buffers[i] = NULL;
-            break;
-        }
-    }
-
-    release_spinlock(&key_buffers_lock);
-}
-
-ssize_t intk_f_read (struct file* file, char* buffer, size_t count, loff_t offset)
-{
-    struct keyboard_buffer* keybuffer = (struct keyboard_buffer*) file->private_data;
-    if (keybuffer->start == keybuffer->end) {
-        return 0;
-    }
-
-    short pressed = keyboard_get_key_from_buffer(keybuffer);
-    buffer[0] = pressed & 0xFF;
-    buffer[1] = (pressed >> 8) & 0xFF;
-
-    return 1;
-}
-
-int intk_f_open(struct inode *inode, struct file *file)
-{
-    struct keyboard_buffer* buffer = new_keyboard_buffer();
-    file->private_data = buffer;
-    // todo : улучшить в file_open
-    return 0;
-}
-
-int intk_f_close(struct inode *inode, struct file *file)
-{
-    struct keyboard_buffer* keybuffer = (struct keyboard_buffer*) file->private_data;
-    keyboard_buffer_destroy(keybuffer);
-    return 0;
-}
-
 void init_ints_keyboard()
 {
-    memset(key_buffers, 0, sizeof(key_buffers));
-    main_key_buffer = new_keyboard_buffer();
-
     register_irq_handler(1, keyboard_int_handler, NULL);
-
-    int_keyb_fops.read = intk_f_read;
-    int_keyb_fops.open = intk_f_open;
-    int_keyb_fops.close = intk_f_close;
-	devfs_add_char_device("keyboard", &int_keyb_fops, NULL);
 }
 
 void keyboard_int_handler(interrupt_frame_t* frame, void* data)
 {
     char keycode_ps2 = inb(0x60);
-    if (keycode_ps2 != 0xE0) {
-        short keycode_krx = keycode_ps2_to_kairax(keycode_ps2);
+    if (keycode_ps2 != 0xE0) 
+    {
+        uint8_t action = 0;
+        uint8_t keycode_krx = keycode_ps2_to_kairax(keycode_ps2, &action);
         
-        for (int i = 0; i < KEY_BUFFERS_MAX; i ++) {
-            if (key_buffers[i] != NULL) {
-
-                struct keyboard_buffer* buffer = key_buffers[i];
-
-                if (buffer->end >= KEY_BUFFER_SIZE) 
-                    buffer->end = 0;
-
-                buffer->buffer[buffer->end] = keycode_krx;
-                buffer->end += 1;
-            }
-        }
+        keyboard_add_event(keycode_krx, action);
 
         tag_E0 = 0;
     } else {
@@ -124,25 +33,6 @@ void keyboard_int_handler(interrupt_frame_t* frame, void* data)
 
     int stat61 = inb(0x61);
     outb(0x61, stat61 | 1);
-
-    //pic_eoi(1);
-}
-
-short keyboard_get_key()
-{
-    return keyboard_get_key_from_buffer(main_key_buffer);
-}
-
-short keyboard_get_key_from_buffer(struct keyboard_buffer* buffer)
-{
-    if (buffer->start != buffer->end) {
-        if (buffer->start >= KEY_BUFFER_SIZE) buffer->start = 0;
-            buffer->start++;
-    } else {
-        return 0;
-    }
-
-    return buffer->buffer[buffer->start - 1];
 }
 
 #define DEFINE_KEY(x, key) case 0x80 + x: \
@@ -151,7 +41,7 @@ short keyboard_get_key_from_buffer(struct keyboard_buffer* buffer)
                                 keycode = key; \
                                 break;
 
-short keycode_ps2_to_kairax(unsigned char keycode_ps2)
+uint8_t keycode_ps2_to_kairax(uint8_t keycode_ps2, uint8_t *pState)
 {
     char state = 0;
     char keycode;
@@ -276,5 +166,7 @@ short keycode_ps2_to_kairax(unsigned char keycode_ps2)
         DEFINE_KEY(0x58, KRXK_F12)
     }
 
-    return (((short) state) << 8) | keycode;
+    *pState = state;
+
+    return keycode;
 }

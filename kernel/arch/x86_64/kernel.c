@@ -175,6 +175,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	init_nvme();
 	usb_init();
 	tty_init();
+	keyboard_init();
 
 	usb_mass_init();
 	usb_hid_kbd_init();

@@ -4,7 +4,7 @@
 #include "proc/syscalls.h"
 #include "stdio.h"
 #include "keycodes.h"
-#include "dev/keyboard/int_keyboard.h"
+#include "drivers/char/input/keyboard.h"
 #include "proc/thread_scheduler.h"
 #include "mem/kheap.h"
 #include "string.h"
