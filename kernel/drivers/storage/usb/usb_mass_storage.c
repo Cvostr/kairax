@@ -294,6 +294,22 @@ cleanup_exit:
 	return rc;
 }
 
+void usb_scsi_fill_cmd_read10(char *cmd, uint32_t sector, uint16_t sectors)
+{
+	cmd[0] = SCSI_READ_10;
+	// reserved
+	cmd[1] = 0;
+	// lba
+	cmd[2] = (uint8_t) ((sector >> 24) & 0xFF);
+	cmd[3] = (uint8_t) ((sector >> 16) & 0xFF);
+	cmd[4] = (uint8_t) ((sector >> 8) & 0xFF);
+	cmd[5] = (uint8_t) ((sector) & 0xFF);
+	// counter
+	cmd[6] = 0;
+	cmd[7] = (uint8_t) ((sectors >> 8) & 0xFF);
+	cmd[8] = (uint8_t) ((sectors) & 0xFF);
+}
+
 int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out)
 {
 	size_t max_pckt_sz = dev->in_ep->descriptor.wMaxPacketSize;
@@ -304,11 +320,6 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	// Сколько байт можем считать за один пакет
 	// Вычисляем, потому что значение wMaxPacketSize может быть не кратно dev->blocksize
 	uint32_t bytes_per_packet = blocks_per_packet * dev->blocksize;
-	// Сколько будет пакетов
-	uint32_t packets = count / blocks_per_packet;  
-
-	if (packets % blocks_per_packet != 0)
-		packets++;
 
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
@@ -317,9 +328,10 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
 
+	// Сколько осталось блоков LBA
 	uint32_t remaining_blocks = count;
 
-	for (uint32_t i = 0; i < packets; i ++)
+	for (uint32_t i = 0; remaining_blocks > 0; i ++)
 	{
 		// Сколько блоков будем читать
 		uint32_t blocks_for_read = MIN(remaining_blocks, blocks_per_packet);
@@ -328,18 +340,8 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 
 		cbw.length = bytes_for_read;
 
-		cbw.data[0] = SCSI_READ_10;
-		// reserved
-		cbw.data[1] = 0;
-		// lba
-		cbw.data[2] = (uint8_t) ((sector >> 24) & 0xFF);
-		cbw.data[3] = (uint8_t) ((sector >> 16) & 0xFF);
-		cbw.data[4] = (uint8_t) ((sector >> 8) & 0xFF);
-		cbw.data[5] = (uint8_t) ((sector) & 0xFF);
-		// counter
-		cbw.data[6] = 0;
-		cbw.data[7] = (uint8_t) ((blocks_for_read >> 8) & 0xFF);
-		cbw.data[8] = (uint8_t) ((blocks_for_read) & 0xFF);
+		// Формирование команды
+		usb_scsi_fill_cmd_read10(cbw.data, sector, blocks_for_read);
 
 		// Выполним команду
 		rc = usb_mass_exec_cmd(dev, &cbw, FALSE, out + i * bytes_per_packet, bytes_for_read);
@@ -349,6 +351,7 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 		}
 
 		sector += blocks_for_read;
+		// Вычесть считанные сектора из количества оставшихся
 		remaining_blocks -= blocks_for_read;
 	}
 
@@ -461,7 +464,11 @@ int usb_mass_device_probe(struct device *dev)
 		printk("USB Mass: Max LUN request failed with code %i\n", rc);
 		return -1;
 	}
-    printk("USB Mass: max lun = %i\n", rc, max_lun);
+
+	if (max_lun != 0)
+	{
+    	printk("USB Mass: max lun = %i\n", rc, max_lun);
+	}
 
 	struct usb_endpoint* builk_in = NULL;
 	struct usb_endpoint* builk_out = NULL;

@@ -162,20 +162,6 @@ int xhci_device_probe(struct device *dev)
 	// Сохранить указатель на структуру
 	dev->dev_data = cntrl;
 
-	// Отправляем тестовую команду
-	/*printk("Sending test command!!!\n");
-	struct xhci_trb test_trb = {0,};
-	test_trb.interrupt_on_completion = 1;
-	test_trb.type = XHCI_TRB_NO_OP_CMD;
-	xhci_command_enqueue(cntrl->cmdring, &test_trb);
-	cntrl->doorbell[0].doorbell = 0;*/
-
-	/*uint64_t flag = (1 << 3);
-	while ((controller->op->crcr & flag) == 0)
-	{
-		printk("XHCI: CRCR %s\n", ulltoa(controller->op->crcr, 16));
-	}*/
-
 	// Процесс и поток с обраюотчиком событий
 	struct process* xhci_process = create_new_process(NULL);
 	process_set_name(xhci_process, "xhci");

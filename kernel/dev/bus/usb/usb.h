@@ -75,6 +75,7 @@ struct usb_interface {
 struct usb_config {
     struct usb_configuration_descriptor descriptor;
     struct usb_interface**              interfaces;
+    size_t                              interfaces_num;
 };
 
 struct usb_msg {
@@ -127,10 +128,15 @@ int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint
 /// @param length размер данных
 /// @return 0 - при успехе, 1024 при stall, иначе код ошибки контроллера
 int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length);
-
+/// @brief Отправить асинхронное нормальное сообщение - без ожидания
+/// @param device объект устройства
+/// @param endpoint объект endpoint, в который отправить сообщение
+/// @param msg объект сообщения, в котором указан callback для выполнения
+/// @return всегда 0
 int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint, struct usb_msg *msg);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
+void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);
 void free_usb_config(struct usb_config* config);
 
 struct usb_interface* new_usb_interface(struct usb_interface_descriptor* descriptor);

@@ -57,6 +57,26 @@ struct usb_config* new_usb_config(struct usb_configuration_descriptor* descripto
     return result;
 }
 
+void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface)
+{
+    if (config->interfaces_num >= config->descriptor.bNumInterfaces)
+    {
+        // В буфере оказалось больше интерфейсов, чем указано в конфигурации
+        // Такая ситуация бывает у некоторых устройств, придется обрабатывать
+        printk("XHCI: Warn - bNumInterfaces is less than actual\n");
+
+        // Выделим новую память
+        struct usb_interface* newbuffer = kmalloc((config->interfaces_num + 1) * sizeof(struct usb_interface*));
+        // Скопируем старые
+        memcpy(newbuffer, config->interfaces, sizeof(config->interfaces_num * sizeof(struct usb_interface*)));
+        // Освободим старую память
+        kfree(config->interfaces);
+        config->interfaces = newbuffer;
+    }
+
+    config->interfaces[config->interfaces_num++] = iface;
+}
+
 void free_usb_config(struct usb_config* config)
 {
     // TODO: implement

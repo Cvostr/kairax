@@ -19,21 +19,40 @@ drive_partition_t* new_drive_partition_header()
     return result;
 }
 
-void add_partitions_from_device(struct device* device)
+int add_partitions_from_device(struct device* device)
 {
     char* first_sector = kmalloc(512);
     memset(first_sector, 0, 512);
     char* second_sector = kmalloc(512);
     memset(second_sector, 0, 512);
 
-    drive_device_read(device, 0, 1, first_sector);
-    drive_device_read(device, 1, 1, second_sector);
+    int rc;
+
+    rc = drive_device_read(device, 0, 1, first_sector);
+    if (rc != 0)
+    {
+        printk("Error reading sector 0 of drive %s\n", device->dev_name);
+        return rc;
+    }
+
+    rc = drive_device_read(device, 1, 1, second_sector);
+    if (rc != 0)
+    {
+        printk("Error reading sector 1 of drive %s\n", device->dev_name);
+        return rc;
+    }
 
     mbr_header_t* mbr_header = (mbr_header_t*)first_sector;
     gpt_header_t* gpt_header = (gpt_header_t*)second_sector; 
 
     int has_mbr_sign = mbr_header->signature == MBR_CHECK_SIGNATURE;
     int has_gpt_sign = check_gpt_header_signature(gpt_header);
+
+    if (has_gpt_sign == FALSE && has_mbr_sign == FALSE)
+    {
+        printk("Disk %s does not have partition table\n", device->dev_name);
+        return 0;
+    }
 
     if (has_mbr_sign)
     {
@@ -71,7 +90,13 @@ void add_partitions_from_device(struct device* device)
         {
             char* gpt_entry_buffer = kmalloc(GPT_BLOCK_SIZE);
             memset(gpt_entry_buffer, 0, GPT_BLOCK_SIZE);
-            drive_device_read(device, current_lba, 1, gpt_entry_buffer);
+            
+            rc = drive_device_read(device, current_lba, 1, gpt_entry_buffer);
+            if (rc != 0)
+            {
+                printk("Error reading sector %i of drive %s\n", current_lba, device->dev_name);
+                return rc;
+            }
 
             for (int offset = 0; offset < GPT_BLOCK_SIZE; offset += gpt_header->gpea_entry_size)
             {
@@ -107,6 +132,7 @@ void add_partitions_from_device(struct device* device)
     kfree(first_sector);
     kfree(second_sector);
 
+    return 0;
 }
 
 void add_partition_header(drive_partition_t* partition_header)

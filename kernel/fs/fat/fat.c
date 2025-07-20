@@ -16,6 +16,8 @@ struct file_operations fat_file_ops;
 struct inode_operations fat_file_inode_ops;
 struct inode_operations fat_dir_inode_ops;
 
+#define FAT_MOUNT_LOG
+
 void fat_init()
 {
     filesystem_t* fatfs = new_filesystem();
@@ -135,7 +137,6 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     instance->partition = drive;
 
     uint64_t bsize = drive->device->drive_info->block_size;
-    //printk("FAT bsize %i\n", bsize);
     if (bsize < 512)
     {
         printk("FAT: Disk block size (%i) is lower than minimum required 512!\n");
@@ -245,6 +246,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     // Вычислить свободные кластера
     instance->free_clusters = fat_calc_free_clusters(instance);
 
+#ifdef FAT_MOUNT_LOG
     printk("FAT: type %i FATs %i FAT size %i FirstFat %i sectors %i BPS %i Clusters %i Free %i SPC %i BPC %i FatBufferSz %i\n", 
         instance->fs_type, 
         bpb->fats_count,
@@ -257,6 +259,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         bpb->sectors_per_cluster,
         instance->bytes_per_cluster,
         instance->fat_buffer_size);
+#endif
 
     uint64_t ino_num = 0;
     switch (instance->fs_type)
