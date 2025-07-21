@@ -541,7 +541,12 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	usb_device->async_msg = xhci_drv_send_async_msg;
 	
 	// Получение информации о названии устройства
-	xhci_device_get_product_strings(device, usb_device);
+	rc = xhci_device_get_product_strings(device, usb_device);
+	if (rc != 0) 
+	{
+		printk("XHCI: device product strings request error (%i)!\n", rc);	
+		return -1;
+	}
 	printk("XHCI: Product: %s Man: %s Serial: %s\n", usb_device->product, usb_device->manufacturer, usb_device->serial);
 
 	// Создать объект устройства

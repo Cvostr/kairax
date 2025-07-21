@@ -57,7 +57,7 @@ struct usb_configuration_descriptor {
     uint8_t iConfiguration;
     uint8_t bmAttributes;
     uint8_t bMaxPower;
-    uint8_t data[300];
+    uint8_t data[];
 } PACKED;
 
 struct usb_interface_descriptor {

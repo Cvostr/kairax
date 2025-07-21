@@ -230,7 +230,7 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
     return 0;
 }
 
-int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor* descr, size_t buffer_size)
+int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor** descr)
 {
     struct usb_device_request req;
 	req.type = USB_DEVICE_REQ_TYPE_STANDART;
@@ -240,34 +240,29 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
 	req.wValue = (XHCI_DESCRIPTOR_TYPE_CONFIGURATION << 8) | configuration;
 	req.wIndex = 0;
 	req.wLength = sizeof(struct usb_descriptor_header);
+    
+    // Временный объект
+    struct usb_configuration_descriptor temp_descriptor;
 
     // Считываем только заголовок, чтобы узнать реальный размер дескриптора
-    int rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    int rc = xhci_device_send_usb_request(dev, &req, &temp_descriptor, req.wLength);
     if (rc != 0)
     {
         return rc;
     }
 
-    req.wLength = descr->header.bLength;
-
-    // Считываем дескриптор без данных
-    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    // Считываем дескриптор без данных чтобы узнать его реальный размер
+    req.wLength = temp_descriptor.header.bLength;
+    rc = xhci_device_send_usb_request(dev, &req, &temp_descriptor, req.wLength);
     if (rc != 0)
     {
         return rc;
     }
-
-    // Сверяем размер
-    if (buffer_size < descr->wTotalLength)
-    {
-        printk("XHCI: BUFSZ %i < TOTALSZ %i\n", buffer_size, descr->wTotalLength);
-        return -10;
-    }
-
-    req.wLength = descr->wTotalLength;
 
     // Считываем дескриптор со всеми данными
-    rc = xhci_device_send_usb_request(dev, &req, descr, req.wLength);
+    *descr = kmalloc(temp_descriptor.wTotalLength);
+    req.wLength = temp_descriptor.wTotalLength;
+    rc = xhci_device_send_usb_request(dev, &req, *descr, req.wLength);
     if (rc != 0)
     {
         return rc;
@@ -343,35 +338,35 @@ int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_
 
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx)
 {
-    struct usb_configuration_descriptor config_descriptor;
-    memset(&config_descriptor, 0, sizeof(struct usb_configuration_descriptor));
-
+    struct usb_configuration_descriptor* config_descriptor = NULL;
     // Считать конфигурацию по номеру
-	int rc = xhci_device_get_configuration_descriptor(device, configuration_idx, &config_descriptor, sizeof(struct usb_configuration_descriptor));
+	int rc = xhci_device_get_configuration_descriptor(device, configuration_idx, &config_descriptor);
 	if (rc != 0) 
 	{
 		printk("XHCI: device configuration descriptor (%i) request error (%i)!\n", configuration_idx, rc);	
+        kfree(config_descriptor);
 		return -1;
 	}
 
 	// Включаем конфигурацию
-	rc = xhci_device_set_configuration(device, config_descriptor.bConfigurationValue);
+	rc = xhci_device_set_configuration(device, config_descriptor->bConfigurationValue);
 	if (rc != 0) 
 	{
 		printk("XHCI: device configuration descriptor setting (%i) error (%i)!\n", configuration_idx, rc);	
+        kfree(config_descriptor);
 		return -1;
 	}
 
     // Создаем струтуру конфигурации
-    struct usb_config* usb_conf = new_usb_config(&config_descriptor);
+    struct usb_config* usb_conf = new_usb_config(config_descriptor);
     device->usb_device->configs[configuration_idx] = usb_conf;
 
-    printk("XHCI: Device configuration %i with %i interfaces\n", configuration_idx, config_descriptor.bNumInterfaces);
+    printk("XHCI: Device configuration %i with %i interfaces\n", configuration_idx, config_descriptor->bNumInterfaces);
 
 	// Парсим конфигурацию
-	uint8_t* conf_buffer = config_descriptor.data;
+	uint8_t* conf_buffer = config_descriptor->data;
 	size_t offset = 0;
-	size_t len = config_descriptor.wTotalLength - config_descriptor.header.bLength;
+	size_t len = config_descriptor->wTotalLength - config_descriptor->header.bLength;
 
     // Указатель на текущий обрабатываемый интерфейс
     struct usb_interface* current_interface = NULL;
@@ -408,7 +403,6 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
                     struct usb_endpoint* endpoint = &current_interface->endpoints[processed_endpoints++];
                     memcpy(&endpoint->descriptor, config_header, sizeof(struct usb_endpoint_descriptor));
                     current_endpoint = endpoint;
-                    //printk("XHCI: endpoint\n");
                 } 
                 else 
                 {
@@ -439,7 +433,6 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 			case USB_DESCRIPTOR_HID:
                 current_interface->hid_descriptor = kmalloc(config_header->bLength);
                 memcpy(current_interface->hid_descriptor, config_header, config_header->bLength);
-				//printk("XHCI: HID\n");
 				break;
 			default:
 				printk("XHCI: unsupported device config %i\n", config_header->bDescriptorType);
@@ -448,13 +441,17 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 		offset += config_header->bLength;
 	}
 
-    for (uint8_t iface_i = 0; iface_i < config_descriptor.bNumInterfaces; iface_i ++)
+    // Удаляем больше ненужный дескриптор
+    kfree(config_descriptor);
+
+    // Добавляем интерфейсы как устройства
+    for (uint8_t iface_i = 0; iface_i < usb_conf->descriptor.bNumInterfaces; iface_i ++)
     {
         struct usb_interface* iface = usb_conf->interfaces[iface_i];
 
         struct device* usb_dev = new_device();
         device_set_name(usb_dev, device->usb_device->product);
-        usb_dev->dev_type = 0;
+        usb_dev->dev_type = DEVICE_TYPE_USB_INTERFACE;
         usb_dev->dev_bus = DEVICE_BUS_USB;
         usb_dev->dev_data = device;
         usb_dev->usb_info.usb_device = device->usb_device;
@@ -462,7 +459,7 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 
         register_device(usb_dev);
     }
-
+    
     return 0;
 }
 

@@ -51,8 +51,13 @@ int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint,
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor)
 {
     struct usb_config* result = kmalloc(sizeof(struct usb_config));
+    result->interfaces_num = 0;
+    // Копируем дескриптор
     memcpy(&result->descriptor, descriptor, sizeof(struct usb_configuration_descriptor));
-    result->interfaces = kmalloc(descriptor->bNumInterfaces * sizeof(struct usb_interface*));
+    // Выделить память под массив указателей на интерфейсы
+    size_t interfaces_mem_sz = descriptor->bNumInterfaces * sizeof(struct usb_interface*);
+    result->interfaces = kmalloc(interfaces_mem_sz);
+    memset(result->interfaces, 0, interfaces_mem_sz);
 
     return result;
 }
@@ -66,9 +71,9 @@ void usb_config_put_interface(struct usb_config* config, struct usb_interface* i
         printk("XHCI: Warn - bNumInterfaces is less than actual\n");
 
         // Выделим новую память
-        struct usb_interface* newbuffer = kmalloc((config->interfaces_num + 1) * sizeof(struct usb_interface*));
+        struct usb_interface** newbuffer = kmalloc((config->interfaces_num + 1) * sizeof(struct usb_interface*));
         // Скопируем старые
-        memcpy(newbuffer, config->interfaces, sizeof(config->interfaces_num * sizeof(struct usb_interface*)));
+        memcpy(newbuffer, config->interfaces, config->interfaces_num * sizeof(struct usb_interface*));
         // Освободим старую память
         kfree(config->interfaces);
         config->interfaces = newbuffer;
