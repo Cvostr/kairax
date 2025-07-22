@@ -510,9 +510,11 @@ struct xhci_port_desc
 
 struct xhci_controller 
 {
+	struct device* controller_dev;
+	// Основной BAR
     char* mmio_addr;
     uintptr_t mmio_addr_phys;
-	
+	// Основные регистры
     struct xhci_cap_regs*   cap;  
     struct xhci_op_regs*    op;
     struct xhci_port_regs*  ports_regs;
@@ -595,7 +597,7 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
 int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor** descr);
 int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
-int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx);
+int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx, struct usb_config** config);
 int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device);
 int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint* endpoint);
 int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep, void* data, uint32_t size);

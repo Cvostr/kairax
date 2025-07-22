@@ -162,7 +162,6 @@ void event_callback(struct usb_msg* msg)
         if (found == FALSE)
         {
             mapped = hid_kbd_bindings[ek];
-            // TODO: событие нажатия
             keyboard_add_event(mapped, KRXK_PRESSED);
         }
     }
@@ -187,7 +186,6 @@ void event_callback(struct usb_msg* msg)
 
         if (found == FALSE)
         {
-            // TODO: событие отжатия
             mapped = hid_kbd_bindings[ek];
             keyboard_add_event(mapped, KRXK_RELEASED);
         }

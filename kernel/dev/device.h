@@ -58,6 +58,8 @@ struct device {
 
 struct device* new_device();
 void device_set_name(struct device* dev, const char* name);
+void device_set_parent(struct device* dev, struct device* parent);
+void device_set_data(struct device* dev, void* data);
 
 int drive_device_read( struct device* drive,
                             uint64_t start_lba,

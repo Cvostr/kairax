@@ -181,8 +181,8 @@ int ahci_device_probe(struct device *dev)
 			
 			struct device* drive_dev = new_device();
 			drive_dev->dev_type = DEVICE_TYPE_DRIVE;
-			drive_dev->dev_parent = dev;
-			drive_dev->dev_data = &controller->ports[i];
+			device_set_parent(drive_dev, dev);
+			device_set_data(drive_dev, &controller->ports[i]);
 			drive_dev->drive_info = drive_info;
 
 			// Разобрать строку информации

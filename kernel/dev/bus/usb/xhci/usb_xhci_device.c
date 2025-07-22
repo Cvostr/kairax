@@ -289,20 +289,24 @@ int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_
 {
     struct usb_device_descriptor* dev_descriptor = &device->descriptor;
 
-    struct usb_string_language_descriptor lang_descriptor;
+    struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
     struct usb_string_descriptor str_descr;
 
     // Сначала считаем языковые дескрипторы
-	int rc = xhci_device_get_string_language_descriptor(xhci_device, &lang_descriptor);
+	int rc = xhci_device_get_string_language_descriptor(xhci_device, lang_descriptor);
 	if (rc != 0) 
 	{
 		printk("XHCI: device string language descriptor request error (%i)!\n", rc);	
+        kfree(lang_descriptor);
 		return -1;
 	}
 
+    uint16_t lang_id = lang_descriptor->lang_ids[0];
+    kfree(lang_descriptor);
+
     // считывание продукта
     memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
-    rc = xhci_device_get_string_descriptor(xhci_device, lang_descriptor.lang_ids[0], dev_descriptor->iProduct, &str_descr);
+    rc = xhci_device_get_string_descriptor(xhci_device, lang_id, dev_descriptor->iProduct, &str_descr);
     if (rc != 0) 
     {
         printk("XHCI: device string product descriptor request error (%i)!\n", rc);	
@@ -313,7 +317,7 @@ int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_
 
     // Считывание производителя
     memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
-    rc = xhci_device_get_string_descriptor(xhci_device, lang_descriptor.lang_ids[0], dev_descriptor->iManufacturer, &str_descr);
+    rc = xhci_device_get_string_descriptor(xhci_device, lang_id, dev_descriptor->iManufacturer, &str_descr);
     if (rc != 0) 
     {
         printk("XHCI: device string manufacturer descriptor request error (%i)!\n", rc);	
@@ -324,7 +328,7 @@ int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_
 
     // Считывание серийного номера
     memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
-    rc = xhci_device_get_string_descriptor(xhci_device, lang_descriptor.lang_ids[0], dev_descriptor->iSerialNumber, &str_descr);
+    rc = xhci_device_get_string_descriptor(xhci_device, lang_id, dev_descriptor->iSerialNumber, &str_descr);
     if (rc != 0) 
     {
         printk("XHCI: device string serial descriptor request error (%i)!\n", rc);	
@@ -336,7 +340,7 @@ int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_
     return 0;
 }
 
-int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx)
+int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx, struct usb_config** config)
 {
     struct usb_configuration_descriptor* config_descriptor = NULL;
     // Считать конфигурацию по номеру
@@ -359,7 +363,7 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 
     // Создаем струтуру конфигурации
     struct usb_config* usb_conf = new_usb_config(config_descriptor);
-    device->usb_device->configs[configuration_idx] = usb_conf;
+    *config = usb_conf;
 
     printk("XHCI: Device configuration %i with %i interfaces\n", configuration_idx, config_descriptor->bNumInterfaces);
 
@@ -441,25 +445,8 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 		offset += config_header->bLength;
 	}
 
-    // Удаляем больше ненужный дескриптор
-    kfree(config_descriptor);
-
-    // Добавляем интерфейсы как устройства
-    for (uint8_t iface_i = 0; iface_i < usb_conf->descriptor.bNumInterfaces; iface_i ++)
-    {
-        struct usb_interface* iface = usb_conf->interfaces[iface_i];
-
-        struct device* usb_dev = new_device();
-        device_set_name(usb_dev, device->usb_device->product);
-        usb_dev->dev_type = DEVICE_TYPE_USB_INTERFACE;
-        usb_dev->dev_bus = DEVICE_BUS_USB;
-        usb_dev->dev_data = device;
-        usb_dev->usb_info.usb_device = device->usb_device;
-        usb_dev->usb_info.usb_interface = iface;
-
-        register_device(usb_dev);
-    }
-    
+    // Удаляем больше не нужный дескриптор
+    kfree(config_descriptor);    
     return 0;
 }
 

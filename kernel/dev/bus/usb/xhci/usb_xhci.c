@@ -65,6 +65,9 @@ int xhci_device_probe(struct device *dev)
 	struct xhci_controller* cntrl = kmalloc(sizeof(struct xhci_controller));
 	memset(cntrl, 0, sizeof(struct xhci_controller));
 
+	// Сохраним указатель на объект устройства в системе
+	cntrl->controller_dev = dev;
+	// Разметить и сохранить BAR
 	cntrl->mmio_addr_phys = dev->pci_info->BAR[0].address;
     cntrl->mmio_addr = map_io_region(cntrl->mmio_addr_phys, dev->pci_info->BAR[0].size);
 
@@ -549,21 +552,42 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	}
 	printk("XHCI: Product: %s Man: %s Serial: %s\n", usb_device->product, usb_device->manufacturer, usb_device->serial);
 
-	// Создать объект устройства
+	// Создать объект композитного устройства
 	struct device* composite_dev = new_device();
 	device_set_name(composite_dev, usb_device->product);
 	composite_dev->dev_type = DEVICE_TYPE_USB_COMPOSITE;
 	composite_dev->dev_bus = DEVICE_BUS_USB;
 	composite_dev->usb_info.usb_device = usb_device;
-	//composite_dev->dev_parent = 
+	device_set_parent(composite_dev, controller->controller_dev);
 	
 	device->usb_device = usb_device;
 	device->composite_dev = composite_dev;
 
+	struct usb_config* usb_conf = NULL;
 	// Обработка всех конфигураций
 	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
 	{
-		rc = xhci_device_process_configuration(device, i);
+		// Обработать и включить конфигурацию
+		rc = xhci_device_process_configuration(device, i, &usb_conf);
+		// Сохранить
+		device->usb_device->configs[i] = usb_conf;
+
+		// Добавляем интерфейсы как устройства
+		for (uint8_t iface_i = 0; iface_i < usb_conf->descriptor.bNumInterfaces; iface_i ++)
+		{
+			struct usb_interface* iface = usb_conf->interfaces[iface_i];
+
+			struct device* usb_dev = new_device();
+			device_set_name(usb_dev, device->usb_device->product);
+			usb_dev->dev_type = DEVICE_TYPE_USB_INTERFACE;
+			usb_dev->dev_bus = DEVICE_BUS_USB;
+			device_set_data(usb_dev, device);
+			usb_dev->usb_info.usb_device = device->usb_device;
+			usb_dev->usb_info.usb_interface = iface;
+			device_set_parent(usb_dev, composite_dev);
+
+			register_device(usb_dev);
+		}
 	}
 
 	rc = register_device(composite_dev);

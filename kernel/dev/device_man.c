@@ -20,6 +20,16 @@ void device_set_name(struct device* dev, const char* name)
     strncpy(dev->dev_name, name, DEVICE_NAME_LEN);
 }
 
+void device_set_parent(struct device* dev, struct device* parent)
+{
+    dev->dev_parent = parent;
+}
+
+void device_set_data(struct device* dev, void* data)
+{
+    dev->dev_data = data;
+}
+
 int register_device(struct device* dev)
 {
     dev->dev_state = DEVICE_STATE_UNINITIALIZED;
@@ -36,6 +46,12 @@ int register_device(struct device* dev)
 void unregister_device(struct device* dev)
 {
     // TODO: implement
+    acquire_spinlock(&devices_lock);
+    list_remove(&devices_list, dev);
+
+    // TODO: Поиск по дочерним устройствам
+
+    release_spinlock(&devices_lock);
 }
 
 struct device* get_device(int index)
