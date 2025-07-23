@@ -527,6 +527,7 @@ struct xhci_controller
 	uint32_t max_scratchpad_buffers;
 	uint32_t pagesize;
 	uint16_t ext_cap_offset;
+	uint8_t	address_64;
 	uint8_t context_size; // 1 - 64bit, 0 - 32 
 
 	struct xhci_command_ring *cmdring;
@@ -581,8 +582,7 @@ struct xhci_device {
 	struct xhci_input_control_context32* input_control_context;
 	struct xhci_slot_context32* slot_ctx;
 	struct xhci_endpoint_context32* control_endpoint_ctx;
-
-	struct xhci_trb control_completion_trb;
+	// Transfer Ring для основого Control Endpoint
 	struct xhci_transfer_ring* control_transfer_ring;
 };
 struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id);

@@ -84,7 +84,13 @@ int xhci_device_probe(struct device *dev)
 	cntrl->interrupters = (cntrl->cap->hcsparams1 >> 8) & 0b11111111111;
 	cntrl->context_size = (cntrl->cap->hcsparams1 >> 2) & 0b1;
 	printk("XHCI: caplen: %i version: %i, slots: %i, ports: %i, ints: %i, csz: %i\n",
-		(cntrl->cap->caplen), (cntrl->cap->version) & 0xFFFF, cntrl->slots, cntrl->ports_num, cntrl->interrupters, cntrl->context_size);
+		(cntrl->cap->caplen), 
+		(cntrl->cap->version) & 0xFFFF,
+		cntrl->slots,
+		cntrl->ports_num,
+		cntrl->interrupters,
+		cntrl->context_size
+	);
 
 	// Выделить память под массивы структур
 	size_t ports_mem_bytes = cntrl->ports_num * sizeof(struct xhci_port_desc);
@@ -106,8 +112,15 @@ int xhci_device_probe(struct device *dev)
 
 	cntrl->max_scratchpad_buffers = (((cntrl->cap->hcsparams2 >> 21) & 0x1F) << 5) | ((cntrl->cap->hcsparams2 >> 27) & 0x1F);
 	cntrl->ext_cap_offset = (cntrl->cap->hccparams1 >> 16) & UINT16_MAX;
+	cntrl->address_64 = (cntrl->cap->hccparams1) & 0b1;
 	cntrl->pagesize = 1ULL << (cntrl->op->pagesize + 12);
-	printk("XHCI: scratchpad: %i, pagesize: %i, ext cap offset: %i, runt offset: %i\n", cntrl->max_scratchpad_buffers, cntrl->pagesize, cntrl->ext_cap_offset, cntrl->cap->rtsoff);
+	printk("XHCI: scratchpad: %i, pagesize: %i, ext cap offset: %i, runt offset: %i, addr64 %i\n", 
+		cntrl->max_scratchpad_buffers,
+		cntrl->pagesize,
+		cntrl->ext_cap_offset,
+		cntrl->cap->rtsoff,
+		cntrl->address_64
+	);
 
 	if (cntrl->ext_cap_offset == 0)
 	{
@@ -340,6 +353,13 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 // eXtensible Host Controller Interface for Universal Serial Bus (xHCI) (4.20)
 int xhci_controller_init_scratchpad(struct xhci_controller* controller)
 {
+	if (controller->max_scratchpad_buffers == 0)
+	{
+		// Если контроллеру не нужны Scratchpad buffers (то скорее всего мы в виртуалке)
+		// Значит делать ничего не надо. Сразу выходим
+		return 0;
+	}
+
 	// Рассчитаем размер буфера
 	size_t scratchpad_size = controller->max_scratchpad_buffers * sizeof(uintptr_t);
 	// Выделим память под основной буфер
@@ -350,7 +370,7 @@ int xhci_controller_init_scratchpad(struct xhci_controller* controller)
 	uint32_t xhci_page_in_sys_pages = controller->pagesize / PAGE_SIZE;
 
 	// Заполним буфер адресами выделяемых страниц
-	for (uint32_t i = 0; i < scratchpad_size; i ++)
+	for (uint32_t i = 0; i < controller->max_scratchpad_buffers; i ++)
 	{
 		uintptr_t phys = pmm_alloc_pages(xhci_page_in_sys_pages);
 		scratchpad[i] = phys;
@@ -358,6 +378,8 @@ int xhci_controller_init_scratchpad(struct xhci_controller* controller)
 
 	// Адрес на scratchpad буфер записываем в начало DCBAA
 	controller->dcbaa[0] = scratchpad_phys;
+
+	return 0;
 }
 
 int xhci_controller_init_interrupts(struct xhci_controller* controller, struct xhci_event_ring* event_ring)

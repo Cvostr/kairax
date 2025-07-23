@@ -8,6 +8,7 @@
 #include "../usb.h"
 #include "dev/device.h"
 #include "dev/device_man.h"
+#include "kairax/stdio.h"
 
 #define XHCI_TRANSFER_RING_ENTITIES 256
 #define XHCI_CONTROL_EP_AVG_TRB_LEN 8
@@ -76,6 +77,7 @@ int xhci_device_init_contexts(struct xhci_device* dev)
     }
 
     dev->control_transfer_ring = xhci_create_transfer_ring(XHCI_TRANSFER_RING_ENTITIES);
+    xhci_transfer_ring_create_compl_table(dev->control_transfer_ring);
 
     return 0;
 }
@@ -131,11 +133,16 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
 
     if (endpoint_id == 1)
     {
-        // TODO; атомарность
-        memcpy(&dev->control_completion_trb, event, sizeof(struct xhci_trb));
+        // Событие по Control Endpoint
+        struct xhci_transfer_ring* ep_ring = dev->control_transfer_ring;
+        size_t cmd_trb_index = (event->cmd_completion.cmd_trb_ptr - ep_ring->trbs_phys) / sizeof(struct xhci_trb);
+
+        struct xhci_transfer_ring_completion* compl = &ep_ring->compl[cmd_trb_index];
+        memcpy(&compl->trb, event, sizeof(struct xhci_trb));
     } 
     else
     {
+        // Событие по остальным эндпоинтам
         struct usb_endpoint* ep = dev->eps[endpoint_id - 2];
         struct xhci_transfer_ring* ep_ring = (struct xhci_transfer_ring*) ep->transfer_ring;
 
@@ -144,8 +151,8 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         printk("XHCI: Transfer completed on slot %i on endpoint %i trb index %i with code %i\n", event->transfer_event.slot_id, endpoint_id, cmd_trb_index, event->transfer_event.completion_code);
 #endif
         struct xhci_transfer_ring_completion* compl = &ep_ring->compl[cmd_trb_index];
-        memcpy(compl, event, sizeof(struct xhci_trb));
-
+        memcpy(&compl->trb, event, sizeof(struct xhci_trb));
+        // Выполнить callback, если указан
         struct usb_msg* msg = compl->msg;
         if (msg && msg->callback)
         {
@@ -543,21 +550,22 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
     status_stage.status_stage.chain_bit = 0;
     status_stage.status_stage.interrupt_on_completion = 1;
 
-    // Занулить ответную структуру
-    memset(&dev->control_completion_trb, 0, sizeof(struct xhci_trb));
-
     // Отправить все структуры
     xhci_transfer_ring_enqueue(dev->control_transfer_ring, &setup_stage);
     if (length > 0)
     {
         xhci_transfer_ring_enqueue(dev->control_transfer_ring, &data_stage);
     }
-    xhci_transfer_ring_enqueue(dev->control_transfer_ring, &status_stage);
+    size_t index = xhci_transfer_ring_enqueue(dev->control_transfer_ring, &status_stage);
+
+    // Занулить ответную структуру
+    struct xhci_transfer_ring_completion* compl = &dev->control_transfer_ring->compl[index];
+    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
 
     // Запустить выполнение
     dev->controller->doorbell[dev->slot_id].doorbell = XHCI_DOORBELL_CONTROL_EP_RING;
 
-	while (dev->control_completion_trb.raw.status == 0)
+	while (compl->trb.raw.status == 0)
 	{
 		// wait
 	}
@@ -575,9 +583,9 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
         pmm_free_pages(tmp_data_buffer_phys, tmp_data_buffer_pages);
     }
 
-    if (dev->control_completion_trb.transfer_event.completion_code != 1)
+    if (compl->trb.transfer_event.completion_code != 1)
 	{
-		return dev->control_completion_trb.transfer_event.completion_code;
+		return compl->trb.transfer_event.completion_code;
 	}
 
     return 0;
