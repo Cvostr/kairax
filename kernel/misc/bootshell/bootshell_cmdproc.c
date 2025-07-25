@@ -309,7 +309,15 @@ void bootshell_process_cmd(char* cmdline)
                 //printf_stdout("\tID: %i-%i-%i-%i-%i\n", dev->id.d1, dev->id.d2, dev->id.d3, dev->id.d4, dev->id.d5);
                 if (dev->dev_bus == DEVICE_BUS_PCI) {
                     struct pci_device_info* desc = dev->pci_info;
-                    printf_stdout("\tPCI: %i:%i:%i class %i, subclass %i, pif %i\n", desc->bus, desc->device, desc->function, desc->device_class, desc->device_subclass, desc->prog_if);
+                    printf_stdout("\tPCI: %i:%i:%i device %x:%x class %i, subclass %i, pif %i\n", 
+                        desc->bus,
+                        desc->device,
+                        desc->function,
+                        desc->vendor_id,
+                        desc->device_id,
+                        desc->device_class,
+                        desc->device_subclass,
+                        desc->prog_if);
                 }
                 if (dev->dev_bus == DEVICE_BUS_USB) {
                     struct usb_device* usbdev = dev->usb_info.usb_device;

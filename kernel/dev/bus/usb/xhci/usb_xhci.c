@@ -17,6 +17,12 @@
 #define XHCI_CRCR_ENTRIES 256
 #define XHCI_EVENT_RING_ENTIRIES 256
 
+// Для переключения чипсетов Panther Point
+#define USB3_PSSEN 	0xd0
+#define USB2PRM		0xD4
+#define USB3PRM		0xDC
+#define XUSB2PR    	0xd8
+
 static const char* xhci_speed_string[7] = {
 	"Invalid",
 	"Full Speed (12 MB/s - USB2.0)",
@@ -44,6 +50,25 @@ int xhci_device_probe(struct device *dev)
 	pci_set_command_reg(dev->pci_info, 
 		pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE | ~PCI_DEVCMD_IO_ENABLE);
     pci_device_set_enable_interrupts(dev->pci_info, 1);
+
+	// Этот особый контроллер (Panther Point) обычно делит порты с EHCI
+	if (device_desc->vendor_id == 0x8086 && device_desc->device_id == 0x1E31)
+	{
+		printk("XHCI: Panther Point chipset detected, may not work properly!\n");	
+
+		uint32_t ports = pci_config_read32(dev, USB3PRM);
+		printk("XHCI: USB3 ports: %i\n", ports);
+		// Передать их XHCI
+		//pci_config_write32(dev, USB3_PSSEN, ports);
+
+		ports = pci_config_read32(dev, USB2PRM);
+		printk("XHCI: USB2 ports: %i\n", ports);
+		// Передать их XHCI
+		//pci_config_write32(dev, XUSB2PR, ports);
+
+		// TODO: Закоменченные действия уже сломали BIOS компу
+		// Разобраться
+	}
 
 	int msi_capable = pci_device_is_msi_capable(dev->pci_info);
 	int msix_capable = pci_device_is_msix_capable(dev->pci_info);
@@ -165,6 +190,9 @@ int xhci_device_probe(struct device *dev)
 		}
     }
 	register_irq_handler(irq, xhci_int_hander, cntrl);
+
+	// Так как используем MSI/MSI-X очищать IMAN при обработке прерывания не надо
+	cntrl->clear_iman_status = FALSE;
 
 	xhci_controller_init_scratchpad(cntrl);
 	xhci_controller_init_interrupts(cntrl, cntrl->event_ring);
@@ -791,7 +819,7 @@ struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs)
 	size_t transfer_ring_buffer_size = ntrbs * sizeof(struct xhci_trb);
 	// Выделить память
 	transfer_ring->trbs_phys = (uintptr_t) pmm_alloc(transfer_ring_buffer_size, &transfer_ring->trbs_numpages);
-	transfer_ring->trbs = map_io_region(transfer_ring->trbs_phys, transfer_ring_buffer_size);
+	transfer_ring->trbs = (struct xhci_trb*) map_io_region(transfer_ring->trbs_phys, transfer_ring_buffer_size);
 	memset(transfer_ring->trbs, 0, transfer_ring_buffer_size);
 
 	// Установить последнее TRB как ссылку на первое
@@ -959,8 +987,10 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 				 			XHCI_LEGACY_SMI_ON_BAR);
 
 			// Выключить все SMI
-			//legacy_cap->usblegctlsts &= ~mask;
-			//hpet_sleep(10);
+			/*uint32_t legctlsts_temp = legacy_cap->usblegctlsts;
+			legctlsts_temp &= ~(mask);
+			legacy_cap->usblegctlsts = legctlsts_temp;
+			hpet_sleep(10);*/
 
 			// Если BIOS владеет устройством, значит надо его отобрать у него
 			if (legacy_cap->bios_owned_semaphore) 
@@ -970,8 +1000,20 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 				hpet_sleep(10);
 			}
 
-			// TODO: add semaphore
-			while (legacy_cap->bios_owned_semaphore);
+			uint32_t tries = 0;
+			while ((legacy_cap->bios_owned_semaphore == TRUE) && tries < 600)
+			{
+				hpet_sleep(1);
+				tries++;
+			}
+
+			if (legacy_cap->bios_owned_semaphore == TRUE)
+			{
+				// Не получилось, пробуем второй вариант
+				printk("XHCI: Performing FORCE handoff\n");
+				legacy_cap->bios_owned_semaphore = FALSE;
+				hpet_sleep(10);
+			}
 		}
 
 		if (cap->next_capability > 0)
@@ -1022,8 +1064,11 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 		xhci_interrupter_upd_erdp(interrupter, data->event_ring);
 	}
 
-	// IMAN - acknowledge
-	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING;
+	// IMAN - acknowledge (если необходимо)
+	if (data->clear_iman_status == TRUE) 
+	{
+		interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING;
+	}
 
 	// Очистить флаг прерывания в статусе
 	data->op->usbsts = usbsts;

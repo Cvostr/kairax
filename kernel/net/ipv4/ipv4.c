@@ -17,7 +17,7 @@ void ip4_register_protocol(struct ip4_protocol* protocol, int proto)
 	protocols[proto] = protocol;
 }
 
-uint16_t ipv4_calculate_checksum(unsigned char* data, size_t len)
+uint16_t ipv4_calculate_checksum(void* data, size_t len)
 {
     uint32_t sum = 0;
 	uint16_t* s = (uint16_t*) kmalloc (len);
@@ -54,7 +54,7 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 #ifdef IPV4_LOGGING
 	printk("IP4: Version: %i, Header len: %i, Protocol: %i\n", IP4_VERSION(ip_packet->version_ihl), IP4_IHL(ip_packet->version_ihl), ip_packet->protocol);
 #endif
-	uint16_t checksum = ipv4_calculate_checksum((uint8_t*) ip_packet, header_size);
+	uint16_t checksum = ipv4_calculate_checksum(ip_packet, header_size);
     if (checksum != ntohs(ip_packet->header_checksum)) {
         printk("INCORRECT HEADER, rec %i, calc %i\n", ntohs(ip_packet->header_checksum), checksum);
     }

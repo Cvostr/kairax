@@ -12,7 +12,7 @@ struct ip4_protocol ip4_icmp_protocol = {
 
 int icmp_ip4_handle(struct net_buffer* nbuffer)
 {
-    struct icmp_header* icmph = nbuffer->transp_header;
+    struct icmp_header* icmph = (struct icmp_header*) nbuffer->transp_header;
 
 #ifdef ICMP_LOGGING
     printk("ICMP packet received, type: %i\n", icmph->type);
@@ -37,8 +37,8 @@ int icmp_ip4_handle(struct net_buffer* nbuffer)
 
 void icmp_ip4_handle_ping(struct net_buffer* nbuffer)
 {
-    struct icmp_header* icmph = nbuffer->transp_header;
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct icmp_header* icmph = (struct icmp_header*) nbuffer->transp_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
     struct icmp_header response_header;
     memset(&response_header, 0, sizeof(response_header));

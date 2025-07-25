@@ -589,7 +589,6 @@ int usb_mass_device_probe(struct device *dev)
 void usb_mass_device_remove(struct device *dev) 
 {
 	printk("USB BBB Device Remove\n");
-	return 0;
 }
 
 struct device_driver_ops usb_mass_ops = {

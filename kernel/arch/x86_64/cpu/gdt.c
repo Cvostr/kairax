@@ -67,7 +67,7 @@ void gdt_create(gdt_entry_t** gdt, size_t* size, tss_t** tss)
     gdt_set(entry_ptr + 4, 0, 0, GDT_BASE_USER_CODE_ACCESS, GDT_FLAGS);
 
     *tss = new_tss();
-    (*tss)->ist2 = (uint64_t)P2V(pmm_alloc_page());
+    //(*tss)->ist2 = (uint64_t) P2V(pmm_alloc_page()) + PAGE_SIZE;
     (*tss)->iopb = sizeof(tss_t) - 1;
 
     gdt_set_sys_seg(sys_seg_ptr, sizeof(tss_t) - 1, (uint64_t)(*tss), 0b10001001, 0b1001);

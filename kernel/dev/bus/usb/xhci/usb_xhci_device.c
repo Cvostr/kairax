@@ -63,9 +63,9 @@ int xhci_device_init_contexts(struct xhci_device* dev)
     {
         // 64 битный контекст
         struct xhci_input_context64* input_ctx = dev->input_ctx;
-        dev->input_control_context = &input_ctx->input_ctrl_ctx;
-        dev->slot_ctx = &input_ctx->device_ctx.slot_context;
-        dev->control_endpoint_ctx = &input_ctx->device_ctx.control_ep_context;
+        dev->input_control_context = (struct xhci_input_control_context32*) &input_ctx->input_ctrl_ctx;
+        dev->slot_ctx = (struct xhci_slot_context32*) &input_ctx->device_ctx.slot_context;
+        dev->control_endpoint_ctx = (struct xhci_endpoint_context32*) &input_ctx->device_ctx.control_ep_context;
     }
     else
     {
@@ -692,7 +692,7 @@ int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint*
     {
         // 64 битный контекст
         struct xhci_input_context64* input_ctx = dev->input_ctx;
-        endpoint_ctx = &input_ctx->device_ctx.ep[endpoint_id - 2];
+        endpoint_ctx = (struct xhci_endpoint_context32*) &input_ctx->device_ctx.ep[endpoint_id - 2];
     }
     else
     {

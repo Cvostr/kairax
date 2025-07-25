@@ -29,7 +29,7 @@ void mouse_event_callback(struct usb_msg* msg)
     struct usb_hid_mouse* kbd = msg->private;
     struct hid_kbd_boot_int_report* rep = kbd->report_buffer;
 
-    printk("Mouse moved\n");
+    //printk("Mouse moved\n");
 
     usb_send_async_msg(kbd->device, kbd->ep, msg);
 }
@@ -118,7 +118,6 @@ int usb_hid_mouse_device_probe(struct device *dev)
 void usb_hid_mouse_device_remove(struct device *dev) 
 {
 	printk("HID Mouse: Device Remove\n");
-	return 0;
 }
 
 struct device_driver_ops usb_hid_mouse_ops = {

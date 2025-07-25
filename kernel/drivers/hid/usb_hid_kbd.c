@@ -316,18 +316,16 @@ int usb_hid_kbd_device_probe(struct device *dev)
 
     usb_send_async_msg(device, interrupt_in_ep, msg);
 
-/*
+    // Сбросим LED индикаторы клавиатуры
     uint8_t val = 0;
     rc = usb_hid_set_report(device, interface, 0x02, 0, &val, 1);
-    printk("SET REPORT = %i\n", rc);
-*/
+    
 	return 0;
 }
 
 void usb_hid_kbd_device_remove(struct device *dev) 
 {
 	printk("HID KBD: Device Remove\n");
-	return 0;
 }
 
 struct device_driver_ops usb_hid_kbd_ops = {

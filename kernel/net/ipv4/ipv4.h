@@ -62,7 +62,7 @@ struct sockaddr_in {
 };
 // ---
 
-uint16_t ip4_calculate_checksum(unsigned char* data, size_t len);
+uint16_t ip4_calculate_checksum(void* data, size_t len);
 
 void ip4_handle_packet(struct net_buffer* nbuffer);
 

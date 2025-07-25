@@ -296,7 +296,7 @@ int sock_udp4_close(struct socket* sock)
     return 0;
 }
 
-uint16_t udp4_calc_checksum(uint32_t src, uint32_t dest, struct udp_packet* header, unsigned char* payload, size_t payload_size)
+uint16_t udp4_calc_checksum(uint32_t src, uint32_t dest, struct udp_packet* header, const unsigned char* payload, size_t payload_size)
 {
     uint16_t* data;
     int i = 0;

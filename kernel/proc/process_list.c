@@ -2,6 +2,7 @@
 #include "process.h"
 #include "thread.h"
 #include "sync/spinlock.h"
+#include "kairax/stdio.h"
 
 #define MAX_PROCESSES 3000
 

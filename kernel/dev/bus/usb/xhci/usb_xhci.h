@@ -529,6 +529,7 @@ struct xhci_controller
 	uint16_t ext_cap_offset;
 	uint8_t	address_64;
 	uint8_t context_size; // 1 - 64bit, 0 - 32 
+	int clear_iman_status;	// Очищать ли iman при прерывании (FALSE для MSI, MSIX)
 
 	struct xhci_command_ring *cmdring;
 	struct xhci_event_ring* event_ring;
