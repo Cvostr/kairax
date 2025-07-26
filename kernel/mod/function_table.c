@@ -15,6 +15,7 @@
 #include "kairax/intctl.h"
 #include "dev/type/net_device.h"
 #include "net/net_buffer.h"
+#include "dev/type/audio_endpoint.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -59,6 +60,8 @@ struct kernel_function functions[] = {
     KFUNCTION(new_net_buffer),
     KFUNCTION(net_buffer_acquire),
     KFUNCTION(net_buffer_free),
+    KFUNCTION(new_audio_endpoint),
+    KFUNCTION(register_audio_endpoint),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

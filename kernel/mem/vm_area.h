@@ -1,7 +1,7 @@
 #ifndef VM_AREA_H
 #define VM_AREA_H
 
-#include "atomic.h"
+#include "kairax/atomic.h"
 
 #define MAP_SHARED	    0x01
 #define MAP_ANONYMOUS	0x20

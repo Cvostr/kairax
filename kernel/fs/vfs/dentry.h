@@ -3,9 +3,9 @@
 
 #include "inode.h"
 #include "sync/spinlock.h"
-#include "list/list.h"
+#include "kairax/list/list.h"
 #include "dirent.h"
-#include "atomic.h"
+#include "kairax/atomic.h"
 
 #define DENTRY_MOUNTPOINT       2
 #define DENTRY_INVALID          4

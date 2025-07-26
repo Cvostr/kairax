@@ -7,21 +7,22 @@
 #include "hda.h"
 #include "mem/iomem.h"
 #include "kairax/string.h"
+#include "dev/type/audio_endpoint.h"
 
 #define BDL_NUM 1
 #define BDL_SIZE 4096
 
-int added = 0;
+int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset);
 
-int fwrite(struct file *file, char* buffer, size_t count, size_t offset);
+struct audio_operations output_ops = {
+    .on_write = fwrite
+};
 
-struct file_operations output_widget_fops = {.write = fwrite};
-
-int fwrite(struct file *file, char* buffer, size_t count, size_t offset)
+int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset)
 {
     int remain = count;
     int written = 0;
-    struct hda_widget* wgt = file->inode->private_data;
+    struct hda_widget* wgt = ep->private_data;
     
     for (int i = 0; i < count / BDL_SIZE; i ++) {
         acquire_spinlock(&wgt->ostream->lock);
@@ -62,7 +63,7 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, i
     //stream->bdl_num = PAGE_SIZE / sizeof(struct HDA_BDL_ENTRY);
     stream->bdl_num = BDL_NUM;
 
-    // Выделение памяти под BDL - всегда 4 кб
+    // Выделение памяти под BDL - всегда 4 кб (их максимум может быть 256, по 16 байт каждая)
     void* bdl_phys = pmm_alloc_pages(1);
     stream->bdl = (struct HDA_BDL_ENTRY*) map_io_region(bdl_phys, PAGE_SIZE);
 
@@ -487,11 +488,17 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
             uint32_t amp = hda_codec_exec(dev, codec, node, HDA_VERB_GET_AMP_GAIN_MUTE, 0) | 0xb000 | 127;
             hda_codec_exec(dev, codec, node, HDA_VERB_SET_AMP_GAIN_MUTE, amp);
 
-            char name[6];
-            strcpy(name, "aud");
-            name[3] = (added++) + 0x30;
-            name[4] = 0;
-            devfs_add_char_device(name, &output_widget_fops, widget);
+            // Создать и зарегистрировать аудиовыход в системе
+            struct audio_endpoint_creation_args args = {
+                .is_input = FALSE,
+                .private_data = widget,
+                .sample_buffer_size = 16 * 1024,
+                .ops = &output_ops
+            };
+
+            struct audio_endpoint* ep = new_audio_endpoint(&args);
+
+            register_audio_endpoint(ep);
 
             break;
         case HDA_WIDGET_AUDIO_INPUT:

@@ -5,7 +5,7 @@
 #include "inode.h"
 #include "sync/spinlock.h"
 #include "dentry.h"
-#include "errors.h"
+#include "kairax/errors.h"
 #include "mem/vm_area.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    00000000
