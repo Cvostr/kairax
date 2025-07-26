@@ -126,7 +126,7 @@ int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, stru
 
     if (!inode) {
         // Файл не найден
-        if (flags & FILE_OPEN_FLAG_CREATE) 
+        if (flags & O_CREAT) 
         {
             // Создаем новый файл
             rc = mkfile(dir, path, mode);
@@ -139,15 +139,18 @@ int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, stru
             inode = vfs_fopen_ex(dir, path, &dentry, flags);
             if (inode == NULL) 
             {
+                // Это ненормальная ситуация, но незачем ронять ядро
                 return -ERROR_NO_FILE;
             }
-
-        } else 
+        } 
+        else 
         {
+            // Файл отсутствует и нет флага O_CREAT
             return -ERROR_NO_FILE;
         }
     } else if ((flags & (O_EXCL| O_CREAT)) == (O_EXCL | O_CREAT)) 
     {
+        // Это возникает при попытке открыть существующий файл с флагами O_EXCL | O_CREAT
         DENTRY_CLOSE_SAFE(dentry)
         INODE_CLOSE_SAFE(inode)
         return -EEXIST;
@@ -160,9 +163,17 @@ int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, stru
     file->dentry = dentry;
     file->ops = inode->file_ops;
 
+    // Проверяем, есть ли функция open()
     if (file->ops != NULL && file->ops->open) 
     {
-        file->ops->open(inode, file);
+        rc = file->ops->open(inode, file);
+
+        if (rc != 0)
+        {
+            // При ошибке закрываем файл и выходим
+            file_close(file);
+            return rc;
+        }
     }
 
     *pfile = file;

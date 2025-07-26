@@ -53,8 +53,13 @@ void keyboard_buffer_destroy(struct keyboard_buffer* kbuffer)
 int keyboard_file_open(struct inode *inode, struct file *file)
 {
     struct keyboard_buffer* buffer = new_keyboard_buffer();
+    // Если все слоты закончились - надо вернуть ошибку
+    if (buffer == NULL)
+    {
+        return -EEXIST;
+    }
+
     file->private_data = buffer;
-    // todo : улучшить в file_open
     return 0;
 }
 
