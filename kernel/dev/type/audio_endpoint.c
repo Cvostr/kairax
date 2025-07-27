@@ -3,9 +3,6 @@
 #include "kairax/string.h"
 #include "fs/devfs/devfs.h"
 
-//list_t audio_devs_list = {0,};
-//spinlock_t audio_devs_lock = 0;
-
 int audio_endpoint_file_open(struct inode *inode, struct file *file);
 int audio_endpoint_file_close(struct inode *inode, struct file *file);
 ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, size_t offset);
@@ -34,7 +31,7 @@ struct audio_endpoint* new_audio_endpoint(struct audio_endpoint_creation_args *a
     // Заполнить данными из args
     audio->private_data = args->private_data;
     audio->is_input = args->is_input;
-    memcpy(&audio->ops, args->ops, sizeof(struct audio_endpoint_creation_args));
+    memcpy(&audio->ops, args->ops, sizeof(struct audio_operations));
     audio->sample_buffer_size = args->sample_buffer_size;
     // Выделяем буфер под сэмплы
     audio->sample_buffer = kmalloc(audio->sample_buffer_size);
@@ -90,11 +87,20 @@ size_t audio_endpoint_gather_samples(struct audio_endpoint* ep, char* out, size_
 
 int audio_endpoint_file_open(struct inode *inode, struct file *file)
 {
+    struct audio_endpoint* ep = inode->private_data;
+
+    if (ep->is_acquired == TRUE)
+        return -ENOTEMPTY;
+
+    ep->is_acquired = TRUE;
+
     return 0;
 }
 
 int audio_endpoint_file_close(struct inode *inode, struct file *file)
 {
+    struct audio_endpoint* ep = inode->private_data;
+    ep->is_acquired = FALSE;
     return 0;
 }
 
@@ -104,11 +110,10 @@ ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, siz
 
     if (ep->ops.on_write != NULL)
     {
-        //return ep->ops.on_write(ep, buffer, count, offset);
+        return ep->ops.on_write(ep, buffer, count, offset);
     }
 
     size_t sample_buffer_sz = ep->sample_buffer_size;
-    //uint32_t write_offset = ep->read_offset;
 
     for (size_t i = 0; i < count; i ++) 
     {    

@@ -9,28 +9,19 @@
 #include "kairax/string.h"
 #include "dev/type/audio_endpoint.h"
 
-#define BDL_NUM 4
+#define BDL_NUM 8
 #define BDL_SIZE 4096
 
-int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset);
+int hda_fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset);
 
 struct audio_operations output_ops = {
-    .on_write = fwrite
-    //.on_write = NULL
+    //.on_write = hda_fwrite
+    .on_write = NULL
 };
 
-int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset)
+int hda_fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset)
 {
-    /*int remain = count;
-    int written = 0;
-    struct hda_widget* wgt = ep->private_data;
-    
-    for (int i = 0; i < count / BDL_SIZE; i ++) {
-        acquire_spinlock(&wgt->ostream->lock);
-        hda_stream_write(wgt->ostream, buffer, 0, BDL_SIZE);
-        written += BDL_SIZE;
-    }*/
-
+    printk("Unsupported\n");
 	return 0;
 }
 
@@ -64,7 +55,7 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, i
     stream->bdl_num = BDL_NUM;
 
     // Выделение памяти под BDL - всегда 4 кб (их максимум может быть 256, по 16 байт каждая)
-    void* bdl_phys = pmm_alloc_pages(1);
+    void* bdl_phys = pmm_alloc_pages(BDL_SIZE / PAGE_SIZE);
     stream->bdl = (struct HDA_BDL_ENTRY*) map_io_region(bdl_phys, PAGE_SIZE);
 
     // Записать адрес BDL в регистры
@@ -494,7 +485,7 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
             struct audio_endpoint_creation_args args = {
                 .is_input = FALSE,
                 .private_data = widget,
-                .sample_buffer_size = 128 * 1024,
+                .sample_buffer_size = 256 * 1024,
                 .ops = &output_ops
             };
 

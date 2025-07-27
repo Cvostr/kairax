@@ -27,6 +27,8 @@ struct audio_endpoint {
     int             is_input;
     void*           private_data;
 
+    int             is_acquired; // Открыт символьный файл или нет
+
     struct audio_operations ops;
 };
 
