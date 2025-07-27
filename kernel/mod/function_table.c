@@ -62,6 +62,7 @@ struct kernel_function functions[] = {
     KFUNCTION(net_buffer_free),
     KFUNCTION(new_audio_endpoint),
     KFUNCTION(register_audio_endpoint),
+    KFUNCTION(audio_endpoint_gather_samples),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

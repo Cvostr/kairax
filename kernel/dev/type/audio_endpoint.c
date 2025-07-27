@@ -43,6 +43,7 @@ struct audio_endpoint* new_audio_endpoint(struct audio_endpoint_creation_args *a
         kfree(audio);
         return NULL;
     }
+    memset(audio->sample_buffer, 0, audio->sample_buffer_size);
 
     return audio;
 }
@@ -103,23 +104,22 @@ ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, siz
 
     if (ep->ops.on_write != NULL)
     {
-        return ep->ops.on_write(ep, buffer, count, offset);
+        //return ep->ops.on_write(ep, buffer, count, offset);
     }
 
     size_t sample_buffer_sz = ep->sample_buffer_size;
+    //uint32_t write_offset = ep->read_offset;
 
     for (size_t i = 0; i < count; i ++) 
     {    
-        /*if (pipe->write_pos == pipe->read_pos + PIPE_SIZE) {
-            // Больше места нет - пробуждаем читающих
-            scheduler_wake(&pipe->readb, INT_MAX);
-            // И засыпаем сами
-            release_spinlock(&pipe->lock);
-            scheduler_sleep_on(&pipe->writeb);
-            acquire_spinlock(&pipe->lock);
-        }*/
+        while (ep->write_offset == ep->read_offset + sample_buffer_sz)
+        {
+            // Ожидаем, пока драйвер устройства все считает
+        }
 
         // записываем байт
         ep->sample_buffer[ep->write_offset++ % sample_buffer_sz] = buffer[i];
     }
+
+    return count;
 }

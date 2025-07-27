@@ -77,7 +77,7 @@ struct hda_stream {
     uint32_t                bdl_num;
     struct HDA_BDL_ENTRY*   bdl;
 
-    spinlock_t              lock;
+    void*                   ep;
 };
 
 struct hda_widget {

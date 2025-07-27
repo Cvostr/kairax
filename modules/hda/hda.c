@@ -9,18 +9,19 @@
 #include "kairax/string.h"
 #include "dev/type/audio_endpoint.h"
 
-#define BDL_NUM 1
+#define BDL_NUM 4
 #define BDL_SIZE 4096
 
 int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset);
 
 struct audio_operations output_ops = {
     .on_write = fwrite
+    //.on_write = NULL
 };
 
 int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset)
 {
-    int remain = count;
+    /*int remain = count;
     int written = 0;
     struct hda_widget* wgt = ep->private_data;
     
@@ -28,7 +29,7 @@ int fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset)
         acquire_spinlock(&wgt->ostream->lock);
         hda_stream_write(wgt->ostream, buffer, 0, BDL_SIZE);
         written += BDL_SIZE;
-    }
+    }*/
 
 	return 0;
 }
@@ -60,7 +61,6 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, i
         ;
 
     // Максимальное количество BDL
-    //stream->bdl_num = PAGE_SIZE / sizeof(struct HDA_BDL_ENTRY);
     stream->bdl_num = BDL_NUM;
 
     // Выделение памяти под BDL - всегда 4 кб (их максимум может быть 256, по 16 байт каждая)
@@ -79,8 +79,10 @@ struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, i
 
     for (int bdl_i = 0; bdl_i < stream->bdl_num; bdl_i ++) {
         
+        int IOC = (bdl_i + 1 == BDL_NUM) ? TRUE : FALSE;
+
         stream->bdl[bdl_i].length = PAGE_SIZE;
-        stream->bdl[bdl_i].ioc = 1; // FIND OUT
+        stream->bdl[bdl_i].ioc = IOC; // FIND OUT
 
         stream->bdl[bdl_i].paddr = pmm_alloc_pages(1);
         char* mem = map_io_region(stream->bdl[bdl_i].paddr, PAGE_SIZE);
@@ -492,13 +494,15 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
             struct audio_endpoint_creation_args args = {
                 .is_input = FALSE,
                 .private_data = widget,
-                .sample_buffer_size = 16 * 1024,
+                .sample_buffer_size = 128 * 1024,
                 .ops = &output_ops
             };
 
             struct audio_endpoint* ep = new_audio_endpoint(&args);
 
             register_audio_endpoint(ep);
+
+            widget->ostream->ep = ep;
 
             break;
         case HDA_WIDGET_AUDIO_INPUT:
@@ -583,8 +587,20 @@ void hda_int_handler(void* regs, struct hda_dev* data)
 
         if ((streams_mask & 1) == 1) {
             struct hda_stream* stream = data->streams[current_bit_idx];
+            struct audio_endpoint* ep = stream->ep; 
             //printk("INT IN STREAM %i, BIT %i\n", stream->index, current_bit_idx);
-            release_spinlock(&stream->lock);
+            
+            if (ep != NULL)
+            {
+                for (int i = 0; i < BDL_NUM; i ++)
+                {
+                    struct HDA_BDL_ENTRY* current_bdl = &stream->bdl[i];
+                    char *dst = vmm_get_virtual_address(current_bdl->paddr);
+
+                    audio_endpoint_gather_samples(ep, dst, BDL_SIZE);
+                }
+            }
+            
             uint8_t stream_sts = hda_inb(data, stream->reg_base + ISTREAM_STS);
             hda_outb(data, stream->reg_base + ISTREAM_STS, stream_sts);
         }
