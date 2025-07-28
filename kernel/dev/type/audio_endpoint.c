@@ -5,16 +5,19 @@
 
 int audio_endpoint_file_open(struct inode *inode, struct file *file);
 int audio_endpoint_file_close(struct inode *inode, struct file *file);
+int audio_endpoint_ioctl(struct file* file, uint64_t request, uint64_t arg);
 ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, size_t offset);
 
 struct file_operations audio_output_widget_fops = {
     .open = audio_endpoint_file_open,
     .close = audio_endpoint_file_close,
+    .ioctl = audio_endpoint_ioctl,
     .write = audio_endpoint_fwrite
 };
 struct file_operations audio_input_widget_fops = {
     .open = audio_endpoint_file_open,
     .close = audio_endpoint_file_close,
+    .ioctl = audio_endpoint_ioctl
 };
 int registered_audio_eps = 0;
 
@@ -47,6 +50,11 @@ struct audio_endpoint* new_audio_endpoint(struct audio_endpoint_creation_args *a
 
 void free_audio_endpoint(struct audio_endpoint* ep)
 {
+    if (ep->sample_buffer != NULL)
+    {
+        kfree(ep->sample_buffer);
+    }
+
     kfree(ep);
 }
 
@@ -100,7 +108,11 @@ int audio_endpoint_file_open(struct inode *inode, struct file *file)
 int audio_endpoint_file_close(struct inode *inode, struct file *file)
 {
     struct audio_endpoint* ep = inode->private_data;
+    // Файл снова можно открыть
     ep->is_acquired = FALSE;
+    // Сбросить счетчики
+    ep->read_offset = 0;
+    ep->write_offset = 0;
     return 0;
 }
 
@@ -127,4 +139,16 @@ ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, siz
     }
 
     return count;
+}
+
+int audio_endpoint_ioctl(struct file* file, uint64_t request, uint64_t arg)
+{
+    struct audio_endpoint* ep = file->inode->private_data;
+
+    switch (request) {
+        default:
+            return -EINVAL;
+    }
+
+    return 0;
 }
