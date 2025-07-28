@@ -75,6 +75,7 @@ gcc $GCC_ARGS dev/bus/usb/xhci/usb_xhci.c -o ./bin/usb_xhci.o
 gcc $GCC_ARGS dev/bus/usb/xhci/usb_xhci_device.c -o ./bin/usb_xhci_device.o
 gcc $GCC_ARGS dev/interrupts.c -o ./bin/interrupts.o
 gcc $GCC_ARGS dev/type/nic.c -o ./bin/nic.o
+gcc $GCC_ARGS dev/type/audio_endpoint.c -o ./bin/audio_endpoint.o
 gcc $GCC_ARGS dev/type/drive_device.c -o ./bin/drive_device.o
 
 #generic drivers

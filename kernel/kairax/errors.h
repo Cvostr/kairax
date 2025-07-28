@@ -39,6 +39,8 @@
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
 
+#define ENOTSUP         95
+
 #define EADDRINUSE	    98
 #define EADDRNOTAVAIL	99
 #define ECONNRESET	    104

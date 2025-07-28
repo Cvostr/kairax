@@ -107,6 +107,9 @@ uint64_t arch_expand_kernel_mem(uint64_t size)
 		map_page_mem(root_pml4, temp + iter, pmm_alloc_page(), pageFlags);
         kernel_top_addr += PAGE_SIZE;
 	}
+    
+    // На всякий случай зануляем выделенную память
+    memset(temp, 0, size);
 
     return temp;
 }

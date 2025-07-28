@@ -14,6 +14,8 @@ struct kxmodule_header
     void (*mod_destroy_routine)(void);
 };
 
+#define MAX_RELA_SECTIONS 7
+
 int module_load(const char* image, size_t size)
 {
     int rc = 0;
@@ -23,11 +25,15 @@ int module_load(const char* image, size_t size)
         return -ERROR_BAD_EXEC_FORMAT;
     }
 
+    // Память, которая будет выделена под модуль
+    size_t required_mem = size;
+
     struct kxmodule_header* module_header_ptr = NULL;
     struct elf_section_header_entry* symtab_section = NULL;
     struct elf_section_header_entry* strtab_section = NULL;
+    struct elf_section_header_entry* bss_section = NULL;
 
-    struct elf_section_header_entry* rela_sections[6];
+    struct elf_section_header_entry* rela_sections[MAX_RELA_SECTIONS];
     int rela_sections_num = 0;
 
     // Чтение секций, поиск заголовка
@@ -46,8 +52,18 @@ int module_load(const char* image, size_t size)
         } else if (strcmp(section_name, ".strtab") == 0) {
             // Секция перемещений в коде
             strtab_section = sehentry;
+        } else if (strcmp(section_name, ".bss") == 0) {
+            // .bss Секция с неинициализированными данными
+            bss_section = sehentry;
         } else if(sehentry->type == SHT_RELA) {
             // Это одна из секций перемещений
+            
+            // Проверим, что в массиве еще есть место
+            if (rela_sections_num >= MAX_RELA_SECTIONS)
+            {
+                return -E2BIG;
+            }
+
             // Добавляем её в массив
             rela_sections[rela_sections_num++] = sehentry;
         }
@@ -58,26 +74,43 @@ int module_load(const char* image, size_t size)
         return -ERROR_BAD_EXEC_FORMAT;
     }
 
+    // Имя модуля
     char* module_name = ((struct kxmodule_header*) (image + (uint64_t) module_header_ptr))->mod_name;
 
-    struct module* mod = mstor_new_module(size, module_name);
+    if (bss_section != NULL)
+    {
+        // Присутсвует секция .bss, надо увеличить размер памяти для выделения
+        // чтобы потом расположить в ней объекты .bss 
+        required_mem += bss_section->size;
+        // Модифицируем секцию в памяти, установив ей смещение
+        // Чтобы при обработке перемещений все адреса указывали на подготовленное место
+        // Сразу после основного кода
+        bss_section->offset = size;
+    }
+
+    // Создать объект модуля
+    struct module* mod = mstor_new_module(required_mem, module_name);
     if (mod == NULL) {
         return -ENOMEM;
     }
+
     mod->state = MODULE_STATE_LOADING;
 
+    // Регистрация модуля и выделение памяти под него
+    // Память должна быть заполнена нулями
     rc = mstor_register_module(mod);
     if (rc != 0) {
         free_module(mod);
         goto exit;
     }
 
-    // Копируем данные в память рядом с кодом ядра
+    // Копируем данные модуля в память рядом с кодом ядра
     memcpy((void*) mod->offset, image, size);
 
-    // Применение перемещений
+    // Получить указатель на таблицу с модулями
     struct elf_symbol* sym_data = (struct elf_symbol*) (image + symtab_section->offset);
 
+    // Применение перемещений
     for (int rel_section_i = 0; rel_section_i < rela_sections_num; rel_section_i ++) {
         struct elf_section_header_entry* rela_section = rela_sections[rel_section_i];
         // К данным в этой секции будут применяться перемещения
@@ -112,23 +145,46 @@ int module_load(const char* image, size_t size)
                     int* value = (int*) (mod->offset + relocating_section->offset + rela->offset);
                     int jmpoffset = (int) ((uint64_t) func_ptr - (uint64_t) value);
                     *value = jmpoffset;
+                } else {
+                    printk("Unsupported global relocation type %i, name: %s !!!\n", relocation_type, sym_name);
+                    // TODO: выходить с ошибкой?
                 }
             } else {
                 // символ определен в модуле.
                 // Получаем секцию, в которой расположены данные символа
                 struct elf_section_header_entry* sym_section = elf_get_section_entry(image, sym->shndx);
+
                 //todo : архитектурно - зависимый код. разделить!
                 switch (relocation_type) {
                     case R_X86_64_PC32:
                     case R_X86_64_PLT32:
                         // Куда применить перемещение
                         int* value = (int*) (mod->offset + relocating_section->offset + rela->offset);
-                        int jmpoffset = (int) ((uint64_t) (mod->offset + sym_section->offset + sym->value + rela->addend) - (uint64_t) value);
+
+                        // Адрес, в котором располагается объект, относительно модуля
+                        int origin = relocating_section->offset + rela->offset;
+
+                        // Результирующее значение относительно модуля
+                        int jmpoffset = sym_section->offset + sym->value + rela->addend;
+
+                        // Вычесть начальный адрес, чтобы получилось смещение относительно RIP
+                        jmpoffset -= origin;
+                        
+                        // Применить перемещение
                         *value = jmpoffset;
                         break;
                     case R_X86_64_64:
+                        // По какому адресу применить перемещение
                         uint64_t* value64 = (uint64_t*) (mod->offset + relocating_section->offset + rela->offset);
-                        *value64 = mod->offset + sym_section->offset + sym->value + rela->addend;
+                        // Рассчитаем абсолютный адрес
+                        uint64_t addr = mod->offset + sym_section->offset + sym->value + rela->addend; 
+
+                        // Применить перемещение
+                        *value64 = addr;
+                        break;
+                    default:
+                        printk("Unsupported relocation type %i, name: %s !!!\n", relocation_type, sym_name);
+                        // TODO: выходить с ошибкой?
                         break;
                 }
             }
