@@ -97,3 +97,7 @@ cd ..
 cd clear
 make
 cd ..
+
+cd mount
+make
+cd ..

@@ -34,6 +34,7 @@
 #define ENODEV		                19
 #define EINVAL                      ERROR_INVALID_VALUE
 #define	ESPIPE		                29
+#define EROFS		                30
 #define EPIPE		                32
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY

@@ -144,12 +144,18 @@ pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
     return thread->id;
 }
 
-int sys_mount(const char* device, const char* mount_dir, const char* fs)
+int sys_mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags)
 {
+    struct process* process = cpu_get_current_thread()->process;
+    if (process->euid != 0) {
+        return -EPERM;
+    }
+
     drive_partition_t* partition = get_partition_with_name(device);
 
-    if (partition == NULL) {
-        return -1;
+    if (partition == NULL) 
+    {
+        return -ENOENT;
     }
 
     return vfs_mount_fs(mount_dir, partition, fs);

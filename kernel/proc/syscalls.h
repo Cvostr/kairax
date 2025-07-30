@@ -78,7 +78,7 @@ int sys_memory_protect(void* address, uint64_t length, int protection);
 
 int sys_memory_unmap(void* address, uint64_t length);
 
-int sys_mount(const char* device, const char* mount_dir, const char* fs);
+int sys_mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags);
 
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size);
 

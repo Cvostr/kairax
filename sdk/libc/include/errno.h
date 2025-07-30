@@ -35,6 +35,7 @@ int* __errno_location();
 #define	EMFILE		                24
 #define ENOSPC                      28
 #define	ESPIPE		                29
+#define EROFS		                30
 #define EPIPE		                32
 #define ERANGE                      34
 #define	ENOSYS		                38

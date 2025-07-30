@@ -29,6 +29,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EMFILE, "Too many open files"),
     DEFINE_ERROR(ENOSPC, "No space left on device"),
     DEFINE_ERROR(ESPIPE, "Illegal seek"),
+    DEFINE_ERROR(EROFS, "Read-only file system"),
     DEFINE_ERROR(EPIPE, "Broken pipe"),
     DEFINE_ERROR(ERANGE, "Math result not representable"),
     DEFINE_ERROR(ENOSYS, "Function not implemented"),
