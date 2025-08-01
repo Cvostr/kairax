@@ -171,16 +171,34 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
 
 int process_is_userspace_region(struct process* process, uintptr_t base, size_t len)
 {
-    if (base + len >= USERSPACE_MAX_ADDR) {
-        return 0;
+    uintptr_t top_address = base + len;
+
+    // Проверим, что адрес не выходит за пределы пользовательского пространства
+    if (top_address >= USERSPACE_MAX_ADDR) 
+    {
+        return FALSE;
     }
 
-    // temporary
-    if (base + len < 0x1000) {
-        return 0;
+    // Проверим по первой странице
+    if (top_address < 0x1000)
+    {
+        return FALSE;
     }
 
-    return 1;
+    // Есть ли диапазон для этого адреса
+    struct mmap_range* range = process_get_region_by_addr(process, base);
+    if (range == NULL)
+    {
+        return FALSE;
+    }
+
+    // Проверим, что адрес и размер входят в область
+    if (top_address > (range->base + range->length))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags)
