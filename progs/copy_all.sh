@@ -23,6 +23,7 @@ sudo cp ./traceroute/traceroute.a /mnt/kxvol/bin/traceroute
 sudo cp ./sysinfo/sysinfo.a /mnt/kxvol/bin/sysinfo
 sudo cp ./clear/clear.a /mnt/kxvol/bin/clear
 sudo cp ./mount/mount.a /mnt/kxvol/bin/mount
+sudo cp ./readlink/readlink.a /mnt/kxvol/bin/readlink
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo

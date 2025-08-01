@@ -101,3 +101,7 @@ cd ..
 cd mount
 make
 cd ..
+
+cd readlink
+make
+cd ..
