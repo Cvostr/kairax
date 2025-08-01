@@ -45,7 +45,7 @@ int sys_sysinfo(int request, char* buffer, size_t bufsize)
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
 
-    VALIDATE_USER_POINTER(process, buffer, bufsize)
+    VALIDATE_USER_POINTER_PROTECTION(process, buffer, bufsize, PAGE_PROTECTION_WRITE_ENABLE)
  
     switch (request)
     {

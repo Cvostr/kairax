@@ -79,10 +79,20 @@ int main(int argc, char** argv)
     }
 
     printf("Test 8: Read larger data\n");
-
-    sleep(1);
-
     rc = read(fd, buff, MMAP_PORTION * 1024);
+    if (rc >= 0) {
+        printf("Successful read()\n");
+        return 8;
+    }
+
+    printf("Test 9: Read to unwritable memory\n");
+    brc = mmap(NULL, MMAP_PORTION, PROT_READ, MAP_ANONYMOUS, -1, 0);
+    printf("Allocated at %p\n", brc);
+    rc = read(fd, brc, MMAP_PORTION);
+    if (rc >= 0) {
+        printf("Successful read()\n");
+        return 9;
+    }
 
     return 0;
 }

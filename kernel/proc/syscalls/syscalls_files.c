@@ -148,7 +148,7 @@ ssize_t sys_read_file(int fd, char* buffer, size_t size)
     if (thread->is_userspace) {
         // Эта функция также используется в ядре
         // Проверять диапазон, только если вызвана из userspace
-        VALIDATE_USER_POINTER(process, buffer, size)
+        VALIDATE_USER_POINTER_PROTECTION(process, buffer, size, PAGE_PROTECTION_WRITE_ENABLE)
     }
 
     struct file* file = process_get_file(process, fd);
@@ -197,7 +197,7 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
 
-    VALIDATE_USER_POINTER(process, statbuf, sizeof(struct stat))
+    VALIDATE_USER_POINTER_PROTECTION(process, statbuf, sizeof(struct stat), PAGE_PROTECTION_WRITE_ENABLE)
 
     // Открыть файл относительно папки и флагов
     rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
@@ -250,7 +250,7 @@ int sys_readdir(int fd, struct dirent* dirent)
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
 
-    VALIDATE_USER_POINTER(process, dirent, sizeof(struct dirent))
+    VALIDATE_USER_POINTER_PROTECTION(process, dirent, sizeof(struct dirent), PAGE_PROTECTION_WRITE_ENABLE)
 
     struct file* file = process_get_file(process, fd);
 
@@ -566,7 +566,7 @@ ssize_t sys_readlinkat(int dirfd, const char* pathname, char* buf, size_t bufsiz
     int rc;
     struct process* process = cpu_get_current_thread()->process;
 
-    VALIDATE_USER_POINTER(process, buf, bufsize)
+    VALIDATE_USER_POINTER_PROTECTION(process, buf, bufsize, PAGE_PROTECTION_WRITE_ENABLE)
     //
     VALIDATE_USER_POINTER(process, pathname, strlen(pathname))
 

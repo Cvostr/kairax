@@ -9,7 +9,8 @@
 #include "kairax/signal.h"
 
 #define VALIDATE_NULL_POINTER(base) if (base == 0) {return -ERROR_INVALID_VALUE;}
-#define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,base,len) == 0) {return -ERROR_INVALID_VALUE;}
+#define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,base,len,0) == 0) {return -ERROR_INVALID_VALUE;}
+#define VALIDATE_USER_POINTER_PROTECTION(proc,base,len,prot) if (process_is_userspace_region(proc,base,len,prot) == 0) {return -ERROR_INVALID_VALUE;}
 
 int sys_not_implemented();
 

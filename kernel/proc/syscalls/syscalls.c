@@ -30,7 +30,7 @@ int sys_yield()
 int sys_pipe(int* pipefd, int flags)
 {
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, pipefd, sizeof(int*) * 2);
+    VALIDATE_USER_POINTER_PROTECTION(process, pipefd, sizeof(int*) * 2, PAGE_PROTECTION_WRITE_ENABLE);
 
     struct pipe* ppe = new_pipe();
     if (ppe == NULL) {

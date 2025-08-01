@@ -169,7 +169,7 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
     return 0;
 }
 
-int process_is_userspace_region(struct process* process, uintptr_t base, size_t len)
+int process_is_userspace_region(struct process* process, uintptr_t base, size_t len, int protection)
 {
     uintptr_t top_address = base + len;
 
@@ -196,6 +196,14 @@ int process_is_userspace_region(struct process* process, uintptr_t base, size_t 
     if (top_address > (range->base + range->length))
     {
         return FALSE;
+    }
+
+    if (protection != 0)
+    {
+        if ((range->protection & protection) != protection)
+        {
+            return FALSE;
+        }
     }
 
     return TRUE;
