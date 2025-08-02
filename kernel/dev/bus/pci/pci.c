@@ -153,13 +153,16 @@ int probe_pci_device(uint8_t bus, uint8_t device, uint8_t func)
 					bar_ptr->address = (uintptr_t)(((uint64_t)addressHigh << 32) | (address & ~0xf));
 					bar_ptr->size = ~(((uint32_t)maskHigh << 16) | (mask & ~0xf)) + 1;
 					bar_ptr->flags = address & 0xf;
+					bar_ptr->type = BAR_TYPE_MMIO;
 				} else if (mask & PCI_BAR_IO) {
 					bar_ptr->address = ((uint32_t)address & 0xFFFFFFFC);
+					bar_ptr->type = BAR_TYPE_IO;
 				} else {
 					// 32-bit MMIO
 					bar_ptr->address = (uintptr_t)(uint32_t)(address & ~0xf);
 					bar_ptr->size = ~(mask & ~0xf) + 1;
 					bar_ptr->flags = mask & 0xf;
+					bar_ptr->type = BAR_TYPE_MMIO;
 				}
 
 			}

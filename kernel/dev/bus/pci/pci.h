@@ -3,10 +3,14 @@
 
 #include "kairax/types.h"
 
+#define BAR_TYPE_MMIO	1
+#define BAR_TYPE_IO		2
+
 struct pci_device_bar {
 	uintptr_t 		address;
 	size_t 			size;
 	uint32_t 		flags;
+	int 			type;
 } PACKED;
 
 struct pci_device_info {
