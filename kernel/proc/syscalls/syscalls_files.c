@@ -17,7 +17,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
 
-    VALIDATE_USER_POINTER(process, path, strlen(path))
+    VALIDATE_USER_STRING(process, path)
 
     // Получить dentry, относительно которой открыть файл
     fd = process_get_relative_direntry1(process, dirfd, path, &dir_dentry);
@@ -98,7 +98,7 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     int rc = -1;
     struct dentry* dir_dentry = NULL;
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, path, strlen(path))
+    VALIDATE_USER_STRING(process, path)
 
     // Получить dentry, относительно которой создать папку
     rc = process_get_relative_direntry1(process, dirfd, path, &dir_dentry);
@@ -197,6 +197,14 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
 
+    // Путь может быть пустым
+    if (filepath != NULL)
+    {
+        // Проверить адрес строки пути файла
+        VALIDATE_USER_STRING(process, filepath)
+    }
+
+    // Проверить адрес вывода
     VALIDATE_USER_POINTER_PROTECTION(process, statbuf, sizeof(struct stat), PAGE_PROTECTION_WRITE_ENABLE)
 
     // Открыть файл относительно папки и флагов
@@ -221,6 +229,13 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     int close_at_end = 0;
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
+
+    // Путь может быть пустым
+    if (filepath != NULL)
+    {
+        // Проверить адрес строки пути файла
+        VALIDATE_USER_STRING(process, filepath)
+    }
     
     // Открыть файл относительно папки и флагов
     rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
@@ -309,7 +324,9 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 int sys_unlink(int dirfd, const char* path, int flags)
 {
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER(process, path, strlen(path))
+
+    // Проверить адрес строки пути файла
+    VALIDATE_USER_STRING(process, path)
 
     // Получение dentry от dirfd для относительного поиска
     struct dentry* dirdentry = NULL;
@@ -367,6 +384,9 @@ int sys_rmdir(const char* path)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
+
+    // Проверить адрес строки пути файла
+    VALIDATE_USER_STRING(process, path)
 
     // Получить удаляемую inode и dentry относительно рабочей директории
     struct dentry* target_dentry = NULL;
@@ -431,8 +451,10 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
 
     struct process* process = cpu_get_current_thread()->process;
 
-    VALIDATE_USER_POINTER(process, oldpath, strlen(oldpath))
-    VALIDATE_USER_POINTER(process, newpath, strlen(newpath))
+
+    // Проверить адреса строк путей файлов
+    VALIDATE_USER_STRING(process, oldpath)
+    VALIDATE_USER_STRING(process, newpath)
 
     // Новый путь
     char* new_directory_path = NULL;
@@ -522,8 +544,10 @@ int sys_symlinkat(const char *target, int newdirfd, const char *linkpath)
     struct dentry* newdir_dentry = NULL;
     struct dentry* new_parent_dentry = NULL;
 
-    VALIDATE_USER_POINTER(process, target, strlen(target))
-    VALIDATE_USER_POINTER(process, linkpath, strlen(linkpath))
+    // Проверить адрес строки пути цели
+    VALIDATE_USER_STRING(process, target)
+    // Проверить адрес строки пути ссылки
+    VALIDATE_USER_STRING(process, linkpath)
 
     // Получить dentry для newdirfd
     rc = process_get_relative_direntry1(process, newdirfd, linkpath, &newdir_dentry);
@@ -568,7 +592,7 @@ ssize_t sys_readlinkat(int dirfd, const char* pathname, char* buf, size_t bufsiz
 
     VALIDATE_USER_POINTER_PROTECTION(process, buf, bufsize, PAGE_PROTECTION_WRITE_ENABLE)
     //
-    VALIDATE_USER_POINTER(process, pathname, strlen(pathname))
+    VALIDATE_USER_STRING(process, pathname)
 
     struct dentry* directory_dentry = NULL;
     struct dentry* symlink_dentry = NULL;
@@ -612,6 +636,9 @@ int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
 
     struct process* process = cpu_get_current_thread()->process;
 
+    // проверить адрес строки пути
+    VALIDATE_USER_STRING(process, pathname)
+
     // dentry от dirfd
     struct dentry* dir_dentry = NULL;
     // dentry и inode родителя
@@ -654,8 +681,9 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
     struct process* process = cpu_get_current_thread()->process;
 
-    VALIDATE_USER_POINTER(process, oldpath, strlen(oldpath))
-    VALIDATE_USER_POINTER(process, newpath, strlen(newpath))
+    // Проверить адреса строк
+    VALIDATE_USER_STRING(process, oldpath)
+    VALIDATE_USER_STRING(process, newpath)
 
     struct dentry* olddir_dentry = NULL;
     struct dentry* newdir_dentry = NULL;

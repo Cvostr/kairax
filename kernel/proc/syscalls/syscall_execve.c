@@ -46,6 +46,8 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
 
     struct process* process = cpu_get_current_thread()->process;
 
+    VALIDATE_USER_STRING(process, filepath)
+
     if (list_size(process->threads) > 1) {
         return -1;
     }
