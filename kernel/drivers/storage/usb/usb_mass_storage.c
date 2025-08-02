@@ -191,7 +191,7 @@ int usb_mass_reset_recovery(struct usb_mass_storage_device* dev)
 int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length)
 {
 	int rc = usb_device_bulk_msg(device, endpoint, data, length);
-	if (rc == USB_COMPLETION_CODE_STALL)
+	if (rc == -EPIPE)
 	{
 		printk("USB Mass: STALL\n");
 		// STALL - штатная ситуация. Надо отресетить эндпоинт

@@ -139,6 +139,11 @@ void event_callback(struct usb_msg* msg)
     uint8_t mapped;
     int found = FALSE;
 
+    if (msg->status != 0)
+    {
+        printk("HID keyboard Error!!!\n");
+    }
+
     //printk("Key pressed %x %x %x %x %x %x\n", rep->presses[0], rep->presses[1], rep->presses[2], rep->presses[3], rep->presses[4], rep->presses[5]);
 
     // Обработать нажатия

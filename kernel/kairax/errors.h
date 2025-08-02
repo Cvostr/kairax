@@ -50,4 +50,6 @@
 #define ECONNREFUSED	111
 #define ENETUNREACH     113
 
+#define	EINPROGRESS	245
+
 #endif

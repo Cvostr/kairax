@@ -445,15 +445,20 @@ void process_add_mmap_region(struct process* process, struct mmap_range* region)
 
 struct mmap_range* process_get_region_by_addr(struct process* process, uint64_t addr)
 {
-    for (size_t i = 0; i < list_size(process->mmap_ranges); i ++) {
-        struct mmap_range* range = list_get(process->mmap_ranges, i);
+    struct list_node* current_area_node = process->mmap_ranges->head;
+
+    while (current_area_node != NULL)
+    {
+        struct mmap_range* range = current_area_node->element;
         
         uint64_t max_addr = range->base + range->length - 1;
         if (addr >= range->base && addr <= max_addr) {
             return range;
         }
-    }
 
+        current_area_node = current_area_node->next;
+    }
+    
     return NULL;
 }
 

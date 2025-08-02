@@ -5,7 +5,6 @@
 #include "usb_descriptors.h"
 
 #define USB_COMPLETION_CODE_SUCCESS     0
-#define USB_COMPLETION_CODE_STALL       1024
 
 // Request Direction
 #define USB_DEVICE_REQ_RECIPIENT_DEVICE	0
@@ -82,6 +81,7 @@ struct usb_msg {
     void* data;
     uint32_t length;
     void (*callback) (struct usb_msg*);
+    int status;
 
     void* private;
 };

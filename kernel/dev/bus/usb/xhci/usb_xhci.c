@@ -245,6 +245,9 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 	int rc;
 	while (1)
 	{
+		// немного поспим, чтобы не грузить процессор
+		sys_thread_sleep(0, 500);
+
 		if (controller->port_status_changed == 1) 
 		{
 			for (uint8_t port_id = 0; port_id < controller->ports_num; port_id ++)
