@@ -4,6 +4,8 @@
 #include "dev/bus/pci/pci.h"
 #include "ahci_defines.h"
 
+#define PCI_VENID_JMICRON	0x197b
+
 #define AHCI_CAPABILITY_64BIT       (1UL << 31)
 #define AHCI_CAPABILITY_NCQ         (1 << 30)
 #define AHCI_CAPABILITY_SNTF        (1 << 29)       //SNotification Registe

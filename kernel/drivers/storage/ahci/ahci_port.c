@@ -17,7 +17,7 @@
 
 #define AHCI_INT_ON_COMPLETION 0
 
-static int get_device_type(HBA_PORT *port)
+static int ahci_get_device_type(HBA_PORT *port)
 {
 	switch (port->sig)
 	{
@@ -30,6 +30,27 @@ static int get_device_type(HBA_PORT *port)
 	default:
 		return AHCI_DEV_SATA;
 	}
+}
+
+static int ahci_get_speed_id(uint32_t ssts)
+{
+	int speed = 0;
+	switch (ssts & HBA_PORT_SPD_MASK) {
+		case 0x10:
+			speed = AHCI_PORT_SPEED_1_5_GBPS;
+			break;
+		case 0x20:
+			speed = AHCI_PORT_SPEED_3_0_GBPS;
+			break;
+		case 0x30:
+			speed = AHCI_PORT_SPEED_6_0_GBPS;
+			break;
+		default:
+			speed = AHCI_PORT_SPEED_UNRESTRICTED;
+			break;
+	}
+
+	return speed;
 }
 
 void ahci_port_stop_commands(ahci_port_t* port)
@@ -61,9 +82,11 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	ahci_port_stop_commands(port);	
 
 	// Выделение памяти под буфер порта
-	char* port_mem = (char*)pmm_alloc_page();
+	char* port_mem = (char*) pmm_alloc_page();
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
 	map_io_region(port_mem, PAGE_SIZE);
+	// Зануляем память (Важно!!!)
+	memset(P2V(port_mem), 0, PAGE_SIZE);
 
     port->command_list = (HBA_COMMAND*) port_mem;
 	port->command_list_virt = P2V(port->command_list);
@@ -79,15 +102,18 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
     size_t cmd_tables_mem_size = align(COMMAND_LIST_ENTRY_COUNT * sizeof(HBA_COMMAND_TABLE), PAGE_SIZE);
     uint32_t pages_num = cmd_tables_mem_size / PAGE_SIZE;
 
-	//Выделить память под буфер команд
-	char* cmd_tables_mem = (char*)pmm_alloc_pages(pages_num);
+	// Выделить память под буфер команд
+	char* cmd_tables_mem = (char*) pmm_alloc_pages(pages_num);
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
 	map_io_region(cmd_tables_mem, PAGE_SIZE * pages_num);
+	// Зануляем выделенную память (Важно!!!)
+	memset(P2V(cmd_tables_mem), 0, PAGE_SIZE * pages_num);
 
-    for(int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++){
-		HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*)P2V(port->command_list);
-        hba_command_virtual[i].prdtl = 8; //8 PRDT на каждую команду
-        HBA_COMMAND_TABLE* cmd_table = (HBA_COMMAND_TABLE*)cmd_tables_mem + i;
+	HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*) P2V(port->command_list);
+    for (int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++)
+	{
+        hba_command_virtual[i].prdtl = 8; // 8 PRDT на каждую команду
+        HBA_COMMAND_TABLE* cmd_table = ((HBA_COMMAND_TABLE*) cmd_tables_mem) + i;
         //Записать адрес таблицы
         hba_command_virtual[i].ctdba_low = LO32(cmd_table);
 		hba_command_virtual[i].ctdba_up = HI32(cmd_table);
@@ -141,20 +167,7 @@ int ahci_port_init2(ahci_port_t* port)
 
 	// Определение скорости
 	uint32_t ssts = port->port_reg->ssts;
-	switch (ssts & HBA_PORT_SPD_MASK) {
-		case 0x10:
-			port->speed = AHCI_PORT_SPEED_1_5_GBPS;
-			break;
-		case 0x20:
-			port->speed = AHCI_PORT_SPEED_3_0_GBPS;
-			break;
-		case 0x30:
-			port->speed = AHCI_PORT_SPEED_6_0_GBPS;
-			break;
-		default:
-			port->speed = AHCI_PORT_SPEED_UNRESTRICTED;
-			break;
-	}
+	port->speed = ahci_get_speed_id(ssts);
 
 	while (port->port_reg->tfd & (AHCI_DEV_BUSY));
 
@@ -167,7 +180,7 @@ int ahci_port_init2(ahci_port_t* port)
 	}
 
 	// Определение типа устройства
-	port->device_type = get_device_type(port->port_reg);
+	port->device_type = ahci_get_device_type(port->port_reg);
 
 	if (port->device_type == AHCI_DEV_SATAPI) {
 		port->port_reg->cmd |= HBA_PxCMD_ATAPI;
@@ -236,7 +249,7 @@ int ahci_port_reset(ahci_port_t* port)
 	}
 	if (spin == 1000000) {
 		// Отсутствует диск в порту
-		printf("NO DEVICE IN PORT\n");
+		printf("AHCI: NO DEVICE IN PORT\n");
 		return 0;
 	}
 
@@ -253,7 +266,7 @@ int ahci_port_interrupt(ahci_port_t *port)
 
 	if ((serr & 0xFFFF) != 0)
 	{
-		printk("Ahci port serr %i\n", serr);
+		printk("AHCI: port serr %i\n", serr);
 	}
 }
 
@@ -323,7 +336,7 @@ int ahci_port_identity(ahci_port_t *port, char* buffer)
 	cmdheader->cmd_fis_len = sizeof(FIS_HOST_TO_DEV) / sizeof(uint32_t);	// Размер FIS таблицы
 	cmdheader->write = 0;		// Чтение с диска
 	cmdheader->prdtl = 1;		// количество PRDT
-	cmdheader->prefetchable = 1;
+	cmdheader->prefetchable = 0;
 	cmdheader->prdbc = 512;
 
 	HBA_COMMAND_TABLE *cmdtbl = (HBA_COMMAND_TABLE*)P2V(((uintptr_t)cmdheader->ctdba_up << 32) | cmdheader->ctdba_low);

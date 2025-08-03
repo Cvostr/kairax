@@ -113,6 +113,11 @@ int ahci_device_probe(struct device *dev)
 	pci_set_command_reg(device_desc, pci_get_command_reg(device_desc) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 	pci_device_set_enable_interrupts(device_desc, 1);
 
+	if (device_desc->vendor_id == PCI_VENID_JMICRON)
+	{
+		printk("AHCI: JMicron workaround\n");
+	}
+
 	// Сохранение виртуального адреса на гллавную структуру контроллера
 	controller->hba_mem = (HBA_MEMORY*) map_io_region(device_desc->BAR[5].address, device_desc->BAR[5].size);
 
