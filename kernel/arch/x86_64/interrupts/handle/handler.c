@@ -18,7 +18,7 @@ struct irq_handler irq_handlers[256];
 
 void init_interrupts_handler()
 {
-	
+	memset(&irq_handlers, 0, sizeof(irq_handlers));
 }
 
 void int_handler(interrupt_frame_t* frame) 
@@ -47,18 +47,28 @@ void int_handler(interrupt_frame_t* frame)
 	}
 }
 
-void register_interrupt_handler(int interrupt_num, void* handler_func, void* data)
+int register_interrupt_handler(int interrupt_num, void* handler_func, void* data)
 {
 	if (interrupt_num <= 255) 
 	{
 		irq_handlers[interrupt_num].handler = handler_func;
 		irq_handlers[interrupt_num].data = data; 
+
+		return 0;
 	}
+
+	return -1;
 }
 
 int register_irq_handler(int irq, void* handler, void* data)
 {
-	register_interrupt_handler(0x20 + irq, handler, data);
+	int rc = register_interrupt_handler(0x20 + irq, handler, data);
+	if (rc != 0)
+	{
+		return rc;
+	}
 
 	ioapic_redirect_interrupt(0, 0x20 + irq, irq);
+
+	return 0;
 }

@@ -38,6 +38,6 @@ typedef void (*isr_handler_t)(interrupt_frame_t*);
 
 void init_interrupts_handler();
 
-void register_interrupt_handler(int interrupt_num, void* handler_func, void* data);
+int register_interrupt_handler(int interrupt_num, void* handler_func, void* data);
 
 #endif

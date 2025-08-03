@@ -8,11 +8,16 @@
 #include "kairax/string.h"
 #include "e1000.h"
 
+#define E1000_NUM_RX_DESCS 32
+#define E1000_NUM_TX_DESCS 256
+
 int e1000_device_probe(struct device *dev) 
 {
 	struct e1000* e1000_dev = kmalloc(sizeof(struct e1000));
     memset(e1000_dev, 0, sizeof(struct e1000));
     e1000_dev->dev = dev;
+
+	pci_set_command_reg(dev->pci_info, pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 
 	// Запомним объект BAR
 	e1000_dev->BAR = &dev->pci_info->BAR[0];
@@ -39,7 +44,29 @@ int e1000_device_probe(struct device *dev)
 		e1000_dev->mac[4],
 		e1000_dev->mac[5]);
 
-	return -1;
+	rc = e1000_init_rx(e1000_dev);
+	printk("E1000: Rx initialized\n");
+
+	rc = e1000_init_tx(e1000_dev);
+	printk("E1000: Tx initialized\n");
+
+	e1000_enable_link(e1000_dev);
+
+	// Добавление обработчика
+    int irq = pci_device_get_irq_line(dev->pci_info);
+    printk("E1000: IRQ %i\n", irq);
+    rc = register_irq_handler(irq, e1000_irq_handler, e1000_dev);
+	if (rc != 0)
+	{
+		printk("E1000: Error registering IRQ Handler %i\n", rc);
+	}
+	pci_device_set_enable_interrupts(dev->pci_info, 1);
+
+	// Выбор маски прерываний
+	e1000_write32(e1000_dev, E1000_REG_IMASK, ICR_RXT0);
+	e1000_write32(e1000_dev, E1000_REG_ICR, 0xFFFFFFFF);
+
+	return 0;
 }
 
 void e1000_detect_eeprom(struct e1000* dev)
@@ -106,12 +133,98 @@ int e1000_get_mac(struct e1000* dev)
 
 int e1000_init_rx(struct e1000* dev)
 {
+	// Выделить память под таблицу rx дескрипторов
+	size_t rx_size = E1000_NUM_RX_DESCS * sizeof(struct e1000_rx_desc) + 16;
+	size_t rx_npages = 0;
+	dev->rx_table_phys = (uintptr_t) pmm_alloc(rx_size, &rx_npages);
+	dev->rx_table = (struct e1000_rx_desc*) map_io_region(dev->rx_table_phys, rx_size);
+
+	// Выделить память под массив виртуальных адресов
+	dev->rx_buffers = (void**) kmalloc(E1000_NUM_RX_DESCS * sizeof(void*));
+
+	for (int i = 0; i < E1000_NUM_RX_DESCS; i ++)
+	{
+		void* rx_buffer_phys = pmm_alloc_pages(3); // 8192 + 16
+
+		struct e1000_rx_desc* desc = &dev->rx_table[i];
+		desc->addr = (uint64_t) rx_buffer_phys;
+		desc->status = 0;
+
+		dev->rx_buffers[i] = (void*) map_io_region(rx_buffer_phys, 3 * PAGE_SIZE); 
+	}
+
+	// Записать адрес
+	e1000_write32(dev, E1000_REG_RDBAHI, dev->rx_table_phys >> 32);
+	e1000_write32(dev, E1000_REG_RDBALO, dev->rx_table_phys & UINT32_MAX);
+	// Записать количество
+	e1000_write32(dev, E1000_REG_RDLEN, E1000_NUM_RX_DESCS * sizeof(struct e1000_rx_desc));
+
+	e1000_write32(dev, E1000_REG_RDHEAD, 0);
+	e1000_write32(dev, E1000_REG_RDTAIL, E1000_NUM_RX_DESCS - 1);
+
+	e1000_write32(dev, E1000_REG_RCTL, 
+		RCTL_EN | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_8192);
+
 	return 0;
 }
 
 int e1000_init_tx(struct e1000* dev)
 {
+	// Выделить память под таблицу rx дескрипторов
+	size_t tx_size = E1000_NUM_TX_DESCS * sizeof(struct e1000_tx_desc) + 16;
+	size_t tx_npages = 0;
+	dev->tx_table_phys = (uintptr_t) pmm_alloc(tx_size, &tx_npages);
+	dev->tx_table = (struct e1000_tx_desc*) map_io_region(dev->tx_table_phys, tx_size);
+
+	// Выделить память под массив виртуальных адресов
+	dev->tx_buffers = (void**) kmalloc(E1000_NUM_TX_DESCS * sizeof(void*));
+
+	for (int i = 0; i < E1000_NUM_TX_DESCS; i ++)
+	{
+		void* tx_buffer_phys = pmm_alloc_pages(3); // 8192 + 16
+
+		struct e1000_tx_desc* desc = &dev->tx_table[i];
+		desc->addr = (uint64_t) tx_buffer_phys;
+		desc->cmd = 0;
+
+		dev->tx_buffers[i] = (void*) map_io_region(tx_buffer_phys, 3 * PAGE_SIZE); 
+	}
+
+	// Записать адрес
+	e1000_write32(dev, E1000_REG_TDBAHI, dev->tx_table_phys >> 32);
+	e1000_write32(dev, E1000_REG_TDBALO, dev->tx_table_phys & UINT32_MAX);
+	// Записать количество
+	e1000_write32(dev, E1000_REG_TDLEN, E1000_NUM_TX_DESCS * sizeof(struct e1000_tx_desc));
+	// Позиции
+	e1000_write32(dev, E1000_REG_TDHEAD, 0);
+	e1000_write32(dev, E1000_REG_TDTAIL, 0);
+	// Включение + выравнивание
+	e1000_write32(dev, E1000_REG_TCTL, TCTL_EN | TCTL_PSP);
+	// ???
+	e1000_write32(dev, E1000_REG_TIPG, 0x0060200A);
+
 	return 0;
+}
+
+void e1000_enable_link(struct e1000* dev)
+{
+	e1000_write32(dev, E1000_REG_CTRL, e1000_read32(dev, E1000_REG_CTRL) | E1000_CTRL_SLU);
+}
+
+void e1000_irq_handler(void* regs, struct e1000* dev) 
+{
+	uint32_t status = e1000_read32(dev, E1000_REG_ICR);
+	e1000_write32(dev, E1000_REG_ICR, status);
+
+	printk("E1000: IRQ Handled! %i\n", status);
+
+	if (status & ICR_LSC)
+	{
+	}
+
+	if (status & ICR_RXT0) 
+	{
+	}
 }
 
 void e1000_write32(struct e1000* dev, off_t offset, uint32_t value)

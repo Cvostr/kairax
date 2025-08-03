@@ -44,6 +44,7 @@ struct kernel_function functions[] = {
     KFUNCTION(pmm_alloc_page),
     KFUNCTION(pmm_alloc_pages),
     KFUNCTION(pmm_free_pages),
+    KFUNCTION(pmm_alloc),
     KFUNCTION(register_irq_handler),
     KFUNCTION(alloc_irq),
     KFUNCTION(enable_interrupts),
