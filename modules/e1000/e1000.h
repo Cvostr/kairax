@@ -54,9 +54,20 @@
 #define TCTL_SWXOFF                     (1 << 22)   // Software XOFF Transmission
 #define TCTL_RTLC                       (1 << 24)   // Re-transmit on Late Collision
 
+// -----
 #define ICR_LSC             (1 << 2)
 #define ICR_RX0             (1 << 6)
 #define ICR_RXT0            (1 << 7)
+#define ICR_RxQ0	        (1 << 20)
+
+// ----
+#define	CMD_EOP		(1 << 0)    // End of Packet
+#define	CMD_IFCS	(1 << 1)    // Insert FCS
+#define CMD_IC		(1 << 2)    // Insert Checksum
+#define CMD_RS		(1 << 3)   // Report Status
+#define CMD_DEXT	(1 << 5)   // Report Packet Sent
+#define	CMD_VLE		(1 << 6)   // VLAN Packet Enable
+#define	CMD_IDE		(1 << 7)   // Interrupt Delay Enable
 
 struct e1000_rx_desc {
     volatile uint64_t addr;
@@ -100,7 +111,7 @@ void module_exit(void);
 
 int e1000_device_probe(struct device *dev);
 
-
+// Внутренние операции
 void e1000_detect_eeprom(struct e1000* dev);
 uint16_t e1000_eeprom_read(struct e1000* dev, uint8_t addr);
 int e1000_get_mac(struct e1000* dev);
@@ -109,11 +120,16 @@ int e1000_init_tx(struct e1000* dev);
 void e1000_enable_link(struct e1000* dev);
 void e1000_link_up(struct e1000* dev);
 void e1000_irq_handler(void* regs, struct e1000* dev);
+void e1000_rx(struct e1000* dev);
 
 // Операции с регистрами
 void e1000_write32(struct e1000* dev, off_t offset, uint32_t value);
 uint32_t e1000_read32(struct e1000* dev, off_t offset);
 
+// Операции для nic
+int e1000_tx(struct nic* nic, const unsigned char* buffer, size_t size);
+int e1000_up(struct nic* nic);
+int e1000_down(struct nic* nic);
 
 static inline void outl(uint16_t port, uint32_t val)
 {

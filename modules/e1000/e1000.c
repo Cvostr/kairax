@@ -9,7 +9,10 @@
 #include "e1000.h"
 
 #define E1000_NUM_RX_DESCS 32
-#define E1000_NUM_TX_DESCS 256
+#define E1000_NUM_TX_DESCS 32
+
+#define E1000_TX_BUF_SZ		8192
+#define E1000_RX_BUF_SZ		8192
 
 int e1000_device_probe(struct device *dev) 
 {
@@ -65,6 +68,21 @@ int e1000_device_probe(struct device *dev)
 	// Выбор маски прерываний
 	e1000_write32(e1000_dev, E1000_REG_IMASK, ICR_RXT0);
 	e1000_write32(e1000_dev, E1000_REG_ICR, 0xFFFFFFFF);
+
+	// Регистрация интерфейса в ядре
+    e1000_dev->nic = new_nic();
+    memcpy(e1000_dev->nic->mac, e1000_dev->mac, MAC_DEFAULT_LEN);
+    e1000_dev->nic->dev = dev; 
+    e1000_dev->nic->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST;
+    e1000_dev->nic->tx = e1000_tx;
+    e1000_dev->nic->up = e1000_up;
+    e1000_dev->nic->down = e1000_down;
+    e1000_dev->nic->mtu = 1500; // уточнить
+    register_nic(e1000_dev->nic, "eth");
+
+    dev->dev_type = DEVICE_TYPE_NETWORK_ADAPTER;
+    dev->dev_data = e1000_dev;
+    dev->nic = e1000_dev->nic;
 
 	return 0;
 }
@@ -144,13 +162,14 @@ int e1000_init_rx(struct e1000* dev)
 
 	for (int i = 0; i < E1000_NUM_RX_DESCS; i ++)
 	{
-		void* rx_buffer_phys = pmm_alloc_pages(3); // 8192 + 16
+		size_t rx_buf_pages = 0;
+		void* rx_buffer_phys = pmm_alloc(E1000_TX_BUF_SZ + 16, &rx_buf_pages); // 8192 + 16
 
 		struct e1000_rx_desc* desc = &dev->rx_table[i];
 		desc->addr = (uint64_t) rx_buffer_phys;
 		desc->status = 0;
 
-		dev->rx_buffers[i] = (void*) map_io_region(rx_buffer_phys, 3 * PAGE_SIZE); 
+		dev->rx_buffers[i] = (void*) map_io_region(rx_buffer_phys, rx_buf_pages * PAGE_SIZE); 
 	}
 
 	// Записать адрес
@@ -181,13 +200,14 @@ int e1000_init_tx(struct e1000* dev)
 
 	for (int i = 0; i < E1000_NUM_TX_DESCS; i ++)
 	{
-		void* tx_buffer_phys = pmm_alloc_pages(3); // 8192 + 16
+		size_t tx_buf_pages = 0;
+		void* tx_buffer_phys = pmm_alloc(E1000_TX_BUF_SZ + 16, &tx_buf_pages);
 
 		struct e1000_tx_desc* desc = &dev->tx_table[i];
 		desc->addr = (uint64_t) tx_buffer_phys;
 		desc->cmd = 0;
 
-		dev->tx_buffers[i] = (void*) map_io_region(tx_buffer_phys, 3 * PAGE_SIZE); 
+		dev->tx_buffers[i] = (void*) map_io_region(tx_buffer_phys, tx_buf_pages * PAGE_SIZE); 
 	}
 
 	// Записать адрес
@@ -211,19 +231,82 @@ void e1000_enable_link(struct e1000* dev)
 	e1000_write32(dev, E1000_REG_CTRL, e1000_read32(dev, E1000_REG_CTRL) | E1000_CTRL_SLU);
 }
 
+int e1000_up(struct nic* nic)
+{
+	return 0;
+}
+
+int e1000_down(struct nic* nic)
+{
+	return 0;
+}
+
+int e1000_tx(struct nic* nic, const unsigned char* buffer, size_t size)
+{
+	struct e1000* dev = (struct e1000*) nic->dev->dev_data;
+	uint32_t tx_current = e1000_read32(dev, E1000_REG_TDTAIL) % E1000_NUM_TX_DESCS;
+
+	printk("E1000: Tx, current %i\n", tx_current);
+
+	char* tx_buffer = dev->tx_buffers[tx_current];
+	memcpy(tx_buffer, buffer, size);
+
+	struct e1000_tx_desc* desc = &dev->tx_table[tx_current];
+	desc->length = size;
+	desc->status = 0;
+	desc->cmd = CMD_EOP | CMD_IFCS | CMD_RS;
+
+	e1000_write32(dev, E1000_REG_TDTAIL, (tx_current + 1) % E1000_NUM_TX_DESCS);
+
+	while (desc->status == 0)
+		continue;
+
+	return 0;
+}
+
+void e1000_rx(struct e1000* dev)
+{
+	while (1)
+	{
+		uint32_t rx_current = (e1000_read32(dev, E1000_REG_RDTAIL) + 1) % E1000_NUM_RX_DESCS;
+
+		struct e1000_rx_desc* desc = &dev->rx_table[rx_current];
+
+		if (!(desc->status & 1))
+			break;
+
+		size_t payload_len = desc->length;
+		char* rx_buffer = dev->rx_buffers[rx_current];
+
+		// Увеличить счетчики статистики
+		dev->dev->nic->stats.rx_packets++;
+        dev->dev->nic->stats.rx_bytes += payload_len;
+
+		// Собрать и обработать пакет в ядре
+		struct net_buffer* nb = new_net_buffer(rx_buffer, payload_len, dev->nic);
+        net_buffer_acquire(nb);
+        eth_handle_frame(nb);
+        net_buffer_free(nb);
+
+		desc->status = 0;
+		e1000_write32(dev, E1000_REG_RDTAIL, rx_current);
+	}
+}
+
 void e1000_irq_handler(void* regs, struct e1000* dev) 
 {
 	uint32_t status = e1000_read32(dev, E1000_REG_ICR);
 	e1000_write32(dev, E1000_REG_ICR, status);
 
-	printk("E1000: IRQ Handled! %i\n", status);
+	//printk("E1000: IRQ Handled! %i\n", status);
 
 	if (status & ICR_LSC)
 	{
 	}
 
-	if (status & ICR_RXT0) 
+	if (status & (ICR_RxQ0 | ICR_RXT0)) 
 	{
+		e1000_rx(dev);
 	}
 }
 
