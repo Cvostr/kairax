@@ -43,7 +43,9 @@ gcc $GCC_ARGS $x64_SRC/memory/kernel_vmm.c -o ./bin/kernel_vmm.o
 gcc $GCC_ARGS $x64_SRC/memory/iomem.c -o ./bin/iomem.o
 gcc $GCC_ARGS $x64_SRC/dev/cmos/cmos.c -o ./bin/cmos.o
 gcc $GCC_ARGS $x64_SRC/dev/hpet/hpet.c -o ./bin/hpet.o
-gcc $GCC_ARGS $x64_SRC/dev/keyboard/int_keyboard.c -o ./bin/int_keyboard.o
+gcc $GCC_ARGS $x64_SRC/dev/input/ps2.c -o ./bin/ps2.o
+gcc $GCC_ARGS $x64_SRC/dev/input/ps2_kbd.c -o ./bin/ps2_kbd.o
+gcc $GCC_ARGS $x64_SRC/dev/input/ps2_mouse.c -o ./bin/ps2_mouse.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o

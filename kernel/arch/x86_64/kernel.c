@@ -4,7 +4,7 @@
 #include "interrupts/idt.h"
 #include "interrupts/pic.h"
 #include "interrupts/handle/handler.h"
-#include "dev/keyboard/int_keyboard.h"
+#include "dev/input/ps2.h"
 #include "dev/bus/pci/pci.h"
 
 #include "drivers/storage/ahci/ahci.h"

@@ -42,10 +42,6 @@
 #define PS2_KEYBOARD        1
 #define PS2_MOUSE           2
 
-// PS2 Keyboard команды
-#define PS2_KBD_SET_LEDS            0xED
-#define PS2_KBD_SET_SCAN_CODE_SET   0xF0
-
 int ps2_wait_input();
 int ps2_cmd(uint8_t cmd);
 void ps2_cmd1(uint8_t cmd, uint8_t arg);
@@ -57,6 +53,14 @@ int ps2_has_port2();
 
 void init_ps2();
 uint8_t keycode_ps2_to_kairax(uint8_t keycode_ps2, uint8_t *pState);
-void ps2_device_irq_handler(interrupt_frame_t* frame, void* data);
+void ps2_device_setup(int portid, int type);
+
+// Клавиатура
+void ps2_kbd_irq_handler();
+void ps2_kbd_setup(int portid);
+
+// Мышь
+void ps2_mouse_irq_handler();
+void ps2_mouse_setup(int portid);
 
 #endif

@@ -1,5 +1,4 @@
 #include "bootshell.h"
-#include "dev/keyboard/int_keyboard.h"
 #include "bootshell_cmdproc.h"
 #include "stdio.h"
 #include "drivers/video/video.h"
