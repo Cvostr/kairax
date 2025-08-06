@@ -73,9 +73,11 @@
 #define KRXK_SCRLOCK 67
 #define KRXK_BSLASH  68   
 #define KRXK_PLUS    69   
-#define KRXK_SEMICOLON    70   
+#define KRXK_SEMICOLON      70   
+#define KRXK_BACK_TICK      71  
+#define KRXK_QUOTES         73  
 
-#define RKXK_OEM_1  71
+#define RKXK_OEM_1  74
 
 
 #endif
