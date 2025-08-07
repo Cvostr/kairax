@@ -75,7 +75,7 @@ short hid_kbd_bindings[256] = {
     [0x2B] = KRXK_TAB,
     [0x2C] = KRXK_SPACE,
     [0x2D] = KRXK_MINUS,
-    [0x2E] = KRXK_PLUS,
+    [0x2E] = KRXK_EQUAL,
 
     [0x31] = KRXK_BSLASH,
 
@@ -84,7 +84,21 @@ short hid_kbd_bindings[256] = {
     [0x36] = KRXK_COMMA,
     [0x37] = KRXK_DOT,
     [0x38] = KRXK_SLASH,
-    [0x39] = KRXK_CAPS
+    [0x39] = KRXK_CAPS,
+
+    [0x47] = KRXK_SCRLOCK,
+
+    [0x49] = KRXK_INSERT,
+    [0x4A] = KRXK_HOME,
+    [0x4b] = KRXK_PAGEUP,
+    [0x4c] = KRXK_DEL,
+    [0x4d] = KRXK_END,
+    [0x4e] = KRXK_PAGEDOWN,
+    [0x4F] = KRXK_RIGHT,
+    [0x50] = KRXK_LEFT,
+    [0x51] = KRXK_DOWN,
+    [0x52] = KRXK_UP,
+    [0x53] = KRXK_NUMLOCK
 };
 
 struct usb_device_id usb_hid_kbd_ids[] = {

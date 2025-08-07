@@ -10,6 +10,15 @@
 int ps2kbd_tag_E0 = 0;
 int ps2kbd_tag_F0 = 0;
 
+uint8_t kbd_set2_ext_mappings[256] = {
+    [0x11] = KRXK_RALT,
+    [0x6B] = KRXK_LEFT,
+    [0x71] = KRXK_DEL,
+    [0x72] = KRXK_DOWN,
+    [0x74] = KRXK_RIGHT,
+    [0x75] = KRXK_UP,
+};
+
 uint8_t kbd_set2_mappings[256] = {
     [0x01] = KRXK_F9,
     [0x03] = KRXK_F5,
@@ -67,10 +76,10 @@ uint8_t kbd_set2_mappings[256] = {
     [0x4B] = KRXK_L,
     [0x4C] = KRXK_SEMICOLON,
     [0x4D] = KRXK_P,
-    //[0x4E] = KRXK_L,  '-'
+    [0x4E] = KRXK_MINUS,
     [0x52] = KRXK_QUOTES,
     //[0x54] = KRXK_P,  [
-    //[0x55] = KRXK_,   =
+    [0x55] = KRXK_EQUAL,
     [0x58] = KRXK_CAPS,
     [0x59] = KRXK_RSHIFT,
     [0x5A] = KRXK_ENTER,
@@ -78,10 +87,16 @@ uint8_t kbd_set2_mappings[256] = {
     [0x5D] = KRXK_BSLASH,
     [0x66] = KRXK_BKSP,
 
+    [0x69] = KRXK_END,
+
+    [0x70] = KRXK_INSERT,
 
     [0x76] = KRXK_ESCAPE,
+    [0x77] = KRXK_NUMLOCK,
 
     [0x78] = KRXK_F11,
+
+    [0x7E] = KRXK_SCRLOCK,
 
     [0x83] = KRXK_F7
 
@@ -111,7 +126,7 @@ void ps2_kbd_irq_handler()
     else
     {
         uint8_t action = ps2kbd_tag_F0 == 0 ? KRXK_PRESSED : KRXK_RELEASED;
-        uint8_t* keymap = ps2kbd_tag_E0 == 0 ? kbd_set2_mappings : NULL;
+        uint8_t* keymap = ps2kbd_tag_E0 == 0 ? kbd_set2_mappings : kbd_set2_ext_mappings;
 
         uint8_t keycode_krx = keymap[keycode_ps2];
     

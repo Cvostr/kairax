@@ -72,12 +72,24 @@
 #define KRXK_NUMLOCK 66
 #define KRXK_SCRLOCK 67
 #define KRXK_BSLASH  68   
-#define KRXK_PLUS    69   
+#define KRXK_EQUAL   69   
 #define KRXK_SEMICOLON      70   
 #define KRXK_BACK_TICK      71  
 #define KRXK_QUOTES         73  
 
-#define RKXK_OEM_1  74
+#define KRXK_UP     74
+#define KRXK_DOWN   75
+#define KRXK_LEFT   76
+#define KRXK_RIGHT  77
+
+#define KRXK_INSERT 78
+#define KRXK_END    79
+#define KRXK_HOME   80
+
+#define KRXK_PAGEUP     81
+#define KRXK_PAGEDOWN   82
+
+#define RKXK_OEM_1  83
 
 
 #endif

@@ -31,7 +31,6 @@ void kterm_process_start()
 	process_add_to_list((struct process*) kterm_thr);
 }
 
-char keyboard_get_key_ascii(char keycode);
 void kterm_tty_master_read_routine(struct terminal_session* session);
 
 struct terminal_session* new_kterm_session(int create_console) 
@@ -123,10 +122,14 @@ void kterm_main()
 				case KRXK_RCTRL:
 					current_session->ctrl_hold = (state == 0);
 					break;
+				case KRXK_LSHIFT:
+					current_session->shift_hold = (state == 0);
+					break;
 
 				default:
-					if (state == 0) {
-						char symbol = keyboard_get_key_ascii(keycode);
+					if (state == 0) 
+					{
+						char symbol = keyboard_get_key_ascii(current_session->shift_hold, keycode);
 
 						if (current_session->ctrl_hold) {
 							char chr = 0;
@@ -156,9 +159,53 @@ void kterm_main()
 	}
 }
 
-char keyboard_get_key_ascii(char keycode)
+char keyboard_get_key_ascii(int shifted, char keycode)
 {
-	switch(keycode) {
+	if (shifted) {
+		switch (keycode) {
+		case KRXK_1:
+			return '!';
+		case KRXK_2:
+			return '@';
+		case KRXK_3:
+			return '#';
+		case KRXK_4:
+			return '$';
+		case KRXK_5:
+			return '%';
+		case KRXK_6:
+			return '^';
+		case KRXK_7:
+			return '&';
+		case KRXK_8:
+			return '*';
+		case KRXK_9:
+			return '(';
+		case KRXK_0:
+			return ')';
+		case KRXK_DOT:
+			return '>';
+		case KRXK_EQUAL:
+			return '+';
+		case KRXK_MINUS:
+			return '_';
+		case KRXK_SEMICOLON:
+			return ':';
+		case KRXK_SLASH:
+			return '?';
+		case KRXK_BSLASH:
+			return '|';
+		default:
+			return keyboard_get_key_ascii_normal(keycode);
+		}
+	}
+
+	return keyboard_get_key_ascii_normal(keycode);
+}
+
+char keyboard_get_key_ascii_normal(char keycode)
+{
+	switch (keycode) {
     case KRXK_Q:
         return 'q';
     case KRXK_W:
@@ -231,7 +278,7 @@ char keyboard_get_key_ascii(char keycode)
         return '9';
     case KRXK_0:
         return '0';
-	case KRXK_PLUS:
+	case KRXK_EQUAL:
 		return '=';
     case KRXK_MINUS:
         return '-';
@@ -243,10 +290,14 @@ char keyboard_get_key_ascii(char keycode)
       	return ' ';
     case KRXK_SLASH:
       	return '/';
+	case KRXK_BSLASH:
+      	return '\\';
     case KRXK_DOT:
       	return '.';
 	case KRXK_SEMICOLON:
 		return ';';
+	case KRXK_QUOTES:
+		return '\'';
       break;
     default:
         //if (keycode != 0)

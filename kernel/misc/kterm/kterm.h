@@ -20,6 +20,7 @@ struct terminal_session {
 	struct process*	proc;
 	struct vgaconsole* console;
 	int ctrl_hold;
+	int shift_hold;
 
 	char buffer[KTERM_SESSION_BUFFER_SIZE];
 	int buffer_size;
@@ -30,6 +31,9 @@ struct terminal_session {
 
 #define ETX 3
 #define FS  28
+
+char keyboard_get_key_ascii(int shifted, char keycode);
+char keyboard_get_key_ascii_normal(char keycode);
 
 void kterm_process_start();
 void kterm_main();

@@ -106,7 +106,7 @@ uint8_t kbd_codeset1_to_kairax(uint8_t keycode_ps2, uint8_t *pState)
         case 0x0C:
             keycode = KRXK_MINUS;
             break;
-        DEFINE_KEY(0x0D, KRXK_PLUS)
+        DEFINE_KEY(0x0D, KRXK_EQUAL)
         DEFINE_KEY(0x0E, KRXK_BKSP)
         DEFINE_KEY(0x0F, KRXK_TAB)
         DEFINE_KEY(0x10, KRXK_Q)       
