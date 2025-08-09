@@ -22,6 +22,10 @@ int main(int argc, char** argv)
     printf("Load rtl8139 module\n");
     char* modctl_args[3] = {"modctl", "/rtl8139.ko", 0};
     printf("Status: %i\n", exec_args("modctl", modctl_args));
+
+    printf("Load E1000 module\n");
+    char* modctl1_args[3] = {"modctl", "/e1000.ko", 0};
+    printf("Status: %i\n", exec_args("modctl", modctl1_args));
     
     printf("Setting IPv4\n");
     char* netctl_args[5] = {"netctl", "eth0", "setip4", "10.0.2.15", 0};

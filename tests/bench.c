@@ -4,10 +4,12 @@
 #include "stdint.h"
 #include "time.h"
 #include "syscalls.h"
+#include "math.h"
 
 void proc()
 {
     double a = 1.234;
+    double b = 0;
     while (a < 10000002)
     {
         a *= 1.0001;
@@ -19,6 +21,12 @@ void proc()
         a *= a;
         syscall_get_ticks_count();
     }
+
+    for (int i = 0; i < 10000000; i ++)
+    {
+        b *= sin(a);
+        b -= cos(b);
+    } 
 }
 
 void thr()

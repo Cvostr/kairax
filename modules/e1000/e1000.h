@@ -2,6 +2,7 @@
 #define _E1000_H
 
 #include "kairax/types.h"
+#include "proc/tasklet.h"
 
 #define INTEL_PCIID     0x8086
 
@@ -104,6 +105,8 @@ struct e1000 {
     uintptr_t tx_table_phys;
     struct e1000_tx_desc* tx_table;
     void** tx_buffers;
+
+    struct tasklet rx_tasklet;
 };
 
 int module_init(void);

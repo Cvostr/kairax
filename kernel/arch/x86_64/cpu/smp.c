@@ -66,7 +66,13 @@ void ap_init()
     // Включение расширений FPU
     fpu_init();
 
+    // Создать объект idle потока
     curr_cpu_local->idle_thread = create_idle_thread();
+
+    // Создать объект списка тасклетов на выполнение
+    curr_cpu_local->scheduled_tasklets = new_tasklet_list();
+
+    create_tasklet_thread();
 
     // Установить таблицу дескрипторов прерываний
     load_idt();
@@ -172,6 +178,7 @@ int smp_init()
         // Создать GDT для ядра
         gdt_create(&curr_cpu_local->gdt, &curr_cpu_local->gdt_size, &curr_cpu_local->tss);
 
+        // Создать объект очереди задач
         curr_cpu_local->wq = kmalloc(sizeof(struct sched_wq));
         memset(curr_cpu_local->wq, 0, sizeof(struct sched_wq));
 
@@ -189,7 +196,13 @@ int smp_init()
             cpu_set_kernel_gs_base(curr_cpu_local);
             asm volatile("swapgs");
 
+            // Создать объект idle потока
             curr_cpu_local->idle_thread = create_idle_thread();
+
+            // Создать объект списка тасклетов на выполнение
+            curr_cpu_local->scheduled_tasklets = new_tasklet_list();
+
+            create_tasklet_thread();
 
             if (lapic_timer_calibrate(TIMER_FREQUENCY) != 0) {
                 rc = -1;

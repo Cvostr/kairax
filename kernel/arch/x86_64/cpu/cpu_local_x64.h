@@ -5,6 +5,7 @@
 #include "proc/thread.h"
 #include "mem/paging.h"
 #include "proc/thread_scheduler.h"
+#include "proc/tasklet.h"
 
 struct cpu_local_x64 {
     // Указатели на стек пользователя и ядра. НЕ ПЕРЕМЕЩАТЬ!!!
@@ -23,6 +24,7 @@ struct cpu_local_x64 {
     struct sched_wq* wq;
     struct thread* current_thread;
     struct thread* idle_thread;
+    struct tasklet_list* scheduled_tasklets;
 
     struct thread* migration_thread;
     spinlock_t migration_lock;

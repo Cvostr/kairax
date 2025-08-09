@@ -53,6 +53,7 @@ gcc $GCC_ARGS $x64_SRC/dev/pci.c -o ./bin/pci_x64.o
 
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler_x64.o
+gcc $GCC_ARGS $x64_SRC/proc/tasklet_x64.c -o ./bin/tasklet_x64.o
 
 #raxlib
 gcc $GCC_ARGS $KAIRAX_PATH/list/list.c -o ./bin/list.o
@@ -139,6 +140,7 @@ gcc $GCC_ARGS proc/syscalls/syscall_sysinfo.c -o ./bin/syscall_sysinfo.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
+gcc $GCC_ARGS proc/tasklet.c -o ./bin/tasklet.o
 
 #generic net
 gcc $GCC_ARGS net/net.c -o ./bin/net.o

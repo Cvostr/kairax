@@ -1,5 +1,4 @@
 #include "proc/syscalls.h"
-#include "cpu/cpu_local_x64.h"
 #include "proc/process.h"
 #include "mem/kheap.h"
 #include "mem/pmm.h"
@@ -7,6 +6,7 @@
 #include "string.h"
 
 // X86
+#include "cpu/cpu_local_x64.h"
 #include "proc/x64_context.h"
 //
 

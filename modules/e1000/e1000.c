@@ -14,6 +14,8 @@
 #define E1000_TX_BUF_SZ		8192
 #define E1000_RX_BUF_SZ		8192
 
+#define LOG_DEBUG_MAC
+
 int e1000_device_probe(struct device *dev) 
 {
 	struct e1000* e1000_dev = kmalloc(sizeof(struct e1000));
@@ -39,6 +41,7 @@ int e1000_device_probe(struct device *dev)
 		return -1;
 	}
 
+#ifdef LOG_DEBUG_MAC
 	printk ("E1000: MAC %x:%x:%x:%x:%x:%x\n", 
 		e1000_dev->mac[0], 
 		e1000_dev->mac[1],
@@ -46,6 +49,7 @@ int e1000_device_probe(struct device *dev)
 		e1000_dev->mac[3],
 		e1000_dev->mac[4],
 		e1000_dev->mac[5]);
+#endif
 
 	rc = e1000_init_rx(e1000_dev);
 	printk("E1000: Rx initialized\n");
@@ -177,12 +181,15 @@ int e1000_init_rx(struct e1000* dev)
 	e1000_write32(dev, E1000_REG_RDBALO, dev->rx_table_phys & UINT32_MAX);
 	// Записать количество
 	e1000_write32(dev, E1000_REG_RDLEN, E1000_NUM_RX_DESCS * sizeof(struct e1000_rx_desc));
-
+	// Записать позиции головы и хвоста
 	e1000_write32(dev, E1000_REG_RDHEAD, 0);
 	e1000_write32(dev, E1000_REG_RDTAIL, E1000_NUM_RX_DESCS - 1);
-
+	// Включить
 	e1000_write32(dev, E1000_REG_RCTL, 
 		RCTL_EN | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_8192);
+
+	// Инициализиовать тасклет
+	tasklet_init(&dev->rx_tasklet, e1000_rx, dev);
 
 	return 0;
 }
@@ -246,7 +253,7 @@ int e1000_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 	struct e1000* dev = (struct e1000*) nic->dev->dev_data;
 	uint32_t tx_current = e1000_read32(dev, E1000_REG_TDTAIL) % E1000_NUM_TX_DESCS;
 
-	printk("E1000: Tx, current %i\n", tx_current);
+	//printk("E1000: Tx, current %i\n", tx_current);
 
 	char* tx_buffer = dev->tx_buffers[tx_current];
 	memcpy(tx_buffer, buffer, size);
@@ -275,6 +282,8 @@ void e1000_rx(struct e1000* dev)
 		if (!(desc->status & 1))
 			break;
 
+		//printk("E1000: Rx, current %i\n", rx_current);
+
 		size_t payload_len = desc->length;
 		char* rx_buffer = dev->rx_buffers[rx_current];
 
@@ -289,6 +298,8 @@ void e1000_rx(struct e1000* dev)
         net_buffer_free(nb);
 
 		desc->status = 0;
+
+		// Запись смещения
 		e1000_write32(dev, E1000_REG_RDTAIL, rx_current);
 	}
 }
@@ -303,10 +314,13 @@ void e1000_irq_handler(void* regs, struct e1000* dev)
 	if (status & ICR_LSC)
 	{
 	}
-
-	if (status & (ICR_RxQ0 | ICR_RXT0)) 
+	else if (status & (ICR_RxQ0 | ICR_RXT0)) 
 	{
-		e1000_rx(dev);
+		tasklet_schedule(&dev->rx_tasklet);
+	}
+	else
+	{
+		printk("E1000: IRQ status %i\n", status);
 	}
 }
 

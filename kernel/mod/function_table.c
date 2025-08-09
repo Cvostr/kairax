@@ -16,6 +16,7 @@
 #include "dev/type/net_device.h"
 #include "net/net_buffer.h"
 #include "dev/type/audio_endpoint.h"
+#include "proc/tasklet.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -64,6 +65,8 @@ struct kernel_function functions[] = {
     KFUNCTION(new_audio_endpoint),
     KFUNCTION(register_audio_endpoint),
     KFUNCTION(audio_endpoint_gather_samples),
+    KFUNCTION(tasklet_init),
+    KFUNCTION(tasklet_schedule),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),
