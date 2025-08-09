@@ -256,10 +256,56 @@ int ahci_port_reset(ahci_port_t* port)
 	return 1;
 }
 
+int ahci_port_handle_error(ahci_port_t *port, uint32_t is)
+{
+
+	if (is & PORT_INT_TFE) 
+	{
+		printk("Task File Error\n");
+	}
+
+	if (is & PORT_INT_IF) 
+	{
+		printk("Interface Fatal Error\n");
+	}
+
+	if (is & PORT_INT_INF) 
+	{
+		printk("Interface Non Fatal Error\n");
+	}
+
+	if (is & PORT_INT_IPM) 
+	{
+		printk("Incorrect Port Multiplier Status\n");
+	}
+
+	if (is & PORT_INT_PRC) 
+	{
+		printk("PhyReady Change\n");
+	}
+
+	if (is & PORT_INT_PC) 
+	{
+		printk("Port Connect Change\n");
+	}
+}
+
 int ahci_port_interrupt(ahci_port_t *port)
 {
 	uint32_t is = port->port_reg->is;
 	port->port_reg->is = is;
+
+/*
+	printk("AHCI: port interrupt is=%i\n", is);
+
+	if (is & PORT_INT_ERROR)
+	{
+		printk("AHCI: port error is=%i\n", is);
+		ahci_port_handle_error(port, is);
+	}
+
+	uint32_t ci = port->port_reg->ci;
+*/
 
 	uint32_t serr = port->port_reg->serr;
 	port->port_reg->serr = serr;
@@ -426,8 +472,33 @@ uint32_t parse_identity_buffer(char* buffer,
 
 int ahci_port_read_lba(struct device *device, uint64_t start, uint64_t count, char *buf)
 {
-	buf = (char*) vmm_get_physical_address(buf);
-	return ahci_port_read_lba48(device->dev_data, start, (uint32_t)count, (uint16_t*) buf);
+	int rc = 0;
+
+	ahci_port_t* ahci_port = device->dev_data;
+	size_t reqd_bytes = count * 512;
+
+	acquire_spinlock(&ahci_port->read_lock);
+
+	if (reqd_bytes > ahci_port->read_buffer_size)
+	{
+		if ((ahci_port->read_buffer_phys != 0) && (ahci_port->read_buffer != 0))
+		{
+			unmap_io_region(ahci_port->read_buffer, ahci_port->read_buffer_pages * PAGE_SIZE);
+			pmm_free_pages(ahci_port->read_buffer_phys, ahci_port->read_buffer_pages);
+		}
+
+		ahci_port->read_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &ahci_port->read_buffer_pages);
+		ahci_port->read_buffer = map_io_region(ahci_port->read_buffer_phys, ahci_port->read_buffer_pages * PAGE_SIZE);
+		ahci_port->read_buffer_size = reqd_bytes;
+	} 
+
+	rc = ahci_port_read_lba48(ahci_port, start, (uint32_t) count, (uint8_t*) ahci_port->read_buffer_phys);
+
+	release_spinlock(&ahci_port->read_lock);
+
+	memcpy(buf, ahci_port->read_buffer, reqd_bytes);
+
+	return rc;
 }
 
 int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint8_t *buf)
@@ -524,9 +595,35 @@ int ahci_port_read_lba48(ahci_port_t *port, uint64_t start, uint32_t count, uint
 }
 
 int ahci_port_write_lba(struct device *device, uint64_t start, uint64_t count, const char *buf)
-{
-	buf = (char*) vmm_get_physical_address(buf);
-	return ahci_port_write_lba48(device->dev_data, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t)count, (uint8_t*) buf);
+{	
+	int rc = 0;
+
+	ahci_port_t* ahci_port = device->dev_data;
+	size_t reqd_bytes = count * 512;
+
+	acquire_spinlock(&ahci_port->write_lock);
+
+	if (reqd_bytes > ahci_port->write_buffer_size)
+	{
+		if ((ahci_port->write_buffer_phys != 0) && (ahci_port->write_buffer != 0))
+		{
+			unmap_io_region(ahci_port->write_buffer, ahci_port->write_buffer_pages * PAGE_SIZE);
+			pmm_free_pages(ahci_port->write_buffer_phys, ahci_port->write_buffer_pages);
+		}
+
+		ahci_port->write_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &ahci_port->write_buffer_pages);
+		ahci_port->write_buffer = map_io_region(ahci_port->write_buffer_phys, ahci_port->write_buffer_pages * PAGE_SIZE);
+		ahci_port->write_buffer_size = reqd_bytes;
+	} 
+
+	// Записать в промежуточный буфер
+	memcpy(ahci_port->write_buffer, buf, reqd_bytes);
+
+	// Запись на устройстве
+	rc = ahci_port_write_lba48(ahci_port, (uint32_t)start, (uint32_t)(start >> 32), (uint32_t) count, (uint8_t*) ahci_port->write_buffer_phys);
+
+	release_spinlock(&ahci_port->write_lock);
+	return rc;
 }
 
 int ahci_port_write_lba48(ahci_port_t *port, uint32_t startl, uint32_t starth, uint32_t count, uint8_t *buf)

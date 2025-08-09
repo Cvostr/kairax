@@ -29,7 +29,7 @@
 #define ATA_IDENT_COMMANDSETS  164
 #define ATA_IDENT_MAX_LBA_EXT  200
 
-typedef struct PACKED {
+typedef struct {
     uint32_t            implemented;
     uint32_t            present;
     uint32_t            index;
@@ -42,6 +42,20 @@ typedef struct PACKED {
     HBA_COMMAND*        command_list;
     HBA_COMMAND*        command_list_virt;
     fis_t*              fis;
+    
+    // reading buffer
+    size_t read_buffer_size;
+    size_t read_buffer_pages;
+    uintptr_t read_buffer_phys;
+    uintptr_t read_buffer;
+    spinlock_t  read_lock;
+
+    // writing buffer
+    size_t write_buffer_size;
+    size_t write_buffer_pages;
+    uintptr_t write_buffer_phys;
+    uintptr_t write_buffer;
+    spinlock_t  write_lock;
 } ahci_port_t;
 
 struct device;
