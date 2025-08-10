@@ -10,19 +10,30 @@
 
 //#define IPV4_LOGGING
 
-struct ip4_protocol* protocols[20] = {0,};
+#define IPV4_MAX_PROTOCOLS 20
+struct ip4_protocol* protocols[IPV4_MAX_PROTOCOLS] = {0,};
 
-void ip4_register_protocol(struct ip4_protocol* protocol, int proto)
+int ip4_register_protocol(struct ip4_protocol* protocol, int proto)
 {
+	if (proto >= IPV4_MAX_PROTOCOLS)
+	{
+		return -EINVAL;
+	}
+
 	protocols[proto] = protocol;
+
+	return 0;
 }
 
 uint16_t ipv4_calculate_checksum(void* data, size_t len)
 {
     uint32_t sum = 0;
-	uint16_t* s = (uint16_t*) kmalloc (len);
-	memcpy(s, data, len);
-	((struct ip4_packet*) (s))->header_checksum = 0;
+	struct ip4_packet* pck = ((struct ip4_packet*) (data));
+	uint16_t* s = data;
+	// Сохраним контрольную сумму
+	uint16_t saved_checksum = pck->header_checksum;
+	// Для вычисления настоящей - временно обнулим поле в пакете
+	pck->header_checksum = 0;
 
 	for (int i = 0; i < len / 2; ++i) {
 		sum += ntohs(s[i]);
@@ -31,7 +42,7 @@ uint16_t ipv4_calculate_checksum(void* data, size_t len)
 		}
 	}
 
-	kfree(s);
+	pck->header_checksum = saved_checksum;
 
 	return ~(sum & 0xFFFF) & 0xFFFF;
 }

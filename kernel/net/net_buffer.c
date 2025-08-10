@@ -60,6 +60,11 @@ size_t net_buffer_get_remain_len(struct net_buffer* nbuffer)
     return nbuffer->cur_len;
 }
 
+size_t net_buffer_get_payload_remain_len(struct net_buffer* nbuffer)
+{
+    return nbuffer->payload_size - nbuffer->payload_read_offset;
+}
+
 void net_buffer_seek_end(struct net_buffer* nbuffer)
 {
     nbuffer->cursor += nbuffer->buffer_len;

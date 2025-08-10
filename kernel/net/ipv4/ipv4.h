@@ -66,7 +66,7 @@ uint16_t ip4_calculate_checksum(void* data, size_t len);
 
 void ip4_handle_packet(struct net_buffer* nbuffer);
 
-void ip4_register_protocol(struct ip4_protocol* protocol, int proto);
+int ip4_register_protocol(struct ip4_protocol* protocol, int proto);
 
 int ip4_send_ttl(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot, uint8_t ttl);
 int ip4_send(struct net_buffer* nbuffer, struct route4* route, uint32_t dest, uint8_t prot);

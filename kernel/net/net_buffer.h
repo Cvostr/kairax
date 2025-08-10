@@ -40,6 +40,7 @@ struct net_buffer* new_net_buffer(const unsigned char* data, size_t len, struct 
 struct net_buffer* new_net_buffer_out(size_t len);
 
 size_t net_buffer_get_remain_len(struct net_buffer* nbuffer);
+size_t net_buffer_get_payload_remain_len(struct net_buffer* nbuffer);
 void net_buffer_seek_end(struct net_buffer* nbuffer);
 void net_buffer_acquire(struct net_buffer* nbuffer);
 void net_buffer_free(struct net_buffer* nbuffer);
