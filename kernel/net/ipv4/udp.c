@@ -154,25 +154,44 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     // TODO: проверить что сокет точно udp ip4
 
+    // Получение внутренних UDP данных сокета
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
-    acquire_spinlock(&sock_data->rx_queue_lock);
 
-    while (sock_data->rx_queue.head == NULL) {
-        release_spinlock(&sock_data->rx_queue_lock);
-        scheduler_sleep_on(&sock_data->blk);
-        acquire_spinlock(&sock_data->rx_queue_lock);
+    // Есть ли пакеты в очереди?
+    struct net_buffer* nbuffer = list_head(&sock_data->rx_queue);
+
+    if (nbuffer == NULL) 
+    {
+        // неблокирующее чтение
+        if ((flags & MSG_DONTWAIT) == MSG_DONTWAIT)
+        {
+            return -EAGAIN;
+        }
+
+        if (nbuffer == NULL) 
+        {
+            // Ожидание пакета
+            scheduler_sleep_on(&sock_data->blk);
+
+            // Пробуем вытащить пакет
+            acquire_spinlock(&sock_data->rx_queue_lock);
+            nbuffer = list_dequeue(&sock_data->rx_queue);
+            release_spinlock(&sock_data->rx_queue_lock);
+
+            if (nbuffer == NULL)
+            {
+                // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
+                return -EINTR;
+            }
+        }
     }
 
-    struct net_buffer* nbuffer = list_dequeue(&sock_data->rx_queue);
+    // Обрабатываем пакет
     struct udp_packet* udpp = (struct udp_packet*) nbuffer->transp_header;
     struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
-    release_spinlock(&sock_data->rx_queue_lock);
-
     // Чтение из net buffer в память процесса
-    len = MIN(len, nbuffer->payload_size);
-    memcpy(buf, nbuffer->payload, len);
-    net_buffer_shift(nbuffer, len);
+    len = net_buffer_read_payload_into(nbuffer, buf, len);
 
     // Освобождение буфера
     net_buffer_free(nbuffer);

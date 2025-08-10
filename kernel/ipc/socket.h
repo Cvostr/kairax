@@ -102,6 +102,7 @@ struct socket {
 
 #define IP_TOS		1
 #define IP_TTL		2
+#define IP_HDRINCL	3
 
 #define SHUT_RD 0
 #define SHUT_WR 1

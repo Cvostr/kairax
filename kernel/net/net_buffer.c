@@ -1,6 +1,7 @@
 #include "net_buffer.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "kairax/kstdlib.h"
 
 struct net_buffer* new_net_buffer(const unsigned char* data, size_t len, struct nic* nic)
 {
@@ -69,6 +70,20 @@ void net_buffer_shift(struct net_buffer* nbuffer, int offset)
 {
     nbuffer->cursor += offset;
     nbuffer->cur_len -= offset;
+}
+
+size_t net_buffer_read_payload_into(struct net_buffer* nbuffer, char* dst, size_t count)
+{
+    size_t payload_remaining = nbuffer->payload_size - nbuffer->payload_read_offset;
+    size_t readable = MIN(count, payload_remaining);
+    unsigned char* current_payload = nbuffer->payload + nbuffer->payload_read_offset;
+
+    memcpy(dst, current_payload, readable);
+
+    nbuffer->payload_read_offset += readable;
+    net_buffer_shift(nbuffer, readable);
+
+    return readable;
 }
 
 void net_buffer_add_front(struct net_buffer* nbuffer, const void* data, size_t size)

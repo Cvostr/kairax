@@ -194,6 +194,14 @@ int sock_raw4_setsockopt_sol_IP(struct socket* sock, int optname, const void *op
             uint8_t val = *((uint8_t*) optval);
             sock_data->max_ttl = val;
             break;
+        case IP_TOS:
+            printk("raw: IP_TOS is currently unsupported\n");
+            // todo: реализовать
+            break;
+        case IP_HDRINCL:
+            printk("raw: IP_HDRINCL is currently unsupported\n");
+            // todo: реализовать
+            break;
     }
 
     return 0;

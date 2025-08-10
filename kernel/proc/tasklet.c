@@ -32,7 +32,10 @@ void tasklet_schedule_generic(struct tasklet_list* list, struct tasklet* tasklet
     tasklet->state = TASKLET_STATE_SCHED;
     // Следующее звено пока отсутствует
     tasklet->next = NULL;
+    // в указателе list->tail находится адрес на указатель next предыдущего тасклета
+    // поэтому разыменовываем и пишем туда адрес добавляемого
     *list->tail = tasklet;
+    // обновляем указатель list->tail адресом на указатель next нового тасклета
     list->tail = &tasklet->next;
 
     // Включаем прерывания, если были включены
@@ -55,28 +58,28 @@ struct tasklet_list* new_tasklet_list()
 void tasklet_list_execute(struct tasklet_list* list)
 {
     struct tasklet* next = NULL;
+    struct tasklet* cur = NULL;
 
     disable_interrupts();
+    // Начинаем с первого элемента
     next = list->head;
+    // Сброс списка (очистка)
     list->head = NULL;
     list->tail = &list->head; 
+    // Возвращаем прерывания
     enable_interrupts();
 
     while (next != NULL)
     {
-        struct tasklet* cur = next;
+        cur = next;
         next = next->next;
 
+        // Проверка статуса, и установка в RUNNING
         if (tasklet_trylock(cur) == TRUE)
         {
             cur->func(cur->data);
+            // Сброс статуса
             tasklet_unlock(cur);
         }
-
-        disable_interrupts();
-        cur->next = NULL;
-        *list->tail = cur;
-        list->tail = &cur->next;
-        enable_interrupts();
     }
 }

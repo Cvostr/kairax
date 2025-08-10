@@ -60,6 +60,7 @@ extern uint16_t htons (uint16_t hshort);
 
 #define IP_TOS		1
 #define IP_TTL		2
+#define IP_HDRINCL	3
 
 #ifdef __cplusplus
 }
