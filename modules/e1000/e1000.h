@@ -57,6 +57,8 @@
 
 // -----
 #define ICR_LSC             (1 << 2)
+#define ICR_RXSEQ           (1 << 3)
+#define ICR_RXDMT0          (1 << 4)
 #define ICR_RX0             (1 << 6)
 #define ICR_RXT0            (1 << 7)
 #define ICR_RxQ0	        (1 << 20)

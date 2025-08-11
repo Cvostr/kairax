@@ -8,8 +8,8 @@
 #include "kairax/string.h"
 #include "e1000.h"
 
-#define E1000_NUM_RX_DESCS 32
-#define E1000_NUM_TX_DESCS 32
+#define E1000_NUM_RX_DESCS 128
+#define E1000_NUM_TX_DESCS 64
 
 #define E1000_TX_BUF_SZ		8192
 #define E1000_RX_BUF_SZ		8192
@@ -70,7 +70,7 @@ int e1000_device_probe(struct device *dev)
 	pci_device_set_enable_interrupts(dev->pci_info, 1);
 
 	// Выбор маски прерываний
-	e1000_write32(e1000_dev, E1000_REG_IMASK, ICR_RXT0);
+	e1000_write32(e1000_dev, E1000_REG_IMASK, ICR_RXT0 | ICR_RXSEQ);
 	e1000_write32(e1000_dev, E1000_REG_ICR, 0xFFFFFFFF);
 
 	// Регистрация интерфейса в ядре
@@ -148,7 +148,18 @@ int e1000_get_mac(struct e1000* dev)
 		return 0;
 	} 
 
-	printk("E1000: Implement MAC without EEPROM\n");
+	printk("E1000: Getting MAC without EEPROM\n");
+
+	if (e1000_read32(dev, 0x5400) == 0)
+	{
+		printk("E1000: No mac address\n");
+		return 1;
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		dev->mac[i] = (uint8_t) e1000_read32(dev, 0x5400 + i * 8);
+	}
 
 	return 1;
 }
@@ -268,6 +279,10 @@ int e1000_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 	while (desc->status == 0)
 		continue;
 
+	// Увеличить счетчики статистики
+	dev->dev->nic->stats.tx_packets++;
+    dev->dev->nic->stats.tx_bytes += size;
+
 	return 0;
 }
 
@@ -284,19 +299,27 @@ void e1000_rx(struct e1000* dev)
 
 		//printk("E1000: Rx, current %i\n", rx_current);
 
+		if ((desc->errors & 0x97) != 0)
+		{
+			//printk("E1000: RX Error %i\n", desc->errors);
+			dev->dev->nic->stats.rx_errors += 1;
+			dev->dev->nic->stats.rx_dropped += 1;
+		}
+
 		size_t payload_len = desc->length;
 		char* rx_buffer = dev->rx_buffers[rx_current];
 
 		// Увеличить счетчики статистики
 		dev->dev->nic->stats.rx_packets++;
-        dev->dev->nic->stats.rx_bytes += payload_len;
+		dev->dev->nic->stats.rx_bytes += payload_len;
 
 		// Собрать и обработать пакет в ядре
 		struct net_buffer* nb = new_net_buffer(rx_buffer, payload_len, dev->nic);
-        net_buffer_acquire(nb);
-        eth_handle_frame(nb);
-        net_buffer_free(nb);
+		net_buffer_acquire(nb);
+		eth_handle_frame(nb);
+		net_buffer_free(nb);
 
+		desc->errors = 0;
 		desc->status = 0;
 
 		// Запись смещения
@@ -313,6 +336,15 @@ void e1000_irq_handler(void* regs, struct e1000* dev)
 
 	if (status & ICR_LSC)
 	{
+	}
+	else if (status & ICR_RX0)
+	{
+		dev->dev->nic->stats.rx_errors += 1;
+		dev->dev->nic->stats.rx_overruns += 1;
+	}
+	else if (status & ICR_RXSEQ)
+	{
+		printk("E1000: RXSEQ\n");
 	}
 	else if (status & (ICR_RxQ0 | ICR_RXT0)) 
 	{
