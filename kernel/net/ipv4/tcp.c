@@ -743,19 +743,18 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
         }
     }
 
-    size_t readable = MIN(len, rcv_buffer->payload_size);
+    // Считаем нагрузку из пакета
+    size_t readable = net_buffer_read_payload_into(rcv_buffer, buf, len);
 
-    memcpy(buf, rcv_buffer->cursor, readable);
-
-    net_buffer_shift(rcv_buffer, readable);
-    rcv_buffer->payload_size -= readable;
-
-    if (rcv_buffer->payload_size == 0)
+    // Остались ли данные в пакете?
+    if (net_buffer_get_payload_remain_len(rcv_buffer) == 0)
     {
+        // Не осталось - удаляем пакет из очереди
         acquire_spinlock(&sock_data->rx_queue_lock);
         list_remove(&sock_data->rx_queue, rcv_buffer);
         release_spinlock(&sock_data->rx_queue_lock);
 
+        // Уменьшаем ссылки
         net_buffer_free(rcv_buffer);
     }
 

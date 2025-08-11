@@ -157,8 +157,14 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     // Получение внутренних UDP данных сокета
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
 
-    // Есть ли пакеты в очереди?
-    struct net_buffer* nbuffer = list_head(&sock_data->rx_queue);
+    struct net_buffer* nbuffer = NULL;
+
+    // Попробуем вытащить пакет из очереди
+    acquire_spinlock(&sock_data->rx_queue_lock);
+    nbuffer = list_dequeue(&sock_data->rx_queue);
+    release_spinlock(&sock_data->rx_queue_lock);
+
+    list_dequeue(&sock_data->rx_queue);
 
     if (nbuffer == NULL) 
     {
