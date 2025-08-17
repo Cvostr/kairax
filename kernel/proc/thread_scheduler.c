@@ -275,7 +275,16 @@ struct thread* scheduler_get_next_runnable_thread()
         return wq->head;
     }
 
+    // Счетчик проверенных потоков
+    int checked_threads = 0;
+
     while (1) {
+
+        if (checked_threads == wq->size)
+        {
+            // Все потоки в очереди заблокированы, возвращаем IDLE задачу
+            return cpu_get_idle_thread();
+        }
 
         thread = thread->next;
 
@@ -284,6 +293,7 @@ struct thread* scheduler_get_next_runnable_thread()
         }
 
         if (thread->state != STATE_RUNNABLE) {
+            checked_threads++;
             continue;
         }
 

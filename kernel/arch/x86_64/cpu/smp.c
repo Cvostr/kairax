@@ -72,7 +72,7 @@ void ap_init()
     // Создать объект списка тасклетов на выполнение
     curr_cpu_local->scheduled_tasklets = new_tasklet_list();
 
-    create_tasklet_thread();
+    curr_cpu_local->tasklet_thread = create_tasklet_thread();
 
     // Установить таблицу дескрипторов прерываний
     load_idt();
@@ -202,7 +202,7 @@ int smp_init()
             // Создать объект списка тасклетов на выполнение
             curr_cpu_local->scheduled_tasklets = new_tasklet_list();
 
-            create_tasklet_thread();
+            curr_cpu_local->tasklet_thread = create_tasklet_thread();
 
             if (lapic_timer_calibrate(TIMER_FREQUENCY) != 0) {
                 rc = -1;

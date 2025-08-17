@@ -24,6 +24,7 @@ struct cpu_local_x64 {
     struct sched_wq* wq;
     struct thread* current_thread;
     struct thread* idle_thread;
+    struct thread* tasklet_thread;
     struct tasklet_list* scheduled_tasklets;
 
     struct thread* migration_thread;
@@ -85,6 +86,11 @@ static inline int cpu_get_id()
 static inline struct thread* cpu_get_idle_thread()
 {
     return this_core->idle_thread;
+}
+
+static inline struct thread* cpu_get_tasklet_thread()
+{
+    return this_core->tasklet_thread;
 }
 
 static inline struct sched_wq* cpu_get_wq()

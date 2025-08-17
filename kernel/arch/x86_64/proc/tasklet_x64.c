@@ -1,24 +1,42 @@
 #include "proc/tasklet.h"
 #include "proc/thread.h"
 #include "cpu/cpu_local_x64.h"
+#include "kairax/intctl.h"
 
 struct process *tasklet_process = NULL;
 
 void tasklet_schedule(struct tasklet* tasklet)
 {
+    struct thread* thread = cpu_get_tasklet_thread();
+    thread->state = STATE_RUNNABLE;
     tasklet_schedule_generic(this_core->scheduled_tasklets, tasklet);
 }
 
 void x64_tasklet_routine()
 {
+    struct thread* thread = cpu_get_current_thread();
     struct tasklet_list* scheduled = this_core->scheduled_tasklets;
+
     while (1)
     {
+        // Выполнить тасклеты
         tasklet_list_execute(scheduled);
+
+        // Выходим (и, вероятно, блокируемся)
+        disable_interrupts();
+
+        if (scheduled->head == NULL)
+        {
+            // Если задачи не появились, то блокируемся
+            thread->state = STATE_INTERRUPTIBLE_SLEEP;
+        }
+
+        // Переходим к другому потоку
+        scheduler_yield(TRUE);
     }
 }
 
-void create_tasklet_thread()
+void* create_tasklet_thread()
 {
     if (tasklet_process == NULL)
     {
@@ -34,4 +52,6 @@ void create_tasklet_thread()
     struct sched_wq* wq = this_core->wq;
 
     wq_add_thread(wq, thr);
+
+    return thr;
 }

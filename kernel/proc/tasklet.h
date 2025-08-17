@@ -37,6 +37,6 @@ void tasklet_schedule(struct tasklet* tasklet);
 void tasklet_schedule_generic(struct tasklet_list* list, struct tasklet* tasklet);
 struct tasklet_list* new_tasklet_list();
 void tasklet_list_execute(struct tasklet_list* list);
-void create_tasklet_thread();
+void* create_tasklet_thread();
 
 #endif
