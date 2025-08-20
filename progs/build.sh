@@ -105,3 +105,7 @@ cd ..
 cd readlink
 make
 cd ..
+
+cd nslookup
+make
+cd ..
