@@ -109,9 +109,12 @@ void balance()
     { 
         struct sched_wq* wq = cpu_get_wq();
         struct thread* last = wq->tail;
-        wq_remove_thread(wq, last);
-        last->cpu = index;
-        cpu_put_thread(index, last);
+        if (last->balance_forbidden == FALSE)
+        {
+            wq_remove_thread(wq, last);
+            last->cpu = index;
+            cpu_put_thread(index, last);
+        }
         //printk("balanced from %i to %i\n", id, index);
     }
 

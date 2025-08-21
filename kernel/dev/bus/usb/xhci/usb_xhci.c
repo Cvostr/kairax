@@ -437,11 +437,16 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 	{
 		case XHCI_TRB_PORT_STATUS_CHANGE_EVENT:
 			// По умолчанию для xhci номер порта начинается с 1
-			uint8_t port_id = event->port_status_change.port_id - 1;
+			uint8_t port_id = event->port_status_change.port_id;
+			if (port_id == 0)
+			{
+				printk("XHCI: Event on incorrect port ID %i\n", port_id);
+				return;
+			}
 #ifdef XHCI_LOG_PORT_STATUS_CHANGE
-			printk("XHCI: port (%i) status change event\n", port_id);
+			printk("XHCI: port (%i) status change event\n", port_id - 1);
 #endif
-			controller->ports[port_id].status_changed = 1;
+			controller->ports[port_id - 1].status_changed = 1;
 			controller->port_status_changed = 1;
 			break;
 		case XHCI_TRB_CMD_COMPLETION_EVENT:
@@ -1098,5 +1103,4 @@ struct pci_device_driver xhci_ctrl_driver = {
 void usb_init()
 {
 	register_pci_device_driver(&xhci_ctrl_driver);
-
 }

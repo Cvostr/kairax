@@ -44,6 +44,7 @@ struct thread {
     struct thread*      prev;
     struct thread*      next;
 
+    int                 balance_forbidden;
     uint32_t            cpu;
 #ifdef X86_64
     uint8_t*            fpu_context;

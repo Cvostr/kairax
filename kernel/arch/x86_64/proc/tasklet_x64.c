@@ -29,10 +29,13 @@ void x64_tasklet_routine()
         {
             // Если задачи не появились, то блокируемся
             thread->state = STATE_INTERRUPTIBLE_SLEEP;
+            // Переходим к другому потоку
+            scheduler_yield(TRUE);
+        }   
+        else 
+        {
+            enable_interrupts();
         }
-
-        // Переходим к другому потоку
-        scheduler_yield(TRUE);
     }
 }
 
@@ -48,6 +51,8 @@ void* create_tasklet_thread()
     }
 
     struct thread* thr = create_kthread(tasklet_process, x64_tasklet_routine, NULL);
+    // Запретить потоку переходить на другие ядра
+    thr->balance_forbidden = TRUE;
 
     struct sched_wq* wq = this_core->wq;
 

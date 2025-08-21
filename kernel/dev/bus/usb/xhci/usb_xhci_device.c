@@ -114,13 +114,16 @@ void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_
     ctrl_endpoint_ctx->endpoint_state = XHCI_ENDPOINT_STATE_DISABLED;
     ctrl_endpoint_ctx->endpoint_type = XHCI_ENDPOINT_TYPE_CONTROL;
     ctrl_endpoint_ctx->interval = 0;
+    ctrl_endpoint_ctx->max_primary_streams = 0;
+    ctrl_endpoint_ctx->max_burst_size = 0;
     ctrl_endpoint_ctx->error_count = 3;
     ctrl_endpoint_ctx->max_packet_size = max_packet_size;
     ctrl_endpoint_ctx->transfer_ring_dequeue_ptr = xhci_transfer_ring_get_cur_phys_ptr(dev->control_transfer_ring);
     ctrl_endpoint_ctx->dcs = dev->control_transfer_ring->cycle_bit;
     ctrl_endpoint_ctx->max_esit_payload_lo = 0;
     ctrl_endpoint_ctx->max_esit_payload_hi = 0;
-    ctrl_endpoint_ctx->average_trb_length = XHCI_CONTROL_EP_AVG_TRB_LEN;
+    //ctrl_endpoint_ctx->average_trb_length = XHCI_CONTROL_EP_AVG_TRB_LEN;
+    ctrl_endpoint_ctx->mult = 0;
 }
 
 int xhci_device_update_actual_max_packet_size(struct xhci_device* dev, uint32_t max_packet_size)
