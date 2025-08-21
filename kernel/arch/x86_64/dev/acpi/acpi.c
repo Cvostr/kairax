@@ -193,10 +193,12 @@ char* acpi_get_oem_str()
 
 int acpi_get_revision()
 {
-    if(acpi_rsdp.revision == 0)
+    if (acpi_rsdp.revision == 0)
         return 1;
-    else if(acpi_rsdp.revision == 2)
+    else if (acpi_rsdp.revision == 2)
         return 2;
+
+    return -1;
 }
 
 #define PMT_TIMER_RATE 3579545 // 3.57 MHz

@@ -5,6 +5,7 @@
 #include "../apic.h"
 #include "../ioapic.h"
 #include "kairax/signal.h"
+#include "kairax/string.h"
 
 typedef void (*interrupt_handler) (interrupt_frame_t*, void*);
 

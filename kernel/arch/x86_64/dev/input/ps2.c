@@ -222,8 +222,10 @@ void ps2_device_setup(int portid, int type)
     {
     case PS2_KEYBOARD:
         ps2_kbd_setup(portid);
+        break;
     case PS2_MOUSE:
         ps2_mouse_setup(portid);
+        break;
     default:
         break;
     }
@@ -232,12 +234,21 @@ void ps2_device_setup(int portid, int type)
 int ps2_check_acpi()
 {
     acpi_fadt_t* fadt = acpi_get_fadt();
+
+    // Если есть таблица FADT - выполняем проверку
+    // Иначе считаем, что контроллер i8042 есть по умолчанию
     if (fadt)
     {
         uint64_t fadt_len = fadt->header.length;
         uint64_t iapc_flag_end = offsetof(acpi_fadt_t, boot_architecture_flags) + sizeof(fadt->boot_architecture_flags);
 
-        //printk("Fadt len %i revision %i IAPC offset %i\n", fadt_len, fadt->header.revision, iapc_flag_end);
+        printk("Fadt len %i revision %i IAPC offset %i\n", fadt_len, fadt->header.revision, iapc_flag_end);
+
+        if (fadt->header.revision < 2)
+        {
+            // Если ACPI версии ниже 2, то считаем, что i8042 есть по умолчанию
+            return TRUE;
+        }
 
         // Если 
         // 1. Поле IA PC Boot Architecture Flags присутствует - Размер FADT больше либо равен его смещению
@@ -259,7 +270,7 @@ void init_ps2()
     int ports_availability[2] = {TRUE, FALSE};
 
     // Определим наличие PS/2 контроллера по ACPI
-#if 0
+#if 1
     rc = ps2_check_acpi();
     if (rc == FALSE)
     {
