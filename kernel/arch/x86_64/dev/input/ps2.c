@@ -126,7 +126,7 @@ int ps2_write_byte_and_wait(int portid, uint8_t data)
         rc = ps2_read_byte(&resp);
         if (rc != TRUE)
         {
-            printk("ps2_read_byte() failed\n");
+            printk("ps2_read_byte() failed on round %i port %i\n", i, portid);
             return -3;
         }
 
@@ -154,11 +154,17 @@ int ps2_reset_and_identity(int portid, int* type)
     uint8_t dummy;
     int rc;
     // Сброс устройства и self тест
-    ps2_write_byte_and_wait(portid, PS2_RESET);
+    rc = ps2_write_byte_and_wait(portid, PS2_RESET);
+    if (rc != 0)
+    {
+        printk("PS2: RESET error %i on port %i\n", -rc, portid);
+        return -1;
+    }
+    
     ps2_read_byte(&out);
     if (out != PS2_SELF_TEST_PASS)
     {
-        return -1;
+        return -2;
     }
     // Очистка Output buffer
     while (ps2_read_byte(&dummy) != FALSE)
@@ -167,7 +173,13 @@ int ps2_reset_and_identity(int portid, int* type)
     }
 
     // Выключение приёма ввода
-    ps2_write_byte_and_wait(portid, PS2_DISABLE_SCANNING);
+    rc = ps2_write_byte_and_wait(portid, PS2_DISABLE_SCANNING);
+    if (rc != 0)
+    {
+        printk("PS2: DISABLE_SCANNING error %i on port %i\n", rc, portid);
+        return -3;
+    }
+
     // Очистка Output buffer
     while (ps2_read_byte(&dummy) != FALSE)
     {
@@ -176,7 +188,12 @@ int ps2_reset_and_identity(int portid, int* type)
 
     int len = 0;
     uint8_t ident[2];
-    ps2_write_byte_and_wait(portid, PS2_IDENTIFY);
+    rc = ps2_write_byte_and_wait(portid, PS2_IDENTIFY);
+    if (rc != 0)
+    {
+        printk("PS2: IDENTIFY error %i on port %i\n", rc, portid);
+        return -4;
+    }
 
     // Считаем identify
     for (int i = 0; i < 2; i ++)
@@ -213,7 +230,7 @@ int ps2_reset_and_identity(int portid, int* type)
 		}
 	}
 
-    return -2;
+    return -5;
 }
 
 void ps2_device_setup(int portid, int type)
@@ -372,7 +389,7 @@ void init_ps2()
             rc = ps2_reset_and_identity(i, &dev_type);
             if (rc != 0)
             {
-                printk("PS/2: Device %i reset result %i\n", i, -rc);
+                printk("PS/2: Device on port %i reset result %i\n", i, -rc);
                 continue;
             }
 
@@ -380,7 +397,11 @@ void init_ps2()
             ps2_device_setup(i, dev_type);
 
             // Включение приема ввода
-            ps2_write_byte_and_wait(i, PS2_ENABLE_SCANNING);
+            rc = ps2_write_byte_and_wait(i, PS2_ENABLE_SCANNING);
+            if (rc != 0)
+            {
+                printk("PS2: ENABLE_SCANNING error %i on port %i\n", rc, i);
+            }
             // Очистка Output buffer
             while (ps2_read_byte(&dummy) != FALSE)
             {
