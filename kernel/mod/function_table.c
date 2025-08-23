@@ -17,6 +17,8 @@
 #include "net/net_buffer.h"
 #include "dev/type/audio_endpoint.h"
 #include "proc/tasklet.h"
+#include "kairax/kstdlib.h"
+#include "dev/device_man.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -44,6 +46,7 @@ struct kernel_function functions[] = {
     KFUNCTION(vmm_get_physical_address),
     KFUNCTION(pmm_alloc_page),
     KFUNCTION(pmm_alloc_pages),
+    KFUNCTION(pmm_free_page),
     KFUNCTION(pmm_free_pages),
     KFUNCTION(pmm_alloc),
     KFUNCTION(register_irq_handler),
@@ -67,13 +70,18 @@ struct kernel_function functions[] = {
     KFUNCTION(audio_endpoint_gather_samples),
     KFUNCTION(tasklet_init),
     KFUNCTION(tasklet_schedule),
+    KFUNCTION(new_device),
+    KFUNCTION(device_set_parent),
+    KFUNCTION(register_device),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),
     KFUNCTION(strcpy),
     KFUNCTION(strcmp),
     KFUNCTION(strlen),
-    KFUNCTION(strcat)
+    KFUNCTION(strcat),
+    KFUNCTION(align),
+    KFUNCTION(itoa),
 };
 
 void* kfunctions_get_by_name(const char* name)

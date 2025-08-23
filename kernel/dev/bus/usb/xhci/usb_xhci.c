@@ -1099,8 +1099,3 @@ struct pci_device_driver xhci_ctrl_driver = {
 	.pci_device_ids = xhci_ctrl_ids,
 	.ops = &usb3_ctrl_ops
 };
-
-void usb_init()
-{
-	register_pci_device_driver(&xhci_ctrl_driver);
-}

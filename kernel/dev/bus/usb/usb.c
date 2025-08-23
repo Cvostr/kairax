@@ -2,6 +2,15 @@
 #include "mem/kheap.h"
 #include "string.h"
 
+extern struct pci_device_driver ehci_ctrl_driver;
+extern struct pci_device_driver xhci_ctrl_driver;
+
+void usb_init()
+{
+    register_pci_device_driver(&ehci_ctrl_driver);
+	register_pci_device_driver(&xhci_ctrl_driver);
+}
+
 struct usb_device* new_usb_device(struct usb_device_descriptor* descriptor, void* controller_device_data)
 {
     struct usb_device* result = kmalloc(sizeof(struct usb_device));
