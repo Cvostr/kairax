@@ -1,10 +1,12 @@
 #include "multiboot.h"
 #include "string.h"
+#include "memory/mem_layout.h"
 
 #define MBOOT_REPLY 0x36D76289
 
 #define MBOOT2_COMMANDLINE  1
 #define MBOOT2_BOOTLOADER   2
+#define MBOOT2_MODULE       3
 #define MBOOT2_MMAP         6
 #define MBOOT2_VBE_INFO     7
 #define MBOOT2_FB_INFO      8
@@ -14,8 +16,9 @@
 
 static kernel_boot_info_t kernel_boot_info;
 
-int parse_mb2_tags(taglist_t *tags)
+int parse_mb2_tags(taglist_t *tags, size_t* total_size)
 {
+    *total_size = tags->total_size;
     memset(&kernel_boot_info, 0, sizeof(kernel_boot_info));
     tag_t *tag = tags->tags;
     mmap_t *mmap;
@@ -29,6 +32,12 @@ int parse_mb2_tags(taglist_t *tags)
             break;
         case MBOOT2_COMMANDLINE:
             strcpy(kernel_boot_info.command_line, (char*) tag->data);
+            break;
+        case MBOOT2_MODULE:
+            module_t* mod = tag->data;
+            size_t modsize = mod->mod_end - mod->mod_start;
+            // Даем временную защиту области памяти, в которую загружен модуль
+            pmm_set_mem_region(mod->mod_start, modsize, TRUE);
             break;
         case MBOOT2_MMAP:
             mmap = kernel_boot_info.mmap = (mmap_t*)tag->data;
@@ -55,11 +64,36 @@ int parse_mb2_tags(taglist_t *tags)
     return 0;
 }
 
+int mb2_load_modules(taglist_t *tags)
+{
+    tag_t *tag = tags->tags;
+    int index = 0;
+    while(tag->type)
+    {
+        switch(tag->type)
+        {
+        case MBOOT2_MODULE:
+            module_t* mod = tag->data;
+            size_t modsize = mod->mod_end - mod->mod_start;
+            printk("Loading module %s, size %i\n", mod->name, modsize);
+            int rc = module_load(P2V(mod->mod_start), modsize);
+            if (rc != 0)
+            {
+                printk("Error loading module: %i\n", -rc);
+            }
+            // Снимаем временную защиту
+            pmm_set_mem_region(mod->mod_start, modsize, FALSE);
+            break;
+        }
+        tag = (tag_t*) ((uint8_t*) tag + ((tag->size + 7) & ~7));
+    }
+    return 0;
+}
+
 kernel_boot_info_t* get_kernel_boot_info()
 {
     return &kernel_boot_info;
 }
-
 
 int multiboot_get_memory_area(size_t entry_index, uintptr_t *start, uintptr_t *length, uint32_t *type)
 {

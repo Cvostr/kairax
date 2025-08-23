@@ -8,7 +8,6 @@
 #include "dev/bus/pci/pci.h"
 
 #include "drivers/storage/ahci/ahci.h"
-#include "drivers/storage/nvme/nvme.h"
 #include "dev/bus/usb/xhci/usb_xhci.h"
 
 #include "memory/mem_layout.h"
@@ -56,12 +55,14 @@ extern const char* kairax_build_time;
 
 void halt();
 
-void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
-	parse_mb2_tags(multiboot_struct_ptr);
+void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
+{
+	init_pmm();
+
+	size_t mb2_info_sz;
+	parse_mb2_tags(multiboot_struct_ptr, &mb2_info_sz);
 
 	kernel_boot_info_t* kboot_info = get_kernel_boot_info();
-
-	init_pmm();
 
 	pmm_params_t pmm_params;
 	memset(&pmm_params, 0, sizeof(pmm_params_t));
@@ -84,7 +85,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 			pmm_set_mem_region(start, length, FALSE);
 	}
 
+	// Занимаем базовые регионы
 	pmm_take_base_regions();
+	// Занимаем регион с данными multiboot2
+	pmm_set_mem_region(multiboot_struct_ptr, mb2_info_sz, TRUE);
+
 	pmm_set_params(&pmm_params);
 
 	init_pic();
@@ -172,10 +177,14 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr){
 	fat_init();
 	devfs_init();
 	ahci_init();	
-	init_nvme();
 	usb_init();
 	tty_init();
 	keyboard_init();
+
+	// Загружаем все необходимые модули multiboot2								
+	mb2_load_modules(P2V(multiboot_struct_ptr));
+	// Освобождаем регион с данными multiboot2
+	pmm_set_mem_region(multiboot_struct_ptr, mb2_info_sz, TRUE);
 
 	usb_mass_init();
 	usb_hid_kbd_init();

@@ -27,6 +27,13 @@ typedef struct PACKED {
   mmap_entry_t entries[];
 } mmap_t ;
 
+typedef struct PACKED {
+  uint32_t mod_start;
+  uint32_t mod_end;
+  char name[];
+} module_t ;
+
+
 #define BOOTLOADER_STRING_MAX_LEN 64
 #define BOOTLOADER_ARGS_MAX_LEN   256  
 #define RSDP_DATA_MAX_SIZE        200
@@ -57,7 +64,8 @@ typedef struct {
     char rsdp_data[RSDP_DATA_MAX_SIZE];
 } kernel_boot_info_t;
 
-int parse_mb2_tags(taglist_t *tags);
+int parse_mb2_tags(taglist_t *tags, size_t* total_size);
+int mb2_load_modules(taglist_t *tags);
 
 kernel_boot_info_t* get_kernel_boot_info();
 

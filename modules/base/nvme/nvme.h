@@ -2,7 +2,7 @@
 #define _NVME_H
 
 #include "dev/bus/pci/pci.h"
-#include "types.h"
+#include "kairax/types.h"
 #include "sync/spinlock.h"
 
 // IO Commands
@@ -18,6 +18,9 @@
 #define NVME_CMD_CREATE_IO_COMPLETION_QUEUE 0x5
 #define NVME_CMD_IDENTIFY                   0x6
 #define NVME_CMD_SET_FEATURES               0x9
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 struct nvme_bar0 {
     uint64_t    cap;
@@ -300,6 +303,9 @@ struct nvme_queue
 
     volatile struct nvme_command *submit;
     volatile struct nvme_completion *completion;
+
+    uintptr_t submit_phys;
+    uintptr_t completion_phys;
 };
 
 #define NVME_CONTROLLER_MAX_IO_QUEUES 32
@@ -350,6 +356,7 @@ struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, s
 struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size_t slots);
 struct nvme_queue* nvme_ctrlr_acquire_queue(struct nvme_controller* controller);
 
-void init_nvme();
+int init_nvme(void);
+void nvme_exit(void);
 
 #endif

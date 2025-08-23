@@ -1,14 +1,14 @@
 #include "nvme.h"
-#include "stdio.h"
-#include "string.h"
-#include "mem/kheap.h"
-#include "kstdlib.h"
-#include "mem/pmm.h"
+#include "kairax/stdio.h"
+#include "kairax/string.h"
+#include "module.h"
+#include "functions.h"
+//#include "kstdlib.h"
 #include "dev/device_drivers.h"
 #include "dev/device.h"
 #include "mem/iomem.h"
 #include "dev/device_man.h"
-#include "interrupts/handle/handler.h"
+#include "dev/interrupts.h"
 
 //#define NVME_LOG_CONTROLLER_ID
 //#define NVME_LOG_QUEUES_STRIDE
@@ -26,7 +26,7 @@ uint32_t* nvme_calc_completion_doorbell_addr(struct nvme_controller* controller,
 	return (uint32_t*) (((uintptr_t) controller->bar0) + 0x1000 + (2 * id + 1) * (4 << controller->stride));
 }
 
-void nvme_int_handler(interrupt_frame_t* frame, void* data) 
+void nvme_int_handler(void* frame, void* data) 
 {
 	printk("NVME: Interrupt\n");
 }
@@ -41,13 +41,15 @@ struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, s
 	// Выделить страницы под команды
 	uint32_t reqd_size = align(sizeof(struct nvme_command) * slots, PAGE_SIZE);
 	uint32_t reqd_pages = reqd_size / PAGE_SIZE;
-	queue->submit = map_io_region(pmm_alloc_pages(reqd_pages), reqd_size);
+	queue->submit_phys = pmm_alloc_pages(reqd_pages);
+	queue->submit = map_io_region(queue->submit_phys, reqd_size);
 	memset(queue->submit, 0, sizeof(struct nvme_command) * slots);
 
 	// Выделить страницы под completion
 	reqd_size = align(sizeof(struct nvme_completion) * slots, PAGE_SIZE);
 	reqd_pages = reqd_size / PAGE_SIZE;
-	queue->completion = map_io_region(pmm_alloc_pages(reqd_pages), reqd_size);
+	queue->completion_phys = pmm_alloc_pages(reqd_pages);
+	queue->completion = map_io_region(queue->completion_phys, reqd_size);
 	memset(queue->completion, 0, sizeof(struct nvme_completion) * slots);
 
 	queue->submission_doorbell = nvme_calc_submission_doorbell_addr(controller, 0);
@@ -165,6 +167,16 @@ struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size
 	return queue;
 }
 
+int nvme_read_lba(struct device* dev, uint64_t start, uint64_t count, unsigned char *buf)
+{
+    return nvme_namespace_read(dev->dev_data, start, (uint32_t)count, (uint16_t*) buf);
+}
+
+int nvme_write_lba(struct device* dev, uint64_t start, uint64_t count, const unsigned char *buf)
+{
+    return nvme_namespace_write(dev->dev_data, start, (uint32_t)count, (uint16_t*) buf);
+}
+
 int nvme_ctlr_device_probe(struct device *dev) 
 {
 	struct pci_device_info* device_desc = dev->pci_info;
@@ -212,8 +224,8 @@ int nvme_ctlr_device_probe(struct device *dev)
 	// Создание admin queue
 	device->admin_queue = nvme_create_admin_queue(device, device->queue_entries_num);
 	// Установка адресов admin queue
-	device->bar0->a_submit_queue = (uint64_t)V2P(device->admin_queue->submit);
-	device->bar0->a_compl_queue = (uint64_t)V2P(device->admin_queue->completion);
+	device->bar0->a_submit_queue = (uint64_t)(device->admin_queue->submit_phys);
+	device->bar0->a_compl_queue = (uint64_t)(device->admin_queue->completion_phys);
 
 	uint32_t aqa = device->queue_entries_num - 1;
 	aqa |= aqa << 16;
@@ -287,7 +299,7 @@ int nvme_ctlr_device_probe(struct device *dev)
     }
 
 	char* ns_identity_buffer = pmm_alloc_page();
-	memset(P2V(ns_identity_buffer), 0, PAGE_SIZE);
+	memset(vmm_get_virtual_address(ns_identity_buffer), 0, PAGE_SIZE);
 
 	struct nvme_command identify_cmd;
     memset(&identify_cmd, 0, sizeof(struct nvme_command));
@@ -309,7 +321,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 			continue;
 		}
 		
-		struct nvme_namespace_id* nsid = (struct nvme_namespace_id*) P2V(ns_identity_buffer);
+		struct nvme_namespace_id* nsid = (struct nvme_namespace_id*) vmm_get_virtual_address(ns_identity_buffer);
 		if (nsid->ns_size < 1) {
 			continue;
 		}
@@ -348,7 +360,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 int nvme_controller_identify(struct nvme_controller* controller)
 {
 	char* identity_buffer = pmm_alloc_page();
-	memset(P2V(identity_buffer), 0, PAGE_SIZE);
+	memset(vmm_get_virtual_address(identity_buffer), 0, PAGE_SIZE);
 
 	struct nvme_command identify_cmd;
     memset(&identify_cmd, 0, sizeof(struct nvme_command));
@@ -367,7 +379,7 @@ int nvme_controller_identify(struct nvme_controller* controller)
 		return -1;
 	}
 
-	memcpy(&controller->controller_id, P2V(identity_buffer), sizeof(struct nvme_controller_id));
+	memcpy(&controller->controller_id, vmm_get_virtual_address(identity_buffer), sizeof(struct nvme_controller_id));
 	pmm_free_page(identity_buffer);
 
 	controller->controller_id.model[39] = 0;
@@ -432,7 +444,16 @@ struct pci_device_driver nvme_driver = {
 	.ops = &nvme_ops
 };
 
-void init_nvme()
+int init_nvme(void)
 {
-	register_pci_device_driver(&nvme_driver);
+    register_pci_device_driver(&nvme_driver);
+	
+	return 0;
 }
+
+void nvme_exit(void)
+{
+
+}
+
+DEFINE_MODULE("nvme", init_nvme, nvme_exit)
