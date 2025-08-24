@@ -339,6 +339,8 @@ struct nvme_namespace {
     spinlock_t  lock;
 };
 
+void nvme_irq_handler(void* frame, void* data);
+
 int nvme_read_lba(struct device* dev, uint64_t start, uint64_t count, unsigned char *buf);
 int nvme_write_lba(struct device* dev, uint64_t start, uint64_t count, const unsigned char *buf);
 

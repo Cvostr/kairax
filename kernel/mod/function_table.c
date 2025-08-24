@@ -72,7 +72,9 @@ struct kernel_function functions[] = {
     KFUNCTION(tasklet_schedule),
     KFUNCTION(new_device),
     KFUNCTION(device_set_parent),
+    KFUNCTION(device_set_data),
     KFUNCTION(register_device),
+    KFUNCTION(new_drive_device_info),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),
@@ -81,7 +83,7 @@ struct kernel_function functions[] = {
     KFUNCTION(strlen),
     KFUNCTION(strcat),
     KFUNCTION(align),
-    KFUNCTION(itoa),
+    KFUNCTION(itoa)
 };
 
 void* kfunctions_get_by_name(const char* name)

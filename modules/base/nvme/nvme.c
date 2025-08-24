@@ -26,7 +26,7 @@ uint32_t* nvme_calc_completion_doorbell_addr(struct nvme_controller* controller,
 	return (uint32_t*) (((uintptr_t) controller->bar0) + 0x1000 + (2 * id + 1) * (4 << controller->stride));
 }
 
-void nvme_int_handler(void* frame, void* data) 
+void nvme_irq_handler(void* frame, void* data) 
 {
 	printk("NVME: Interrupt\n");
 }
@@ -295,7 +295,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 		uint8_t irq = alloc_irq(0, "nvme");
 		printk("NVME: Using IRQ %i\n", irq);
     	pci_device_set_msix_vector(dev, irq);
-		register_irq_handler(irq, nvme_int_handler, device);
+		register_irq_handler(irq, nvme_irq_handler, device);
     }
 
 	char* ns_identity_buffer = pmm_alloc_page();
