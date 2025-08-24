@@ -84,12 +84,12 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	// Выделение памяти под буфер порта
 	char* port_mem = (char*) pmm_alloc_page();
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
-	map_io_region(port_mem, PAGE_SIZE);
+	void* port_mem_virt = map_io_region(port_mem, PAGE_SIZE);
 	// Зануляем память (Важно!!!)
-	memset(P2V(port_mem), 0, PAGE_SIZE);
+	memset(port_mem_virt, 0, PAGE_SIZE);
 
     port->command_list = (HBA_COMMAND*) port_mem;
-	port->command_list_virt = P2V(port->command_list);
+	port->command_list_virt = (HBA_COMMAND*) port_mem_virt;
 
     port->fis = (fis_t*) (port_mem + sizeof(HBA_COMMAND) * COMMAND_LIST_ENTRY_COUNT);
     //Записать адрес списка команд
@@ -105,11 +105,11 @@ ahci_port_t* initialize_port(ahci_port_t* port, uint32_t index, HBA_PORT* port_d
 	// Выделить память под буфер команд
 	char* cmd_tables_mem = (char*) pmm_alloc_pages(pages_num);
 	// Сменить флаги страницы, добавить PAGE_UNCACHED
-	map_io_region(cmd_tables_mem, PAGE_SIZE * pages_num);
+	char* cmd_tables_mem_virt = map_io_region(cmd_tables_mem, PAGE_SIZE * pages_num);
 	// Зануляем выделенную память (Важно!!!)
-	memset(P2V(cmd_tables_mem), 0, PAGE_SIZE * pages_num);
+	memset(cmd_tables_mem_virt, 0, PAGE_SIZE * pages_num);
 
-	HBA_COMMAND* hba_command_virtual = (HBA_COMMAND*) P2V(port->command_list);
+	HBA_COMMAND* hba_command_virtual = port->command_list_virt;
     for (int i = 0; i < COMMAND_LIST_ENTRY_COUNT; i ++)
 	{
         hba_command_virtual[i].prdtl = 8; // 8 PRDT на каждую команду
