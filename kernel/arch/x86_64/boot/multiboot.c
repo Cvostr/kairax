@@ -1,6 +1,10 @@
 #include "multiboot.h"
 #include "string.h"
+#include "kairax/stdio.h"
 #include "memory/mem_layout.h"
+#include "mod/module_loader.h"
+#include "mem/pmm.h"
+#include "kairax/kstdlib.h"
 
 #define MBOOT_REPLY 0x36D76289
 
@@ -75,14 +79,20 @@ int mb2_load_modules(taglist_t *tags)
         case MBOOT2_MODULE:
             module_t* mod = tag->data;
             size_t modsize = mod->mod_end - mod->mod_start;
+            size_t mod_pages = align(modsize, PAGE_SIZE) / PAGE_SIZE;
+
+            // Прогрузка модуля в ядро
             printk("Loading module %s, size %i\n", mod->name, modsize);
             int rc = module_load(P2V(mod->mod_start), modsize);
             if (rc != 0)
             {
                 printk("Error loading module: %i\n", -rc);
             }
+
+            // Зануляем память
+            memset(P2V(mod->mod_start), 0, modsize);
             // Снимаем временную защиту
-            pmm_set_mem_region(mod->mod_start, modsize, FALSE);
+            pmm_free_pages(mod->mod_start, mod_pages);
             break;
         }
         tag = (tag_t*) ((uint8_t*) tag + ((tag->size + 7) & ~7));
