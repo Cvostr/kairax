@@ -83,8 +83,6 @@ gcc $GCC_ARGS dev/type/audio_endpoint.c -o ./bin/audio_endpoint.o
 gcc $GCC_ARGS dev/type/drive_device.c -o ./bin/drive_device.o
 
 #generic drivers
-#gcc $GCC_ARGS drivers/storage/ahci/ahci.c -o ./bin/ahci.o
-#gcc $GCC_ARGS drivers/storage/ahci/ahci_port.c -o ./bin/ahci_port.o
 gcc $GCC_ARGS drivers/storage/usb/usb_mass_storage.c -o ./bin/usb_mass_storage.o
 gcc $GCC_ARGS drivers/storage/devices/storage_devices.c -o ./bin/storage_devices.o
 gcc $GCC_ARGS drivers/storage/partitions/storage_partitions.c -o ./bin/storage_partitions.o

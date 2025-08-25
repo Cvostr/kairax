@@ -7,7 +7,6 @@
 #include "dev/input/ps2.h"
 #include "dev/bus/pci/pci.h"
 
-#include "drivers/storage/ahci/ahci.h"
 #include "dev/bus/usb/xhci/usb_xhci.h"
 
 #include "memory/mem_layout.h"
@@ -176,7 +175,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	ext2_init();
 	fat_init();
 	devfs_init();
-	//ahci_init();	
 	usb_init();
 	tty_init();
 	keyboard_init();

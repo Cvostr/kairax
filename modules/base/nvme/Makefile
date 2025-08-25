@@ -1,6 +1,6 @@
 CINCL=-isystem ../../../sdk/kxmdk -isystem ../../../kernel -DMODULE
 CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector
-CFLAGS=-c $(CWARN) $(CINCL) 
+CFLAGS=-c $(CWARN) $(CINCL) -mno-red-zone
 COMPILER=gcc
 
 all: nvme.o nvme_ns.o
