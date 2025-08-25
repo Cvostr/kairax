@@ -61,6 +61,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 
 	size_t mb2_info_sz;
 	parse_mb2_tags(multiboot_struct_ptr, &mb2_info_sz);
+	// Занимаем регион с данными multiboot2
+	pmm_set_mem_region(multiboot_struct_ptr, mb2_info_sz, TRUE);
 
 	kernel_boot_info_t* kboot_info = get_kernel_boot_info();
 
@@ -87,9 +89,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 
 	// Занимаем базовые регионы
 	pmm_take_base_regions();
-	// Занимаем регион с данными multiboot2
-	pmm_set_mem_region(multiboot_struct_ptr, mb2_info_sz, TRUE);
-
+	// Устанавливаем параметры физической памяти
 	pmm_set_params(&pmm_params);
 
 	init_pic();
@@ -176,7 +176,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	ext2_init();
 	fat_init();
 	devfs_init();
-	ahci_init();	
+	//ahci_init();	
 	usb_init();
 	tty_init();
 	keyboard_init();
@@ -184,7 +184,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	// Загружаем все необходимые модули multiboot2								
 	mb2_load_modules(P2V(multiboot_struct_ptr));
 	// Освобождаем регион с данными multiboot2
-	pmm_set_mem_region(multiboot_struct_ptr, mb2_info_sz, TRUE);
+	pmm_free_pages(multiboot_struct_ptr, align(mb2_info_sz, PAGE_SIZE) / PAGE_SIZE);
 
 	usb_mass_init();
 	usb_hid_kbd_init();

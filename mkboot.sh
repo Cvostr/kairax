@@ -14,5 +14,6 @@ cd ../..
 cp kernel/kernel.bin isofiles/boot/
 # copy modules
 cp modules/base/nvme/nvme.ko isofiles/boot/
+cp modules/base/ahci/ahci.ko isofiles/boot/
 
 grub-mkrescue -o kairax.iso isofiles
