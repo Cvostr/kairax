@@ -432,7 +432,6 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 
 void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event)
 {
-	int rc = 0;
 	switch (event->type)
 	{
 		case XHCI_TRB_PORT_STATUS_CHANGE_EVENT:
@@ -804,15 +803,14 @@ int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
 
 	memcpy(trb, dequed, sizeof(struct xhci_trb));
 
-	// Увеличить позицию
-	ring->next_trb_index++;
-
 	// Если считали полный круг - возвращаемся в начало
-	if (ring->next_trb_index >= ring->trb_count)
+	if (++ring->next_trb_index >= ring->trb_count)
 	{
 		ring->next_trb_index = 0;
 		ring->cycle_bit = !ring->cycle_bit;
 	}
+
+	return 1;
 }
 
 struct xhci_transfer_ring *xhci_create_transfer_ring(size_t ntrbs)
@@ -1064,7 +1062,7 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 		//printk("XHCI: Event Interrupt\n");
 
 		struct xhci_trb event;
-		while (xhci_event_ring_deque(data->event_ring, &event))
+		while (xhci_event_ring_deque(data->event_ring, &event) == 1)
 		{
 			xhci_controller_process_event(data, &event);
 		}

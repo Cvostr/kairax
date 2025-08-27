@@ -1,6 +1,7 @@
 #include "usb.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "kairax/stdio.h"
 
 extern struct pci_device_driver ehci_ctrl_driver;
 extern struct pci_device_driver xhci_ctrl_driver;
@@ -77,7 +78,7 @@ void usb_config_put_interface(struct usb_config* config, struct usb_interface* i
     {
         // В буфере оказалось больше интерфейсов, чем указано в конфигурации
         // Такая ситуация бывает у некоторых устройств, придется обрабатывать
-        printk("XHCI: Warn - bNumInterfaces is less than actual\n");
+        printk("USB: Warn - bNumInterfaces is less than actual\n");
 
         // Выделим новую память
         struct usb_interface** newbuffer = kmalloc((config->interfaces_num + 1) * sizeof(struct usb_interface*));

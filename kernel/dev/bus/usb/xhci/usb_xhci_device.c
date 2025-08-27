@@ -180,6 +180,8 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
                 msg->callback(msg);
         }
     }
+
+    return 0;
 }
 
 int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length)
