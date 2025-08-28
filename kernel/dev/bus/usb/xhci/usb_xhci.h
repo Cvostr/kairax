@@ -185,8 +185,8 @@ struct xhci_protocol_cap {
 
 struct xhci_interrupter
 {
-	uint32_t iman;
-	uint32_t imod;
+	volatile uint32_t iman;
+	volatile uint32_t imod;
 	uint32_t erstsz;
 	uint32_t reserved;
 	volatile uint64_t erstba;

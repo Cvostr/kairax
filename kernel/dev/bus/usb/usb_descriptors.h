@@ -88,6 +88,8 @@ struct usb_interface_descriptor {
 #define USB_ENDPOINT_IS_ISOCH(attr) ((attr & USB_ENDPOINT_ATTR_TT_MASK) == USB_ENDPOINT_ATTR_TT_ISOCH)
 #define USB_ENDPOINT_IS_INT(attr) ((attr & USB_ENDPOINT_ATTR_TT_MASK) == USB_ENDPOINT_ATTR_TT_INTERRUPT)
 
+#define USB_MAX_HUB_PORTS 31
+
 struct usb_endpoint_descriptor {
     struct usb_descriptor_header header;
     uint8_t bEndpointAddress;
@@ -118,6 +120,29 @@ struct usb_hid_descriptor {
         uint8_t  bDescriptorType;
         uint16_t wDescriptorLength;
     } PACKED descriptors[];
+} PACKED;
+
+struct usb_hub_descriptor {
+    uint8_t     bLength;                // Size of this descriptor in bytes
+    uint8_t     bDescriptorType;        // USB_DESC_HUB
+    uint8_t     bNbrPorts;              // Number of ports
+    uint16_t    wHubCharacteristics;    // Hub characteristics
+    uint8_t     bPowerOnGood;           // Time (*2ms) from port power on to power good
+    uint8_t     bHubContrCurrent;       // Maximum current used by hub controller (mA)
+    
+    union {
+        // Для High Speed
+		struct {
+			uint8_t  DeviceRemovable[(USB_MAX_HUB_PORTS + 1 + 7) / 8];
+			uint8_t  PortPwrCtrlMask[(USB_MAX_HUB_PORTS + 1 + 7) / 8];
+		}  PACKED hs;
+        // Для Super Speed
+		struct {
+			uint8_t bHubHdrDecLat;
+			uint16_t wHubDelay;
+			uint16_t DeviceRemovable;
+		}  PACKED ss;
+	} hub_info;
 } PACKED;
 
 #endif
