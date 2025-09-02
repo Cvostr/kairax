@@ -204,6 +204,7 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     if (src_addr_in != NULL) {
         // Передаем информацию об отправителе
+        src_addr_in->sin_family = AF_INET;
         src_addr_in->sin_addr.s_addr = ip4p->src_ip;
         src_addr_in->sin_port = udpp->src_port;
     }
@@ -225,6 +226,12 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     struct sockaddr_in* dest_addr_in = (struct sockaddr_in*) to;
+
+    // Для UDP допускается broadcast. Если не включено явно, то не разрешаем
+    if ((dest_addr_in->sin_addr.s_addr == INADDR_BROADCAST) && sock_data->allow_broadcast == FALSE)
+    {   
+        return -EACCES;
+    }
 
     if (sock_data->port == 0)
     {
@@ -269,6 +276,24 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     return rc;
 }
 
+int sock_udp4_setsockopt_sol_IP(struct socket* sock, int optname, const void *optval, unsigned int optlen)
+{
+    struct raw4_socket_data* sock_data = (struct raw4_socket_data*) sock->data;
+
+    switch (optname) {
+        case IP_TTL:
+            printk("raw: IP_TTL is currently unsupported\n");
+            // todo: реализовать
+            break;
+        case IP_TOS:
+            printk("raw: IP_TOS is currently unsupported\n");
+            // todo: реализовать
+            break;
+    }
+
+    return 0;
+}
+
 int sock_udp4_setsockopt_sol_socket(struct socket* sock, int optname, const void *optval, unsigned int optlen)
 {
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
@@ -276,6 +301,15 @@ int sock_udp4_setsockopt_sol_socket(struct socket* sock, int optname, const void
     switch (optname) {
         case SO_BINDTODEVICE:
             sock_data->nic = get_nic_by_name(optval);
+            break;
+        case SO_BROADCAST:
+            // Разрешение - запрет на отправку широковещательных пакетов
+            if (optlen != sizeof(int))
+            {
+                return -EINVAL;
+            }
+
+            sock_data->allow_broadcast = (uint8_t) (*((int*)optval));  
             break;
     }
 
@@ -288,6 +322,8 @@ int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void
     switch (level) {
         case SOL_SOCKET:
             return sock_udp4_setsockopt_sol_socket(sock, optname, optval, optlen);
+        case SOL_IP:
+            return sock_udp4_setsockopt_sol_IP(sock, optname, optval, optlen);
         
     };
     return 0;

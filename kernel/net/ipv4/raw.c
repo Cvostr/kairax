@@ -163,6 +163,7 @@ ssize_t sock_raw4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     if (src_addr_in != NULL) 
     {
         // Передаем информацию об отправителе
+        src_addr_in->sin_family = AF_INET;
         src_addr_in->sin_addr.s_addr = ip4p->src_ip;
     }
 

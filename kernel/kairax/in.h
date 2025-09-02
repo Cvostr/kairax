@@ -36,4 +36,8 @@ struct sockaddr {
     char sa_data[14];
 };
 
+#define	INADDR_ANY		    ((in_addr_t) 0x00000000) /* 0.0.0.0 */
+#define	INADDR_BROADCAST	((unsigned long int) 0xffffffff)
+#define	INADDR_LOOPBACK		0x7f000001	/* 127.0.0.1   */
+
 #endif

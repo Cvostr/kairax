@@ -25,6 +25,8 @@ struct udp4_socket_data {
     spinlock_t rx_queue_lock;
 
     struct blocker blk;
+
+    uint8_t allow_broadcast;
 };
 
 int udp_ip4_handle(struct net_buffer* nbuffer);
