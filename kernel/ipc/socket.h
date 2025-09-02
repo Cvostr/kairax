@@ -8,6 +8,7 @@
 #define AF_LOCAL    1
 #define AF_INET     2
 #define AF_INET6    10
+#define AF_PACKET	17
 
 #define SOCK_STREAM 1
 #define SOCK_DGRAM  2

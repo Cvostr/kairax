@@ -1,6 +1,7 @@
 #include "eth.h"
 #include "arp.h"
 #include "ipv4/ipv4.h"
+#include "packet/packet_raw.h"
 #include "kairax/in.h"
 #include "string.h"
 #include "mem/kheap.h"
@@ -38,6 +39,7 @@ void eth_handle_frame(struct net_buffer* nbuffer)
     uint16_t type = ntohs(frame->type);
     net_buffer_shift(nbuffer, sizeof(struct ethernet_frame));
 
+    // Обработка пакета в зависимости от протокола
     switch (type)
     {
     case ETH_TYPE_ARP:
@@ -50,6 +52,9 @@ void eth_handle_frame(struct net_buffer* nbuffer)
         printk("ETH type: %i\n", type);
         break;
     }
+
+    // также передадим пакет в packet raw сокеты
+    packet_raw_accept_packet(type, nbuffer);
 
 exit:
     net_buffer_free(nbuffer);
