@@ -109,3 +109,7 @@ cd ..
 cd nslookup
 make
 cd ..
+
+cd dhcl
+make
+cd ..

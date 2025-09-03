@@ -56,6 +56,7 @@
 #define TCTL_RTLC                       (1 << 24)   // Re-transmit on Late Collision
 
 // -----
+#define ICR_TXDW            (1 << 0)
 #define ICR_LSC             (1 << 2)
 #define ICR_RXSEQ           (1 << 3)
 #define ICR_RXDMT0          (1 << 4)

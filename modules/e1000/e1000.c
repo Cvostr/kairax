@@ -24,6 +24,9 @@ int e1000_device_probe(struct device *dev)
 
 	pci_set_command_reg(dev->pci_info, pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
 
+	int msi_capable = pci_device_is_msi_capable(dev->pci_info);
+	printk("E1000: MSI capable: %i\n", msi_capable);
+
 	// Запомним объект BAR
 	e1000_dev->BAR = &dev->pci_info->BAR[0];
 	if (e1000_dev->BAR->type == BAR_TYPE_MMIO)
@@ -333,6 +336,11 @@ void e1000_irq_handler(void* regs, struct e1000* dev)
 	e1000_write32(dev, E1000_REG_ICR, status);
 
 	//printk("E1000: IRQ Handled! %i\n", status);
+
+	if (status & ICR_TXDW)
+	{
+		//printk("Transmitted\n");
+	}
 
 	if (status & ICR_LSC)
 	{

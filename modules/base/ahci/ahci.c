@@ -218,7 +218,7 @@ int ahci_device_probe(struct device *dev)
 		char* link_speed_str = ahci_link_speed_str(link_speed);
 		if (dt == AHCI_DEV_SATA)
 		{
-			printk("SATA drive found at port %i, link speed %s", i, link_speed_str);
+			printk("SATA drive found at port %i, link speed %s\n", i, link_speed_str);
 
 			//Считать информацию об устройстве
 			memset(identity_buffer_virt, 0, IDENTITY_BUFFER_SIZE);
@@ -256,15 +256,15 @@ int ahci_device_probe(struct device *dev)
 		}
 		else if (dt == AHCI_DEV_SATAPI)
 		{
-			printf("SATAPI drive found at port %i, link speed %s", i, link_speed_str);
+			printf("SATAPI drive found at port %i, link speed %s\n", i, link_speed_str);
 		}
 		else if (dt == AHCI_DEV_SEMB)
 		{
-			printf("SEMB drive found at port %i, link speed %s", i, link_speed_str);
+			printf("SEMB drive found at port %i, link speed %s\n", i, link_speed_str);
 		}
 		else if (dt == AHCI_DEV_PM)
 		{
-			printf("PM drive found at port %i, link speed %s", i, link_speed_str);
+			printf("PM drive found at port %i, link speed %s\n", i, link_speed_str);
 		}
 		else
 		{
