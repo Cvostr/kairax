@@ -12,6 +12,7 @@
 #include "proc/syscalls.h"
 
 //#define LOCAL_SOCK_LOG_CLOSE
+//#define LOCAL_SOCK_LOG_BIND
 
 struct socket_family local_sock_family = {
     .family = AF_LOCAL,
@@ -68,39 +69,37 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
         return -1;
     } else 
     {
-        printk("Opening file %s\n", addr_un->sun_path);
-        // Открыть файл в ядре
-        file = file_open(NULL, addr_un->sun_path, 0, 0);
-        if (file == NULL) 
+#ifdef LOCAL_SOCK_LOG_BIND
+        printk("Creating socket file %s\n", addr_un->sun_path);
+#endif
+        // Пробуем создать файл через mknodat
+        rc = sys_mknodat(FD_CWD, addr_un->sun_path, 0755 | INODE_FLAG_SOCKET, 0);
+        if (rc == -EEXIST)
         {
-            // Файл не найден - создаем через mknod()
-            rc = sys_mknodat(FD_CWD, addr_un->sun_path, 0755 | INODE_FLAG_SOCKET, 0);
-            if (rc != 0) 
-            {
-                return rc;
-            }
-
-            // Открыть файл
-            rc = file_open_ex(NULL, addr_un->sun_path, 0, 0, &file);
-            if (file == NULL)
-            {
-                return rc;
-            }
-
-            // Запомнить указатель на сокет в private_data
-            inode_open((struct inode*) sock, 0);
-            file->inode->private_data = sock;
-
-            inode_open(file->inode, 0);
-            lsock->bound_inode = file->inode;
-
-            // Закрыть файл
-            file_close(file);
-
-        } else {
-            // Файл уже существует - значит занято
             return -EADDRINUSE;
+        } 
+        else if (rc != 0) 
+        {
+            return rc;
         }
+
+        // Открыть файл
+        rc = file_open_ex(NULL, addr_un->sun_path, 0, 0, &file);
+        if (file == NULL)
+        {
+            return rc;
+        }
+
+        // Запомнить указатель на сокет в private_data
+        inode_open((struct inode*) sock, 0);
+        file->inode->private_data = sock;
+
+        // Сохранить указатель на inode в сокет
+        inode_open(file->inode, 0);
+        lsock->bound_inode = file->inode;
+
+        // Закрыть файл
+        file_close(file);
     }
     
     return 0;

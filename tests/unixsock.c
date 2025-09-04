@@ -15,10 +15,26 @@ int server();
 int main(int argc, char** argv)
 {
     int srv_mode = 0;
+    int deletesock = 1;
 
     if (argc > 1 && strcmp(argv[1], "noacc") == 0)
     {
         srv_mode = 1;
+    }
+
+    for (int i = 1; i < argc; i ++)
+    {
+        char* arg = argv[i];
+
+        if (strcmp(arg, "noacc") == 0)
+        {
+            srv_mode = 1;
+        }
+
+        if (strcmp(arg, "nodel") == 0)
+        {
+            deletesock = 0;
+        }
     }
 
     srand(time(NULL));
@@ -31,7 +47,7 @@ int main(int argc, char** argv)
         exit(0);
     }
 
-    int rc = server(srv_mode);
+    int rc = server(srv_mode, deletesock);
 
     int clrc = 0;
     waitpid(client_pid, &clrc, 0);
@@ -39,11 +55,14 @@ int main(int argc, char** argv)
     return rc;
 }
 
-int server(int mode)
+int server(int mode, int deletesock)
 {
     int srv_sockfd;
 
-    unlink(SOCK_PATH);
+    if (deletesock == 1)
+    {
+        unlink(SOCK_PATH);
+    }
 
     if ((srv_sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) 
     {
