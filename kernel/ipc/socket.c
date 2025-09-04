@@ -151,6 +151,15 @@ int socket_close(struct inode *inode, struct file *file)
     return sock->ops->close(sock);
 }
 
+int socket_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen)
+{
+    if (sock->ops->getpeername == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    return sock->ops->getpeername(sock, addr, addrlen);
+}
+
 ssize_t socket_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct socket* sock = (struct socket*) file->inode;

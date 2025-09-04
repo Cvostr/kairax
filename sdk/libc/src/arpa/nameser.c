@@ -1,4 +1,5 @@
 #include "arpa/nameserv.h"
+#include "netinet/in.h"
 #include "string.h"
 
 size_t ns_read_query(char* in, char* name, uint16_t* qtype, uint16_t* qclass)

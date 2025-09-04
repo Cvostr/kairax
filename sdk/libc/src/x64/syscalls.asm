@@ -50,6 +50,7 @@ DEFINE_SYSCALL syscall_recvfrom,    0x2D
 DEFINE_SYSCALL syscall_shutdown,    0x30
 DEFINE_SYSCALL syscall_bind,        0x31
 DEFINE_SYSCALL syscall_listen,      0x32
+DEFINE_SYSCALL syscall_getpeername, 0x34
 DEFINE_SYSCALL syscall_setsockopt,  0x36
 DEFINE_SYSCALL syscall_fork,        0x39
 DEFINE_SYSCALL syscall_vfork,       0x3A

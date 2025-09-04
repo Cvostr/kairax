@@ -1,5 +1,6 @@
 #include "ps2.h"
 #include "io.h"
+#include "kairax/types.h"
 
 #define PS2_MOUSE_SET_SAMPLE_RATE   0xF3
 

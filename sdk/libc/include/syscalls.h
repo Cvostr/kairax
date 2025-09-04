@@ -74,5 +74,6 @@ extern int syscall_sendto(int sockfd, const void *msg, unsigned long long len, i
 extern long long syscall_recvfrom(int sockfd, void* buf, unsigned long long len, int flags, const void* src_addr, unsigned int* addrlen);
 extern int syscall_setsockopt(int s, int level, int optname, const void *optval, unsigned int optlen);
 extern int syscall_shutdown(int sockfd, int how);
+extern int syscall_getpeername(int s, void *name, void *namelen);
 
 #endif

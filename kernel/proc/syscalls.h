@@ -144,6 +144,8 @@ int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
 ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* from, socklen_t* addrlen);
 
 int sys_shutdown(int sockfd, int how);
+int sys_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+
 
 // ----- SIGNALS -------
 

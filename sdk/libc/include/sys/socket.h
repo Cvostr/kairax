@@ -98,6 +98,7 @@ ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* 
 int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen) __THROW;
 
 int shutdown(int sockfd, int how) __THROW;
+int getpeername(int s, struct sockaddr *name, socklen_t *namelen) __THROW;
 
 __END_DECLS
 

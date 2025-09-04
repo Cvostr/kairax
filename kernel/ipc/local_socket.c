@@ -9,6 +9,8 @@
 #include "stdio.h"
 #include "kairax/kstdlib.h"
 
+#include "proc/syscalls.h"
+
 //#define LOCAL_SOCK_LOG_CLOSE
 
 struct socket_family local_sock_family = {

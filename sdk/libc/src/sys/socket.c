@@ -57,3 +57,8 @@ int shutdown(int sockfd, int how)
 {
     __set_errno(syscall_shutdown(sockfd, how));
 }
+
+int getpeername(int s, struct sockaddr *name, socklen_t *namelen)
+{
+    __set_errno(syscall_getpeername(s, name, namelen));
+}

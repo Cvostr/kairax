@@ -110,16 +110,18 @@ struct socket {
 #define SHUT_RDWR 2
 
 struct socket_prot_ops {
-    int (*create) (struct socket* sock);
-    int	(*connect) (struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
-    int (*bind) (struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
-    int (*listen) (struct socket* sock, int backlog);
-    ssize_t (*recvfrom) (struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
-    int (*sendto) (struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+    int (*create) (struct socket *sock);
+    int	(*connect) (struct socket *sock, struct sockaddr* saddr, int sockaddr_len);
+    int (*bind) (struct socket *sock, const struct sockaddr *addr, socklen_t addrlen);
+    int (*listen) (struct socket *sock, int backlog);
+    ssize_t (*recvfrom) (struct socket* sock, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+    int (*sendto) (struct socket *sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
     int (*setsockopt) (struct socket *sock, int level, int optname, const void *optval, unsigned int optlen);
     int	(*accept) (struct socket *sock, struct socket **newsock, struct sockaddr *addr);
     int	(*shutdown) (struct socket *sock, int how);
     int	(*close) (struct socket *sock);
+    int (*getpeername) (struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
+
 
     //int	(*sendmsg) (struct socket* sock, struct msghdr* m, int flags);
     //int	(*recvmsg) (struct socket* sock, struct msghdr* msg, int flags);
@@ -144,6 +146,7 @@ int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, c
 ssize_t socket_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int socket_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
 int socket_shutdown(struct socket* sock, int how);
+int socket_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
 
 int socket_close(struct inode *inode, struct file *file);
 ssize_t socket_read(struct file* file, char* buffer, size_t count, loff_t offset);
