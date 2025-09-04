@@ -62,3 +62,8 @@ int getpeername(int s, struct sockaddr *name, socklen_t *namelen)
 {
     __set_errno(syscall_getpeername(s, name, namelen));
 }
+
+int getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+{
+    __set_errno(syscall_getsockname(s, name, namelen));
+}

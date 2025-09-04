@@ -31,9 +31,12 @@ struct pty {
     int foreground_pg;
 };
 
+/*
+// Зачем это предполагалось?
 #define MAX_PTY_COUNT 64
 spinlock_t  ptys_lock = 0;
 struct pty* ptys[MAX_PTY_COUNT];
+*/
 
 void tty_init()
 {
@@ -53,6 +56,7 @@ void tty_fill_ccs(cc_t *control_characters)
     control_characters[VQUIT] = FS;
     control_characters[VERASE] = DEL;
     control_characters[VKILL] = NAK;
+    control_characters[VSUSP] = '0x1A';
 }
 
 int master_file_close(struct inode *inode, struct file *file)
@@ -178,7 +182,8 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 
 char crlf[2] = {'\r', '\n'};
 char remove[3] = {'\b', ' ', '\b'};
-char ETX_ECHO[3] = {'^', 'C'};
+char ETX_ECHO[2] = {'^', 'C'};
+char FS_ECHO[2] = {'^', '\\'};
 
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
 {
@@ -208,7 +213,8 @@ void pty_linebuffer_append(struct pty* p_pty, char c)
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 {
     size_t i = 0;
-    while (i < count) {
+    while (i < count) 
+    {
         char first_char = buffer[i];
 
         if ((p_pty->iflag & ISTRIP) == ISTRIP)
@@ -220,6 +226,37 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         {
             // Ignore Carriage Return
             continue;
+        }
+
+        // Преобразования CR -> LF, если необходимо
+        char converted = first_char;
+        if (((p_pty->iflag & INLCR) == INLCR) && (first_char == '\n'))
+        {
+            converted = '\r';
+        }
+        if (((p_pty->iflag & ICRNL) == ICRNL) && (first_char == '\r'))
+        {
+            converted = '\n';
+        }
+        first_char = converted;
+
+        // Обработка сигнальных управляющих символов
+        if ((p_pty->lflag & ISIG) == ISIG)
+        {
+            if (first_char == p_pty->control_characters[VINTR])
+            {
+                pipe_write(p_pty->slave_to_master, ETX_ECHO, sizeof(ETX_ECHO)); // ^C
+                sys_send_signal(p_pty->foreground_pg, SIGINT);
+            }
+            else if (first_char == p_pty->control_characters[VQUIT])
+            {
+                pipe_write(p_pty->slave_to_master, FS_ECHO, sizeof(FS_ECHO)); // ^
+                sys_send_signal(p_pty->foreground_pg, SIGQUIT);
+            }
+            else if (first_char == p_pty->control_characters[VSUSP])
+            {
+                
+            }
         }
 
         switch (first_char) {
@@ -244,10 +281,6 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                     // BKSP + SPACE + BKSP
                     pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
                 }
-                break;
-            case ETX:
-                pipe_write(p_pty->slave_to_master, ETX_ECHO, sizeof(ETX_ECHO)); // ^C
-                sys_send_signal(p_pty->foreground_pg, SIGINT);
                 break;
             default:
                 // Добавить символ в буфер

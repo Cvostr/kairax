@@ -145,7 +145,7 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
 
 int sys_shutdown(int sockfd, int how);
 int sys_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-
+int sys_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen);
 
 // ----- SIGNALS -------
 

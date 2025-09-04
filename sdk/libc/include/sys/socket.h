@@ -99,6 +99,7 @@ int setsockopt(int s, int level, int optname, const void *optval, socklen_t optl
 
 int shutdown(int sockfd, int how) __THROW;
 int getpeername(int s, struct sockaddr *name, socklen_t *namelen) __THROW;
+int getsockname(int s, struct sockaddr *name, socklen_t *namelen) __THROW;
 
 __END_DECLS
 

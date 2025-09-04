@@ -75,5 +75,6 @@ extern long long syscall_recvfrom(int sockfd, void* buf, unsigned long long len,
 extern int syscall_setsockopt(int s, int level, int optname, const void *optval, unsigned int optlen);
 extern int syscall_shutdown(int sockfd, int how);
 extern int syscall_getpeername(int s, void *name, void *namelen);
+extern int syscall_getsockname(int s, void *name, void *namelen);
 
 #endif

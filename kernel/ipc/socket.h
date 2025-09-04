@@ -121,7 +121,7 @@ struct socket_prot_ops {
     int	(*shutdown) (struct socket *sock, int how);
     int	(*close) (struct socket *sock);
     int (*getpeername) (struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
-
+    int (*getsockname) (struct socket *sock, struct sockaddr *name, socklen_t *namelen);
 
     //int	(*sendmsg) (struct socket* sock, struct msghdr* m, int flags);
     //int	(*recvmsg) (struct socket* sock, struct msghdr* msg, int flags);
@@ -147,6 +147,7 @@ ssize_t socket_recvfrom(struct socket* sock, void* buf, size_t len, int flags, s
 int socket_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
 int socket_shutdown(struct socket* sock, int how);
 int socket_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
+int socket_getsockname(struct socket *sock, struct sockaddr *name, socklen_t *namelen);
 
 int socket_close(struct inode *inode, struct file *file);
 ssize_t socket_read(struct file* file, char* buffer, size_t count, loff_t offset);
