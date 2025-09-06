@@ -1041,6 +1041,9 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 {
 	struct xhci_interrupter* interrupter = &data->runtime->interrupters[0];
 	volatile uint32_t usbsts = data->op->usbsts;
+
+	// Очистить флаг прерывания в статусе
+	data->op->usbsts = usbsts;
 	
 	if ((usbsts & XHCI_STS_HALT) == XHCI_STS_HALT)
 	{
@@ -1060,7 +1063,6 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 	if ((usbsts & XHCI_STS_EINTERRUPT) == XHCI_STS_EINTERRUPT)
 	{
 		//printk("XHCI: Event Interrupt\n");
-
 		struct xhci_trb event;
 		while (xhci_event_ring_deque(data->event_ring, &event) == 1)
 		{
@@ -1075,9 +1077,6 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 	{
 		interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING;
 	}
-
-	// Очистить флаг прерывания в статусе
-	data->op->usbsts = usbsts;
 }
 
 struct pci_device_id xhci_ctrl_ids[] = {

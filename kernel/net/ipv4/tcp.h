@@ -104,6 +104,8 @@ int sock_tcp4_listen(struct socket* sock, int backlog);
 ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 int sock_tcp4_close(struct socket* sock);
+int	sock_tcp4_shutdown(struct socket *sock, int how);
 int sock_tcp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
+int sock_tcp4_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
 
 #endif

@@ -39,7 +39,9 @@ struct socket_prot_ops ipv4_stream_ops = {
     .recvfrom = sock_tcp4_recvfrom,
     .sendto = sock_tcp4_sendto,
     .close = sock_tcp4_close,
-    .setsockopt = sock_tcp4_setsockopt
+    .shutdown = sock_tcp4_shutdown,
+    .setsockopt = sock_tcp4_setsockopt,
+    .getpeername = sock_tcp4_getpeername
 };
 
 // Сокеты по портам в порядке байтов хоста
@@ -865,6 +867,36 @@ int sock_tcp4_close(struct socket* sock)
     }
 
     return 0;
+}
+
+int sock_tcp4_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen)
+{
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // Проверим, что сокет подключен
+    if (sock->state != SOCKET_STATE_CONNECTED)
+    {
+        return -ENOTCONN;
+    }
+    
+    // Копируем, сколько можем
+    size_t to_copy_sz = *addrlen < sizeof(struct sockaddr_in) ? *addrlen : sizeof(struct sockaddr_in);
+    memcpy(addr, &sock_data->addr, to_copy_sz);
+
+    // Запишем настоящий размер
+    *addrlen = sizeof(struct sockaddr_in);
+
+    return 0;
+}
+
+int	sock_tcp4_shutdown(struct socket *sock, int how)
+{
+    int shut_read = (how == SHUT_RD || how == SHUT_RDWR);
+    int shut_write = (how == SHUT_WR || how == SHUT_RDWR);
+
+    printk("tcp: shutdown() is not implemented!\n");
+
+    return -1;
 }
 
 int sock_tcp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
