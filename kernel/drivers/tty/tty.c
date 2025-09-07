@@ -6,6 +6,7 @@
 #include "proc/syscalls.h"
 #include "stdio.h"
 #include "cpu/cpu_local.h"
+#include "kairax/ctype.h"
 
 struct file_operations tty_master_fops;
 struct file_operations tty_slave_fops;
@@ -14,6 +15,7 @@ struct file_operations tty_slave_fops;
 
 struct pty {
     int pty_id;
+    atomic_t refs;
 
     // termios struct state
     tcflag_t iflag;
@@ -54,20 +56,44 @@ void tty_fill_ccs(cc_t *control_characters)
 {
     control_characters[VINTR] = ETX;
     control_characters[VQUIT] = FS;
-    control_characters[VERASE] = DEL;
+    control_characters[VERASE] = BS;
     control_characters[VKILL] = NAK;
-    control_characters[VSUSP] = '0x1A';
+    control_characters[VSUSP] = SUB;
+    control_characters[VWERASE] = ETB;
+}
+
+void free_pty(struct pty* p_pty)
+{
+    if (atomic_dec_and_test(&p_pty->refs)) 
+    {
+        if (atomic_dec_and_test(&p_pty->master_to_slave->ref_count)) 
+        {
+            free_pipe(p_pty->master_to_slave);
+        }
+
+        if (atomic_dec_and_test(&p_pty->slave_to_master->ref_count)) 
+        {
+            free_pipe(p_pty->slave_to_master);
+        }
+
+        printk("pty: free()\n");
+        kfree(p_pty);
+    }
 }
 
 int master_file_close(struct inode *inode, struct file *file)
 {
-    printk("tty: master close() not implemented!\n");
+    struct pty *p_pty = (struct pty *) file->private_data;
+    free_pty(p_pty);
+    printk("tty: master close()\n");
     return -1;
 }
 
 int slave_file_close(struct inode *inode, struct file *file)
 {
-    printk("tty: slave close() not implemented!\n");
+    struct pty *p_pty = (struct pty *) file->private_data;
+    free_pty(p_pty);
+    printk("tty: slave close()\n");
     return -1;
 }
 
@@ -81,7 +107,7 @@ int tty_create(struct file **master, struct file **slave)
     memset(p_pty, 0, sizeof(struct pty));
 
     // Установить флаги по умолчанию
-    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE);
+    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK);
     tty_fill_ccs(p_pty->control_characters);
 
     // Создать каналы для ведущего и ведомого
@@ -96,12 +122,14 @@ int tty_create(struct file **master, struct file **slave)
     fmaster->flags = FILE_OPEN_MODE_READ_WRITE;
     fmaster->ops = &tty_master_fops;
     fmaster->private_data = p_pty;
+    atomic_inc(&p_pty->refs);
     *master = fmaster;
 
     struct file *fslave = new_file();
     fslave->flags = FILE_OPEN_MODE_READ_WRITE;
     fslave->ops = &tty_slave_fops;
     fslave->private_data = p_pty;
+    atomic_inc(&p_pty->refs);
     *slave = fslave;
 
     return 0;
@@ -209,13 +237,22 @@ void pty_linebuffer_append(struct pty* p_pty, char c)
     }
 }
 
+void pty_remove_last_char(struct pty* p_pty)
+{
+    if (p_pty->buffer_pos > 0) {
+        p_pty->buffer_pos--;
+        // BKSP + SPACE + BKSP
+        pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
+    }
+}
+
 // Дисциплина линии при записи в master со стороны терминала
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 {
     size_t i = 0;
     while (i < count) 
     {
-        char first_char = buffer[i];
+        char first_char = buffer[i++];
 
         if ((p_pty->iflag & ISTRIP) == ISTRIP)
         {
@@ -259,6 +296,46 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             }
         }
 
+        if ((p_pty->lflag & ICANON) == ICANON)
+        {
+            // Удаление строки
+            if ((first_char == p_pty->control_characters[VKILL]) && ((p_pty->lflag & ECHOK) == ECHOK))
+            {
+                // Очищаем всю строку
+                while (p_pty->buffer_pos > 0) 
+                {
+                    pty_remove_last_char(p_pty);
+                }
+
+                continue;
+            }
+
+            // Удаление символа
+            if ((first_char == p_pty->control_characters[VERASE]) && (p_pty->lflag & ECHOE) == ECHOE)
+            {
+                pty_remove_last_char(p_pty);
+                continue;
+            }
+
+            // Удаление слова
+            if ((first_char == p_pty->control_characters[VWERASE]) && (p_pty->lflag & ECHOE) == ECHOE)
+            {
+                // Сначала очищаем пробелы
+                while (isspace(p_pty->buffer[p_pty->buffer_pos]) && (p_pty->buffer_pos > 0)) 
+                {
+                    pty_remove_last_char(p_pty);
+                }
+
+                // Очищаем слово
+                while (!isspace(p_pty->buffer[p_pty->buffer_pos]) && (p_pty->buffer_pos > 0)) 
+                {
+                    pty_remove_last_char(p_pty);
+                }
+
+                continue;
+            }
+        }
+
         switch (first_char) {
             case '\r':
                 // пока что CR просто выводим, не добавляя в буфер
@@ -274,14 +351,6 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                 // Сброс позиции буфера
                 p_pty->buffer_pos = 0;
                 break;
-            case '\b':
-                // Нажата кнопка backspace
-                if (p_pty->buffer_pos > 0) {
-                    p_pty->buffer_pos--;
-                    // BKSP + SPACE + BKSP
-                    pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
-                }
-                break;
             default:
                 // Добавить символ в буфер
                 pty_linebuffer_append(p_pty, first_char);
@@ -293,7 +362,5 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                 }
                 break;
         }
-
-        i++;
     }
 }

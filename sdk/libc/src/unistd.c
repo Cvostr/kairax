@@ -186,6 +186,20 @@ int isatty(int fd)
     return istty;
 }
 
+pid_t tcgetpgrp(int fd)
+{
+    int result = -1;
+    if (ioctl(fd, TIOCGPGRP, (unsigned long long) &result) == -1)
+        return -1;
+
+    return result;
+}
+
+int tcsetpgrp(int fd, pid_t pgrp)
+{
+    return ioctl(fd, TIOCSPGRP, (unsigned long long) &pgrp);
+}
+
 void _exit(int status)
 {
     syscall_process_exit(status);

@@ -73,6 +73,8 @@ int chdir(const char* path);
 int pipe(int pipefd[2]);
 
 int isatty(int fd);
+pid_t tcgetpgrp(int fd) __THROW;
+int tcsetpgrp(int fd, pid_t pgrp) __THROW;
 
 void _exit(int status);
 

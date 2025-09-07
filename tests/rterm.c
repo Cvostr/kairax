@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         chdir("/");
         int rc = execve("/rxsh.a", NULL, NULL);
         printf("exec() :%i\n", rc);
-        return 22;
+        exit(22);
     }
 
     pid_t read_thread = create_thread(client_send_thread, NULL);

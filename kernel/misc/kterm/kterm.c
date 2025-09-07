@@ -17,6 +17,11 @@ struct terminal_session* kterm_sessions[KTERM_SESSIONS_MAX];
 struct vgaconsole* current_console = NULL;
 struct terminal_session* current_session = NULL;
 
+#define ETX 3
+#define FS  28
+#define NAK 0x15
+#define ETB 0x17
+
 void kterm_process_start()
 {
     // Первоначальный процесс kterm
@@ -140,6 +145,14 @@ void kterm_main()
 									break;
 								case '\\':
 									chr = FS;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'u':
+									chr = NAK;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'w':
+									chr = ETB;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 								case 'h':

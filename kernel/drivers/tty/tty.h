@@ -77,8 +77,10 @@ struct termios {
 
 #define ETX         3
 #define FS          0x1C
-#define DEL         0x7F
+#define BS         '\b'
 #define NAK         0x15
+#define SUB         032
+#define ETB         0x17
 
 struct pty;
 

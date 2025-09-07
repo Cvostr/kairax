@@ -10,9 +10,7 @@
 #define OP_GET_ALL              1
 #define OP_SET_IPV4_ADDR        2
 #define OP_SET_IPV4_SUBNETMASK  3
-#define OP_SET_IPV4_GATEWAY     4
 #define OP_SET_IPV6_ADDR        5
-#define OP_SET_IPV6_GATEWAY     6
 #define OP_UPDATE_FLAGS         7
 
 struct netinfo {
@@ -62,7 +60,6 @@ int sys_netctl(int op, int param, struct netinfo* netinfo)
             netinfo->mtu = nic->mtu;
             netinfo->ip4_addr = nic->ipv4_addr;
             netinfo->ip4_subnet = nic->ipv4_subnet;
-            netinfo->ip4_gateway = nic->ipv4_gateway;
             break;
         case OP_SET_IPV4_ADDR:
             rc = nic_set_addr_ip4(nic, netinfo->ip4_addr);

@@ -245,13 +245,16 @@ void console_scroll(struct vgaconsole* vgconsole)
 
 void console_backspace(struct vgaconsole* vgconsole, int chars)
 {
-	for (int i = 0; i < chars; i ++) {
-
+	for (int i = 0; i < chars; i ++) 
+    {
         if (vgconsole->console_col > 0)
+        {
             vgconsole->console_col --;
-        else {
+        }
+        else 
+        {
             vgconsole->console_lines--;
-            vgconsole->console_col = 0;
+            vgconsole->console_col = BUFFER_LINE_LENGTH;
         }
 	}
 }

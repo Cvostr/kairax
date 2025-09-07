@@ -29,9 +29,6 @@ struct terminal_session {
 	struct kterm_color foreground_color;
 };
 
-#define ETX 3
-#define FS  28
-
 char keyboard_get_key_ascii(int shifted, char keycode);
 char keyboard_get_key_ascii_normal(char keycode);
 
