@@ -42,7 +42,13 @@ exit:
 
 int sys_set_working_dir(const char* buffer)
 {
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
+
+    if (thread->is_userspace) {
+        VALIDATE_USER_STRING(process, buffer)
+    }
+
     struct dentry* workdir_dentry = process->pwd != NULL ? process->pwd : NULL;
     struct dentry* new_workdir = vfs_dentry_traverse_path(workdir_dentry, buffer, 0);
 

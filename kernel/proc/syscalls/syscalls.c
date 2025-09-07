@@ -147,6 +147,11 @@ pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 int sys_mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags)
 {
     struct process* process = cpu_get_current_thread()->process;
+
+    VALIDATE_USER_STRING(process, device)
+    VALIDATE_USER_STRING(process, mount_dir)
+    VALIDATE_USER_STRING(process, fs)
+
     if (process->euid != 0) {
         return -EPERM;
     }

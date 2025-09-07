@@ -209,6 +209,40 @@ int process_is_userspace_region(struct process* process, uintptr_t base, size_t 
     return TRUE;
 }
 
+int process_is_userspace_string(struct process* process, uintptr_t base)
+{
+    uintptr_t addr = base;
+
+    // Проверим, что адрес не выходит за пределы пользовательского пространства
+    if (base >= USERSPACE_MAX_ADDR) 
+    {
+        return FALSE;
+    }
+
+    // Проверим по первой странице
+    if (base < 0x1000)
+    {
+        return FALSE;
+    }
+
+    struct mmap_range* range = NULL;
+    while ((range = process_get_region_by_addr(process, addr)) != NULL)
+    {
+        // Ищем терминирущий 0 в строке
+        for (; addr < range->base + range->length; addr ++)
+        {
+            char* c = addr;
+            if (*c == '\0')
+            {
+                // Нашли - строка в порядке
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
 int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t size, uint64_t flags)
 {
     // Выравнивание

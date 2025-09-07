@@ -127,7 +127,9 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
 
 struct mmap_range* process_alloc_stack_memory(struct process* process, size_t stack_size, int need_map);
 
+// Проверить, принадлежит ли область памяти  
 int process_is_userspace_region(struct process* process, uintptr_t base, size_t len, int protection);
+int process_is_userspace_string(struct process* process, uintptr_t base);
 
 // Получает объект открытого файла по номеру дескриптора
 struct file* process_get_file(struct process* process, int fd);

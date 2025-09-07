@@ -94,5 +94,11 @@ int main(int argc, char** argv)
         return 9;
     }
 
+    printf("Test 10: open() file with broken string\n");
+    char* badstr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    memset(badstr, 'a', 4096);
+    sleep(1);
+    int badfd = open(badstr, O_RDONLY, 0);
+
     return 0;
 }
