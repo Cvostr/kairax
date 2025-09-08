@@ -108,6 +108,7 @@ int tty_create(struct file **master, struct file **slave)
 
     // Установить флаги по умолчанию
     p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK);
+    p_pty->oflag = (OPOST | ONLCR);
     tty_fill_ccs(p_pty->control_characters);
 
     // Создать каналы для ведущего и ведомого
@@ -213,20 +214,32 @@ char remove[3] = {'\b', ' ', '\b'};
 char ETX_ECHO[2] = {'^', 'C'};
 char FS_ECHO[2] = {'^', '\\'};
 
+// Запись со стороны приложения
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
 {
     size_t i = 0;
-    while (i < count) {
-        char chr = buffer[i];
+    while (i < count) 
+    {
+        char chr = buffer[i++];
 
-        switch (chr) {
-            case '\n':
+        if (p_pty->oflag & OPOST)
+        {
+            if ((p_pty->oflag & ONLCR) && chr == '\n')
+            {
+                // Сразу пишем CRLF
                 pipe_write(p_pty->slave_to_master, crlf, sizeof(crlf));
-                break;
-            default:
-                pipe_write(p_pty->slave_to_master, &chr, 1);
+                return;
+            }
+
+            if ((p_pty->oflag & OCRNL) && chr == '\r')
+            {
+                chr = '\n';
+                pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+                return;
+            }
         }
-        i++;
+
+        pipe_write(p_pty->slave_to_master, &chr, 1);
     }   
 }
 
@@ -244,6 +257,18 @@ void pty_remove_last_char(struct pty* p_pty)
         // BKSP + SPACE + BKSP
         pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
     }
+}
+
+void pty_newline_flush(struct pty* p_pty)
+{
+    // Нажата кнопка enter
+    // Эхо в терминал CR + LF
+    pipe_write(p_pty->slave_to_master, crlf, 2);
+    // Записать буфер в slave
+    p_pty->buffer[p_pty->buffer_pos++] = '\n';
+    pipe_write(p_pty->master_to_slave, p_pty->buffer, p_pty->buffer_pos);
+    // Сброс позиции буфера
+    p_pty->buffer_pos = 0;
 }
 
 // Дисциплина линии при записи в master со стороны терминала
@@ -282,12 +307,10 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         {
             if (first_char == p_pty->control_characters[VINTR])
             {
-                pipe_write(p_pty->slave_to_master, ETX_ECHO, sizeof(ETX_ECHO)); // ^C
                 sys_send_signal(p_pty->foreground_pg, SIGINT);
             }
             else if (first_char == p_pty->control_characters[VQUIT])
             {
-                pipe_write(p_pty->slave_to_master, FS_ECHO, sizeof(FS_ECHO)); // ^
                 sys_send_signal(p_pty->foreground_pg, SIGQUIT);
             }
             else if (first_char == p_pty->control_characters[VSUSP])
@@ -296,6 +319,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             }
         }
 
+        // При включенном канонiчном режиме
         if ((p_pty->lflag & ICANON) == ICANON)
         {
             // Удаление строки
@@ -336,31 +360,37 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             }
         }
 
-        switch (first_char) {
-            case '\r':
-                // пока что CR просто выводим, не добавляя в буфер
-                pipe_write(p_pty->slave_to_master, &first_char, 1);
-                break;
-            case '\n':
-                // Нажата кнопка enter
-                // Эхо в терминал CR + LF
-                pipe_write(p_pty->slave_to_master, crlf, 2);
-                // Записать буфер в slave
-                p_pty->buffer[p_pty->buffer_pos++] = '\n';
-                pipe_write(p_pty->master_to_slave, p_pty->buffer, p_pty->buffer_pos);
-                // Сброс позиции буфера
-                p_pty->buffer_pos = 0;
-                break;
-            default:
-                // Добавить символ в буфер
-                pty_linebuffer_append(p_pty, first_char);
+        if (first_char == '\r')
+        {
+            // пока что CR просто выводим, не добавляя в буфер
+            pipe_write(p_pty->slave_to_master, &first_char, 1);
+            break;
+        }
+        else if (first_char == '\n')
+        {
+            // Новая линия CR+LF
+            pty_newline_flush(p_pty);
+        } 
+        else if (first_char <= 31 || first_char == 127)
+        {
+            // Вывод управляющего символа в формате ^C
+            char chr = '^';
+            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            chr = 'A' + first_char - 1;
+            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            // Новая линия CR+LF
+            pty_newline_flush(p_pty);
+        }
+        else
+        {
+            // Добавить символ в буфер
+            pty_linebuffer_append(p_pty, first_char);
                 
-                // Эхо на консоль
-                if ((p_pty->lflag & ECHO) == ECHO) 
-                {
-                    pipe_write(p_pty->slave_to_master, &first_char, 1);
-                }
-                break;
+            // Эхо на консоль
+            if ((p_pty->lflag & ECHO) == ECHO) 
+            {
+                pipe_write(p_pty->slave_to_master, &first_char, 1);
+            }
         }
     }
 }
