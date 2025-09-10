@@ -113,3 +113,7 @@ cd ..
 cd dhcl
 make
 cd ..
+
+cd stty
+make
+cd ..

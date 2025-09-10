@@ -237,6 +237,13 @@ void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
                 pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
                 return;
             }
+
+            if ((p_pty->oflag & OLCUC) && (chr >= 'a' && chr <= 'z'))
+            {
+                chr = chr + 'A' - 'a';
+                pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+                return;
+            }
         }
 
         pipe_write(p_pty->slave_to_master, &chr, 1);

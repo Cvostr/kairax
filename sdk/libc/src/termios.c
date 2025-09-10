@@ -17,3 +17,12 @@ int tcsetattr(int fd, int optional_actions, struct termios *termios_p)
     errno = EINVAL;
     return -1;
 }
+
+void cfmakeraw(struct termios *t)
+{
+    t->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    t->c_oflag &= ~OPOST;
+    t->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    //t->c_cflag &= ~(CSIZE | PARENB);
+    //t->c_cflag |= CS8;
+}

@@ -102,6 +102,11 @@ void kterm_tty_master_read_routine(struct terminal_session* session)
 	}
 }
 
+char ARROW_UP[] = {'^', '[', '[', 'A'};
+char ARROW_DOWN[] = {'^', '[', '[', 'B'};
+char ARROW_LEFT[] = {'^', '[', '[', 'D'};
+char ARROW_RIGHT[] = {'^', '[', '[', 'C'};
+
 void kterm_main()
 {
 	struct terminal_session* session = new_kterm_session(FALSE);
@@ -129,6 +134,30 @@ void kterm_main()
 					break;
 				case KRXK_LSHIFT:
 					current_session->shift_hold = (state == 0);
+					break;
+				case KRXK_UP:
+					if (state == 0) 
+					{
+						sys_write_file(current_session->master, ARROW_UP, sizeof(ARROW_UP));
+					}
+					break;
+				case KRXK_DOWN:
+					if (state == 0) 
+					{
+						sys_write_file(current_session->master, ARROW_DOWN, sizeof(ARROW_DOWN));
+					}
+					break;
+				case KRXK_LEFT:
+					if (state == 0) 
+					{
+						sys_write_file(current_session->master, ARROW_LEFT, sizeof(ARROW_LEFT));
+					}
+					break;
+				case KRXK_RIGHT:
+					if (state == 0) 
+					{
+						sys_write_file(current_session->master, ARROW_RIGHT, sizeof(ARROW_RIGHT));
+					}
 					break;
 
 				default:

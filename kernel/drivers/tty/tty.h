@@ -39,8 +39,13 @@ typedef unsigned int	tcflag_t;
 #define ECHOKE	0004000
 
 #define OPOST		0000001
+#define OLCUC       0000002
 #define ONLCR	    0000004
 #define OCRNL	    0000010
+#define ONOCR	    0000020
+#define ONLRET	    0000040
+#define OFILL	    0000100
+#define OFDEL	    0000200
 
 // Terminal Special Characters
 #define VINTR	0
