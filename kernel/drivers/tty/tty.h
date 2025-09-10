@@ -26,6 +26,7 @@ typedef unsigned int	tcflag_t;
 #define IMAXBEL	0020000
 #define IUTF8	0040000
 
+// c_lflag
 #define ISIG	0000001
 #define ICANON	0000002
 #define XCASE	0000004
@@ -37,6 +38,8 @@ typedef unsigned int	tcflag_t;
 #define ECHOCTL	0001000
 #define ECHOPRT	0002000
 #define ECHOKE	0004000
+//
+#define IEXTEN	0100000
 
 #define OPOST		0000001
 #define OLCUC       0000002

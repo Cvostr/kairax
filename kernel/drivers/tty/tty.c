@@ -107,7 +107,7 @@ int tty_create(struct file **master, struct file **slave)
     memset(p_pty, 0, sizeof(struct pty));
 
     // Установить флаги по умолчанию
-    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK);
+    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
     p_pty->oflag = (OPOST | ONLCR);
     tty_fill_ccs(p_pty->control_characters);
 
@@ -309,6 +309,15 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         }
         first_char = converted;
 
+        // Понижение регистра
+        if (
+            (p_pty->lflag & IEXTEN) &&
+            (p_pty->iflag & IUCLC) &&
+            (first_char >= 'A' && first_char <= 'Z')) 
+        {
+		    first_char = first_char - 'A' + 'a';
+	    }
+
         // Обработка сигнальных управляющих символов
         if ((p_pty->lflag & ISIG) == ISIG)
         {
@@ -371,7 +380,6 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         {
             // пока что CR просто выводим, не добавляя в буфер
             pipe_write(p_pty->slave_to_master, &first_char, 1);
-            break;
         }
         else if (first_char == '\n')
         {

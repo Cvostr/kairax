@@ -96,7 +96,7 @@ int print_state()
 
     print_flag(tmi.c_lflag, "isig", ISIG);
     print_flag(tmi.c_lflag, "icanon", ICANON);
-    //print_flag(tmi.c_lflag, "iexten", IEXTEN);
+    print_flag(tmi.c_lflag, "iexten", IEXTEN);
     print_flag(tmi.c_lflag, "echo", ECHO);
     print_flag(tmi.c_lflag, "echoe", ECHOE);
     print_flag(tmi.c_lflag, "echok", ECHOK);
@@ -112,6 +112,33 @@ int print_state()
     printf("\n");
 
     return 0;
+}
+
+int handle_flag(tcflag_t *flag, char *flagname, char *arg, int flagbit)
+{
+    int minus = 0;
+    int equals = 0;
+
+    if (arg[0] == '-')
+    {
+        minus = 1;
+        arg += 1;
+    }
+    
+    equals = strcmp(arg, flagname) == 0;
+
+    if (equals)
+    {
+        //printf("compared\n");
+        if (minus)
+        {
+            *flag &= ~flagbit;
+        }
+        else
+        {
+            *flag |= flagbit;
+        }
+    }
 }
 
 int main(int argc, char** argv) 
@@ -156,6 +183,31 @@ int main(int argc, char** argv)
             tmi.c_lflag &= ~(ICANON | ISIG | IUCLC | XCASE);
             continue;
         }
+
+        handle_flag(&tmi.c_iflag, "istrip", arg, ISTRIP);
+        handle_flag(&tmi.c_iflag, "inlcr", arg, INLCR);
+        handle_flag(&tmi.c_iflag, "igncr", arg, IGNCR);
+        handle_flag(&tmi.c_iflag, "icrnl", arg, ICRNL);
+        handle_flag(&tmi.c_iflag, "iuclc", arg, IUCLC);
+
+
+        handle_flag(&tmi.c_oflag, "olcuc", arg, OLCUC);
+        handle_flag(&tmi.c_oflag, "opost", arg, OPOST);
+        handle_flag(&tmi.c_oflag, "onlcr", arg, ONLCR);
+        handle_flag(&tmi.c_oflag, "ocrnl", arg, OCRNL);
+        handle_flag(&tmi.c_oflag, "onocr", arg, ONOCR);
+        handle_flag(&tmi.c_oflag, "onlret", arg, ONLRET);
+        handle_flag(&tmi.c_oflag, "ofill", arg, OFILL);
+        handle_flag(&tmi.c_oflag, "ofdel", arg, OFDEL);
+
+
+        handle_flag(&tmi.c_lflag, "isig", arg, ISIG);
+        handle_flag(&tmi.c_lflag, "icanon", arg, ICANON);
+        handle_flag(&tmi.c_lflag, "iexten", arg, IEXTEN);
+        handle_flag(&tmi.c_lflag, "echo", arg, ECHO);
+        handle_flag(&tmi.c_lflag, "echoe", arg, ECHOE);
+        handle_flag(&tmi.c_lflag, "echok", arg, ECHOK);
+        handle_flag(&tmi.c_lflag, "echonl", arg, ECHONL);
     }
 
     tcsetattr(STDOUT_FILENO, TCSADRAIN, &tmi);

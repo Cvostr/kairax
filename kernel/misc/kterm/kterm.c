@@ -238,7 +238,13 @@ char keyboard_get_key_ascii(int shifted, char keycode)
 		case KRXK_BSLASH:
 			return '|';
 		default:
-			return keyboard_get_key_ascii_normal(keycode);
+			char upcase = keyboard_get_key_ascii_normal(keycode);
+			if ((upcase >= 'a' && upcase <= 'z'))
+			{
+				upcase += 'A' - 'a';
+			}
+			
+			return upcase;
 		}
 	}
 
