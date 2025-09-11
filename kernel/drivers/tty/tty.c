@@ -24,6 +24,8 @@ struct pty {
     tcflag_t lflag;
     cc_t control_characters[CCSNUM];
 
+    struct winsize winsz;
+
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
 
@@ -110,6 +112,9 @@ int tty_create(struct file **master, struct file **slave)
     p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
     p_pty->oflag = (OPOST | ONLCR);
     tty_fill_ccs(p_pty->control_characters);
+    // Размер окна по умолчанию
+    p_pty->winsz.ws_col = 80;
+    p_pty->winsz.ws_row = 20;
 
     // Создать каналы для ведущего и ведомого
     p_pty->master_to_slave = new_pipe();
@@ -169,10 +174,21 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
     struct pty *p_pty = (struct pty *) file->private_data;
 
     struct termios* tmios;
-
     switch (request) {
         case TIOCSPGRP:
             p_pty->foreground_pg = arg;
+            break;
+        case TIOCGWINSZ:
+            // Получить размер окна
+            VALIDATE_USER_POINTER_PROTECTION(process, arg, sizeof(struct winsize), PAGE_PROTECTION_WRITE_ENABLE)
+            memcpy(arg, &p_pty->winsz, sizeof(struct winsize));
+            break;
+        case TIOCSWINSZ:
+            // Обновить размер окна
+            VALIDATE_USER_POINTER(process, arg, sizeof(struct winsize))
+            memcpy(&p_pty->winsz, arg, sizeof(struct winsize));
+            // TODO: отправлять группе?
+            sys_send_signal(p_pty->foreground_pg, SIGWINCH);
             break;
         case TCGETS:
             tmios = (struct termios*) arg;

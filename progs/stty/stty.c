@@ -2,6 +2,7 @@
 #include "errno.h"
 #include "unistd.h"
 #include "termios.h"
+#include <sys/ioctl.h>
 #include "string.h"
 
 void print_cc(struct termios *tm, char* charname, int chr)
@@ -40,12 +41,16 @@ void print_flag(tcflag_t flag, char* optname, int opt)
 int print_state()
 {
     struct termios tmi;
-    int rc = tcgetattr(0, &tmi);
+    int rc = tcgetattr(STDOUT_FILENO, &tmi);
     if (rc != 0)
     {
         perror("Error getting tty settings");
         return rc;
     }
+
+    struct winsize wsize;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
+    printf("rows %d; columns %d;\n", wsize.ws_row, wsize.ws_col);
 
     print_cc(&tmi, "intr", VINTR);
     print_cc(&tmi, "quit", VQUIT);
