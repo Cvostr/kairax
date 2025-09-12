@@ -62,6 +62,7 @@ void tty_fill_ccs(cc_t *control_characters)
     control_characters[VKILL] = NAK;
     control_characters[VSUSP] = SUB;
     control_characters[VWERASE] = ETB;
+    control_characters[VEOL] = 0;   // по умолчанию не указываем
 }
 
 void free_pty(struct pty* p_pty)
@@ -230,6 +231,37 @@ char remove[3] = {'\b', ' ', '\b'};
 char ETX_ECHO[2] = {'^', 'C'};
 char FS_ECHO[2] = {'^', '\\'};
 
+void tty_output(struct pty* p_pty, unsigned char chr)
+{
+    if (p_pty->oflag & OPOST)
+    {
+        if ((p_pty->oflag & ONLCR) && chr == '\n')
+        {
+            // Сразу пишем CRLF
+            pipe_write(p_pty->slave_to_master, crlf, sizeof(crlf));
+            return;
+        }
+
+        if ((p_pty->oflag & OCRNL) && chr == '\r')
+        {
+            chr = '\n';
+            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            return;
+        }
+
+        if ((p_pty->oflag & OLCUC) && (chr >= 'a' && chr <= 'z'))
+        {
+            chr = chr + 'A' - 'a';
+            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            return;
+        }
+    }
+
+    pipe_write(p_pty->slave_to_master, &chr, 1);
+
+    return 0;
+}
+
 // Запись со стороны приложения
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
 {
@@ -238,31 +270,7 @@ void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
     {
         char chr = buffer[i++];
 
-        if (p_pty->oflag & OPOST)
-        {
-            if ((p_pty->oflag & ONLCR) && chr == '\n')
-            {
-                // Сразу пишем CRLF
-                pipe_write(p_pty->slave_to_master, crlf, sizeof(crlf));
-                return;
-            }
-
-            if ((p_pty->oflag & OCRNL) && chr == '\r')
-            {
-                chr = '\n';
-                pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
-                return;
-            }
-
-            if ((p_pty->oflag & OLCUC) && (chr >= 'a' && chr <= 'z'))
-            {
-                chr = chr + 'A' - 'a';
-                pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
-                return;
-            }
-        }
-
-        pipe_write(p_pty->slave_to_master, &chr, 1);
+        tty_output(p_pty, chr);
     }   
 }
 
@@ -392,12 +400,14 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             }
         }
 
+        char EOL = p_pty->control_characters[VEOL];
+
         if (first_char == '\r')
         {
             // пока что CR просто выводим, не добавляя в буфер
             pipe_write(p_pty->slave_to_master, &first_char, 1);
         }
-        else if (first_char == '\n')
+        else if ((EOL != 0 && first_char == EOL) || (first_char == '\n'))
         {
             // Новая линия CR+LF
             pty_newline_flush(p_pty);
@@ -409,6 +419,11 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
             chr = 'A' + first_char - 1;
             pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+
+            // Сброс позиции буфера
+            p_pty->buffer_pos = 0;
+            memset(p_pty->buffer, 0, PTY_LINE_MAX_BUFFER_SIZE);
+
             // Новая линия CR+LF
             pty_newline_flush(p_pty);
         }
@@ -420,7 +435,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             // Эхо на консоль
             if ((p_pty->lflag & ECHO) == ECHO) 
             {
-                pipe_write(p_pty->slave_to_master, &first_char, 1);
+                tty_output(p_pty, first_char);
             }
         }
     }
