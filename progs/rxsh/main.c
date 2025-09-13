@@ -4,6 +4,8 @@
 #include "lexer.h"
 #include "stdlib.h"
 #include "ast.h"
+#include "sys/ioctl.h"
+#include "signal.h"
 
 char curdir[512];
 char cmd[256];
@@ -15,6 +17,14 @@ void cmd_process();
 
 int main(int argc, char** argv)
 {
+    setpgid(0, 0);
+    ioctl(0, TIOCSPGRP, getpgid(0));
+
+    sigset_t ss;
+    sigemptyset(&ss);
+    sigaddset(&ss, SIGINT);
+    sigprocmask(SIG_BLOCK, &ss, NULL);
+
     while (1) {
         printcwd();
         fgets(cmd, 100, stdin);

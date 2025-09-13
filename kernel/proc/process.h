@@ -46,6 +46,7 @@ struct process {
     // Название
     char                name[PROCESS_NAME_MAX_LEN];
     struct thread*      waiter;
+    pid_t               process_group;
     // Процесс - родитель
     struct process*     parent;
     struct thread*      main_thread;

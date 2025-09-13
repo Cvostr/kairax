@@ -93,6 +93,7 @@ struct winsize {
 #define TCSETSW		0x5403 // TCSADRAIN
 #define TCSETSF		0x5404 // TCSAFLUSH
 #define TIOCSPGRP	0x5410
+#define TIOCSTI		0x5412
 
 #define TIOCGWINSZ  0x540E
 #define TIOCSWINSZ  0x540F
@@ -124,5 +125,7 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg);
 
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count);
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count);
+
+void tty_output(struct pty* p_pty, unsigned char chr);
 
 #endif

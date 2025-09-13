@@ -65,6 +65,9 @@ pid_t sys_get_parent_process_id();
 
 pid_t sys_get_thread_id();
 
+int sys_setpgid(pid_t pid, pid_t pgid);
+pid_t sys_getpgid(pid_t pid);
+
 void sys_exit_process(int code);
 
 pid_t sys_fork();
@@ -151,6 +154,7 @@ int sys_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen);
 
 int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigsetsize);
 int sys_send_signal(pid_t pid, int signal);
+int sys_send_signal_pg(pid_t group, int signal);
 int sys_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact, size_t sigsetsize);
 int sys_sigpending(sigset_t *set, size_t sigsetsize);
 int sys_sigreturn();

@@ -18,10 +18,27 @@ int sys_sigpending(sigset_t *set, size_t sigsetsize)
     return 0;
 }
 
+int sys_send_signal_pg(pid_t group, int signal)
+{
+    if (signal < 0 || signal > SIGNALS) {
+        return -EINVAL;
+    }
+
+    process_list_send_signal_pg(group, signal);
+
+    return 0;
+}
+
 int sys_send_signal(pid_t pid, int signal)
 {
     if (signal < 0 || signal > SIGNALS) {
         return -EINVAL;
+    }
+
+    // Через отрицательное значение задается группа
+    if (pid < 0)
+    {
+        return process_list_send_signal_pg(-pid, signal);
     }
 
     struct process* proc = process_get_by_id(pid);

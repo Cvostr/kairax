@@ -34,6 +34,9 @@ void bootshell()
 {
     bootshell_print_sign();
 
+    sys_setpgid(0, 0);
+    sys_ioctl(0, 0x5410, sys_getpgid(0));
+    
     while(1) {
 
         char command[256];

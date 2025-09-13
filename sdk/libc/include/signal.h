@@ -66,10 +66,15 @@ struct sigaction {
 int raise(int sig) __THROW;
 int kill(pid_t pid, int sig) __THROW;
 
+int killpg(pid_t pgrp, int sig) __THROW;
+
 int sigaddset(sigset_t *set, int sig) __THROW;
 int sigdelset(sigset_t *set, int sig) __THROW;
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW;
 int sigpending(sigset_t *set) __THROW;
+
+int sigemptyset(sigset_t *set) __THROW;
+int sigfillset(sigset_t *set) __THROW;
 
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
 

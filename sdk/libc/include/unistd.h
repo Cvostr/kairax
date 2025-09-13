@@ -37,10 +37,13 @@ gid_t getegid(void);
 int setgid(gid_t gid);
 
 pid_t getpid(void);
-
 pid_t getppid(void);
-
 pid_t gettid(void);
+
+int setpgid(pid_t pid, pid_t pgid) __THROW;
+pid_t getpgid(pid_t pid) __THROW;
+int setpgrp(void) __THROW;
+pid_t getpgrp(void) __THROW;
 
 ssize_t read(int fd, char* buffer, size_t size);
 

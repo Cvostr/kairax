@@ -72,7 +72,9 @@ DEFINE_SYSCALL syscall_setuid,      0x69
 DEFINE_SYSCALL syscall_setgid,      0x6A
 DEFINE_SYSCALL syscall_geteuid,     0x6B
 DEFINE_SYSCALL syscall_getegid,     0x6C
+DEFINE_SYSCALL syscall_setpgid,     0x6D
 DEFINE_SYSCALL syscall_getppid,     0x6E
+DEFINE_SYSCALL syscall_getpgid,     0x79
 DEFINE_SYSCALL syscall_sigprocmask, 0x7E
 DEFINE_SYSCALL syscall_sigpending,  0x7F
 DEFINE_SYSCALL syscall_mknodat,     0x85

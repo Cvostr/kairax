@@ -180,6 +180,10 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
         case TIOCSPGRP:
             p_pty->foreground_pg = arg;
             break;
+        case TIOCSTI:
+            VALIDATE_USER_POINTER(process, arg, 1);
+            tty_output(p_pty, *((unsigned char*) arg));
+            break;
         case TIOCGWINSZ:
             // Получить размер окна
             VALIDATE_USER_POINTER_PROTECTION(process, arg, sizeof(struct winsize), PAGE_PROTECTION_WRITE_ENABLE)
@@ -189,13 +193,11 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             // Обновить размер окна
             VALIDATE_USER_POINTER(process, arg, sizeof(struct winsize))
             memcpy(&p_pty->winsz, arg, sizeof(struct winsize));
-            // TODO: отправлять группе?
-            sys_send_signal(p_pty->foreground_pg, SIGWINCH);
+            sys_send_signal_pg(p_pty->foreground_pg, SIGWINCH);
             break;
         case TIOCNOTTY:
-            // TODO: отправлять группе?
-            sys_send_signal(p_pty->foreground_pg, SIGHUP);
-            sys_send_signal(p_pty->foreground_pg, SIGCONT);
+            sys_send_signal_pg(p_pty->foreground_pg, SIGHUP);
+            sys_send_signal_pg(p_pty->foreground_pg, SIGCONT);
             break;
         case TCGETS:
             tmios = (struct termios*) arg;
@@ -355,11 +357,11 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         {
             if (first_char == p_pty->control_characters[VINTR])
             {
-                sys_send_signal(p_pty->foreground_pg, SIGINT);
+                sys_send_signal_pg(p_pty->foreground_pg, SIGINT);
             }
             else if (first_char == p_pty->control_characters[VQUIT])
             {
-                sys_send_signal(p_pty->foreground_pg, SIGQUIT);
+                sys_send_signal_pg(p_pty->foreground_pg, SIGQUIT);
             }
             else if (first_char == p_pty->control_characters[VSUSP])
             {

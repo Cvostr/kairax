@@ -2,6 +2,7 @@
 #include "unistd.h"
 #include "errno.h"
 #include "syscalls.h"
+#include "string.h"
 
 int raise(int sig)
 {
@@ -11,6 +12,11 @@ int raise(int sig)
 int kill(pid_t pid, int sig)
 {
     __set_errno(syscall_kill(pid, sig));
+}
+
+int killpg(pid_t pgrp, int sig)
+{
+    return kill(-pgrp, sig);
 }
 
 int sigaddset (sigset_t *set, int sig)
@@ -35,6 +41,18 @@ int sigdelset(sigset_t *set, int sig)
     *set &= ~(1ULL << sig);
 
     return 0; 
+}
+
+int sigfillset(sigset_t *set) 
+{
+	memset(set, 0xFF, sizeof(sigset_t));
+	return 0;
+}
+
+int sigemptyset(sigset_t *set) 
+{
+    memset(set, 0, sizeof(sigset_t));
+    return 0;
 }
 
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)

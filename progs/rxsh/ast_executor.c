@@ -6,6 +6,7 @@
 #include "signal.h"
 #include "errno.h"
 #include "stdio.h"
+#include "sys/ioctl.h"
 
 extern char curdir[512];
 extern char** __environ;
@@ -58,7 +59,13 @@ void ast_exec_func(struct ast_node* node)
     } else {
         pid_t pid = fork();
 
-        if (pid == 0) {
+        if (pid == 0) 
+        {
+            sigset_t ss;
+            sigemptyset(&ss);
+            sigaddset(&ss, SIGINT);
+            sigprocmask(SIG_UNBLOCK, &ss, NULL);
+            
             int args_size = sizeof(char*) * (argc + 1);
             char** args = malloc(args_size);
             memset(args, 0, args_size);
@@ -72,7 +79,8 @@ void ast_exec_func(struct ast_node* node)
             perror("exec error");
             _exit(127);
         } else {
-            ioctl(0, 0x5410, pid);
+            //ioctl(0, TIOCSPGRP, pid);
+
             int status = 0;
             waitpid(pid, &status, 0);
             if (status > 128) {

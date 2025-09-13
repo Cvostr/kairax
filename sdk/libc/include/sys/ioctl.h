@@ -9,6 +9,7 @@
 
 #define TIOCGPGRP	0x540F
 #define TIOCSPGRP	0x5410
+#define TIOCSTI		0x5412
 
 #define TIOCGWINSZ  0x540E
 #define TIOCSWINSZ  0x540F

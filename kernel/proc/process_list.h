@@ -16,4 +16,6 @@ void process_remove_from_list(struct process* process);
 
 int process_list_is_dentry_used_as_cwd(struct dentry* dentry);
 
+int process_list_send_signal_pg(pid_t pg, int signal);
+
 #endif

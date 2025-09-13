@@ -25,3 +25,58 @@ pid_t sys_get_thread_id()
     struct thread* current_thread = cpu_get_current_thread();
     return current_thread->id;
 }
+
+int sys_setpgid(pid_t pid, pid_t pgid)
+{
+    struct process* proc = NULL;
+
+    if (pid < 0 || pgid < 0)
+    {
+        return -EINVAL;
+    } 
+    else if (pid == 0) 
+    {
+        proc = cpu_get_current_thread()->process;
+    }
+    else
+    {
+        proc = process_get_by_id(pid);
+        if (proc == NULL) 
+        {
+            return -ESRCH;
+        }
+    }
+
+    if (pgid == 0)
+    {
+        pgid = proc->pid;
+    }
+
+    proc->process_group = pgid;
+
+    return 0;
+}
+
+pid_t sys_getpgid(pid_t pid)
+{
+    struct process* proc = NULL;
+
+    if (pid < 0)
+    {
+        return -EINVAL;
+    } 
+    else if (pid == 0) 
+    {
+        proc = cpu_get_current_thread()->process;
+    }
+    else
+    {
+        proc = process_get_by_id(pid);
+        if (proc == NULL) 
+        {
+            return -ESRCH;
+        }
+    }
+
+    return proc->process_group;
+}

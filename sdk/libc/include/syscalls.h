@@ -24,6 +24,8 @@ extern unsigned int syscall_getgid(void);
 extern unsigned int syscall_getegid(void);
 extern int syscall_setuid(unsigned int uid);
 extern int syscall_setgid(unsigned int gid);
+extern int syscall_setpgid(long long pid, long long pgid);
+extern long long syscall_getpgid(long long pid);
 extern long syscall_thread_get_id();
 extern int syscall_sleep(long long sec, long long nsec);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);

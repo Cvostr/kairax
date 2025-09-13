@@ -81,6 +81,26 @@ pid_t gettid(void)
     return syscall_thread_get_id();
 }
 
+int setpgid(pid_t pid, pid_t pgid)
+{
+    __set_errno(syscall_setpgid(pid, pgid));
+}
+
+pid_t getpgid(pid_t pid)
+{
+    __set_errno(syscall_getpgid(pid));
+}
+
+int setpgrp(void)
+{
+    return setpgid(0, 0);
+}
+
+pid_t getpgrp(void)
+{
+    return getpgid(0);
+}
+
 unsigned int sleep(unsigned int seconds)
 {
     int rc = syscall_sleep(seconds, 0);

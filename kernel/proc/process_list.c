@@ -72,6 +72,31 @@ void process_remove_from_list(struct process* process)
     release_spinlock(&process_lock);
 }
 
+int process_list_send_signal_pg(pid_t pg, int signal)
+{
+    acquire_spinlock(&process_lock);
+
+    for (int pid = 0; pid < MAX_PROCESSES; pid ++) {
+
+        struct process* proc = processes[pid];
+
+        if (proc != NULL) {
+            
+            if (proc->type != OBJECT_TYPE_PROCESS) {
+                continue;
+            }
+
+            if (proc->process_group == pg)
+            {
+                thread_send_signal(proc->main_thread, signal); 
+            }
+        }
+    }
+
+    release_spinlock(&process_lock);
+    return 0;
+}
+
 int process_list_is_dentry_used_as_cwd(struct dentry* dentry)
 {
     int rc = 0;

@@ -5,6 +5,9 @@
 #include "syscalls.h"
 #include "process.h"
 #include "unistd.h"
+#include "sys/ioctl.h"
+#include "stdlib.h"
+#include "sys/wait.h"
 
 #define SERV_PORT 23
 
@@ -125,8 +128,22 @@ int main(int argc, char** argv)
 
         write(pty_master, rcvb + offset, got);
     }
-    
+
+
     printf("Terminating...\n");
+
+    // Посылаем байт в TTY чтобы разблокировать поток чтения
+    char term_sym = 0x30;
+    rc = ioctl(pty_master, TIOCSTI, &term_sym);
+    if (rc != 0)
+    {
+        perror("ioctl(TIOCSTI)");
+    }
+
+    // Ожидание завершения потока чтения
+    int status;
+    rc = waitpid(read_thread, &status, 0);
+
     rc = close(client_sock);
     if (rc == -1){
         printf("Error close(client_sock): %i\n", errno);
@@ -137,11 +154,16 @@ int main(int argc, char** argv)
         printf("Error close(sockfd): %i\n", errno);
     }
 
+    printf("TIOCNOTTY...\n");
+    // Завершение дочерних процессов
+    rc = ioctl(pty_master, TIOCNOTTY, 0);
+    if (rc != 0)
+    {
+        perror("ioctl(TIOCNOTTY)");
+    }
+
     close(pty_master);
     close(pty_slave);
-
-    int status;
-    rc = waitpid(read_thread, &status, 0);
 
     return 0;    
 }

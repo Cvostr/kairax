@@ -213,8 +213,6 @@ void bootshell_process_cmd(char* cmdline)
             printf_stdout("Error creating process : %i\n", -rc);
         }
 
-        sys_ioctl(0, 0x5410, rc);
-
         int status = 0;
         sys_wait(rc, &status, 0);
         

@@ -40,6 +40,7 @@ struct process*  create_new_process(struct process* parent)
     process->mmap_ranges = create_list();
 
     if (parent) {
+        process->process_group = parent->process_group;
         acquire_spinlock(&parent->children_lock);
         process->parent = parent;
         list_add(parent->children, process);
