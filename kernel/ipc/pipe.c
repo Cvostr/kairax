@@ -83,8 +83,8 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 
     acquire_spinlock(&pipe->lock);
 
-    while (pipe->read_pos == pipe->write_pos) {
-
+    while (pipe->read_pos == pipe->write_pos) 
+    {
         // Закрыт ли дескриптор записи?
         if ((pipe->check_ends == 1 && pipe->nwritefds == 0))
         {
@@ -100,7 +100,12 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 
         // Нечего читать - засыпаем
         release_spinlock(&pipe->lock);
-        scheduler_sleep_on(&pipe->readb);
+        if (scheduler_sleep_on(&pipe->readb) == 1)
+        {
+            // Нас разбудили сигналом - выходим
+            return -EINTR;
+        }
+
         acquire_spinlock(&pipe->lock);
     }
 
@@ -145,7 +150,12 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
             scheduler_wake(&pipe->readb, INT_MAX);
             // И засыпаем сами
             release_spinlock(&pipe->lock);
-            scheduler_sleep_on(&pipe->writeb);
+            if (scheduler_sleep_on(&pipe->writeb) == 1)
+            {
+                // Нас разбудили сигналом - выходим
+                return -EINTR;
+            }
+
             acquire_spinlock(&pipe->lock);
         }
 

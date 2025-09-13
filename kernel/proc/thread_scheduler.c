@@ -62,13 +62,20 @@ int thread_intrusive_remove(struct thread** head, struct thread** tail, struct t
     return 0;
 }
 
-void scheduler_sleep_on(struct blocker* blocker)
+int scheduler_sleep_on(struct blocker* blocker)
 {
     struct thread* thr = cpu_get_current_thread();
 
     thr->blocker = blocker;
-
     scheduler_sleep_intrusive(&blocker->head, &blocker->tail, &blocker->lock);
+
+    if (thr->sleep_interrupted == TRUE)
+    {
+        thr->sleep_interrupted = FALSE;
+        return 1;
+    }
+
+    return 0;
 }
 
 uint32_t scheduler_wake(struct blocker* blocker, uint32_t max)
@@ -209,7 +216,7 @@ void scheduler_sleep(void* handle, spinlock_t* lock)
     printk("Deprecated!\n");
 }
 
-void scheduler_sleep1()
+int scheduler_sleep1()
 {
     struct sched_wq* wq = cpu_get_wq();
     struct thread* thr = cpu_get_current_thread();
@@ -224,6 +231,14 @@ void scheduler_sleep1()
 
     // Передача управления другому процессу
     scheduler_yield(TRUE);
+
+    if (thr->sleep_interrupted == TRUE)
+    {
+        thr->sleep_interrupted = FALSE;
+        return 1;
+    }
+
+    return 0;
 }
 
 void scheduler_wakeup1(struct thread* thread)

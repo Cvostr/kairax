@@ -47,6 +47,7 @@ void tty_init()
     tty_master_fops.close = master_file_close;
     tty_master_fops.write = master_file_write;
     tty_master_fops.read = master_file_read;
+    tty_master_fops.ioctl = tty_ioctl;
 	
     tty_slave_fops.close = slave_file_close;
     tty_slave_fops.read = slave_file_read;
@@ -191,6 +192,11 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             // TODO: отправлять группе?
             sys_send_signal(p_pty->foreground_pg, SIGWINCH);
             break;
+        case TIOCNOTTY:
+            // TODO: отправлять группе?
+            sys_send_signal(p_pty->foreground_pg, SIGHUP);
+            sys_send_signal(p_pty->foreground_pg, SIGCONT);
+            break;
         case TCGETS:
             tmios = (struct termios*) arg;
             VALIDATE_USER_POINTER(process, arg, sizeof(struct termios))
@@ -215,6 +221,8 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             p_pty->oflag = tmios->c_oflag;
             p_pty->cflag = tmios->c_cflag;
             p_pty->lflag = tmios->c_lflag;
+
+            memcpy(p_pty->control_characters, tmios->c_cc, sizeof(cc_t) * CCSNUM);
 
             // todo: implement returning termios
             break;

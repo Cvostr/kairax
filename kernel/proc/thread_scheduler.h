@@ -13,7 +13,14 @@ struct sched_wq {
 void scheduler_sleep_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock);
 uint32_t scheduler_wakeup_intrusive(struct thread** head, struct thread** tail, spinlock_t* lock, uint32_t max);
 
-void scheduler_sleep_on(struct blocker* blocker);
+/// @brief Блокировать поток
+/// @param blocker блокировщик, по которму поток можно будет пробудить
+/// @return 0 - при пробуждении из блокировщика, 1 - при пробуждении сигналом
+int scheduler_sleep_on(struct blocker* blocker);
+/// @brief Пробудить потоки по блокировщику
+/// @param blocker блокировщик
+/// @param max максимальное количество пробуждаемых потоков
+/// @return количество пробужденных потоков
 uint32_t scheduler_wake(struct blocker* blocker, uint32_t max);
 
 int thread_intrusive_add(struct thread** head, struct thread** tail, struct thread* thread);

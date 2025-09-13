@@ -68,6 +68,7 @@ int thread_send_signal(struct thread* thread, int signal)
             thread->sleep_raiser = NULL;
         }
 
+        thread->sleep_interrupted = TRUE;
         scheduler_wakeup1(thread);
     }
 

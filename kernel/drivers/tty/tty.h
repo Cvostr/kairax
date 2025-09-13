@@ -97,6 +97,8 @@ struct winsize {
 #define TIOCGWINSZ  0x540E
 #define TIOCSWINSZ  0x540F
 
+#define TIOCNOTTY	0x5422
+
 #define ETX         3
 #define FS          0x1C
 #define BS         '\b'

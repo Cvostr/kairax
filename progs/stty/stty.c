@@ -81,8 +81,8 @@ int print_state()
     print_flag(tmi.c_iflag, "inlcr", INLCR);
     print_flag(tmi.c_iflag, "igncr", IGNCR);
     print_flag(tmi.c_iflag, "icrnl", ICRNL);
-    //print_flag(tmi.c_iflag, "ixon", IXON);
-    //print_flag(tmi.c_iflag, "ixoff", IXOFF);
+    print_flag(tmi.c_iflag, "ixon", IXON);
+    print_flag(tmi.c_iflag, "ixoff", IXOFF);
     print_flag(tmi.c_iflag, "iuclc", IUCLC);
     print_flag(tmi.c_iflag, "ixany", IXANY);
     print_flag(tmi.c_iflag, "imaxbel", IMAXBEL);
@@ -134,7 +134,6 @@ int handle_flag(tcflag_t *flag, char *flagname, char *arg, int flagbit)
 
     if (equals)
     {
-        //printf("compared\n");
         if (minus)
         {
             *flag &= ~flagbit;
@@ -186,6 +185,14 @@ int main(int argc, char** argv)
             tmi.c_iflag = 0;
             tmi.c_oflag &= ~OPOST;
             tmi.c_lflag &= ~(ICANON | ISIG | IUCLC | XCASE);
+            continue;
+        }
+
+        if (strcmp(arg, "size") == 0)
+        {
+            struct winsize wsize;
+            ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
+            printf("%d %d\n", wsize.ws_row, wsize.ws_col);
             continue;
         }
 

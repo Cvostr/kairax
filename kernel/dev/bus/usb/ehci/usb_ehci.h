@@ -33,7 +33,14 @@ struct ehci_op_reg {
     volatile uint32_t asynclistaddr;
     char padding[40];
     volatile uint32_t configflag;
-};  
+} PACKED;  
+
+struct ehci_flp {
+    uint32_t terminate:1;           // Terminate
+    uint32_t type:2;                // Type
+    uint32_t reserved:2;            // Reserved
+    uint32_t lp:27;                 // Link pointer
+} PACKED;
 
 struct ehci_controller 
 {
@@ -44,6 +51,9 @@ struct ehci_controller
     // Смещения
     struct ehci_cap_reg* cap_base;
     struct ehci_op_reg* op_base;
+
+    void* frame_list_phys;
+    struct ehci_flp* frame_list; 
 };
 
 #endif

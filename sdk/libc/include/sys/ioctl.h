@@ -13,6 +13,8 @@
 #define TIOCGWINSZ  0x540E
 #define TIOCSWINSZ  0x540F
 
+#define TIOCNOTTY	0x5422
+
 struct winsize {
     unsigned short ws_row;
     unsigned short ws_col;

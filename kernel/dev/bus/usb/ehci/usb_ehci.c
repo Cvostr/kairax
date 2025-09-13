@@ -5,6 +5,7 @@
 #include "dev/device_man.h"
 #include "mem/iomem.h"
 #include "mem/kheap.h"
+#include "mem/pmm.h"
 #include "string.h"
 
 int ehci_device_probe(struct device *dev) 
@@ -46,6 +47,11 @@ int ehci_device_probe(struct device *dev)
 	uint8_t caplen = cntrl->cap_base->caplength;
 	printk("EHCI: CAPLEN %i\n", caplen);
 	cntrl->op_base = cntrl->mmio_addr + caplen;
+
+	// ВЫделить память под frame list
+	cntrl->frame_list_phys = pmm_alloc(PAGE_SIZE, NULL);
+	cntrl->frame_list = map_io_region(cntrl->frame_list_phys, PAGE_SIZE);
+	memset(cntrl->frame_list, 0, PAGE_SIZE);
 
     return 0;
 }

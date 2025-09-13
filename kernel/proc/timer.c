@@ -93,8 +93,6 @@ void sleep_on_timer(struct event_timer* timer)
     timer->wait_head = cpu_get_current_thread();
     timer->wait_head->sleep_raiser = &timer->wait_head;
     scheduler_sleep1();
-    
-    //scheduler_sleep_intrusive(&timer->wait_head, &timer->wait_tail, NULL);
 }
 
 void unregister_event_timer(struct event_timer* timer)
