@@ -242,13 +242,13 @@ exit:
 int file_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
     int result = 0;
-    acquire_spinlock(&file->lock);
+    //acquire_spinlock(&file->lock);
     
     if (file->ops->ioctl) {
         result = file->ops->ioctl(file, request, arg);
     }
 
-    release_spinlock(&file->lock);
+    //release_spinlock(&file->lock);
 
     return result;
 }

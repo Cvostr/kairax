@@ -13,6 +13,8 @@ struct file_operations tty_slave_fops;
 
 #define PTY_LINE_MAX_BUFFER_SIZE 2048
 
+//#define PTY_CLOSE_LOG
+
 struct pty {
     int pty_id;
     atomic_t refs;
@@ -36,13 +38,6 @@ struct pty {
 };
 
 void tty_output(struct pty* p_pty, unsigned char chr);
-
-/*
-// Зачем это предполагалось?
-#define MAX_PTY_COUNT 64
-spinlock_t  ptys_lock = 0;
-struct pty* ptys[MAX_PTY_COUNT];
-*/
 
 void tty_init()
 {
@@ -81,15 +76,18 @@ void free_pty(struct pty* p_pty)
         {
             free_pipe(p_pty->slave_to_master);
         }
-
+#ifdef PTY_CLOSE_LOG
         printk("pty: free()\n");
+#endif
         kfree(p_pty);
     }
 }
 
 int master_file_close(struct inode *inode, struct file *file)
 {
+#ifdef PTY_CLOSE_LOG
     printk("tty: master close()\n");
+#endif
     struct pty *p_pty = (struct pty *) file->private_data;
     free_pty(p_pty);
     return 0;
@@ -97,7 +95,9 @@ int master_file_close(struct inode *inode, struct file *file)
 
 int slave_file_close(struct inode *inode, struct file *file)
 {
+#ifdef PTY_CLOSE_LOG
     printk("tty: slave close()\n");
+#endif
     struct pty *p_pty = (struct pty *) file->private_data;
     free_pty(p_pty);
     return 0;
