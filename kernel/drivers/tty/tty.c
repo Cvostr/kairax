@@ -32,8 +32,10 @@ struct pty {
     char buffer[PTY_LINE_MAX_BUFFER_SIZE];
     int buffer_pos;
 
-    int foreground_pg;
+    pid_t foreground_pg;
 };
+
+void tty_output(struct pty* p_pty, unsigned char chr);
 
 /*
 // Зачем это предполагалось?
@@ -87,18 +89,18 @@ void free_pty(struct pty* p_pty)
 
 int master_file_close(struct inode *inode, struct file *file)
 {
+    printk("tty: master close()\n");
     struct pty *p_pty = (struct pty *) file->private_data;
     free_pty(p_pty);
-    printk("tty: master close()\n");
-    return -1;
+    return 0;
 }
 
 int slave_file_close(struct inode *inode, struct file *file)
 {
+    printk("tty: slave close()\n");
     struct pty *p_pty = (struct pty *) file->private_data;
     free_pty(p_pty);
-    printk("tty: slave close()\n");
-    return -1;
+    return 0;
 }
 
 int tty_create(struct file **master, struct file **slave)
@@ -179,6 +181,10 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
     switch (request) {
         case TIOCSPGRP:
             p_pty->foreground_pg = arg;
+            break;
+        case TIOCGPGRP:
+            VALIDATE_USER_POINTER_PROTECTION(process, arg, sizeof(pid_t), PAGE_PROTECTION_WRITE_ENABLE)
+            *((pid_t*) arg) = p_pty->foreground_pg;
             break;
         case TIOCSTI:
             VALIDATE_USER_POINTER(process, arg, 1);
@@ -268,8 +274,6 @@ void tty_output(struct pty* p_pty, unsigned char chr)
     }
 
     pipe_write(p_pty->slave_to_master, &chr, 1);
-
-    return 0;
 }
 
 // Запись со стороны приложения

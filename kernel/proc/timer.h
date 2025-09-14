@@ -3,7 +3,7 @@
 
 #include "kairax/time.h"
 
-#define TIMER_FREQUENCY 500
+#define TIMER_FREQUENCY 250
 
 struct event_timer 
 {
@@ -18,7 +18,7 @@ void timer_init();
 void timer_handle(); // Главная функция-обработчик прерывания таймера
 struct event_timer* new_event_timer();
 struct event_timer* register_event_timer(struct timespec duration);
-void sleep_on_timer(struct event_timer* timer);
+int sleep_on_timer(struct event_timer* timer);
 void unregister_event_timer(struct event_timer* timer);
 void timer_get_ticks(struct timespec* ticks);
 time_t timer_get_uptime();

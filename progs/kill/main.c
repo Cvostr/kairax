@@ -32,8 +32,11 @@ int main(int argc, char** argv) {
         arg++;
     }
 
-    if (npids == 0 && npgids == 0) {
-        //todo: print usage
+    if (npids == 0 && npgids == 0) 
+    {
+        printf("Usage: \n");
+        printf("kill -signum pid");
+        //todo: actual
         return 0;
     }
 

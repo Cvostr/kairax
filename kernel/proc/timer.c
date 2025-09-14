@@ -88,11 +88,11 @@ struct event_timer* register_event_timer(struct timespec duration)
     return timer;
 }
 
-void sleep_on_timer(struct event_timer* timer)
+int sleep_on_timer(struct event_timer* timer)
 {   
     timer->wait_head = cpu_get_current_thread();
     timer->wait_head->sleep_raiser = &timer->wait_head;
-    scheduler_sleep1();
+    return scheduler_sleep1();
 }
 
 void unregister_event_timer(struct event_timer* timer)

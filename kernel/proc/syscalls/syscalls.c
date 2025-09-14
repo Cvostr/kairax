@@ -109,7 +109,10 @@ int sys_thread_sleep(time_t sec, long int nsec)
         return -ENOMEM;
     }
     
-    sleep_on_timer(timer);
+    if (sleep_on_timer(timer) == 1)
+    {
+        rc = -EINTR;
+    }
 
     unregister_event_timer(timer);
     kfree(timer);

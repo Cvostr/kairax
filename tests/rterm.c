@@ -154,13 +154,16 @@ int main(int argc, char** argv)
         printf("Error close(sockfd): %i\n", errno);
     }
 
-    printf("TIOCNOTTY...\n");
     // Завершение дочерних процессов
     rc = ioctl(pty_master, TIOCNOTTY, 0);
     if (rc != 0)
     {
         perror("ioctl(TIOCNOTTY)");
     }
+
+    // Ожидание завершения дочернего процесса
+    rc = waitpid(forkret, &status, 0);
+    printf("Process finished with status %i\n", status);
 
     close(pty_master);
     close(pty_slave);

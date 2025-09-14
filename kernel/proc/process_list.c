@@ -131,12 +131,14 @@ void plist_debug()
 
         if (proc != NULL) {
             
-            printk("\"%s\": pid: %i State %i ", proc->name, proc->pid, proc->state);      
-            if (proc->type == OBJECT_TYPE_THREAD) {
+            if (proc->type == OBJECT_TYPE_PROCESS)
+            {
+                printk("\"%s\": pid: %i group %i State %i \n", proc->name, proc->pid, proc->process_group, proc->state);      
+            }
+            else if (proc->type == OBJECT_TYPE_THREAD) {
                 struct thread* thr = (struct thread*) proc;
-                printk("CPU %i ", thr->cpu);
+                printk("\"%s\": tid: %i State %i CPU %i\n", proc->name, proc->pid, proc->state, thr->cpu);    
             }   
-            printk("\n");  
         }
     }
 }

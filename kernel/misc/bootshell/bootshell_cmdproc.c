@@ -269,15 +269,28 @@ void bootshell_process_cmd(char* cmdline)
         uint64_t total_free_bytes = 0;
         uint64_t total_used_bytes = 0;
         kheap_item_t* current_item = kheap_get_head_item();
-        while(current_item != NULL){
-            if(current_item->free)
+        
+        while (current_item != NULL)
+        {
+            if (current_item->free)
                 total_free_bytes += current_item->size;
-            else
+            else {
                 total_used_bytes += current_item->size;
-            //printf_stdout("kheap item Addr : %i, Size : %i, Free : %i\n", 
-            //    V2P(current_item), current_item->size, current_item->free);
+
+                if (current_item->reserved == 0)
+                {
+                    if (last_total_used_bytes != 0)
+                    {
+                        printf_stdout("kheap item Addr : %p, Size : %i\n", 
+                            V2P(current_item), current_item->size);
+                    }
+
+                    current_item->reserved = 1;
+                }
+            }
             current_item = current_item->next;
         }
+
         printf_stdout("Kheap free space: %i\n", total_free_bytes);
         printf_stdout("Kheap used space: %i (%i)\n", total_used_bytes, total_used_bytes - last_total_used_bytes);
 
