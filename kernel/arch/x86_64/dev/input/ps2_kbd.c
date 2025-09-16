@@ -2,6 +2,7 @@
 #include "drivers/char/input/keyboard.h"
 #include "keycodes.h"
 #include "io.h"
+#include "kairax/stdio.h"
 
 // PS2 Keyboard команды
 #define PS2_KBD_SET_LEDS            0xED

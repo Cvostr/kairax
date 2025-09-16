@@ -304,11 +304,8 @@ void pty_remove_last_char(struct pty* p_pty)
     }
 }
 
-void pty_newline_flush(struct pty* p_pty)
+void pty_flush(struct pty* p_pty)
 {
-    // Нажата кнопка enter
-    // Эхо в терминал CR + LF
-    pipe_write(p_pty->slave_to_master, crlf, 2);
     // Записать буфер в slave
     p_pty->buffer[p_pty->buffer_pos++] = '\n';
     pipe_write(p_pty->master_to_slave, p_pty->buffer, p_pty->buffer_pos);
@@ -423,8 +420,15 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         }
         else if ((EOL != 0 && first_char == EOL) || (first_char == '\n'))
         {
-            // Новая линия CR+LF
-            pty_newline_flush(p_pty);
+            // Нажата кнопка enter
+            if ((p_pty->lflag & ECHO) == ECHO)
+            {
+                // Новая линия CR+LF
+                pipe_write(p_pty->slave_to_master, crlf, 2);
+            }
+
+            // Отправить в терминал
+            pty_flush(p_pty);
         } 
         else if (first_char <= 31 || first_char == 127)
         {
@@ -438,13 +442,21 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             p_pty->buffer_pos = 0;
             memset(p_pty->buffer, 0, PTY_LINE_MAX_BUFFER_SIZE);
 
-            // Новая линия CR+LF
-            pty_newline_flush(p_pty);
+            // Эхо в терминал CR + LF
+            pipe_write(p_pty->slave_to_master, crlf, 2);
+            pty_flush(p_pty);
         }
         else
         {
-            // Добавить символ в буфер
-            pty_linebuffer_append(p_pty, first_char);
+            if ((p_pty->lflag & ICANON) == ICANON) 
+            {
+                // Добавить символ в буфер
+                pty_linebuffer_append(p_pty, first_char);
+            }
+            else
+            {
+                pipe_write(p_pty->master_to_slave, &first_char, sizeof(char));
+            }
                 
             // Эхо на консоль
             if ((p_pty->lflag & ECHO) == ECHO) 

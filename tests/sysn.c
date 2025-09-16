@@ -8,8 +8,33 @@
 #include "signal.h"
 #include "string.h"
 #include "stdlib.h"
+#include <termios.h>
 
 char buff[220];
+static struct termios old, current;
+
+void initTermios() 
+{
+    tcgetattr(0, &old);
+    current = old;
+    current.c_lflag &= ~ICANON;
+    current.c_lflag &= ~ECHO;
+    tcsetattr(0, TCSANOW, &current);
+}
+
+void resetTermios(void) 
+{
+    tcsetattr(0, TCSANOW, &old);
+}
+
+char getch(void) 
+{
+    char ch;
+    initTermios();
+    ch = getchar();
+    resetTermios();
+    return ch;
+}
 
 void thread_func(int * arg) {
     printf("ARG : %i\n", *arg);
@@ -135,6 +160,16 @@ int main(int argc, char** argv, char** envp) {
         pch = strtok (NULL, " ,.-");
     }
     ///
+
+    if (argc > 1 && strcmp(argv[1], "getch") == 0)
+    {
+        printf("getch() test mode\n");
+        while (1)
+        {
+            int cha = getch();
+            printf("Pressed key %i\n", cha);
+        }
+    }
 
     int send = 343;
     pid_t tpi = create_thread(thread_func, &send);
