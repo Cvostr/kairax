@@ -5,6 +5,64 @@
 #include <sys/ioctl.h>
 #include "string.h"
 
+struct baud_table {
+	const char *str;
+	speed_t val;
+};
+
+struct baud_table baud_rates[] = {
+	{      "0", B0      },
+	{     "50", B50     },
+	{     "75", B75     },
+	{    "110", B110    },
+	{    "134", B134    },
+	{  "134.5", B134    },
+	{    "150", B150    },
+	{    "200", B200    },
+	{    "300", B300    },
+	{    "600", B600    },
+	{   "1200", B1200   },
+	{   "1800", B1800   },
+	{   "2400", B2400   },
+	{   "4800", B4800   },
+	{   "9600", B9600   },
+	{  "19200", B19200  },
+	{  "38400", B38400  },
+	{  "57600", B57600  },
+	{ "115200", B115200 },
+	{ "230400", B230400 },
+	{ "460800", B460800 },
+	{ "921600", B921600 },
+};
+
+const char* get_speed_str(struct termios *t) 
+{
+	speed_t ospeed = cfgetospeed(t);
+	for (size_t j = 0; j < sizeof(baud_rates) / sizeof(*baud_rates); ++j) 
+    {
+		if (ospeed == baud_rates[j].val) 
+        {
+            return baud_rates[j].str;
+		}
+	}
+
+    return NULL;
+}
+
+int set_speed(struct termios *t, const char *speed_str) 
+{
+	for (size_t j = 0; j < sizeof(baud_rates) / sizeof(*baud_rates); ++j) 
+    {
+		if (strcmp(speed_str, baud_rates[j].str) == 0) 
+        {
+			cfsetospeed(t, baud_rates[j].val);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void print_cc(struct termios *tm, char* charname, int chr)
 {
     char ch = tm->c_cc[chr];
@@ -47,6 +105,9 @@ int print_state()
         perror("Error getting tty settings");
         return rc;
     }
+
+    const char* speed_str = get_speed_str(&tmi);
+    printf("speed %s baud; ", speed_str);
 
     struct winsize wsize;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
@@ -195,6 +256,19 @@ int main(int argc, char** argv)
             printf("%d %d\n", wsize.ws_row, wsize.ws_col);
             continue;
         }
+
+        if (arg[0] >= '0' && arg[0] < '9') 
+        {
+			if (set_speed(&tmi, arg)) {
+				i++;
+				continue;
+			}
+            else
+            {
+                printf("invalid argument '%s'\n", arg);
+                return 1;
+            }
+		}
 
         handle_flag(&tmi.c_iflag, "istrip", arg, ISTRIP);
         handle_flag(&tmi.c_iflag, "inlcr", arg, INLCR);

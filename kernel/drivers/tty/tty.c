@@ -115,6 +115,7 @@ int tty_create(struct file **master, struct file **slave)
     // Установить флаги по умолчанию
     p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
     p_pty->oflag = (OPOST | ONLCR);
+    p_pty->cflag = (CS8 | B38400);
     tty_fill_ccs(p_pty->control_characters);
     // Размер окна по умолчанию
     p_pty->winsz.ws_col = 80;
