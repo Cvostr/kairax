@@ -149,11 +149,13 @@ struct winsize {
 
 struct pty;
 
+tcflag_t tty_get_cflag(struct pty* p_pty);
+
 void tty_init();
 int master_file_close(struct inode *inode, struct file *file);
 int slave_file_close(struct inode *inode, struct file *file);
 
-int tty_create(struct file **master, struct file **slave);
+int tty_create(struct pty** p_pty, struct file **master, struct file **slave);
 
 ssize_t master_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset);

@@ -37,6 +37,11 @@ struct pty {
     pid_t foreground_pg;
 };
 
+tcflag_t tty_get_cflag(struct pty* p_pty)
+{
+    return p_pty->cflag;
+}
+
 void tty_output(struct pty* p_pty, unsigned char chr);
 
 void tty_init()
@@ -103,7 +108,7 @@ int slave_file_close(struct inode *inode, struct file *file)
     return 0;
 }
 
-int tty_create(struct file **master, struct file **slave)
+int tty_create(struct pty** pty, struct file **master, struct file **slave)
 {
     struct pty* p_pty = kmalloc(sizeof(struct pty));
     if (p_pty == NULL)
@@ -134,14 +139,20 @@ int tty_create(struct file **master, struct file **slave)
     fmaster->ops = &tty_master_fops;
     fmaster->private_data = p_pty;
     atomic_inc(&p_pty->refs);
-    *master = fmaster;
 
     struct file *fslave = new_file();
     fslave->flags = FILE_OPEN_MODE_READ_WRITE;
     fslave->ops = &tty_slave_fops;
     fslave->private_data = p_pty;
     atomic_inc(&p_pty->refs);
+
+    *master = fmaster;
     *slave = fslave;
+
+    if (pty != NULL)
+    {
+        *pty = p_pty;
+    }
 
     return 0;
 }

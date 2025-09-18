@@ -4,6 +4,7 @@
 #include "termios.h"
 #include <sys/ioctl.h>
 #include "string.h"
+#include "fcntl.h"
 
 struct baud_table {
 	const char *str;
@@ -34,6 +35,8 @@ struct baud_table baud_rates[] = {
 	{ "460800", B460800 },
 	{ "921600", B921600 },
 };
+
+int TTY_FD;
 
 const char* get_speed_str(struct termios *t) 
 {
@@ -99,7 +102,7 @@ void print_flag(tcflag_t flag, char* optname, int opt)
 int print_state()
 {
     struct termios tmi;
-    int rc = tcgetattr(STDOUT_FILENO, &tmi);
+    int rc = tcgetattr(TTY_FD, &tmi);
     if (rc != 0)
     {
         perror("Error getting tty settings");
@@ -110,7 +113,7 @@ int print_state()
     printf("speed %s baud; ", speed_str);
 
     struct winsize wsize;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
+    ioctl(TTY_FD, TIOCGWINSZ, &wsize);
     printf("rows %d; columns %d;\n", wsize.ws_row, wsize.ws_col);
 
     print_cc(&tmi, "intr", VINTR);
@@ -208,9 +211,35 @@ int handle_flag(tcflag_t *flag, char *flagname, char *arg, int flagbit)
 
 int main(int argc, char** argv) 
 {
+    struct termios tmi;
     int rc;
+    int fd;
+    int arg_i = 1;
 
-    if (argc == 2 && strcmp(argv[1], "-a") == 0)
+    // По умолчанию работаем с stdout
+    TTY_FD = STDOUT_FILENO;
+
+    if (argc >= (arg_i + 2) && (strcmp(argv[arg_i], "-F") == 0))
+    {
+        fd = open(argv[arg_i + 1], O_RDONLY, 0);
+        if (fd == -1)
+        {
+            perror("stty: Error opening file");
+            return 1;
+        }
+
+        if (isatty(fd) == 0)
+        {
+            printf("stty: File is not a tty\n");
+            return 1;
+        }
+
+        TTY_FD = fd;
+
+        arg_i += 2;
+    }
+
+    if (argc == arg_i + 1 && strcmp(argv[arg_i], "-a") == 0)
     {
         rc = print_state();
         if (rc != 0)
@@ -221,17 +250,16 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    struct termios tmi;
-    rc = tcgetattr(STDOUT_FILENO, &tmi);
+    rc = tcgetattr(TTY_FD, &tmi);
     if (rc != 0)
     {
-        perror("Error getting tty settings");
+        perror("stty: Error getting tty settings");
         return rc;
     }
 
-    for (int i = 1; i < argc; i ++)
+    for (; arg_i < argc; arg_i ++)
     {
-        char* arg = argv[i];
+        char* arg = argv[arg_i];
 
         if (strcmp(arg, "cooked") == 0)
         {
@@ -252,7 +280,7 @@ int main(int argc, char** argv)
         if (strcmp(arg, "size") == 0)
         {
             struct winsize wsize;
-            ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
+            ioctl(TTY_FD, TIOCGWINSZ, &wsize);
             printf("%d %d\n", wsize.ws_row, wsize.ws_col);
             continue;
         }
@@ -260,12 +288,12 @@ int main(int argc, char** argv)
         if (arg[0] >= '0' && arg[0] < '9') 
         {
 			if (set_speed(&tmi, arg)) {
-				i++;
+				arg_i++;
 				continue;
 			}
             else
             {
-                printf("invalid argument '%s'\n", arg);
+                printf("stty: nvalid argument '%s'\n", arg);
                 return 1;
             }
 		}
@@ -296,7 +324,7 @@ int main(int argc, char** argv)
         handle_flag(&tmi.c_lflag, "echonl", arg, ECHONL);
     }
 
-    tcsetattr(STDOUT_FILENO, TCSADRAIN, &tmi);
+    tcsetattr(TTY_FD, TCSADRAIN, &tmi);
 
     return 0;
 }

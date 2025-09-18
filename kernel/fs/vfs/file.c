@@ -241,7 +241,7 @@ exit:
 
 int file_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
-    int result = 0;
+    int result = -ENODEV;
     //acquire_spinlock(&file->lock);
     
     if (file->ops->ioctl) {

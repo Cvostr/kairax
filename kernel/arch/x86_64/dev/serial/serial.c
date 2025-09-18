@@ -43,6 +43,7 @@
 #define LSR_PARITY_ERR      0b00100
 #define LSR_FRAMING_ERR     0b01000
 #define LSR_BREAK_INDICATOR 0b10000
+#define LSR_TRANS_REG_EMPTY 0b100000
 
 struct serial_state
 {
@@ -50,26 +51,41 @@ struct serial_state
     uint16_t port_offset;
     
     //
-    void* pty_ptr;
+    struct pty* pty_ptr;
+    struct file *master;
+    struct file *slave;
     tcflag_t c_cflag;
 };
 
+int serial_file_ioctl(struct file* file, uint64_t request, uint64_t arg);
 ssize_t serial_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t serial_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 
 struct file_operations serial_fops = 
 {
     .read = serial_file_read,
-    .write = serial_file_write
+    .write = serial_file_write,
+    .ioctl = serial_file_ioctl
 };
 
 struct serial_state* serial_ports[8];
+
+void serial_write(uint16_t port_offset, char a)
+{
+    // Ожидание взведения Transmitter holding register empty
+    while ((inb(port_offset + 5) & LSR_TRANS_REG_EMPTY) == 0);
+
+    // Отправка
+    outb(port_offset,  a);
+}
 
 void serial_rx_handle(uint16_t port_offset)
 {
     uint8_t val = inb(port_offset);
 
     printk("Serial IRQ on %x - %c\n", port_offset, val);
+
+    serial_write(port_offset, val);
 }
 
 void serial_irq_handler(void* frame, void* data)
@@ -102,7 +118,7 @@ void serial_init()
     register_irq_handler(3, serial_irq_handler, COM2);
 }
 
-void serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity)
+int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity)
 {
     // Выключение прерываний
     outb(offset + 1, 0x00);
@@ -126,15 +142,27 @@ void serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity)
 
     // Включить прерывания
     outb(offset + 1, 0x01);
+
+    // TODO: добавить тестирование
+    return TRUE;
 }
 
 void serial_init_port(int id, uint16_t offset)
 {
-    serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO);
+    int available = serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO);
+    if (available == FALSE)
+    {
+        // Возможно, порт отсутствует
+        return;
+    }
 
     struct serial_state *state = kmalloc(sizeof(struct serial_state));
     state->id = id;
     state->port_offset = offset;
+    // Создание TTY
+    tty_create(&state->pty_ptr, &state->master, &state->slave);
+    file_acquire(state->master);
+    file_acquire(state->slave);
 
     // Сохранить указатель
     serial_ports[id] = state;
@@ -149,10 +177,18 @@ void serial_init_port(int id, uint16_t offset)
 
 ssize_t serial_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
-    return 0;
+    struct serial_state *state = file->inode->private_data;
+    return file_read(state->slave, count, buffer);
 }
 
 ssize_t serial_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
-    return 0;
+    struct serial_state *state = file->inode->private_data;
+    return file_write(state->slave, count, buffer);
+}
+
+int serial_file_ioctl(struct file* file, uint64_t request, uint64_t arg)
+{
+    struct serial_state *state = file->inode->private_data;
+    return file_ioctl(state->slave, request, arg);
 }
