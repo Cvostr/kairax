@@ -118,7 +118,8 @@ void serial_init()
     register_irq_handler(3, serial_irq_handler, COM2);
 }
 
-int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity)
+#define SERIAL_PROBE_VALUE  0xAD
+int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity, int test)
 {
     // Выключение прерываний
     outb(offset + 1, 0x00);
@@ -140,19 +141,41 @@ int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity)
     // Modem Control Register
     outb(offset + 4, (MCR_DTR | MCR_RTS | MCR_OUT2));
 
+    if (test == TRUE)
+    {
+        // Включаем loopback режим
+        outb(offset + 4, (MCR_LOOP | MCR_RTS | MCR_OUT1 | MCR_OUT2));
+        // Отправляем тестовый байт
+        outb(offset + 0, SERIAL_PROBE_VALUE);
+
+        // На реальных машинах может потребоваться ожидание, пока данные дойдут
+        // Если будут проблемы - увеличить время ожидания
+        hpet_sleep(1);
+
+        // Принимаем байт и сравниваем с тем, что послали
+        uint8_t recvd = inb(offset + 0);
+        if (recvd != SERIAL_PROBE_VALUE)
+        {   
+            return FALSE;
+        }
+
+        // Возвращаем режим
+        outb(offset + 4, (MCR_DTR | MCR_RTS | MCR_OUT2));
+    }
+    
     // Включить прерывания
     outb(offset + 1, 0x01);
 
-    // TODO: добавить тестирование
     return TRUE;
 }
 
 void serial_init_port(int id, uint16_t offset)
 {
-    int available = serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO);
+    int available = serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO, 1);
     if (available == FALSE)
     {
         // Возможно, порт отсутствует
+        printk("COM%i: Port is unavailable\n", id);
         return;
     }
 
