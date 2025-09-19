@@ -59,7 +59,7 @@ int sys_create_pty(int *master_fd, int *slave_fd)
 {
     struct file *master;
     struct file *slave;
-    int rc = tty_create(NULL, &master, &slave);
+    int rc = tty_create(&master, &slave);
 
     struct process* process = cpu_get_current_thread()->process;
     *master_fd = process_add_file(process, master);

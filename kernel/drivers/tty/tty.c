@@ -25,12 +25,17 @@ struct pty {
     tcflag_t cflag;
     tcflag_t lflag;
     cc_t control_characters[CCSNUM];
-
+    // Размер окна
     struct winsize winsz;
-
+    // Каналы
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
 
+    // Для случаев, когда master - не файл, а устройство
+    void* owner;
+    pty_output_write_func_t output_routine;
+
+    // canonical буфер
     char buffer[PTY_LINE_MAX_BUFFER_SIZE];
     int buffer_pos;
 
@@ -41,8 +46,6 @@ tcflag_t tty_get_cflag(struct pty* p_pty)
 {
     return p_pty->cflag;
 }
-
-void tty_output(struct pty* p_pty, unsigned char chr);
 
 void tty_init()
 {
@@ -108,12 +111,12 @@ int slave_file_close(struct inode *inode, struct file *file)
     return 0;
 }
 
-int tty_create(struct pty** pty, struct file **master, struct file **slave)
+struct pty* new_tty()
 {
     struct pty* p_pty = kmalloc(sizeof(struct pty));
     if (p_pty == NULL)
     {
-        return -ENOMEM;
+        return NULL;
     }
     memset(p_pty, 0, sizeof(struct pty));
 
@@ -125,6 +128,17 @@ int tty_create(struct pty** pty, struct file **master, struct file **slave)
     // Размер окна по умолчанию
     p_pty->winsz.ws_col = 80;
     p_pty->winsz.ws_row = 20;
+
+    return p_pty;
+}
+
+int tty_create(struct file **master, struct file **slave)
+{
+    struct pty* p_pty = new_tty();
+    if (p_pty == NULL)
+    {
+        return -ENOMEM;
+    }
 
     // Создать каналы для ведущего и ведомого
     p_pty->master_to_slave = new_pipe();
@@ -149,10 +163,33 @@ int tty_create(struct pty** pty, struct file **master, struct file **slave)
     *master = fmaster;
     *slave = fslave;
 
-    if (pty != NULL)
+    return 0;
+}
+
+int tty_create_with_external_master(struct pty** pty, struct file **slave, void* owner, pty_output_write_func_t func)
+{
+    struct pty* p_pty = new_tty();
+    if (p_pty == NULL)
     {
-        *pty = p_pty;
+        return -ENOMEM;
     }
+
+    p_pty->owner = owner;
+    p_pty->output_routine = func;
+
+    // Создать канал для ведомого
+    p_pty->slave_to_master = new_pipe();
+    atomic_inc(&p_pty->slave_to_master->ref_count);
+
+    struct file *fslave = new_file();
+    fslave->flags = FILE_OPEN_MODE_READ_WRITE;
+    fslave->ops = &tty_slave_fops;
+    fslave->private_data = p_pty;
+    atomic_inc(&p_pty->refs);
+    *slave = fslave;
+
+    *pty = p_pty;
+    atomic_inc(&p_pty->refs);
 
     return 0;
 }
@@ -259,6 +296,18 @@ char remove[3] = {'\b', ' ', '\b'};
 char ETX_ECHO[2] = {'^', 'C'};
 char FS_ECHO[2] = {'^', '\\'};
 
+ssize_t tty_output_write(struct pty* p_pty, unsigned char* buffer, size_t size)
+{
+    pty_output_write_func_t output_routine = p_pty->output_routine;
+
+    if (output_routine != NULL)
+    {
+        return output_routine(p_pty->owner, buffer, size);
+    }
+
+    return pipe_write(p_pty->slave_to_master, buffer, size);
+}
+
 void tty_output(struct pty* p_pty, unsigned char chr)
 {
     if (p_pty->oflag & OPOST)
@@ -266,26 +315,26 @@ void tty_output(struct pty* p_pty, unsigned char chr)
         if ((p_pty->oflag & ONLCR) && chr == '\n')
         {
             // Сразу пишем CRLF
-            pipe_write(p_pty->slave_to_master, crlf, sizeof(crlf));
+            tty_output_write(p_pty, crlf, sizeof(crlf));
             return;
         }
 
         if ((p_pty->oflag & OCRNL) && chr == '\r')
         {
             chr = '\n';
-            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            tty_output_write(p_pty, &chr, sizeof(chr));
             return;
         }
 
         if ((p_pty->oflag & OLCUC) && (chr >= 'a' && chr <= 'z'))
         {
             chr = chr + 'A' - 'a';
-            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            tty_output_write(p_pty, &chr, sizeof(chr));
             return;
         }
     }
 
-    pipe_write(p_pty->slave_to_master, &chr, 1);
+    tty_output_write(p_pty, &chr, 1);
 }
 
 // Запись со стороны приложения
@@ -295,7 +344,6 @@ void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count)
     while (i < count) 
     {
         char chr = buffer[i++];
-
         tty_output(p_pty, chr);
     }   
 }
@@ -428,7 +476,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         if (first_char == '\r')
         {
             // пока что CR просто выводим, не добавляя в буфер
-            pipe_write(p_pty->slave_to_master, &first_char, 1);
+            tty_output_write(p_pty, &first_char, 1);
         }
         else if ((EOL != 0 && first_char == EOL) || (first_char == '\n'))
         {
@@ -436,7 +484,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             if ((p_pty->lflag & ECHO) == ECHO)
             {
                 // Новая линия CR+LF
-                pipe_write(p_pty->slave_to_master, crlf, 2);
+                tty_output_write(p_pty, crlf, 2);
             }
 
             // Отправить в терминал
@@ -446,16 +494,16 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         {
             // Вывод управляющего символа в формате ^C
             char chr = '^';
-            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            tty_output_write(p_pty, &chr, sizeof(chr));
             chr = 'A' + first_char - 1;
-            pipe_write(p_pty->slave_to_master, &chr, sizeof(chr));
+            tty_output_write(p_pty, &chr, sizeof(chr));
 
             // Сброс позиции буфера
             p_pty->buffer_pos = 0;
             memset(p_pty->buffer, 0, PTY_LINE_MAX_BUFFER_SIZE);
 
             // Эхо в терминал CR + LF
-            pipe_write(p_pty->slave_to_master, crlf, 2);
+            tty_output_write(p_pty, crlf, 2);
             pty_flush(p_pty);
         }
         else

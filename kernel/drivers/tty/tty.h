@@ -149,22 +149,38 @@ struct winsize {
 
 struct pty;
 
+typedef ssize_t (*pty_output_write_func_t)(void*, const char*, size_t);
+
+// Получить значение termios cflag 
 tcflag_t tty_get_cflag(struct pty* p_pty);
 
 void tty_init();
-int master_file_close(struct inode *inode, struct file *file);
-int slave_file_close(struct inode *inode, struct file *file);
+int tty_create(struct file **master, struct file **slave);
+int tty_create_with_external_master(struct pty** pty, struct file **slave, void* owner, pty_output_write_func_t func);
+void free_pty(struct pty* p_pty);
 
-int tty_create(struct pty** p_pty, struct file **master, struct file **slave);
+// Запись буфера в терминал без обработки
+ssize_t tty_output_write(struct pty* p_pty, unsigned char* buffer, size_t size);
+// Запись символа в терминал с обработкой
+void tty_output(struct pty* p_pty, unsigned char chr);
 
+// Запись со стороны терминала
 ssize_t master_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
+// Чтение со стороны терминала
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
+// Закрытие со стороны терминала
+int master_file_close(struct inode *inode, struct file *file);
 
+// Запись со стороны приложения
 ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
+// Чтение со стороны приложения
 ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
+// Закрытие со стороны приложения
+int slave_file_close(struct inode *inode, struct file *file);
 
 int tty_ioctl(struct file* file, uint64_t request, uint64_t arg);
 
+// Дисциплина линии
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count);
 void tty_line_discipline_sw(struct pty* p_pty, const char* buffer, size_t count);
 

@@ -52,7 +52,6 @@ struct serial_state
     
     //
     struct pty* pty_ptr;
-    struct file *master;
     struct file *slave;
     tcflag_t c_cflag;
 };
@@ -77,6 +76,18 @@ void serial_write(uint16_t port_offset, char a)
 
     // Отправка
     outb(port_offset,  a);
+}
+
+ssize_t serial_write_from_tty(void* tty, const char *buffer, size_t size)
+{
+    struct serial_state *state = tty;
+
+    for (size_t i = 0; i < size; i ++)
+    {
+        serial_write(state->port_offset, buffer[i]);
+    }
+
+    return size;
 }
 
 void serial_rx_handle(uint16_t port_offset)
@@ -155,7 +166,7 @@ int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity, i
         // Принимаем байт и сравниваем с тем, что послали
         uint8_t recvd = inb(offset + 0);
         if (recvd != SERIAL_PROBE_VALUE)
-        {   
+        {
             return FALSE;
         }
 
@@ -183,8 +194,7 @@ void serial_init_port(int id, uint16_t offset)
     state->id = id;
     state->port_offset = offset;
     // Создание TTY
-    tty_create(&state->pty_ptr, &state->master, &state->slave);
-    file_acquire(state->master);
+    tty_create_with_external_master(&state->pty_ptr, &state->slave, state, serial_write_from_tty);
     file_acquire(state->slave);
 
     // Сохранить указатель
