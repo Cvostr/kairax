@@ -52,6 +52,7 @@ struct serial_state
     
     //
     struct pty* pty_ptr;
+    struct file *master;
     struct file *slave;
     tcflag_t c_cflag;
 };
@@ -67,7 +68,8 @@ struct file_operations serial_fops =
     .ioctl = serial_file_ioctl
 };
 
-struct serial_state* serial_ports[8];
+#define MAX_SERIAL_PORTS    8
+struct serial_state* serial_ports[MAX_SERIAL_PORTS];
 
 void serial_write(uint16_t port_offset, char a)
 {
@@ -94,9 +96,28 @@ void serial_rx_handle(uint16_t port_offset)
 {
     uint8_t val = inb(port_offset);
 
-    printk("Serial IRQ on %x - %c\n", port_offset, val);
+    //printk("Serial IRQ on %x - %c (%i)\n", port_offset, val, val);
+    //serial_write(port_offset, val);
 
-    serial_write(port_offset, val);
+    struct serial_state *state = NULL;
+    struct serial_state *cur = NULL;
+
+    for (int i = 0; i < MAX_SERIAL_PORTS; i ++)
+    {
+        cur = serial_ports[i];
+        if (cur != NULL && cur->port_offset == port_offset)
+        {
+            state = cur;
+            break;
+        }
+    }
+
+    if (state == NULL)
+    {
+        return;
+    }
+
+    file_write(state->master, 1, &val);
 }
 
 void serial_irq_handler(void* frame, void* data)
@@ -194,8 +215,9 @@ void serial_init_port(int id, uint16_t offset)
     state->id = id;
     state->port_offset = offset;
     // Создание TTY
-    tty_create_with_external_master(&state->pty_ptr, &state->slave, state, serial_write_from_tty);
+    tty_create_with_external_master(&state->pty_ptr, &state->master, &state->slave, state, serial_write_from_tty);
     file_acquire(state->slave);
+    file_acquire(state->master);
 
     // Сохранить указатель
     serial_ports[id] = state;

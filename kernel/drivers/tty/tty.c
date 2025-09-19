@@ -124,6 +124,7 @@ struct pty* new_tty()
     p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
     p_pty->oflag = (OPOST | ONLCR);
     p_pty->cflag = (CS8 | B38400);
+    p_pty->iflag = ICRNL;
     tty_fill_ccs(p_pty->control_characters);
     // Размер окна по умолчанию
     p_pty->winsz.ws_col = 80;
@@ -166,7 +167,7 @@ int tty_create(struct file **master, struct file **slave)
     return 0;
 }
 
-int tty_create_with_external_master(struct pty** pty, struct file **slave, void* owner, pty_output_write_func_t func)
+int tty_create_with_external_master(struct pty** pty, struct file **master, struct file **slave, void* owner, pty_output_write_func_t func)
 {
     struct pty* p_pty = new_tty();
     if (p_pty == NULL)
@@ -177,15 +178,27 @@ int tty_create_with_external_master(struct pty** pty, struct file **slave, void*
     p_pty->owner = owner;
     p_pty->output_routine = func;
 
-    // Создать канал для ведомого
+    // Создать каналы для ведущего и ведомого
+    p_pty->master_to_slave = new_pipe();
+    atomic_inc(&p_pty->master_to_slave->ref_count);
+
     p_pty->slave_to_master = new_pipe();
     atomic_inc(&p_pty->slave_to_master->ref_count);
+
+    // Создать файловые дескрипторы
+    struct file *fmaster = new_file();
+    fmaster->flags = FILE_OPEN_MODE_READ_WRITE;
+    fmaster->ops = &tty_master_fops;
+    fmaster->private_data = p_pty;
+    atomic_inc(&p_pty->refs);
 
     struct file *fslave = new_file();
     fslave->flags = FILE_OPEN_MODE_READ_WRITE;
     fslave->ops = &tty_slave_fops;
     fslave->private_data = p_pty;
     atomic_inc(&p_pty->refs);
+
+    *master = fmaster;
     *slave = fslave;
 
     *pty = p_pty;

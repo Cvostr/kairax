@@ -156,7 +156,7 @@ tcflag_t tty_get_cflag(struct pty* p_pty);
 
 void tty_init();
 int tty_create(struct file **master, struct file **slave);
-int tty_create_with_external_master(struct pty** pty, struct file **slave, void* owner, pty_output_write_func_t func);
+int tty_create_with_external_master(struct pty** pty, struct file **master, struct file **slave, void* owner, pty_output_write_func_t func);
 void free_pty(struct pty* p_pty);
 
 // Запись буфера в терминал без обработки
