@@ -5,6 +5,9 @@
 #include "fs/devfs/devfs.h"
 #include "kairax/stdio.h"
 #include "dev/interrupts.h"
+#include "proc/thread.h"
+#include "cpu/cpu_local_x64.h"
+#include "kairax/intctl.h"
 
 #define COM1    0x3F8
 #define COM2    0x2F8
@@ -57,7 +60,7 @@ struct serial_state
     tcflag_t c_cflag;
 };
 
-void serial_init_port(int id, uint16_t offset);
+int serial_init_port(int id, uint16_t offset);
 int serial_file_ioctl(struct file* file, uint64_t request, uint64_t arg);
 ssize_t serial_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t serial_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
@@ -122,20 +125,50 @@ void serial_rx_handle(uint16_t port_offset)
 
 void serial_irq_handler(void* frame, void* data)
 {
+    struct thread* thr = data;
+    thr->state = STATE_RUNNABLE;
+}
+
+void serial_thread_handler(void* data)
+{
+    struct thread* thread = cpu_get_current_thread();
+
     int first_port_offset = (int) data;
     int second_port_offset = first_port_offset - 0x10;
 
-    uint8_t lsr_first = inb(first_port_offset + 5);
-    uint8_t lsr_second = inb(second_port_offset + 5);
+    int processed = 0;
 
-    if (lsr_first != 0xFF && (lsr_first & LSR_DATA_READY) == LSR_DATA_READY)
+    while (1)
     {
-        serial_rx_handle(first_port_offset);
-    }
+        uint8_t lsr_first = inb(first_port_offset + 5);
+        uint8_t lsr_second = inb(second_port_offset + 5);
 
-    if (lsr_second != 0xFF && (lsr_second & LSR_DATA_READY) == LSR_DATA_READY)
-    {
-        serial_rx_handle(second_port_offset);
+        processed = FALSE;
+
+        if (lsr_first != 0xFF && (lsr_first & LSR_DATA_READY) == LSR_DATA_READY)
+        {
+            serial_rx_handle(first_port_offset);
+            processed = TRUE;
+        }
+
+        if (lsr_second != 0xFF && (lsr_second & LSR_DATA_READY) == LSR_DATA_READY)
+        {
+            serial_rx_handle(second_port_offset);
+            processed = TRUE;
+        }
+
+        // Выходим (и, вероятно, блокируемся)
+        disable_interrupts();
+
+        if (processed == FALSE)
+        {
+            // Если задачи не появились, то блокируемся
+            thread->state = STATE_INTERRUPTIBLE_SLEEP;
+            // Переходим к другому потоку
+            scheduler_yield(TRUE);
+        }
+
+        enable_interrupts();
     }
 }
 
@@ -146,8 +179,19 @@ void serial_init()
     serial_init_port(3, COM3);
     serial_init_port(4, COM4);
 
-    register_irq_handler(4, serial_irq_handler, COM1);
-    register_irq_handler(3, serial_irq_handler, COM2);
+    // Процесс для потоков - обработчиков
+	struct process* serial_process = create_new_process(NULL);
+	process_set_name(serial_process, "serial port proc");
+
+    struct thread* serial_first_thr = create_kthread(serial_process, serial_thread_handler, COM1);
+    scheduler_add_thread(serial_first_thr);
+
+    struct thread* serial_sec_thr = create_kthread(serial_process, serial_thread_handler, COM2);
+    scheduler_add_thread(serial_sec_thr);
+
+    
+    register_irq_handler(4, serial_irq_handler, serial_first_thr);
+    register_irq_handler(3, serial_irq_handler, serial_sec_thr);
 }
 
 #define SERIAL_PROBE_VALUE  0xAD
@@ -260,13 +304,13 @@ void parse_cflags(tcflag_t cflags, int* speed, int* csize, int* parity)
 	}
 }
 
-void serial_init_port(int id, uint16_t offset)
+int serial_init_port(int id, uint16_t offset)
 {
     int available = serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO, TRUE);
     if (available == FALSE)
     {
         // Возможно, порт отсутствует
-        return;
+        return -ENODEV;
     }
 
     printk("COM%i: Port is available on 0x%x\n", id, offset);
@@ -288,6 +332,8 @@ void serial_init_port(int id, uint16_t offset)
 
     // Добавить символьное устройство
     devfs_add_char_device(devname, &serial_fops, state);
+
+    return 0;
 }
 
 ssize_t serial_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
