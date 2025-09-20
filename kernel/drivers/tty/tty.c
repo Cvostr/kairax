@@ -123,7 +123,7 @@ struct pty* new_tty()
     // Установить флаги по умолчанию
     p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
     p_pty->oflag = (OPOST | ONLCR);
-    p_pty->cflag = (CS8 | B38400);
+    p_pty->cflag = (CREAD | CS8 | B38400);
     p_pty->iflag = ICRNL;
     tty_fill_ccs(p_pty->control_characters);
     // Размер окна по умолчанию

@@ -99,6 +99,17 @@ void print_flag(tcflag_t flag, char* optname, int opt)
     }
 }
 
+void print_csize(tcflag_t flag)
+{
+    switch ((flag & CSIZE)) 
+    {
+		case CS5: printf("cs5 ");  break;
+		case CS6: printf("cs6 ");  break;
+		case CS7: printf("cs7 ");  break;
+		case CS8: printf("cs8 "); break;
+	}
+}
+
 int print_state()
 {
     struct termios tmi;
@@ -135,6 +146,12 @@ int print_state()
     //print_cc(&tmi, "min", VLNEXT);
     //print_cc(&tmi, "min", VLNEXT);
 
+    // cflags
+    print_flag(tmi.c_cflag, "parenb", PARENB);
+    print_flag(tmi.c_cflag, "parodd", PARODD);
+    print_csize(tmi.c_cflag);
+    print_flag(tmi.c_cflag, "cread", CREAD);
+    printf("\n");
 
     print_flag(tmi.c_iflag, "ignbrk", IGNBRK);
     print_flag(tmi.c_iflag, "brkint", BRKINT);
@@ -206,6 +223,15 @@ int handle_flag(tcflag_t *flag, char *flagname, char *arg, int flagbit)
         {
             *flag |= flagbit;
         }
+    }
+}
+
+void set_csize(tcflag_t *flag, const char *flagname, char *arg, int flagbit)
+{
+    if (strcmp(arg, flagname) == 0)
+    {
+        *flag &= ~(CSIZE);
+        *flag |= flagbit;
     }
 }
 
@@ -297,6 +323,14 @@ int main(int argc, char** argv)
                 return 1;
             }
 		}
+
+        handle_flag(&tmi.c_cflag, "parenb", arg, PARENB);
+        handle_flag(&tmi.c_cflag, "parodd", arg, PARODD);
+        handle_flag(&tmi.c_cflag, "cread", arg, CREAD);
+        set_csize(&tmi.c_cflag, "cs5", arg, CS5);
+        set_csize(&tmi.c_cflag, "cs6", arg, CS6);
+        set_csize(&tmi.c_cflag, "cs7", arg, CS7);
+        set_csize(&tmi.c_cflag, "cs8", arg, CS8);
 
         handle_flag(&tmi.c_iflag, "istrip", arg, ISTRIP);
         handle_flag(&tmi.c_iflag, "inlcr", arg, INLCR);
