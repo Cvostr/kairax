@@ -83,6 +83,8 @@ typedef unsigned int	tcflag_t;
 #define OFDEL	    0000200
 
 // c_cflag
+#define PARENB	0000400
+#define PARODD	0001000
 #define CBAUD	0010017
 #define CBAUDEX 0010000
 // Скорости

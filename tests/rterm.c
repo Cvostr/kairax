@@ -8,6 +8,7 @@
 #include "sys/ioctl.h"
 #include "stdlib.h"
 #include "sys/wait.h"
+#include "termios.h"
 
 #define SERV_PORT 23
 
@@ -85,6 +86,12 @@ int main(int argc, char** argv)
     {
         close(client_sock);
     }
+
+    // Убрать ICRNL
+    struct termios tmi;
+    tcgetattr(pty_slave, &tmi);
+    tmi.c_iflag &= ~ICRNL;
+    tcsetattr(pty_slave, TCSADRAIN, &tmi);
 
     pid_t forkret = fork();
     if (forkret == 0) 

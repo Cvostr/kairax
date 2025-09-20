@@ -193,6 +193,22 @@ void bootshell_process_cmd(char* cmdline)
         file_close(mod_file);
         kfree(image_data);
     }
+    if(strcmp(cmd, "tty") == 0) {
+        struct file* tty_file = file_open(NULL, args[1], FILE_OPEN_MODE_READ_WRITE, 0);
+        if (tty_file == NULL) {
+            goto exit;
+        }
+
+        struct process* process = cpu_get_current_thread()->process;
+        
+        process_add_file_at(process, tty_file, 0);
+        process_add_file_at(process, tty_file, 1);
+        process_add_file_at(process, tty_file, 2);
+
+        sys_ioctl(0, 0x5410, sys_getpgid(0));
+
+        printk("Done\n");
+    }
     if(strcmp(cmd, "unlmod") == 0) {
         int rc = sys_unload_module(args[1]);
         if (rc < 0) {

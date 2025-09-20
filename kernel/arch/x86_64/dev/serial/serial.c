@@ -57,6 +57,7 @@ struct serial_state
     tcflag_t c_cflag;
 };
 
+void serial_init_port(int id, uint16_t offset);
 int serial_file_ioctl(struct file* file, uint64_t request, uint64_t arg);
 ssize_t serial_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t serial_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
@@ -97,7 +98,6 @@ void serial_rx_handle(uint16_t port_offset)
     uint8_t val = inb(port_offset);
 
     //printk("Serial IRQ on %x - %c (%i)\n", port_offset, val, val);
-    //serial_write(port_offset, val);
 
     struct serial_state *state = NULL;
     struct serial_state *cur = NULL;
@@ -201,15 +201,75 @@ int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity, i
     return TRUE;
 }
 
+struct baud_table {
+    speed_t tty_val;
+	int speed;
+};
+struct baud_table baud_rates[] = {
+	{      B0, 0      },
+	{     B50, 50     },
+	{     B75, 75     },
+	{    B110, 110    },
+	{    B134, 134    },
+	{    B150, 150    },
+	{    B200, 200    },
+	{    B300, 300    },
+	{    B600, 600    },
+	{   B1200, 1200   },
+	{   B1800, 1800   },
+	{   B2400, 2400   },
+	{   B4800, 4800   },
+	{   B9600, 9600   },
+	{  B19200, 19200  },
+	{  B38400, 38400  },
+	{  B57600, 57600  },
+	{ B115200, 115200 },
+	{ B230400, 230400 },
+	{ B460800, 460800 },
+	{ B921600, 921600 },
+};
+
+void parse_cflags(tcflag_t cflags, int* speed, int* csize, int* parity)
+{
+    speed_t cspeed = cflags & CBAUD;
+    for (size_t i = 0; i < sizeof(baud_rates) / sizeof(struct baud_table); ++i) 
+    {
+		if (cspeed == baud_rates[i].tty_val) 
+        {
+			*speed = baud_rates[i].speed;
+			break;
+		}
+	}
+
+    *parity = PARITY_NO;
+    if ((cflags & PARENB) == PARENB)
+    {
+        if ((cflags & PARODD) == PARODD)
+        {
+            *parity = PARITY_ODD;
+        }
+
+        *parity = PARITY_EVEN;
+    }
+
+    switch (cflags & CSIZE) {
+		case CS5: *csize = CSIZE_5; break;
+		case CS6: *csize = CSIZE_6; break;
+		case CS7: *csize = CSIZE_7; break;
+		case CS8: *csize = CSIZE_8; break;
+	}
+}
+
 void serial_init_port(int id, uint16_t offset)
 {
-    int available = serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO, 1);
+    int available = serial_cfg_port(id, offset, 38400, CSIZE_8, PARITY_NO, TRUE);
     if (available == FALSE)
     {
         // Возможно, порт отсутствует
-        printk("COM%i: Port is unavailable\n", id);
         return;
     }
+
+    printk("COM%i: Port is available on 0x%x\n", id, offset);
 
     struct serial_state *state = kmalloc(sizeof(struct serial_state));
     state->id = id;
