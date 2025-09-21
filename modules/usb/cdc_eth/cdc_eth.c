@@ -5,13 +5,18 @@
 #include "dev/interrupts.h"
 #include "mem/iomem.h"
 #include "kairax/string.h"
+#include "cdc_eth.h"
 
 #define CDC_COMMUNICATIONS 0x2
 #define CDC_DATA 0xA
 
 #define ECM 0x6
 
-#define SET_ETHERNET_PACKET_FILTER 0x43
+#define SET_ETHERNET_MULTICAST_FILTERS					0x40
+#define SET_ETHERNET_POWER_MANAGEMENT_PATTERN FILTER 	0x41
+#define GET_ETHERNET_POWER_MANAGEMENT_PATTERN_FILTER	0x42
+#define SET_ETHERNET_PACKET_FILTER 	0x43
+#define GET_ETHERNET_STATISTIC 		0x44
 
 // Коды дескрипторов
 #define CDC_DESCTYPE_CS_INTERFACE 	0x24
@@ -61,6 +66,33 @@ struct cdc_ethernet_descriptor {
 	uint8_t		bNumberPowerFilters;  
 } PACKED;
 
+struct cdc_notification_header {
+	uint8_t bmRequestType;
+	uint8_t bNotificationCode;
+	uint16_t wValue;
+	uint16_t wIndex;
+	uint16_t wLength;
+	uint8_t  data[];
+} PACKED;
+
+struct cdc_conn_speed_change {
+	uint32_t	DLBitRate;
+	uint32_t	ULBitRate;	
+};
+
+struct cdc_eth_dev {
+	struct nic* iface;
+	struct usb_device* usbdev;
+
+	struct usb_endpoint* interrupt_in;
+	struct usb_endpoint* data_in;
+	struct usb_endpoint* data_out;	
+
+	struct cdc_notification_header*     notification_buffer;
+	size_t    report_buffer_pages;
+    uintptr_t report_buffer_phys;
+};
+
 int usb_cdc_hex2int(char hex) 
 {
     if (hex >= '0' && hex <= '9')
@@ -69,6 +101,63 @@ int usb_cdc_hex2int(char hex)
         return hex - 'A' + 10;
 
     return -1;
+}
+
+int usb_cdc_set_eth_packet_filter(struct usb_device* device, struct usb_interface* interface, uint16_t filter) 
+{
+	struct usb_device_request lun_req;
+	lun_req.type = USB_DEVICE_REQ_TYPE_CLASS;
+	lun_req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	lun_req.recipient = USB_DEVICE_REQ_RECIPIENT_INTERFACE;
+	lun_req.bRequest = SET_ETHERNET_PACKET_FILTER;
+	lun_req.wValue = filter;
+	lun_req.wIndex = interface->descriptor.bInterfaceNumber;
+	lun_req.wLength = 0;
+
+    return usb_device_send_request(device, &lun_req, NULL, 0);
+}
+
+void usb_cdc_notify_handler(struct usb_msg* msg)
+{
+    struct cdc_eth_dev* ethdev = msg->private;
+	struct cdc_notification_header *header = ethdev->notification_buffer;
+
+	switch (header->bNotificationCode)
+	{
+		case NETWORK_CONNECTION:
+			printk("CDC ECM: Connection wValue = %i\n", header->wValue);
+			break;
+		case CONNECTION_SPEED_CHANGE:
+			struct cdc_conn_speed_change* speedval = header->data;
+			printk("CDC ECM: Speed Change DLBitRate = %i, ULBitRate = %i\n", speedval->DLBitRate, speedval->ULBitRate);
+			break;
+		case RESPONSE_AVAILABLE:
+			printk("CDC ECM: Response\n");
+			break;
+		default:
+			printk("CDC ECM: notification %x\n", header->bNotificationCode);
+	}
+
+	// Ожидание прерывания
+    usb_send_async_msg(ethdev->usbdev, ethdev->interrupt_in, msg);
+}
+
+int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
+{
+	printk("USB CDC: TX %i bytes\n", size);
+	/*struct cdc_eth_dev* eth_dev = nic->dev->dev_data;
+
+	// Выделить временную память с запретом кэширования
+	size_t reqd_pages = 0;
+	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(size, &reqd_pages);
+    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
+
+	memcpy(tmp_data_buffer, buffer, size);
+
+	printk("ECM Sending\n");
+	int rc = usb_device_bulk_msg(eth_dev->usbdev, eth_dev->data_out, tmp_data_buffer_phys, size);
+	printk("ECM rc = %i\n", rc);*/
+	return 0;
 }
 
 int usb_cdc_device_probe(struct device *dev) 
@@ -113,6 +202,8 @@ int usb_cdc_device_probe(struct device *dev)
 	printk("CDC: Master %i Slave %i\n", union_desc->bMasterInterface0, union_desc->bSlaveInterface0);
 	printk("ECM: iMAC %i, MTU %i\n", ethernet_desc->iMACAddress, ethernet_desc->wMaxSegmentSize);
 
+	uint16_t MTU = ethernet_desc->wMaxSegmentSize;
+
 	// Получение MAC адреса из строки
 	uint8_t MAC_STR[6 * 2 * 2];
 	usb_get_string(device, ethernet_desc->iMACAddress, MAC_STR, sizeof(MAC_STR));
@@ -156,6 +247,7 @@ int usb_cdc_device_probe(struct device *dev)
 		return -1;
 	}
 
+	size_t interrupt_max_packet_sz = 0;
 	struct usb_endpoint* interrupt_in = NULL;
 	struct usb_endpoint* data_in = NULL;
 	struct usb_endpoint* data_out = NULL;	
@@ -175,6 +267,7 @@ int usb_cdc_device_probe(struct device *dev)
 		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
 		{
 			interrupt_in = ep;
+			interrupt_max_packet_sz = interrupt_in->descriptor.wMaxPacketSize & 0x07FF;
 			break;
 		}
 	}
@@ -213,17 +306,67 @@ int usb_cdc_device_probe(struct device *dev)
 		return -1;
 	}
 
-    struct usb_device_request lun_req;
-	lun_req.type = USB_DEVICE_REQ_TYPE_CLASS;
-	lun_req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
-	lun_req.recipient = USB_DEVICE_REQ_RECIPIENT_INTERFACE;
-	lun_req.bRequest = SET_ETHERNET_PACKET_FILTER;
-	lun_req.wValue = 0xF;
-	lun_req.wIndex = interface->descriptor.bInterfaceNumber;
-	lun_req.wLength = 0;
-
-    int rc = usb_device_send_request(device, &lun_req, NULL, 0);
+	// Отправить SetPacketFilter
+	int rc = usb_cdc_set_eth_packet_filter(device, interface, 0xF);
 	printk("SET_ETHERNET_PACKET_FILTER result %i\n", rc);
+
+	// Инициализировать Interrupt
+	rc = usb_device_configure_endpoint(device, interrupt_in);
+	if (rc != 0)
+	{
+		printk("CDC ECM: Error configuring IN interrupt endpoint (%i)\n", rc);
+		return -1;
+	}
+
+	printk("CDC ECM: Interrupt EP max packet size %i\n", interrupt_max_packet_sz);
+
+	// Инициализируем BULK
+	rc = usb_device_configure_endpoint(device, data_in);
+	if (rc != 0)
+	{
+		printk("CDC ECM: Error initialize IN endpoint (%i)\n", rc);
+		return -1;
+	}
+
+	rc = usb_device_configure_endpoint(device, data_out);
+	if (rc != 0)
+	{
+		printk("CDC ECM: Error initialize OUT endpoint (%i)\n", rc);
+		return -1;
+	}
+
+	struct cdc_eth_dev* eth_dev = kmalloc(sizeof(struct cdc_eth_dev));
+	eth_dev->interrupt_in = interrupt_in;
+	eth_dev->data_in = data_in;
+	eth_dev->data_out = data_out;
+	eth_dev->usbdev = device;
+	// Выделить память под буфер report
+    eth_dev->report_buffer_phys = (uintptr_t) pmm_alloc(interrupt_max_packet_sz, &eth_dev->report_buffer_pages);
+    eth_dev->notification_buffer = map_io_region(eth_dev->report_buffer_phys, eth_dev->report_buffer_pages * PAGE_SIZE);
+
+	// Регистрация интерфейса в ядре
+    eth_dev->iface = new_nic();
+    memcpy(eth_dev->iface->mac, MAC, MAC_DEFAULT_LEN);
+    eth_dev->iface->dev = dev; 
+    eth_dev->iface->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST;
+    eth_dev->iface->tx = usb_cdc_tx;
+    //eth_dev->nic->up = e1000_up;
+    //eth_dev->nic->down = e1000_down;
+    eth_dev->iface->mtu = MTU;
+    register_nic(eth_dev->iface, "eth");
+
+    dev->dev_type = DEVICE_TYPE_NETWORK_ADAPTER;
+    dev->dev_data = eth_dev;
+    dev->nic = eth_dev->iface;
+
+	struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
+    msg->data = eth_dev->report_buffer_phys;
+    msg->length = interrupt_max_packet_sz;
+    msg->callback = usb_cdc_notify_handler;
+    msg->private = eth_dev;
+
+	// Ожидание прерывания
+    usb_send_async_msg(device, interrupt_in, msg);
 	
 	return 0;
 }
