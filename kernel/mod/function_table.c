@@ -75,6 +75,9 @@ struct kernel_function functions[] = {
     KFUNCTION(device_set_data),
     KFUNCTION(register_device),
     KFUNCTION(new_drive_device_info),
+    // usb
+    KFUNCTION(usb_device_send_request),
+    KFUNCTION(register_usb_device_driver),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

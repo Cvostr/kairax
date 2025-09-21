@@ -118,11 +118,38 @@ struct usb_interface* new_usb_interface(struct usb_interface_descriptor* descrip
     return result;
 }
 
+void usb_interface_add_descriptor(struct usb_interface* iface, struct usb_descriptor_header* descriptor_header)
+{
+    // Перевыделим память
+    struct usb_descriptor_header **newbuffer = kmalloc((iface->other_descriptors_num + 1) * sizeof(struct usb_descriptor_header*));
+    // Если массив уже был - скопируем имеющиеся адреса и очистим старый
+    if (iface->other_descriptors_num > 0)
+    {
+        memcpy(newbuffer, iface->other_descriptors, iface->other_descriptors_num * sizeof(struct usb_descriptor_header*));
+        kfree(iface->other_descriptors);
+    }
+
+    // Делаем копию дескриптора
+    struct usb_descriptor_header* copy_descriptor_header = kmalloc(descriptor_header->bLength);
+    memcpy(copy_descriptor_header, descriptor_header, descriptor_header->bLength);
+
+    // Сохраняем указатель на копию
+    iface->other_descriptors = newbuffer;
+    iface->other_descriptors[iface->other_descriptors_num++] = copy_descriptor_header;
+}
+
 void free_usb_interface(struct usb_interface* iface)
 {
     // TODO: implement
     KFREE_SAFE(iface->hid_descriptor)
     KFREE_SAFE(iface->endpoints);
+
+    for (size_t i = 0; i < iface->other_descriptors_num; i ++)
+    {
+        KFREE_SAFE(iface->other_descriptors[i]);
+    }
+    KFREE_SAFE(iface->other_descriptors);
+
     kfree(iface);
 }
 

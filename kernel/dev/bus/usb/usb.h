@@ -59,6 +59,8 @@ struct usb_endpoint {
     void* transfer_ring;
 };
 
+struct usb_config;
+
 struct usb_interface {
     struct usb_interface_descriptor descriptor;
     // Эндпоинты в количестве bNumEndpoints
@@ -69,6 +71,12 @@ struct usb_interface {
     struct device* root_device;
     // Устройство - интерфейс
     struct device* device;
+    // Конфигурация, к которой принадлежит интерфейс
+    struct usb_config* parent_config;
+
+    // Для регистров неизвестных типов
+    size_t                          other_descriptors_num;
+    struct usb_descriptor_header    **other_descriptors;
 };
 
 struct usb_config {
@@ -140,6 +148,7 @@ void usb_config_put_interface(struct usb_config* config, struct usb_interface* i
 void free_usb_config(struct usb_config* config);
 
 struct usb_interface* new_usb_interface(struct usb_interface_descriptor* descriptor);
+void usb_interface_add_descriptor(struct usb_interface* iface, struct usb_descriptor_header* descriptor_header);
 void free_usb_interface(struct usb_interface* iface);
 
 struct usb_endpoint* new_usb_endpoint_array(size_t endpoints);

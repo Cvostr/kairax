@@ -422,6 +422,7 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 
                 // Создать общий объект интерфейса
                 current_interface = new_usb_interface(iface_descr);
+                current_interface->parent_config = usb_conf;
 
                 // Сбросить счетчик эндпоинтов 
                 processed_endpoints = 0;
@@ -469,7 +470,10 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
                 memcpy(current_interface->hid_descriptor, config_header, config_header->bLength);
 				break;
 			default:
-				printk("XHCI: unsupported device config %i\n", config_header->bDescriptorType);
+				printk("XHCI: unknown device config %i\n", config_header->bDescriptorType);
+                // Неизвестный тип - сохраняем в отдельный массив
+                usb_interface_add_descriptor(current_interface, config_header);
+                break;
 		}
 
 		offset += config_header->bLength;
