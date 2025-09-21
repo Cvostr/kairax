@@ -88,6 +88,8 @@ int xhci_map_completion_code(uint32_t transfer_code)
 {
     switch (transfer_code)
     {
+        case XHCI_COMPLETION_CODE_INVALID:
+            return -EIO;
         case XHCI_COMPLETION_CODE_SUCCESS:
             return 0;
         case XHCI_COMPLETION_CODE_STALL:
