@@ -315,24 +315,28 @@ int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration
     return xhci_device_send_usb_request(dev, &req, NULL, 0);
 }
 
+int xhci_device_get_strings_lang_id(struct xhci_device *xhci_device, uint16_t *lang_id)
+{
+    int rc = 0;
+    struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
+
+    rc = xhci_device_get_string_language_descriptor(xhci_device, lang_descriptor);
+	if (rc == 0) 
+	{
+        *lang_id = lang_descriptor->lang_ids[0];
+	}
+
+    kfree(lang_descriptor);
+    return rc;
+}
+
 int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device)
 {
     struct usb_device_descriptor* dev_descriptor = &device->descriptor;
-
-    struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
     struct usb_string_descriptor str_descr;
 
-    // Сначала считаем языковые дескрипторы
-	int rc = xhci_device_get_string_language_descriptor(xhci_device, lang_descriptor);
-	if (rc != 0) 
-	{
-		printk("XHCI: device string language descriptor request error (%i)!\n", rc);	
-        kfree(lang_descriptor);
-		return -1;
-	}
-
-    uint16_t lang_id = lang_descriptor->lang_ids[0];
-    kfree(lang_descriptor);
+    int rc;
+    uint16_t lang_id = device->lang_id;
 
     // считывание продукта
     memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
@@ -502,6 +506,31 @@ int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoi
 int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg)
 {
     return xhci_device_msg_async(dev->controller_device_data, endpoint, msg);
+}
+
+ssize_t xhci_get_string(struct usb_device* device, int index, char* buffer, size_t buflen)
+{
+    int rc;
+    uint16_t lang_id = device->lang_id;
+    struct usb_string_descriptor str_descr;
+
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    // считывание строки
+    rc = xhci_device_get_string_descriptor(device->controller_device_data, lang_id, index, &str_descr);
+    if (rc != 0) 
+    {
+        return -rc;
+    }
+
+    // Получить длину для копирования
+    size_t string_len = str_descr.header.bLength - sizeof(struct usb_descriptor_header);
+    ssize_t avail_len = MIN(buflen, string_len);
+
+    //printk("String len %i Avail len %i\n", string_len, avail_len);
+
+    memcpy(buffer, str_descr.unicode_string, avail_len);
+
+    return avail_len;
 }
 
 int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length)

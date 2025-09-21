@@ -599,7 +599,16 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
 	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
 	usb_device->async_msg = xhci_drv_send_async_msg;
+	usb_device->get_string = xhci_get_string;
 	
+	// Получение информации о коде языка
+	rc = xhci_device_get_strings_lang_id(device, &usb_device->lang_id);
+	if (rc != 0)
+	{
+		printk("XHCI: device string language descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
+
 	// Получение информации о названии устройства
 	rc = xhci_device_get_product_strings(device, usb_device);
 	if (rc != 0) 

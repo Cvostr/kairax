@@ -105,11 +105,13 @@ struct usb_device {
 	char* serial;
 
     uint8_t slot_id;
+    uint16_t lang_id;
 
     int (*send_request) (struct usb_device*, struct usb_device_request*, void*, uint32_t);
     int (*configure_endpoint) (struct usb_device*, struct usb_endpoint*);
     int (*bulk_msg) (struct usb_device*, struct usb_endpoint*, void*, uint32_t);
     int (*async_msg) (struct usb_device*, struct usb_endpoint*, struct usb_msg*);
+    int (*get_string) (struct usb_device*, int, char*, size_t);
 };
 
 // Создание и уничтожение
@@ -142,6 +144,13 @@ int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint
 /// @param msg объект сообщения, в котором указан callback для выполнения
 /// @return всегда 0
 int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint, struct usb_msg *msg);
+/// @brief Получить строку устройства по индексу
+/// @param device объект устройства
+/// @param index индекс строки
+/// @param buffer буфер, куда будет записана строка
+/// @param buflen размер буфера
+/// @return размер полученной строки
+ssize_t usb_get_string(struct usb_device* device, int index, char* buffer, size_t buflen);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);

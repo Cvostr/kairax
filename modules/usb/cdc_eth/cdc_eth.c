@@ -13,10 +13,18 @@
 
 #define SET_ETHERNET_PACKET_FILTER 0x43
 
+// Коды дескрипторов
 #define CDC_DESCTYPE_CS_INTERFACE 	0x24
 #define CDC_DESCSUBTYPE_HEADER		0x00
 #define CDC_DESCSUBTYPE_UNION		0x06
 #define CDC_DESCSUBTYPE_ETHERNET	0x0F
+
+// Коды прерываний
+#define NETWORK_CONNECTION 0x00
+#define RESPONSE_AVAILABLE 0x01
+#define CONNECTION_SPEED_CHANGE 0x2A
+
+#define LOG_DEBUG_MAC
 
 struct usb_device_id cdc_eth_ids[] = {
 	{   
@@ -52,6 +60,16 @@ struct cdc_ethernet_descriptor {
 	uint16_t	wNumberMCFilters;
 	uint8_t		bNumberPowerFilters;  
 } PACKED;
+
+int usb_cdc_hex2int(char hex) 
+{
+    if (hex >= '0' && hex <= '9')
+        return hex - '0';
+    if (hex >= 'A' && hex <= 'F')
+        return hex - 'A' + 10;
+
+    return -1;
+}
 
 int usb_cdc_device_probe(struct device *dev) 
 {
@@ -95,6 +113,29 @@ int usb_cdc_device_probe(struct device *dev)
 	printk("CDC: Master %i Slave %i\n", union_desc->bMasterInterface0, union_desc->bSlaveInterface0);
 	printk("ECM: iMAC %i, MTU %i\n", ethernet_desc->iMACAddress, ethernet_desc->wMaxSegmentSize);
 
+	// Получение MAC адреса из строки
+	uint8_t MAC_STR[6 * 2 * 2];
+	usb_get_string(device, ethernet_desc->iMACAddress, MAC_STR, sizeof(MAC_STR));
+
+	// Приведение MAC адреса к бинарному виду
+	uint8_t MAC[6];
+	for (i = 0; i < 6; i ++)
+	{
+		uint8_t c1 = MAC_STR[i * 4];
+		uint8_t c2 = MAC_STR[i * 4 + 2];
+		MAC[i] = (usb_cdc_hex2int(c1) << 4) | usb_cdc_hex2int(c2); 
+	}
+
+#ifdef LOG_DEBUG_MAC
+	printk ("ECM: MAC %x:%x:%x:%x:%x:%x\n", 
+		MAC[0], 
+		MAC[1],
+		MAC[2],
+		MAC[3],
+		MAC[4],
+		MAC[5]);
+#endif
+
 	struct usb_interface* cdc_data_interface = NULL;
 	
 	// Найти интерфейс с CDC Data
@@ -115,13 +156,33 @@ int usb_cdc_device_probe(struct device *dev)
 		return -1;
 	}
 
+	struct usb_endpoint* interrupt_in = NULL;
 	struct usb_endpoint* data_in = NULL;
 	struct usb_endpoint* data_out = NULL;	
+
+	struct usb_endpoint* ep;
+
+	// Найти interrupt endpoint в основном интерфейсе
+	for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
+	{
+		ep = &interface->endpoints[i];
+
+		// Нам интересны только Interrupt
+		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_INTERRUPT)
+			continue;
+
+        // и только IN
+		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
+		{
+			interrupt_in = ep;
+			break;
+		}
+	}
 
 	// Найти BULK эндпоинты
 	for (i = 0; i < cdc_data_interface->descriptor.bNumEndpoints; i ++)
 	{
-		struct usb_endpoint* ep = &cdc_data_interface->endpoints[i];
+		ep = &cdc_data_interface->endpoints[i];
 
 		// Нам интересны только Bulk
 		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_BULK)
@@ -140,6 +201,12 @@ int usb_cdc_device_probe(struct device *dev)
 	}
 
 	// Не найдены необходимые endpoints
+	if (interrupt_in == NULL)
+	{
+		printk("CDC ECM: No CDC interrupt endpoint\n");
+		return -1;
+	}
+
 	if (data_out == NULL || data_in == NULL)
 	{
 		printk("CDC ECM: No CDC-DATA bulk endpoints\n");
@@ -157,8 +224,6 @@ int usb_cdc_device_probe(struct device *dev)
 
     int rc = usb_device_send_request(device, &lun_req, NULL, 0);
 	printk("SET_ETHERNET_PACKET_FILTER result %i\n", rc);
-
-	printk("Number of endpoints %i\n", interface->descriptor.bNumEndpoints);
 	
 	return 0;
 }

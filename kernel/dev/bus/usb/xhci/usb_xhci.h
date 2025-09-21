@@ -600,6 +600,7 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
 int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx, struct usb_config** config);
+int xhci_device_get_strings_lang_id(struct xhci_device *xhci_device, uint16_t *lang_id);
 int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device);
 int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint* endpoint);
 int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep, void* data, uint32_t size);
@@ -608,6 +609,7 @@ int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_r
 int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint);
 int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length);
 int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg);
+ssize_t xhci_get_string(struct usb_device* device, int index, char* buffer, size_t buflen);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci
