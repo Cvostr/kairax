@@ -442,6 +442,29 @@ int usb_mass_device_write_lba(struct device *device, uint64_t start, uint64_t co
 	return -1;
 }
 
+void usb_mass_find_endpoints(struct usb_interface* interface, struct usb_endpoint** builk_in, struct usb_endpoint** builk_out)
+{
+	for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
+	{
+		struct usb_endpoint* ep = &interface->endpoints[i];
+
+		// Нам интересны только Bulk
+		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_BULK)
+			continue;
+
+		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
+		{
+			// IN
+			*builk_in = ep;
+		}
+		else 
+		{
+			// OUT
+			*builk_out = ep;
+		}
+	}
+}
+
 int usb_mass_device_probe(struct device *dev) 
 {
 	struct usb_interface* interface = dev->usb_info.usb_interface;
@@ -472,26 +495,7 @@ int usb_mass_device_probe(struct device *dev)
 
 	struct usb_endpoint* builk_in = NULL;
 	struct usb_endpoint* builk_out = NULL;
-
-	for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
-	{
-		struct usb_endpoint* ep = &interface->endpoints[i];
-
-		// Нам интересны только Bulk
-		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_BULK)
-			continue;
-
-		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
-		{
-			// IN
-			builk_in = ep;
-		}
-		else 
-		{
-			// OUT
-			builk_out = ep;
-		}
-	}
+	usb_mass_find_endpoints(interface, &builk_in, &builk_out);
 
 	// Не найдены необходимые endpoints
 	if (builk_out == NULL || builk_in == NULL)
@@ -584,6 +588,8 @@ int usb_mass_device_probe(struct device *dev)
 		// TODO: move??
 		add_partitions_from_device(lun_dev);
 	}
+	
+	return 0;
 }
 
 void usb_mass_device_remove(struct device *dev) 

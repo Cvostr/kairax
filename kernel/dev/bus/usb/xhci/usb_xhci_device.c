@@ -176,7 +176,9 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         // Выполнить callback, если указан
         struct usb_msg* msg = compl->msg;
         if (msg)
-        {
+        {   
+            // в trb_transfer_length записано количество НЕпереданных байт
+            msg->transferred_length = msg->length - compl->trb.transfer_event.trb_transfer_length; 
             msg->status = xhci_map_completion_code(status_code);
             if (msg->callback)
                 msg->callback(msg);

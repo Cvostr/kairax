@@ -90,6 +90,7 @@ struct usb_msg {
     uint32_t length;
     void (*callback) (struct usb_msg*);
     int status;
+    uint32_t transferred_length;
 
     void* private;
 };
