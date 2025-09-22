@@ -588,7 +588,7 @@ int usb_mass_device_probe(struct device *dev)
 		// TODO: move??
 		add_partitions_from_device(lun_dev);
 	}
-	
+
 	return 0;
 }
 

@@ -548,10 +548,10 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 		printk("XHCI: device descriptor request error (%i)!\n", rc);	
 		return -1;
 	}
-
+/*
 	printk("XHCI: header type %i, size %i, actual packet size: %i\n", 
 		device_descriptor.header.bDescriptorType, device_descriptor.header.bLength, device_descriptor.bMaxPacketSize0);
-	
+*/	
 	// Теперь получим настоящий максимальный размер пакета
 	uint16_t actual_max_packet_size = device_descriptor.bMaxPacketSize0;  
 	

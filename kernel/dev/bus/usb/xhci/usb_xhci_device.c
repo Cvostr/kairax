@@ -15,7 +15,7 @@
 #define XHCI_CONTROL_EP_AVG_TRB_LEN 8
 
 //#define XHCI_LOG_TRANSFER
-#define XHCI_LOG_EP_CONFIGURE
+//#define XHCI_LOG_EP_CONFIGURE
 
 struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t port_id, uint8_t slot_id)
 {
@@ -504,7 +504,37 @@ int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoi
 
 int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length)
 {
-    return xhci_device_send_bulk_data(dev->controller_device_data, endpoint, data, length);
+    struct xhci_trb transfer_trb;
+    transfer_trb.type = XHCI_TRB_TYPE_NORMAL;
+    transfer_trb.normal.data_buffer_pointer       = data;
+	transfer_trb.normal.trb_transfer_length       = length;
+	transfer_trb.normal.td_size                   = 0;
+	transfer_trb.normal.interrupt_target          = 0;
+	transfer_trb.normal.interrupt_on_completion   = 1;
+	transfer_trb.normal.interrupt_on_short_packet = 1;
+
+    struct xhci_device* xhci_dev = dev->controller_device_data;
+    struct xhci_transfer_ring* ep_ring = endpoint->transfer_ring;
+
+    // Добавить в очередь
+    size_t index = xhci_transfer_ring_enqueue(ep_ring, &transfer_trb);
+
+    // Сбросить
+    struct xhci_transfer_ring_completion* compl = &ep_ring->compl[index];
+    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
+
+    // Запустить выполнение
+    xhci_dev->controller->doorbell[dev->slot_id].doorbell = xhci_ep_get_absolute_id(&endpoint->descriptor);
+
+    // Ожидание
+    while (compl->trb.raw.status == 0)
+	{
+		// wait
+	}
+
+    uint32_t status = compl->trb.transfer_event.completion_code; 
+
+    return xhci_map_completion_code(status);
 }
 
 int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg)
@@ -529,8 +559,6 @@ ssize_t xhci_get_string(struct usb_device* device, int index, char* buffer, size
     // Получить длину для копирования
     size_t string_len = str_descr.header.bLength - sizeof(struct usb_descriptor_header);
     ssize_t avail_len = MIN(buflen, string_len);
-
-    //printk("String len %i Avail len %i\n", string_len, avail_len);
 
     memcpy(buffer, str_descr.unicode_string, avail_len);
 
@@ -843,42 +871,6 @@ int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint*
 
     // команда контроллеру
     return xhci_controller_configure_endpoint(dev->controller, dev->slot_id, dev->input_ctx_phys, FALSE);
-}
-
-// Возвращает код возврата USB (0 - успешный) (1024 - stall)
-// data - физический адрес
-int xhci_device_send_bulk_data(struct xhci_device* dev, struct usb_endpoint* ep, void* data, uint32_t size)
-{
-    struct xhci_trb transfer_trb;
-    transfer_trb.type = XHCI_TRB_TYPE_NORMAL;
-    transfer_trb.normal.data_buffer_pointer       = data;
-	transfer_trb.normal.trb_transfer_length       = size;
-	transfer_trb.normal.td_size                   = 0;
-	transfer_trb.normal.interrupt_target          = 0;
-	transfer_trb.normal.interrupt_on_completion   = 1;
-	transfer_trb.normal.interrupt_on_short_packet = 1;
-
-    struct xhci_transfer_ring* ep_ring = ep->transfer_ring;
-
-    // Добавить в очередь
-    size_t index = xhci_transfer_ring_enqueue(ep_ring, &transfer_trb);
-
-    // Сбросить
-    struct xhci_transfer_ring_completion* compl = &ep_ring->compl[index];
-    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
-
-    // Запустить выполнение
-    dev->controller->doorbell[dev->slot_id].doorbell = xhci_ep_get_absolute_id(&ep->descriptor);
-
-    // Ожидание
-    while (compl->trb.raw.status == 0)
-	{
-		// wait
-	}
-
-    uint32_t status = compl->trb.transfer_event.completion_code; 
-
-    return xhci_map_completion_code(status);
 }
 
 int xhci_device_msg_async(struct xhci_device* dev, struct usb_endpoint* ep, struct usb_msg* msg)
