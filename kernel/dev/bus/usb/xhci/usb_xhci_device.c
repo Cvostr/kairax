@@ -480,7 +480,10 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 			default:
 				printk("XHCI: unknown device config %i\n", config_header->bDescriptorType);
                 // Неизвестный тип - сохраняем в отдельный массив
-                usb_interface_add_descriptor(current_interface, config_header);
+                if (current_interface != NULL)
+                {
+                    usb_interface_add_descriptor(current_interface, config_header);
+                }
                 break;
 		}
 

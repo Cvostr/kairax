@@ -184,7 +184,7 @@ void usb_cdc_rx_callback(struct usb_msg* msg)
 void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 {
 	struct usb_msg *msg = kmalloc(sizeof(struct usb_msg));
-	memset(msg, 0, sizeof(msg));
+	memset(msg, 0, sizeof(struct usb_msg));
 
 	msg->data = eth_dev->rx_data_buffer_phys;
 	msg->length = eth_dev->iface->mtu;
@@ -204,7 +204,6 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 	
 		if (received_bytes > 0)
 		{
-			//printk("ECM RX RC = %i, bytes %i\n", rc, received_bytes);
 			struct net_buffer* nb = new_net_buffer(eth_dev->rx_data_buffer, received_bytes, eth_dev->iface);
 			net_buffer_acquire(nb);
 			eth_handle_frame(nb);
@@ -224,15 +223,10 @@ int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 
 	memcpy(tmp_data_buffer, buffer, size);
 
-	/*
-	for (int i = 0; i < size; i ++)
-	{
-		uint8_t* data = tmp_data_buffer;
-		printk("%p", data[i]);
-	}*/
-
+	// Отправить
 	int rc = usb_device_bulk_msg(eth_dev->usbdev, eth_dev->data_out, tmp_data_buffer_phys, size);
 
+	// Очистка
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
     pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
 
