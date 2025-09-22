@@ -6,6 +6,7 @@
 #include "mem/iomem.h"
 #include "kairax/string.h"
 #include "cdc_eth.h"
+#include "kairax/errors.h"
 
 #define CDC_COMMUNICATIONS 0x2
 #define CDC_DATA 0xA
@@ -98,6 +99,10 @@ struct cdc_eth_dev {
 	size_t    report_buffer_pages;
     uintptr_t report_buffer_phys;
 
+	size_t rx_pages;
+	uintptr_t rx_data_buffer_phys;
+    uintptr_t rx_data_buffer;
+
 	int conn_state;
 };
 
@@ -171,27 +176,45 @@ void usb_cdc_notify_handler(struct usb_msg* msg)
     usb_send_async_msg(ethdev->usbdev, ethdev->interrupt_in, msg);
 }
 
-ssize_t usb_cdc_rx(struct nic* nic, unsigned char* buffer, size_t size)
+void usb_cdc_rx_callback(struct usb_msg* msg)
 {
-	printk("USB CDC: RX %i bytes\n", size);
-	struct cdc_eth_dev* eth_dev = nic->dev->dev_data;
+	printk("CDC Rx callback");
+}
 
-	// Выделить временную память с запретом кэширования
-	size_t reqd_pages = 0;
-	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(size, &reqd_pages);
-    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
+void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
+{
+	struct usb_msg *msg = kmalloc(sizeof(struct usb_msg));
+	memset(msg, 0, sizeof(msg));
 
-	int rc = usb_device_bulk_msg(eth_dev->usbdev, eth_dev->data_in, tmp_data_buffer_phys, size);
-	printk("ECM rx rc = %i\n", rc);
+	msg->data = eth_dev->rx_data_buffer_phys;
+	msg->length = eth_dev->iface->mtu;
+	//msg->callback = usb_cdc_rx_callback;
+	msg->private = eth_dev;
 
-	memcpy(buffer, tmp_data_buffer, size);
+	while (1)
+	{
+		int rc = usb_send_async_msg(eth_dev->usbdev, eth_dev->data_in, msg);
 
-	return 0;
+		while (msg->status == -EINPROGRESS)
+		{
+
+		}
+
+		uint32_t received_bytes = msg->transferred_length;
+	
+		if (received_bytes > 0)
+		{
+			//printk("ECM RX RC = %i, bytes %i\n", rc, received_bytes);
+			struct net_buffer* nb = new_net_buffer(eth_dev->rx_data_buffer, received_bytes, eth_dev->iface);
+			net_buffer_acquire(nb);
+			eth_handle_frame(nb);
+			net_buffer_free(nb);
+		}
+	}
 }
 
 int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 {
-	printk("USB CDC: TX %i bytes\n", size);
 	struct cdc_eth_dev* eth_dev = nic->dev->dev_data;
 
 	// Выделить временную память с запретом кэширования
@@ -201,13 +224,17 @@ int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 
 	memcpy(tmp_data_buffer, buffer, size);
 
+	/*
+	for (int i = 0; i < size; i ++)
+	{
+		uint8_t* data = tmp_data_buffer;
+		printk("%p", data[i]);
+	}*/
+
 	int rc = usb_device_bulk_msg(eth_dev->usbdev, eth_dev->data_out, tmp_data_buffer_phys, size);
-	printk("ECM rc = %i\n", rc);
 
-	char teee[20];
-	usb_cdc_rx(nic, teee, 20);
-
-	printk("%s", teee);
+	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
+    pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
 
 	return 0;
 }
@@ -218,7 +245,7 @@ int usb_cdc_device_probe(struct device *dev)
     struct usb_interface* interface = dev->usb_info.usb_interface;
     struct usb_device* device = dev->usb_info.usb_device;
 
-	printk("CDC ECM Ethernet device deteced\n");
+	printk("CDC ECM Ethernet device detected\n");
 
 	// Найдем основные дескрипторы
 	struct usb_cdc_header_desc *header_desc = NULL;
@@ -427,6 +454,10 @@ int usb_cdc_device_probe(struct device *dev)
     dev->dev_data = eth_dev;
     dev->nic = eth_dev->iface;
 
+	// Rx буфер
+	eth_dev->rx_data_buffer_phys = (uintptr_t) pmm_alloc(MTU, &eth_dev->rx_pages);
+    eth_dev->rx_data_buffer = map_io_region(eth_dev->rx_data_buffer_phys, eth_dev->rx_pages * PAGE_SIZE);
+
 	struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
     msg->data = eth_dev->report_buffer_phys;
     msg->length = interrupt_max_packet_sz;
@@ -435,6 +466,10 @@ int usb_cdc_device_probe(struct device *dev)
 
 	// Ожидание прерывания
     usb_send_async_msg(device, interrupt_in, msg);
+
+	struct process* proc = create_new_process(NULL);
+    struct thread* thr = create_kthread(proc, usb_cdc_rx_thread, eth_dev);
+    scheduler_add_thread(thr);
 	
 	return 0;
 }
