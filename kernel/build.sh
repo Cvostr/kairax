@@ -135,6 +135,7 @@ gcc $GCC_ARGS proc/syscalls/syscalls_sig.c -o ./bin/syscalls_sig.o
 gcc $GCC_ARGS proc/syscalls/syscall_fcntl.c -o ./bin/syscall_fcntl.o
 gcc $GCC_ARGS proc/syscalls/syscalls_pid.c -o ./bin/syscalls_pid.o
 gcc $GCC_ARGS proc/syscalls/syscall_sysinfo.c -o ./bin/syscall_sysinfo.o
+gcc $GCC_ARGS proc/syscalls/syscall_nodename.c -o ./bin/syscall_nodename.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
