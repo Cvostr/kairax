@@ -183,8 +183,7 @@ void usb_cdc_rx_callback(struct usb_msg* msg)
 
 void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 {
-	struct usb_msg *msg = kmalloc(sizeof(struct usb_msg));
-	memset(msg, 0, sizeof(struct usb_msg));
+	struct usb_msg *msg = new_usb_msg();
 
 	msg->data = eth_dev->rx_data_buffer_phys;
 	msg->length = eth_dev->iface->mtu;

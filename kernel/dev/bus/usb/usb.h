@@ -120,6 +120,8 @@ struct usb_device* new_usb_device(struct usb_device_descriptor* descriptor, void
 void free_usb_device(struct usb_device* device);
 // Общие функции управления
 
+struct usb_msg *new_usb_msg();
+
 /// @brief послать запрос к usb устройству на default control endpoint
 /// @param device объект устройства
 /// @param req указатель на структуру запроса
@@ -152,6 +154,12 @@ int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint,
 /// @param buflen размер буфера
 /// @return размер полученной строки
 ssize_t usb_get_string(struct usb_device* device, int index, char* buffer, size_t buflen);
+/// @brief Установить altsetting для интерфейса
+/// @param device объект устройства
+/// @param interfaceNumber номер интерфейса (bInterfaceNumber) 
+/// @param altsetting номер bAlternateSetting
+/// @return 0 - при успехе
+int usb_set_interface(struct usb_device* device, int interfaceNumber, int altsetting);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);

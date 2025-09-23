@@ -38,6 +38,15 @@ void free_usb_device(struct usb_device* device)
     kfree(device);
 }
 
+struct usb_msg *new_usb_msg()
+{
+    struct usb_msg *msg = kmalloc(sizeof(struct usb_msg));
+    if (msg == NULL)
+        return NULL;
+	memset(msg, 0, sizeof(struct usb_msg));
+    return msg;
+}
+
 int usb_device_send_request(struct usb_device* device, struct usb_device_request* req, void* out, uint32_t length)
 {
     return device->send_request(device, req, out, length);
@@ -61,6 +70,20 @@ int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint,
 ssize_t usb_get_string(struct usb_device* device, int index, char* buffer, size_t buflen)
 {
     return device->get_string(device, index, buffer, buflen);
+}
+
+int usb_set_interface(struct usb_device* device, int interfaceNumber, int altsetting)
+{
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_INTERFACE;
+	req.bRequest = USB_DEVICE_REQ_SET_INTERFACE;
+	req.wValue = altsetting;
+	req.wIndex = interfaceNumber;
+	req.wLength = 0;
+
+    return usb_device_send_request(device, &req, NULL, 0);
 }
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor)
