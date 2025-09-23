@@ -129,6 +129,9 @@ int sys_setgid(gid_t gid);
 int sys_dup(int oldfd);
 int sys_dup2(int oldfd, int newfd);
 
+int sys_sethostname(const char *name, size_t len);
+int sys_setdomainname(const char *name, size_t len);
+
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
 

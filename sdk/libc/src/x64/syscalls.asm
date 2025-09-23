@@ -78,6 +78,8 @@ DEFINE_SYSCALL syscall_getpgid,     0x79
 DEFINE_SYSCALL syscall_sigprocmask, 0x7E
 DEFINE_SYSCALL syscall_sigpending,  0x7F
 DEFINE_SYSCALL syscall_mknodat,     0x85
+DEFINE_SYSCALL syscall_sethostname, 0xAA
+DEFINE_SYSCALL syscall_setdomainname, 0xAB
 DEFINE_SYSCALL syscall_mount,       0xA5
 DEFINE_SYSCALL syscall_poweroff,    0xA9
 
@@ -86,6 +88,7 @@ DEFINE_SYSCALL syscall_load_module, 0xAF
 DEFINE_SYSCALL syscall_futex,       0xCA
 
 DEFINE_SYSCALL syscall_create_pty,  0x303
+DEFINE_SYSCALL syscall_sysinfo,     0x306
 
 syscall_process_unmap_memory:
     mov rax, 0xB

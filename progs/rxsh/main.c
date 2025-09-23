@@ -8,6 +8,7 @@
 #include "signal.h"
 
 char curdir[512];
+char hostname[256];
 char cmd[256];
 
 void printcwd();
@@ -39,7 +40,8 @@ void printcwd()
     char sign = uid == 0 ? '#' : '$';
     memset(curdir, 0, sizeof(curdir));
     getcwd(curdir, 512);
-    printf("\033[1;92m(%i)\033[0m:\033[1;94m%s\033[0m%c ", uid, curdir, sign);
+    gethostname(hostname, 256);
+    printf("\033[1;92m%i@%s\033[0m:\033[1;94m%s\033[0m%c ", uid, hostname, curdir, sign);
     fflush(stdout);
 }
 

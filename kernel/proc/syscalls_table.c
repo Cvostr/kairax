@@ -71,6 +71,8 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0xA4, sys_set_time_epoch),
     DEFINE_SYSCALL(0xA5, sys_mount),
     DEFINE_SYSCALL(0xA9, sys_poweroff),
+    DEFINE_SYSCALL(0xAA, sys_sethostname),
+    DEFINE_SYSCALL(0xAB, sys_setdomainname),
     DEFINE_SYSCALL(0xAF, sys_load_module),
     DEFINE_SYSCALL(0xB0, sys_unload_module),
     DEFINE_SYSCALL(0xBA, sys_get_thread_id),

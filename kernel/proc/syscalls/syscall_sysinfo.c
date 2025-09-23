@@ -11,6 +11,8 @@
 #define SYSINFO_MEMORY          2
 #define SYSINFO_SYSSTAT         3
 #define SYSINFO_CPUINFO         4
+#define SYSINFO_HOSTNAME        5
+#define SYSINFO_DOMAINNAME      6
 
 struct meminfo {
     size_t mem_total;
@@ -92,6 +94,12 @@ int sys_sysinfo(int request, char* buffer, size_t bufsize)
 
             strncpy(cpuinf->model_string, cpu.model_string, CPU_MODEL_STR_LEN);
             strncpy(cpuinf->vendor_string, cpu.vendor_string, CPU_VENDOR_STR_LEN);
+            break;
+        case SYSINFO_HOSTNAME:
+            strncpy(buffer, "kairax", bufsize);
+            break;
+        case SYSINFO_DOMAINNAME:
+            return -ERROR_INVALID_VALUE;
             break;
         default:
             return -ERROR_INVALID_VALUE;

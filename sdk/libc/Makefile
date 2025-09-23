@@ -50,6 +50,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/strtok.o \
 				obj/strings.o \
 				obj/unistd.o \
+				obj/hostname.o \
 				obj/exec.o \
 				obj/assert.o \
 				obj/signal.o \

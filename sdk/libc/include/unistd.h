@@ -87,6 +87,12 @@ void* sbrk(int len);
 #define _SC_PAGESIZE 5
 long sysconf(int name);
 
+int gethostname(char *name, size_t len) __THROW;
+int sethostname(const char *name, size_t len) __THROW;
+
+int getdomainname(char *name, size_t len) __THROW;
+int setdomainname(const char *name, size_t len) __THROW;
+
 __END_DECLS
 
 #endif

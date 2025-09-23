@@ -59,6 +59,7 @@ struct packet_sockaddr_in {
 
 #define DHCP_OPT_SUBNET_MASK    1
 #define DHCP_OPT_ROUTER         3
+#define DHCP_OPT_HOSTNAME       12
 #define DHCP_OPT_LEASE_TIME     51
 #define DHCP_OPT_MESSAGE_TYPE   53
 
@@ -156,6 +157,21 @@ void parse_offer_opts(struct dhcpmessage* offer, struct dhcp_offer_opts* out)
     }
 }
 
+char* dhcp_put_opt(char* opt_ptr, char opt, uint8_t len, char* value, int* msg_len)
+{
+    opt_ptr[0] = opt;
+    opt_ptr[1] = len;
+    memcpy(opt_ptr + 2, value, len);
+    *msg_len += 2 + len;
+
+    return opt_ptr + 2 + len;
+}
+
+char* dhcp_put_opt_val(char* opt_ptr, char opt, char value, int* msg_len)
+{
+    return dhcp_put_opt(opt_ptr, opt, 1, &value, msg_len);
+}
+
 int main(int argc, char** argv) 
 {
     srand(time(NULL));
@@ -175,6 +191,9 @@ int main(int argc, char** argv)
 
     raw_addr.sin_family = AF_PACKET;
     strcpy(raw_addr.ifname, iface_name);
+
+    char* hostname = malloc(256);
+    int hostname_rc = gethostname(hostname, 256);
 
     // Запрос информации об интерфейсе
     strcpy(ninfo.nic_name, iface_name);
@@ -216,6 +235,7 @@ int main(int argc, char** argv)
     // Заполнение DHCP
     struct dhcpmessage dhcpmsg;
     int msgID = rand();
+    int dhcp_msg_len = sizeof(dhcpmsg);
     bzero(&dhcpmsg, sizeof(dhcpmsg));
     dhcpmsg.op = DHCP_BOOTREQUEST;
     dhcpmsg.htype = DHCP_HTYPE_ETHERNET;
@@ -232,21 +252,26 @@ int main(int argc, char** argv)
     dhcpmsg.magic[2] = 83;
     dhcpmsg.magic[3] = 99;
     // Опции
-    dhcpmsg.opt[0] = DHCP_OPT_MESSAGE_TYPE;
-    dhcpmsg.opt[1] = 1;
-    dhcpmsg.opt[2] = DHCP_DISCOVER;
-    dhcpmsg.opt[3] = 0xFF;
-    // Длина запроса
-    int request_len = sizeof(dhcpmsg) + 4;
+    char* nextopt = dhcpmsg.opt;
+    nextopt = dhcp_put_opt_val(nextopt, DHCP_OPT_MESSAGE_TYPE, DHCP_DISCOVER, &dhcp_msg_len);
+    // добавить hostname
+    if (hostname_rc == 0 && strlen(hostname) > 0)
+    {
+        nextopt = dhcp_put_opt(nextopt, DHCP_OPT_HOSTNAME, strlen(hostname), hostname, &dhcp_msg_len);
+    }
+    // На конец DHCP сообщения надо добавить 0xFF
+    *nextopt = 0xFF;
+    dhcp_msg_len += 1;
+    
     // Копирование 
-    memcpy(dhcp_header, &dhcpmsg, request_len);
+    memcpy(dhcp_header, &dhcpmsg, dhcp_msg_len);
 
 
     // --- Заполнение UDP заголовка
     udp_header->source = htons(DHCP_CLIENT_PORT);
     udp_header->dest = htons(DHCP_SERVER_PORT);
-    udp_header->len = htons(sizeof(struct udphdr) + request_len);
-    udp_header->check = udp4_calc_checksum(INADDR_ANY, INADDR_BROADCAST, udp_header, dhcp_header, request_len);
+    udp_header->len = htons(sizeof(struct udphdr) + dhcp_msg_len);
+    udp_header->check = udp4_calc_checksum(INADDR_ANY, INADDR_BROADCAST, udp_header, dhcp_header, dhcp_msg_len);
 
 
     // --- Заполнение IP заголовка
@@ -256,7 +281,7 @@ int main(int argc, char** argv)
     ip_header->ip_hl = sizeof(struct ip) / 4; 
 	ip_header->ip_p = IPPROTO_UDP;
 	ip_header->ip_ttl = IPDEFTTL;
-    ip_header->ip_len = htons(request_len + sizeof(struct udphdr) + sizeof(struct ip));
+    ip_header->ip_len = htons(dhcp_msg_len + sizeof(struct udphdr) + sizeof(struct ip));
 	ip_header->ip_sum = htons(ipv4_calculate_checksum(ip_header, sizeof(struct ip)));
 
     
@@ -266,7 +291,7 @@ int main(int argc, char** argv)
     memset(eth_header->ether_dhost, 0xFF, ETHER_ADDR_LEN);
 
     // Отправка
-    int total_len = sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr) + request_len;
+    int total_len = sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr) + dhcp_msg_len;
     if (sendto(sockfd, packet, total_len, 0, NULL, 0) < 0)
     {
         perror("Error sending DHCP request");
@@ -291,10 +316,10 @@ int main(int argc, char** argv)
         }
 
         // адреса заголовков
-        eth_header = recv_buffer;
-        ip_header = eth_header + 1;
-        udp_header = ip_header + 1;
-        recvdhcpmsg = udp_header + 1;
+        eth_header = (struct ether_header*) (recv_buffer);
+        ip_header = (struct ip*) (eth_header + 1);
+        udp_header = (struct udphdr*) (ip_header + 1);
+        recvdhcpmsg = (struct dhcpmessage*) (udp_header + 1);
 
         if (ip_header->ip_p != IPPROTO_UDP) 
         {
