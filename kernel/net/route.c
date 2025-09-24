@@ -3,6 +3,7 @@
 #include "sync/spinlock.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "kairax/errors.h"
 
 list_t      route_table4 = {0,};
 
@@ -55,7 +56,29 @@ struct route4* route4_get(uint32_t index)
 
 int route4_add(struct route4* route)
 {
-    // todo: проверка конфликтов
+    struct list_node* current = route_table4.head;
+    struct route4* exroute = NULL;
+    struct route4* chosen = NULL;
+
+    // Сначала проверим, что такой записи еще нет
+    while (current != NULL) {
+        
+        exroute = (struct route4*) current->element;
+
+        if (exroute->dest == route->dest &&
+            exroute->gateway == route->gateway &&
+            exroute->netmask == route->netmask &&
+            exroute->interface == route->interface
+        )   
+        {
+            return -EEXIST;
+        }
+
+        // Переход на следующий элемент
+        current = current->next;
+    }
+
+    // Добавляем запись
     list_add(&route_table4, route);
 
     return 0;

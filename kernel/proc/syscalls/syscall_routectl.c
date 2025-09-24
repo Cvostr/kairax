@@ -76,8 +76,9 @@ int routectl4(int action, int arg, struct route4_info* route)
             new_route->flags = route->flags;
             new_route->metric = route->metric;
             new_route->interface = nic;
-            route4_add(new_route);
-            break;
+            return route4_add(new_route);
+        default:
+            return -EINVAL;
     }
 
     return 0;

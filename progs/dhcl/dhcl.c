@@ -60,11 +60,14 @@ struct packet_sockaddr_in {
 #define DHCP_OPT_SUBNET_MASK    1
 #define DHCP_OPT_ROUTER         3
 #define DHCP_OPT_HOSTNAME       12
+#define DHCP_OPT_REQUESTED_IP   50
 #define DHCP_OPT_LEASE_TIME     51
 #define DHCP_OPT_MESSAGE_TYPE   53
 
 #define DHCP_DISCOVER       1
 #define DHCP_OFFER          2
+#define DHCP_REQUEST        3
+#define DHCP_ACK            5
 
 uint16_t udp4_calc_checksum(uint32_t src, uint32_t dest, struct udphdr* header, const unsigned char* payload, size_t payload_size)
 {
@@ -172,12 +175,17 @@ char* dhcp_put_opt_val(char* opt_ptr, char opt, char value, int* msg_len)
     return dhcp_put_opt(opt_ptr, opt, 1, &value, msg_len);
 }
 
+void make_headers(char* packet, struct dhcpmessage* dhcpmsg, size_t dhcp_hdr_len, char* mac);
+struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, int dhcp_msg_id);
+
 int main(int argc, char** argv) 
 {
     srand(time(NULL));
 
     if (argc < 2)
     {
+        printf("Usage:\n");
+        printf("dhcl <if name>\n");
         return 1;
     }
 
@@ -227,32 +235,32 @@ int main(int argc, char** argv)
     memset(packet, 0, 4096);
 
     // Указатели на все заголовки
-    struct ether_header* eth_header = packet;
-    struct ip* ip_header = eth_header + 1;
-    struct udphdr* udp_header = ip_header + 1;
-    struct dhcpmessage* dhcp_header = udp_header + 1;
+    struct ether_header* eth_header = NULL;
+    struct ip* ip_header = NULL;
+    struct udphdr* udp_header = NULL;
+    struct dhcpmessage* dhcp_header = NULL;
 
-    // Заполнение DHCP
-    struct dhcpmessage dhcpmsg;
+    // Заполнение DHCP Discover
+    struct dhcpmessage* dhcpmsg = malloc(512);
     int msgID = rand();
-    int dhcp_msg_len = sizeof(dhcpmsg);
-    bzero(&dhcpmsg, sizeof(dhcpmsg));
-    dhcpmsg.op = DHCP_BOOTREQUEST;
-    dhcpmsg.htype = DHCP_HTYPE_ETHERNET;
-    dhcpmsg.hlen = 6;
-    dhcpmsg.hops = 0;
-    dhcpmsg.xid = htonl(msgID);
-    dhcpmsg.secs = htons(0);
-    dhcpmsg.flags = htons(0x8000);
+    int dhcp_msg_len = sizeof(struct dhcpmessage);
+    bzero(dhcpmsg, 512);
+    dhcpmsg->op = DHCP_BOOTREQUEST;
+    dhcpmsg->htype = DHCP_HTYPE_ETHERNET;
+    dhcpmsg->hlen = 6;
+    dhcpmsg->hops = 0;
+    dhcpmsg->xid = htonl(msgID);
+    dhcpmsg->secs = htons(0);
+    dhcpmsg->flags = htons(0x8000);
     // Копирование MAC в запрос
-    memcpy(dhcpmsg.chaddr, &ninfo.mac, 6);
+    memcpy(dhcpmsg->chaddr, &ninfo.mac, 6);
     // Magic
-    dhcpmsg.magic[0] = 99;
-    dhcpmsg.magic[1] = 130;
-    dhcpmsg.magic[2] = 83;
-    dhcpmsg.magic[3] = 99;
+    dhcpmsg->magic[0] = 99;
+    dhcpmsg->magic[1] = 130;
+    dhcpmsg->magic[2] = 83;
+    dhcpmsg->magic[3] = 99;
     // Опции
-    char* nextopt = dhcpmsg.opt;
+    char* nextopt = dhcpmsg->opt;
     nextopt = dhcp_put_opt_val(nextopt, DHCP_OPT_MESSAGE_TYPE, DHCP_DISCOVER, &dhcp_msg_len);
     // добавить hostname
     if (hostname_rc == 0 && strlen(hostname) > 0)
@@ -263,34 +271,11 @@ int main(int argc, char** argv)
     *nextopt = 0xFF;
     dhcp_msg_len += 1;
     
-    // Копирование 
-    memcpy(dhcp_header, &dhcpmsg, dhcp_msg_len);
-
-
-    // --- Заполнение UDP заголовка
-    udp_header->source = htons(DHCP_CLIENT_PORT);
-    udp_header->dest = htons(DHCP_SERVER_PORT);
-    udp_header->len = htons(sizeof(struct udphdr) + dhcp_msg_len);
-    udp_header->check = udp4_calc_checksum(INADDR_ANY, INADDR_BROADCAST, udp_header, dhcp_header, dhcp_msg_len);
-
-
-    // --- Заполнение IP заголовка
-    ip_header->ip_dst.s_addr = INADDR_BROADCAST;
-	ip_header->ip_src.s_addr = INADDR_ANY;
-    ip_header->ip_v = IPVERSION;
-    ip_header->ip_hl = sizeof(struct ip) / 4; 
-	ip_header->ip_p = IPPROTO_UDP;
-	ip_header->ip_ttl = IPDEFTTL;
-    ip_header->ip_len = htons(dhcp_msg_len + sizeof(struct udphdr) + sizeof(struct ip));
-	ip_header->ip_sum = htons(ipv4_calculate_checksum(ip_header, sizeof(struct ip)));
-
-    
-    // Заполнение ethernet заголовка
-    eth_header->ether_type = htons(ETHERTYPE_IP);
-    memcpy(eth_header->ether_shost, ninfo.mac, ETHER_ADDR_LEN);
-    memset(eth_header->ether_dhost, 0xFF, ETHER_ADDR_LEN);
+    // Сформировать остальные заголовки (UDP + IP + ETH)
+    make_headers(packet, dhcpmsg, dhcp_msg_len, ninfo.mac);
 
     // Отправка
+    printf("DHCP: Sending Discover\n");
     int total_len = sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr) + dhcp_msg_len;
     if (sendto(sockfd, packet, total_len, 0, NULL, 0) < 0)
     {
@@ -298,52 +283,18 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    free(packet);
-
     struct dhcpmessage* recvdhcpmsg;
     int recv_len = 2048;
     char* recv_buffer = malloc(recv_len);
-    struct packet_sockaddr_in recv_addr;
-    socklen_t rservlen = sizeof(recv_addr);
 
-    while (1)
+    // Ожидание ответа
+    recvdhcpmsg = wait_for_response(sockfd, recv_buffer, recv_len, msgID);
+    if (recvdhcpmsg == NULL)
     {
-        // прием пакета
-        if (recvfrom(sockfd, recv_buffer, recv_len, 0, (struct sockaddr*)&recv_addr, &rservlen) < 0)
-        {
-            perror("Error receiving DHCP response");
-            return 1;
-        }
-
-        // адреса заголовков
-        eth_header = (struct ether_header*) (recv_buffer);
-        ip_header = (struct ip*) (eth_header + 1);
-        udp_header = (struct udphdr*) (ip_header + 1);
-        recvdhcpmsg = (struct dhcpmessage*) (udp_header + 1);
-
-        if (ip_header->ip_p != IPPROTO_UDP) 
-        {
-			continue;
-        }
-
-        if (ntohs(udp_header->source) != DHCP_SERVER_PORT) 
-        {
-			continue;
-        }
-
-        if (ntohs(udp_header->dest) != DHCP_CLIENT_PORT) 
-        {
-			continue;
-        }
-
-        if (ntohl(recvdhcpmsg->xid) != msgID)
-        {
-            continue;
-        }
-
-        break;
+        return 1;
     }
 
+    // Парсинг ответа
     struct in_addr offered_addr;
     offered_addr.s_addr = recvdhcpmsg->yiaddr;
     printf("Offered IP %s\n", inet_ntoa(offered_addr));
@@ -351,9 +302,50 @@ int main(int argc, char** argv)
     struct dhcp_offer_opts offer_opts;
     parse_offer_opts(recvdhcpmsg, &offer_opts);
 
+    // Логируем
     printf("Router IP %s\n", inet_ntoa(offer_opts.router));
     printf("Netmask IP %s\n", inet_ntoa(offer_opts.subnet_mask));
 
+    // Подготовка запроса DHCP Request
+    dhcp_msg_len = sizeof(struct dhcpmessage);
+    // В принципе можно использовать старый заголовок
+    nextopt = dhcpmsg->opt;
+    // DHCP Request
+    nextopt = dhcp_put_opt_val(nextopt, DHCP_OPT_MESSAGE_TYPE, DHCP_REQUEST, &dhcp_msg_len);
+    // Желаемый IP
+    nextopt = dhcp_put_opt(nextopt, DHCP_OPT_REQUESTED_IP, 4, &offered_addr.s_addr, &dhcp_msg_len);
+    // добавить hostname
+    if (hostname_rc == 0 && strlen(hostname) > 0)
+    {
+        nextopt = dhcp_put_opt(nextopt, DHCP_OPT_HOSTNAME, strlen(hostname), hostname, &dhcp_msg_len);
+    }
+    // На конец DHCP сообщения надо добавить 0xFF
+    *nextopt = 0xFF;
+    dhcp_msg_len += 1;
+
+    // Сформировать остальные заголовки (UDP + IP + ETH)
+    make_headers(packet, dhcpmsg, dhcp_msg_len, ninfo.mac);
+
+    // Отправка
+    printf("DHCP: Sending Request\n");
+    total_len = sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr) + dhcp_msg_len;
+    if (sendto(sockfd, packet, total_len, 0, NULL, 0) < 0)
+    {
+        perror("Error sending DHCP request");
+        return 1;
+    }
+
+    // Освобождаем более не нужный массив
+    free(packet);
+
+    // Ожидание ответа
+    recvdhcpmsg = wait_for_response(sockfd, recv_buffer, recv_len, msgID);
+    if (recvdhcpmsg == NULL)
+    {
+        return 1;
+    }
+
+    printf("Updating %s params\n", ninfo.nic_name);
     // Ставим устройству IP адрес
     ninfo.ip4_addr = offered_addr.s_addr;
     rc = netctl(OP_SET_IPV4_ADDR, -1, &ninfo);
@@ -370,6 +362,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    printf("Creating default route\n");
     // Создаем маршрут
     struct RouteInfo4 info;
     memset(&info, 0, sizeof(struct RouteInfo4));
@@ -383,4 +376,93 @@ int main(int argc, char** argv)
     }
 
     return 0;
+}
+
+void make_headers(char* packet, struct dhcpmessage* dhcpmsg, size_t dhcp_hdr_len, char* mac)
+{
+    // Указатели на все заголовки
+    struct ether_header* eth_header = (struct ether_header*) packet;
+    struct ip* ip_header = (struct ip*) (eth_header + 1);
+    struct udphdr* udp_header = (struct udphdr*) (ip_header + 1);
+    struct dhcpmessage* dhcp_header = (struct dhcpmessage*) (udp_header + 1);
+
+    // Скопировать DHCP запрос
+    memcpy(dhcp_header, dhcpmsg, dhcp_hdr_len);
+
+    // --- Заполнение UDP заголовка
+    udp_header->source = htons(DHCP_CLIENT_PORT);
+    udp_header->dest = htons(DHCP_SERVER_PORT);
+    udp_header->len = htons(sizeof(struct udphdr) + dhcp_hdr_len);
+    udp_header->check = 0;
+    udp_header->check = udp4_calc_checksum(INADDR_ANY, INADDR_BROADCAST, udp_header, (uint8_t*) dhcp_header, dhcp_hdr_len);
+
+
+    // --- Заполнение IP заголовка
+    ip_header->ip_dst.s_addr = INADDR_BROADCAST;
+	ip_header->ip_src.s_addr = INADDR_ANY;
+    ip_header->ip_v = IPVERSION;
+    ip_header->ip_hl = sizeof(struct ip) / 4; 
+	ip_header->ip_p = IPPROTO_UDP;
+	ip_header->ip_ttl = IPDEFTTL;
+    ip_header->ip_len = htons(dhcp_hdr_len + sizeof(struct udphdr) + sizeof(struct ip));
+    ip_header->ip_sum = 0;
+	ip_header->ip_sum = htons(ipv4_calculate_checksum(ip_header, sizeof(struct ip)));
+
+    
+    // Заполнение ethernet заголовка
+    eth_header->ether_type = htons(ETHERTYPE_IP);
+    memcpy(eth_header->ether_shost, mac, ETHER_ADDR_LEN);
+    memset(eth_header->ether_dhost, 0xFF, ETHER_ADDR_LEN);
+}
+
+struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, int dhcp_msg_id)
+{
+    // Указатели на все заголовки
+    struct ether_header* eth_header = NULL;
+    struct ip* ip_header = NULL;
+    struct udphdr* udp_header = NULL;
+    struct dhcpmessage* dhcp_header = NULL;
+
+    struct packet_sockaddr_in recv_addr;
+    socklen_t rservlen = sizeof(recv_addr);
+
+    while (1)
+    {
+        // прием пакета
+        if (recvfrom(sock, buffer, buflen, 0, (struct sockaddr*)&recv_addr, &rservlen) < 0)
+        {
+            perror("Error receiving DHCP response");
+            return NULL;
+        }
+
+        // адреса заголовков
+        eth_header = (struct ether_header*) (buffer);
+        ip_header = (struct ip*) (eth_header + 1);
+        udp_header = (struct udphdr*) (ip_header + 1);
+        dhcp_header = (struct dhcpmessage*) (udp_header + 1);
+
+        if (ip_header->ip_p != IPPROTO_UDP) 
+        {
+			continue;
+        }
+
+        if (ntohs(udp_header->source) != DHCP_SERVER_PORT) 
+        {
+			continue;
+        }
+
+        if (ntohs(udp_header->dest) != DHCP_CLIENT_PORT) 
+        {
+			continue;
+        }
+
+        if (ntohl(dhcp_header->xid) != dhcp_msg_id)
+        {
+            continue;
+        }
+
+        return dhcp_header;
+    }
+
+    return NULL;
 }
