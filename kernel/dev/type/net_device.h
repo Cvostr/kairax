@@ -10,6 +10,7 @@
 #define NIC_FLAG_BROADCAST  0x2
 #define NIC_FLAG_MULTICAST  0x4
 #define NIC_FLAG_LOOPBACK   0x8
+#define NIC_FLAG_NO_CARRIER 0x10
 
 struct device;
 

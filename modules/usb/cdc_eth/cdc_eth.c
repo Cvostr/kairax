@@ -7,6 +7,7 @@
 #include "kairax/string.h"
 #include "cdc_eth.h"
 #include "kairax/errors.h"
+//#include "dev/bus/usb/usb.h"
 
 #define CDC_COMMUNICATIONS 0x2
 #define CDC_DATA 0xA
@@ -132,16 +133,7 @@ int usb_cdc_set_eth_packet_filter(struct usb_device* device, struct usb_interfac
 
 int usb_cdc_set_altsetting(struct usb_device* device, struct usb_interface* altinterface) 
 {
-	struct usb_device_request lun_req;
-	lun_req.type = USB_DEVICE_REQ_TYPE_STANDART;
-	lun_req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
-	lun_req.recipient = USB_DEVICE_REQ_RECIPIENT_INTERFACE;
-	lun_req.bRequest = USB_DEVICE_REQ_SET_INTERFACE;
-	lun_req.wValue = altinterface->descriptor.bAlternateSetting;
-	lun_req.wIndex = altinterface->descriptor.bInterfaceNumber;
-	lun_req.wLength = 0;
-
-    return usb_device_send_request(device, &lun_req, NULL, 0);
+	return usb_set_interface(device, altinterface->descriptor.bInterfaceNumber, altinterface->descriptor.bAlternateSetting);
 }
 
 void usb_cdc_notify_handler(struct usb_msg* msg)
@@ -155,7 +147,14 @@ void usb_cdc_notify_handler(struct usb_msg* msg)
 			int new_conn_state = header->wValue;
 			if (new_conn_state != ethdev->conn_state)
 			{
-				printk("CDC ECM: Connection state changed = %i\n", new_conn_state);
+				if (new_conn_state == 0)
+				{
+					ethdev->iface->flags |= NIC_FLAG_NO_CARRIER;
+				}
+				else if (new_conn_state == 1)
+				{
+					ethdev->iface->flags &= ~(NIC_FLAG_NO_CARRIER);
+				}
 			}
 
 			ethdev->conn_state = new_conn_state;
@@ -436,7 +435,7 @@ int usb_cdc_device_probe(struct device *dev)
     eth_dev->iface = new_nic();
     memcpy(eth_dev->iface->mac, MAC, MAC_DEFAULT_LEN);
     eth_dev->iface->dev = dev; 
-    eth_dev->iface->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST;
+    eth_dev->iface->flags = NIC_FLAG_UP | NIC_FLAG_BROADCAST | NIC_FLAG_MULTICAST | NIC_FLAG_NO_CARRIER;
     eth_dev->iface->tx = usb_cdc_tx;
     //eth_dev->nic->up = e1000_up;
     //eth_dev->nic->down = e1000_down;

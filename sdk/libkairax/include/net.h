@@ -13,6 +13,12 @@
 #define OP_SET_IPV6_GATEWAY     6
 #define OP_UPDATE_FLAGS         7
 
+#define NIC_FLAG_UP         0x1
+#define NIC_FLAG_BROADCAST  0x2
+#define NIC_FLAG_MULTICAST  0x4
+#define NIC_FLAG_LOOPBACK   0x8
+#define NIC_FLAG_NO_CARRIER 0x10
+
 struct netinfo {
     char        nic_name[NIC_NAME_LEN];
     uint32_t    flags;

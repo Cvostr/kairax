@@ -15,6 +15,48 @@ void print_ipv4(uint32_t val)
     printf("%i.%i.%i.%i", addr.array[0], addr.array[1], addr.array[2], addr.array[3]);
 }
 
+void add_str_flag(char* strbuf, int flags, int mask, char* flagstr)
+{
+    if ((flags & mask) == mask)
+    {
+        if (strlen(strbuf) > 0)
+        {
+            strcat(strbuf, ",");
+        }
+        strcat(strbuf, flagstr);
+    }
+}
+
+void print_iface_info(struct netinfo *ninfo)
+{
+    int flags = ninfo->flags;
+    char flags_str[100];
+    memset(flags_str, 0, sizeof(flags_str));
+
+    add_str_flag(flags_str, flags, NIC_FLAG_UP, "UP");
+    add_str_flag(flags_str, flags, NIC_FLAG_BROADCAST, "BROADCAST");
+    add_str_flag(flags_str, flags, NIC_FLAG_MULTICAST, "MULTICAST");
+    add_str_flag(flags_str, flags, NIC_FLAG_LOOPBACK, "LOOPBACK");
+    add_str_flag(flags_str, flags, NIC_FLAG_NO_CARRIER, "NO-CARRIER");
+
+    printf("%s: mtu %i flags (%s)\n", ninfo->nic_name, ninfo->mtu, flags_str);
+    printf("\tIPv4 ");
+    print_ipv4(ninfo->ip4_addr);
+    printf(" netmask ");
+    print_ipv4(ninfo->ip4_subnet);
+    printf(" gateway ");
+    print_ipv4(ninfo->ip4_gateway);
+    printf("\n");
+}
+
+void print_iface_stats(struct netstat *stat)
+{
+    printf("\tRX packets %i bytes %i\n", stat->rx_packets, stat->rx_bytes);
+    printf("\tRX errors %i dropped %i overrun %i frame %i\n", stat->rx_errors, stat->rx_dropped, stat->rx_overruns, stat->rx_frame_errors);
+    printf("\tTX packets %i bytes %i\n", stat->tx_packets, stat->tx_bytes);
+    printf("\tTX errors %i dropped %i carrier %i\n", stat->tx_errors, stat->tx_dropped, stat->tx_carrier);
+}
+
 int main(int argc, char** argv) 
 {
     int rc = 0;
@@ -26,14 +68,7 @@ int main(int argc, char** argv)
 
         while ((rc = netctl(OP_GET_ALL, i, &ninfo)) == 0) {
 
-            printf("%s: mtu %i flags %i\n", ninfo.nic_name, ninfo.mtu, ninfo.flags  );
-            printf("\tIPv4 ");
-            print_ipv4(ninfo.ip4_addr);
-            printf(" netmask ");
-            print_ipv4(ninfo.ip4_subnet);
-            printf(" gateway ");
-            print_ipv4(ninfo.ip4_gateway);
-            printf("\n");
+            print_iface_info(&ninfo);
 
             printf("\tIPv6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x\n",  ninfo.ip6_addr[0],
                                                                         ninfo.ip6_addr[1],
@@ -54,10 +89,7 @@ int main(int argc, char** argv)
             struct netstat stat;
             GetNetInterfaceStat(i, &stat);
             
-            printf("\tRX packets %i bytes %i\n", stat.rx_packets, stat.rx_bytes);
-            printf("\tRX errors %i dropped %i overrun %i frame %i\n", stat.rx_errors, stat.rx_dropped, stat.rx_overruns, stat.rx_frame_errors);
-            printf("\tTX packets %i bytes %i\n", stat.tx_packets, stat.tx_bytes);
-            printf("\tTX errors %i dropped %i carrier %i\n", stat.tx_errors, stat.tx_dropped, stat.tx_carrier);
+            print_iface_stats(&stat);
 
             i++;
         }
