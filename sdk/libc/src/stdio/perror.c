@@ -45,11 +45,13 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EHOSTUNREACH, "No route to host")
 };
 
+char* __unknown_error = "Unknown error";
+
 int max_descs = sizeof(__errors_descriptions) / sizeof(char*);
 
 void perror(const char *msg)
 {
-    char* errdesc = "Unknown error";
+    char* errdesc = __unknown_error;
     if (errno < max_descs) {
         errdesc = __errors_descriptions[errno];
     }

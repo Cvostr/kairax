@@ -117,3 +117,7 @@ cd ..
 cd stty
 make
 cd ..
+
+cd stat
+make
+cd ..

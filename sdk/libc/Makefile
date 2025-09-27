@@ -49,6 +49,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/string.o \
 				obj/strtok.o \
 				obj/strings.o \
+				obj/strerror.o \
 				obj/unistd.o \
 				obj/hostname.o \
 				obj/exec.o \

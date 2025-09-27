@@ -67,6 +67,8 @@ size_t strcspn(const char* dest, const char* src) __THROW;
 char *strtok(char *s, const char *delim) __THROW;
 char *strtok_r(char *s, const char *delim, char **ptrptr) __THROW;
 
+char *strerror(int errnum);
+
 __END_DECLS
 
 #endif

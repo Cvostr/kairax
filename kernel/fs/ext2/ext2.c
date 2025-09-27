@@ -1011,6 +1011,7 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     result->uid = inode->userid;
     result->gid = inode->gid;
     result->size = inode->size;
+    result->blocks = inode->num_blocks;
     result->mode = inode->mode;
     result->access_time = inode->atime;
     result->create_time = inode->ctime;

@@ -27,6 +27,7 @@ sudo cp ./readlink/readlink.a /mnt/kxvol/bin/readlink
 sudo cp ./nslookup/nslookup.a /mnt/kxvol/bin/nslookup
 sudo cp ./dhcl/dhcl.a /mnt/kxvol/bin/dhcl
 sudo cp ./stty/stty.a /mnt/kxvol/bin/stty
+sudo cp ./stat/stat.a /mnt/kxvol/bin/stat
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo
