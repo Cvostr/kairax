@@ -49,7 +49,9 @@ int xhci_device_probe(struct device *dev)
 
 	pci_set_command_reg(dev->pci_info, 
 		pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE | ~PCI_DEVCMD_IO_ENABLE);
-    pci_device_set_enable_interrupts(dev->pci_info, 1);
+	
+	// На время настройки выключим прерывания, чтобы не мешались
+    pci_device_set_enable_interrupts(dev->pci_info, 0);
 
 	// Этот особый контроллер (Panther Point) обычно делит порты с EHCI
 	if (device_desc->vendor_id == 0x8086 && device_desc->device_id == 0x1E31)
@@ -767,7 +769,7 @@ size_t xhci_command_enqueue(struct xhci_command_ring *ring, struct xhci_trb* trb
 		// Сбрасываем указатель на 0
 		ring->next_trb_index = 0;
 		// Инвертируем Cycle State
-		ring->cycle_bit = !ring->cycle_bit;
+		ring->cycle_bit ^= 1;
 	}
 
 	return tmp_index;
@@ -816,7 +818,7 @@ int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
 	if (++ring->next_trb_index >= ring->trb_count)
 	{
 		ring->next_trb_index = 0;
-		ring->cycle_bit = !ring->cycle_bit;
+		ring->cycle_bit ^= 1;
 	}
 
 	return 1;
@@ -876,7 +878,7 @@ size_t xhci_transfer_ring_enqueue(struct xhci_transfer_ring *ring, struct xhci_t
 		// Сбрасываем указатель на 0
 		ring->enqueue_ptr = 0;
 		// Инвертируем Cycle State
-		ring->cycle_bit = !ring->cycle_bit;
+		ring->cycle_bit ^= 1;
 	}
 
 	return tmp_index;

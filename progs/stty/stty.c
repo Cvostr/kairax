@@ -5,6 +5,7 @@
 #include <sys/ioctl.h>
 #include "string.h"
 #include "fcntl.h"
+#include "ctype.h"
 
 struct baud_table {
 	const char *str;
@@ -235,6 +236,44 @@ void set_csize(tcflag_t *flag, const char *flagname, char *arg, int flagbit)
     }
 }
 
+void set_cc(cc_t *c_cc, char *chrname, int chrid, char** argv, int *argpos)
+{   
+    char* arg1 = argv[*argpos];
+    char* arg2 = NULL;
+
+    if (strcmp(arg1, chrname) == 0)
+    {
+        (*argpos) ++;
+        arg2 = argv[*argpos];
+
+        if (arg2 == NULL)
+        {
+            return;
+        }
+
+        if (strlen(arg2) == 1)
+        {
+            c_cc[chrid] = arg2[0];
+        }
+        else if (strlen(arg2) == 2 && arg2[0] == '^')
+        {
+            int ctrlc = toupper(arg2[1]);
+            if (ctrlc == '?')
+            {
+                c_cc[chrid] = 0x7F;
+            }
+            else
+            {
+                c_cc[chrid] = ctrlc - '@';
+            }
+        }
+        else
+        {
+            printf("stty: Invalid char value %s\n", arg2);
+        }
+    }
+}
+
 int main(int argc, char** argv) 
 {
     struct termios tmi;
@@ -319,7 +358,7 @@ int main(int argc, char** argv)
 			}
             else
             {
-                printf("stty: nvalid argument '%s'\n", arg);
+                printf("stty: Invalid argument '%s'\n", arg);
                 return 1;
             }
 		}
@@ -356,6 +395,21 @@ int main(int argc, char** argv)
         handle_flag(&tmi.c_lflag, "echoe", arg, ECHOE);
         handle_flag(&tmi.c_lflag, "echok", arg, ECHOK);
         handle_flag(&tmi.c_lflag, "echonl", arg, ECHONL);
+
+        set_cc(tmi.c_cc, "intr", VINTR, argv, &arg_i);
+        set_cc(tmi.c_cc, "quit", VQUIT, argv, &arg_i);
+        set_cc(tmi.c_cc, "erase", VERASE, argv, &arg_i);
+        set_cc(tmi.c_cc, "kill", VKILL, argv, &arg_i);
+        set_cc(tmi.c_cc, "eof", VEOF, argv, &arg_i);
+        set_cc(tmi.c_cc, "eol", VEOL, argv, &arg_i);
+        set_cc(tmi.c_cc, "eol2", VEOL2, argv, &arg_i);
+        set_cc(tmi.c_cc, "swtch", VSWTC, argv, &arg_i);
+        set_cc(tmi.c_cc, "start", VSTART, argv, &arg_i);
+        set_cc(tmi.c_cc, "stop", VSTOP, argv, &arg_i);
+        set_cc(tmi.c_cc, "susp", VSUSP, argv, &arg_i);
+        set_cc(tmi.c_cc, "rprnt", VREPRINT, argv, &arg_i);
+        set_cc(tmi.c_cc, "werase", VWERASE, argv, &arg_i);
+        set_cc(tmi.c_cc, "lnext", VLNEXT, argv, &arg_i);
     }
 
     tcsetattr(TTY_FD, TCSADRAIN, &tmi);

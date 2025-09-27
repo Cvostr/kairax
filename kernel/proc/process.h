@@ -134,6 +134,7 @@ int process_is_userspace_string(struct process* process, uintptr_t base);
 
 // Получает объект открытого файла по номеру дескриптора
 struct file* process_get_file(struct process* process, int fd);
+struct file* process_get_file_ex(struct process* process, int fd, int acquire);
 
 // Загружает аргументы командной строки в адресное пространство процесса
 // args_mem - указатель на данные аргументов в адресном пространстве процесса

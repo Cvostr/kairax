@@ -60,6 +60,9 @@ struct pci_device_info {
 #define PCI_CAPABILITY_MSI		0x5
 #define PCI_CAPABILITY_MSI_X	0x11
 
+#define PCI_MSI_64BIT			(1 << 7)
+#define PCI_MSI_PER_VECTOR_MASK	(1 << 8)
+
 #define PCI_HEADER_TYPE_NORMAL	0
 #define PCI_HEADER_TYPE_BRIDGE	0x01
 #define PCI_HEADER_TYPE_CARDBUS	0x02

@@ -382,6 +382,11 @@ void  process_remove_thread(struct process* process, struct thread* thread)
 
 struct file* process_get_file(struct process* process, int fd)
 {
+    return process_get_file_ex(process, fd, FALSE);
+}
+
+struct file* process_get_file_ex(struct process* process, int fd, int acquire)
+{
     struct file* result = NULL;
     acquire_spinlock(&process->fd_lock);
 
@@ -389,6 +394,12 @@ struct file* process_get_file(struct process* process, int fd)
         goto exit;
 
     result = process->fds[fd];
+
+    // Если файл найден и флаг стоит - увеличим счетчик ссылок
+    if (acquire == TRUE && result != NULL)
+    {
+        file_acquire(result);
+    }
 
 exit:
     release_spinlock(&process->fd_lock);

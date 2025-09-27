@@ -151,7 +151,8 @@ ssize_t sys_read_file(int fd, char* buffer, size_t size)
         VALIDATE_USER_POINTER_PROTECTION(process, buffer, size, PAGE_PROTECTION_WRITE_ENABLE)
     }
 
-    struct file* file = process_get_file(process, fd);
+    // Получить файл с увеличением счетчика ссылок
+    struct file* file = process_get_file_ex(process, fd, TRUE);
 
     if (file == NULL) {
         bytes_read = -ERROR_BAD_FD;
@@ -160,6 +161,8 @@ ssize_t sys_read_file(int fd, char* buffer, size_t size)
 
     // Чтение из файла
     bytes_read = file_read(file, size, buffer);
+    // Уменьшить счетчик ссылок (и может быть закрыть файл)
+    file_close(file);
 exit:
     return bytes_read;
 }
@@ -176,7 +179,8 @@ ssize_t sys_write_file(int fd, const char* buffer, size_t size)
         VALIDATE_USER_POINTER(process, buffer, size)
     }
 
-    struct file* file = process_get_file(process, fd);
+    // Получить файл с увеличением счетчика ссылок
+    struct file* file = process_get_file_ex(process, fd, TRUE);
 
     if (file == NULL) {
         bytes_written = -ERROR_BAD_FD;
@@ -185,6 +189,8 @@ ssize_t sys_write_file(int fd, const char* buffer, size_t size)
     
     // Записать в файл
     bytes_written = file_write(file, size, buffer);
+    // Уменьшить счетчик ссылок (и может быть закрыть файл)
+    file_close(file);
 
 exit:
     return bytes_written;

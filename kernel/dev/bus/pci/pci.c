@@ -264,8 +264,8 @@ int pci_device_set_msi_vector(struct device* device, uint32_t vector)
 	uint32_t cap = pci_config_read32(device, msi_register);
 	uint16_t messctl = cap >> 16;
 
-	int msi_64bit_cap = (messctl & (1 << 7));
-	int mask = (messctl & (1 << 8));
+	int msi_64bit_cap = (messctl & PCI_MSI_64BIT);
+	int mask = (messctl & PCI_MSI_PER_VECTOR_MASK);
 
 	// Получение параметров MSI для текущей архитектуры CPU
 	uint64_t msi_data = 0;
@@ -287,6 +287,10 @@ int pci_device_set_msi_vector(struct device* device, uint32_t vector)
 
 	// Записать Enable Bit
 	messctl |= 1;
+
+	// Только одно прерывание
+	//messctl &= ~((0b111) << 4);
+
 	cap = (((uint32_t) messctl) << 16) | cap & UINT16_MAX;
 	pci_config_write32(device, msi_register, cap);
 
