@@ -45,6 +45,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/qsort.o \
 				obj/netinet/in.o \
 				obj/arpa/inet.o \
+				obj/arpa/inet_ntop.o \
 				obj/arpa/nameser.o \
 				obj/string.o \
 				obj/strtok.o \
@@ -73,6 +74,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/sched.o \
 				obj/termios.o \
 				obj/netdb.o \
+				obj/addrinfo.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
 				obj/x64/syscalls.o \

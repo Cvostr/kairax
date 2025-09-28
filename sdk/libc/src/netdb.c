@@ -6,6 +6,7 @@
 #include <netinet/in.h> 
 #include "arpa/inet.h"
 #include "arpa/nameserv.h"
+#include "unistd.h"
 
 #include "stdio.h"
 
@@ -82,24 +83,24 @@ struct hostent *gethostbyname2(const char *name, int af)
     size_t ns_resp_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
                 0, (struct sockaddr *) &dnssrv_addr, 
                 &resp_addr_len); 
+
+    close(sockfd);
     
     DNS_HEADER* nsresp_header = (DNS_HEADER*) nsresp;
     
     if (nsresp_header->id != nsreq_header->id)
     {
-        printf("DNS id missmatch\n");
         return NULL;
     }
 
     if (nsresp_header->qr != 1)
     {
-        printf("DNS QR is not 1\n");
         return NULL;
     }
 
     if (nsresp_header->rcode != 0)
     {
-        printf("DNS RCODE is %i\n", nsresp_header->rcode);
+        //printf("DNS RCODE is %i\n", nsresp_header->rcode);
         return NULL;
     }
 

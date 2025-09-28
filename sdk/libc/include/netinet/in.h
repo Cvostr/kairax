@@ -45,6 +45,9 @@ struct sockaddr_in6 {
     uint32_t		sin6_scope_id;
 };
 
+#define INET_ADDRSTRLEN 16
+#define INET6_ADDRSTRLEN 46
+
 extern uint32_t ntohl (uint32_t nlong);
 extern uint16_t ntohs (uint16_t nshort);
 extern uint32_t htonl (uint32_t hlong);

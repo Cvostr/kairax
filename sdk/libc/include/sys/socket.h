@@ -8,6 +8,7 @@
 
 __BEGIN_DECLS
 
+#define AF_UNSPEC	0
 #define AF_LOCAL    1
 #define AF_UNIX     AF_LOCAL
 #define AF_INET     2

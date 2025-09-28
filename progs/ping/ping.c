@@ -1,17 +1,21 @@
 #include <sys/socket.h>
 #include "netinet/ip_icmp.h"
+#include "string.h"
 #include "strings.h"
 #include <arpa/inet.h>
 #include "stddef.h"
 #include "unistd.h"
 #include "stdio.h"
 #include "errno.h"
+#include "netdb.h"
+#include <stdlib.h>
 
 unsigned short checksum(void *b, int len);
 
 int main(int argc, char** argv) 
 {
     char* addr = NULL;
+    char* real_addr = NULL;
     in_addr_t ip4_addr = 0;
     int ping_times = 4;
 
@@ -26,14 +30,66 @@ int main(int argc, char** argv)
         }
     }
 
-    if (addr == NULL) {
-        printf("Address not specified\n");
+    int sockfamily = AF_INET;
+    socklen_t ping_addr_size = 0;
+    struct sockaddr* ping_addr = NULL;
+
+    if (addr == NULL) 
+    {
+        printf("ping: Address not specified\n");
         return 1;
-    } else {
+    } 
+    else 
+    {
         ip4_addr = inet_addr(addr);
-        if (ip4_addr == (in_addr_t) - 1) {
-            printf("Incorrect address\n");
-            return 1;
+        if (ip4_addr != (in_addr_t) - 1) 
+        {
+            // Корректный адрес 
+            sockfamily = AF_INET;
+            ping_addr_size = sizeof(struct sockaddr_in);
+            ping_addr = malloc(sizeof(struct sockaddr_in));   
+            struct sockaddr_in *paddr = ping_addr;
+            paddr->sin_family = AF_INET;
+            paddr->sin_port = htons(0);
+            paddr->sin_addr.s_addr = ip4_addr;
+
+            real_addr = strdup(addr);
+        }
+        else
+        {
+            // Пробуем DNS
+            struct addrinfo *result = NULL;
+            struct addrinfo hint = {0};
+            hint.ai_family = AF_INET;
+            int rc = getaddrinfo(addr, NULL, &hint, &result);
+            if (rc != 0)
+            {
+                printf("ping: %s: %s\n", addr, gai_strerror(rc));
+                return 1;
+            }
+
+            sockfamily = result->ai_family;
+            ping_addr_size = result->ai_addrlen;
+            ping_addr = malloc(ping_addr_size);   
+            memcpy(ping_addr, result->ai_addr, ping_addr_size);
+
+            freeaddrinfo(result);
+
+            char* netaddr = NULL;
+            switch (ping_addr->sa_family)
+            {
+                case AF_INET:
+                    netaddr = malloc(INET_ADDRSTRLEN);
+                    struct sockaddr_in *paddr = ping_addr;
+                    inet_ntop(ping_addr->sa_family, &paddr->sin_addr, netaddr, INET_ADDRSTRLEN);
+                    break;
+                default:
+                    printf("Not implemented for af %i\n", ping_addr->sa_family);
+                    return;
+            }
+
+            real_addr = malloc(200);
+            sprintf(real_addr, "%s (%s)", result->ai_canonname, netaddr);
         }
     }
 
@@ -44,17 +100,14 @@ int main(int argc, char** argv)
     ichdr.un.echo.id = getpid();
     ichdr.un.echo.sequence = 0;
 
-    struct sockaddr_in ping_addr;
-    ping_addr.sin_family = AF_INET;
-	ping_addr.sin_port = htons(0);
-	ping_addr.sin_addr.s_addr = ip4_addr;
-
     struct sockaddr_in recv_addr;
     int recv_addr_len = sizeof(struct sockaddr_in);
 
-    int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    printf("PING %s\n", real_addr);
+
+    int sockfd = socket(sockfamily, SOCK_RAW, IPPROTO_ICMP);
     if (sockfd < 0) {
-        printf("socket() error\n");
+        printf("ping: socket() error: %s\n", strerror(errno));
         return 1;
     }
 
@@ -71,7 +124,7 @@ int main(int argc, char** argv)
         ichdr.checksum = 0;
         ichdr.checksum = checksum(&ichdr, sizeof(ichdr));
         
-        rc = sendto(sockfd, &ichdr, sizeof(ichdr), 0, (struct sockaddr*) &ping_addr, sizeof(ping_addr));
+        rc = sendto(sockfd, &ichdr, sizeof(ichdr), 0, ping_addr, ping_addr_size);
         if (rc == -1)
         {
             printf("Error sending ping packet to %s: %i\n", addr, errno);
@@ -84,7 +137,7 @@ int main(int argc, char** argv)
 
         if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id) 
         {
-            printf("Ping response from %s: icmp seq=%i\n", addr, htons(recv_hdr->un.echo.sequence));
+            printf("Ping response from %s: icmp seq=%i\n", real_addr, htons(recv_hdr->un.echo.sequence));
         }
     }
 }
