@@ -120,7 +120,14 @@ void exception_handler(interrupt_frame_t* frame)
     }
     if (show_stack) {
         printk("\nSTACK TRACE: \n");
-        for (int i = 0; i < 25; i ++) {
+        /*
+        for (int i = -10; i < 0; i ++) {
+            uintptr_t value = *(stack_ptr + i);
+            printk("%s ", ulltoa(value, 16));
+        }
+        printk("\n---------------\n");
+        */
+        for (int i = 0; i < 35; i ++) {
             uintptr_t value = *(stack_ptr + i);
             printk("%s ", ulltoa(value, 16));
         }

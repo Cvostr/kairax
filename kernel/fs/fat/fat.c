@@ -79,8 +79,13 @@ uint32_t fat_get_first_cluster_idx(struct fat_instance* inst, struct fat_direntr
     return ((((uint32_t) entry->first_cluster_hi) << 16) | entry->first_cluster_lo);
 }
 
-uint64_t fat_to_inode_num_sector(uint32_t sector, uint32_t offset)
+uint64_t fat_to_inode_num_sector(struct fat_instance* inst, uint32_t sector, uint32_t offset)
 {
+    uint32_t bps = inst->bytes_per_sector;
+
+    sector += offset / bps;
+    offset = offset % bps;
+
     return ((uint64_t) sector) << 32 | offset;
 }
 
@@ -88,7 +93,7 @@ uint64_t fat_to_inode_num(struct fat_instance* inst, uint32_t cluster, uint32_t 
 {
     uint32_t    spc = inst->bpb->sectors_per_cluster;
     uint32_t    first_sector = ((cluster - 2) * spc) + inst->first_data_sector;
-
+    
     return ((uint64_t) first_sector) << 32 | offset;
 }
 
@@ -266,7 +271,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     {
     case FS_FAT12:
     case FS_FAT16:
-        ino_num = fat_to_inode_num_sector(instance->root_dir_sector, 0);
+        ino_num = fat_to_inode_num_sector(instance, instance->root_dir_sector, 0);
         break;
     case FS_FAT32:
         ino_num = fat_to_inode_num(instance, bpb->ext_32.root_cluster, 0);
@@ -465,7 +470,7 @@ int fat_read_directory_cluster( struct fat_instance* inst,
                                 int is_root,
                                 uint32_t index,
                                 char* buffer,
-                                uint64_t* ino_num_base)
+                                uint64_t* first_sector)
 {
     uint32_t current_cluster = 0;
 
@@ -490,7 +495,7 @@ int fat_read_directory_cluster( struct fat_instance* inst,
                     return rc;
                 }
 
-                *ino_num_base = fat_to_inode_num_sector(current_cluster, 0);
+                *first_sector = current_cluster;
 
                 return 0;
             case FS_FAT32:
@@ -514,7 +519,9 @@ int fat_read_directory_cluster( struct fat_instance* inst,
         return FAT_DIR_LAST_CLUSTER;
     }
 
-    *ino_num_base = fat_to_inode_num(inst, current_cluster, 0);
+    // Переводим кластер в сектор
+    uint32_t    spc = inst->bpb->sectors_per_cluster;
+    *first_sector = ((current_cluster - 2) * spc) + inst->first_data_sector;
 
     return fat_read_cluster(inst, current_cluster, buffer);
 }
@@ -631,11 +638,11 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
     }
 
     uint32_t current_cluster_idx = 0;
-    uint64_t inode_num_base = 0;
+    uint64_t base_sector = 0;
 
     checking_name[0] = '\0';
 
-    while (fat_read_directory_cluster(inst, &dir_direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &inode_num_base) != FAT_DIR_LAST_CLUSTER)
+    while (fat_read_directory_cluster(inst, &dir_direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &base_sector) != FAT_DIR_LAST_CLUSTER)
     {
         uint32_t pos = 0;
 
@@ -673,7 +680,7 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
                     {
                         int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
                         *type = is_dir ? DT_DIR : DT_REG; 
-                        result_inode = inode_num_base | pos;
+                        result_inode = fat_to_inode_num_sector(inst, base_sector, pos);
                         goto exit;
                     }
                 }
@@ -730,11 +737,11 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     checking_name[0] = '\0';
 
     uint32_t current_cluster_idx = 0;
-    uint64_t inode_num_base = 0;
+    uint64_t base_sector = 0;
     uint32_t dentry_iter = 0;
     struct fat_direntry*    d_ptr;
     
-    while (fat_read_directory_cluster(inst, &direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &inode_num_base) != FAT_DIR_LAST_CLUSTER)
+    while (fat_read_directory_cluster(inst, &direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &base_sector) != FAT_DIR_LAST_CLUSTER)
     {
         uint32_t pos = 0;
 
@@ -771,7 +778,7 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
                         int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
 
                         result = new_vfs_dirent();
-                        result->inode = inode_num_base | pos;
+                        result->inode = fat_to_inode_num_sector(inst, base_sector, pos);
                         strncpy(result->name, checking_name, FAT_LFN_MAX_SZ);
                         result->type = is_dir ? DT_DIR : DT_REG;
 

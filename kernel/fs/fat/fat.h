@@ -172,7 +172,7 @@ int fat_read_directory_cluster( struct fat_instance* inst,
                                 int is_root,
                                 uint32_t index,
                                 char* buffer,
-                                uint64_t* ino_num_base);
+                                uint64_t* first_sector);
 
 uint32_t fat_calc_free_clusters(struct fat_instance* inst);
 
