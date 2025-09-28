@@ -1,7 +1,7 @@
 #include "superblock.h"
 #include "mem/kheap.h"
 #include "string.h"
-#include "stdio.h"
+#include "kairax/stdio.h"
 
 struct superblock* new_superblock()
 {
@@ -27,6 +27,12 @@ struct inode* superblock_get_cached_inode(struct superblock* sb, uint64 inode)
     for (size_t i = 0; i < sb->inodes->size; i++) {
 
         node = (struct inode*)current->element;
+
+        if (node == NULL)
+        {
+            printk("Warn: NULL inode in cache\n");
+            continue;
+        }
 
         if (node->inode == inode) {
             result = node;
@@ -56,7 +62,10 @@ struct inode* superblock_get_inode(struct superblock* sb, uint64 inode)
     result = sb->operations->read_inode(sb, inode);
     release_spinlock(&sb->spinlock);
 
-    superblock_add_inode(sb, result);
+    if (result != NULL)
+    {
+        superblock_add_inode(sb, result);
+    }
 
     return result;
 }
@@ -87,6 +96,7 @@ struct dentry* superblock_get_dentry(struct superblock* sb, struct dentry* paren
         struct inode* d_inode = superblock_get_inode(sb, inode);
         if (d_inode == NULL)
         {
+            //printk("Warn: no inode found by name %s with id %i\n", name, inode);
             return NULL;
         }
         
