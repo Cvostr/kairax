@@ -1,0 +1,2 @@
+#define HOSTNAME_MAX    100
+#define DOMAINNAME_MAX  60

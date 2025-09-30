@@ -140,6 +140,7 @@ gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o
 gcc $GCC_ARGS proc/tasklet.c -o ./bin/tasklet.o
+gcc $GCC_ARGS proc/nodename.c -o ./bin/nodename.o
 
 #generic net
 gcc $GCC_ARGS net/net.c -o ./bin/net.o

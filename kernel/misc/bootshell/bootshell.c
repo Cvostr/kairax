@@ -34,6 +34,8 @@ void bootshell()
 {
     bootshell_print_sign();
 
+    sys_sethostname("kairax", 6);
+
     sys_setpgid(0, 0);
     sys_ioctl(0, 0x5410, sys_getpgid(0));
     

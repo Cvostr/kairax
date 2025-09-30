@@ -6,6 +6,8 @@
 #include "cpu/cpu.h"
 #include "cpu/cpu_local.h"
 #include "string.h"
+#include "proc/nodename.h"
+#include "kairax/kstdlib.h"
 
 #define SYSINFO_KERNEL_INFO_STR 1
 #define SYSINFO_MEMORY          2
@@ -40,9 +42,13 @@ extern int kairax_version_minor;
 extern const char* kairax_build_date;
 extern const char* kairax_build_time;
 
+extern char nodename[];
+extern char domainname[];
+
 int sys_sysinfo(int request, char* buffer, size_t bufsize)
 {
     int rc = 0;
+    size_t maxlen;
  
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
@@ -96,10 +102,12 @@ int sys_sysinfo(int request, char* buffer, size_t bufsize)
             strncpy(cpuinf->vendor_string, cpu.vendor_string, CPU_VENDOR_STR_LEN);
             break;
         case SYSINFO_HOSTNAME:
-            strncpy(buffer, "kairax", bufsize);
+            maxlen = MAX(strlen(nodename), bufsize);
+            strncpy(buffer, nodename, maxlen);
             break;
         case SYSINFO_DOMAINNAME:
-            return -ERROR_INVALID_VALUE;
+            maxlen = MAX(strlen(domainname), bufsize);
+            strncpy(buffer, domainname, maxlen);
             break;
         default:
             return -ERROR_INVALID_VALUE;
