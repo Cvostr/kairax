@@ -32,6 +32,7 @@ struct proc_sigact
 {
     uintptr_t handler;
     int flags;  
+    sigset_t sigmask;
 };
 
 struct process {

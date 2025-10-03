@@ -112,23 +112,25 @@ int sys_sigaction(int signum, const struct sigaction *act, struct sigaction *old
     {
         VALIDATE_USER_POINTER(process, act, sizeof(struct sigaction));
 
+        // Если есть SA_RESTORER то запишем адрес функции - трамплина
         if ((act->sa_flags & SA_RESTORER) == SA_RESTORER) 
             process->sighandle_trampoline = act->sa_trampoline;
 
+        // Выбираем вариант функции обработчика
         int siginfo = (act->sa_flags & SA_SIGINFO) == SA_SIGINFO;
 
         process->sigactions[signum].handler = siginfo ? act->sa_sigaction : act->sa_handler;
         process->sigactions[signum].flags = act->sa_flags;
-        // TODO: add mask
+        process->sigactions[signum].sigmask = act->sa_mask;
     }
 
     if (oldact != NULL)
     {
-        VALIDATE_USER_POINTER(process, oldact, sizeof(struct sigaction));
+        VALIDATE_USER_POINTER_PROTECTION(process, oldact, sizeof(struct sigaction), PAGE_PROTECTION_WRITE_ENABLE);
 
         oldact->sa_handler = process->sigactions[signum].handler;
         oldact->sa_flags = process->sigactions[signum].flags;
-        // TODO: add mask
+        oldact->sa_mask = process->sigactions[signum].sigmask;
     }
 
     return 0;

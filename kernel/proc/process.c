@@ -32,6 +32,16 @@ struct process*  create_new_process(struct process* parent)
     atomic_inc(&process->vmemory_table->refs);
 
     process->brk = 0x0;
+
+    // Заполнить обработчики сигналов значениями по умолчанию
+    size_t nsignals = sizeof(process->sigactions) / sizeof(struct proc_sigact);
+    for (size_t i = 0; i < nsignals; i ++)
+    {
+        struct proc_sigact* sigact = &process->sigactions[i];
+        sigact->handler = SIG_DFL;
+        sigact->flags = 0;
+        sigact->sigmask = 0;
+    }
     
     // Создать список потоков
     process->threads = create_list();

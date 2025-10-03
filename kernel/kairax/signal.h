@@ -7,6 +7,10 @@
 #define SIG_UNBLOCK        1
 #define SIG_SETMASK        2
 
+typedef void (*sighandler_t)(int);
+#define SIG_DFL ((sighandler_t)0L)
+#define SIG_IGN ((sighandler_t)1L)
+
 #define SIGHUP          1
 #define SIGINT          2
 #define SIGQUIT         3
@@ -69,7 +73,7 @@ typedef struct {
 } siginfo_t;
 
 struct sigaction {
-    void (*sa_handler)(int);
+    sighandler_t sa_handler;
     void (*sa_sigaction)(int, siginfo_t *, void *);
     sigset_t sa_mask;
     int sa_flags;

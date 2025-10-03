@@ -45,31 +45,26 @@ int signals_table[SIGNALS] = {
 void process_handle_signals()
 {
     struct thread* thread = cpu_get_current_thread();
-    //if (try_acquire_spinlock(&thread->process->sighandler_lock)) {
 
-        sigset_t sigs = thread->pending_signals;
+    sigset_t sigs = thread->pending_signals;
 
-        if (sigs == 0) {
-            return;
-        }
+    if (sigs == 0) {
+        return;
+    }
 
-        // Найти первый сигнал для обработки
-        int signal = 0;
-        while (((sigs >> signal) & 1) == 0)
-        {
-            signal++;
-        }
+    // Найти первый сигнал для обработки
+    int signal = 0;
+    while (((sigs >> signal) & 1) == 0)
+    {
+        signal++;
+    }
 
-        // Снять сигнал
-        thread->pending_signals &= ~(1ULL << signal);
+    // Снять сигнал
+    thread->pending_signals &= ~(1ULL << signal);
 
-        int sigdefault = signals_table[signal];
+    int sigdefault = signals_table[signal];
 
-        if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
-			sys_exit_process(128 + signal);
-        }
-
-    //exit:
-    //    release_spinlock(&thread->process->sighandler_lock);
-    //}
+    if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
+		sys_exit_process(128 + signal);
+    }
 }
