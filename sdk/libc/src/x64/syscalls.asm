@@ -33,6 +33,7 @@ DEFINE_SYSCALL syscall_wait,        0x7
 DEFINE_SYSCALL syscall_file_seek,   0x8
 DEFINE_SYSCALL syscall_map_memory,  0x9
 DEFINE_SYSCALL syscall_protect_memory,  0xA
+DEFINE_SYSCALL syscall_sigaction,   0xD
 DEFINE_SYSCALL syscall_ioctl,       0x10
 DEFINE_SYSCALL syscall_create_pipe, 0x16
 DEFINE_SYSCALL syscall_sched_yield, 0x18

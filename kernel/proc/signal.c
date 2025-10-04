@@ -1,5 +1,5 @@
 #include "kairax/signal.h"
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 #include "syscalls.h"
 
 #define SIG_IGNORE 0
@@ -45,6 +45,7 @@ int signals_table[SIGNALS] = {
 void process_handle_signals()
 {
     struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
 
     sigset_t sigs = thread->pending_signals;
 
@@ -62,9 +63,23 @@ void process_handle_signals()
     // Снять сигнал
     thread->pending_signals &= ~(1ULL << signal);
 
-    int sigdefault = signals_table[signal];
+    struct proc_sigact* sigact = &process->sigactions[signal];
 
-    if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
-		sys_exit_process(128 + signal);
+    if (sigact->handler == SIG_IGN)
+    {
+        ;
+    } 
+    else if (sigact->handler == SIG_DFL)
+    {
+        // Действие по умолчанию
+        int sigdefault = signals_table[signal];
+
+        if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
+		    sys_exit_process(128 + signal);
+        }
+    } 
+    else
+    {
+        printk("Handlers are not implemented\n");
     }
 }

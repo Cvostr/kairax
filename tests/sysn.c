@@ -22,6 +22,17 @@ void initTermios()
     tcsetattr(0, TCSANOW, &current);
 }
 
+void inthandler(int arg)
+{
+	printf("Terminate [y/n]?");
+	char r;
+	scanf("%s", &r);
+	if (r == 'y')
+	{
+		printf("input: %c\n", r);
+	}
+}
+
 void resetTermios(void) 
 {
     tcsetattr(0, TCSANOW, &old);
@@ -169,6 +180,13 @@ int main(int argc, char** argv, char** envp) {
             int cha = getch();
             printf("Pressed key %i\n", cha);
         }
+    }
+
+    sighandler_t hd = signal(SIGINT, inthandler);
+    if (hd == SIG_ERR)
+    {
+        perror("signal error");
+        return 1;
     }
 
     int send = 343;

@@ -11,6 +11,7 @@
 typedef void (*sighandler_t)(int);
 #define SIG_DFL ((sighandler_t)0L)
 #define SIG_IGN ((sighandler_t)1L)
+#define SIG_ERR ((sighandler_t)-1L)
 
 #define NSIG         32
 
@@ -98,6 +99,7 @@ int sigemptyset(sigset_t *set) __THROW;
 int sigfillset(sigset_t *set) __THROW;
 
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+sighandler_t signal(int signum, sighandler_t action);
 
 __END_DECLS
 

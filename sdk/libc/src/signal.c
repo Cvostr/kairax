@@ -64,3 +64,23 @@ int sigpending(sigset_t *set)
 {
     __set_errno(syscall_sigpending(set, sizeof(sigset_t)));
 }
+
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+{
+    __set_errno(syscall_sigaction(signum, act, oldact, sizeof(sigset_t)));
+}
+
+sighandler_t signal(int signum, sighandler_t action)
+{
+    struct sigaction sact, oldact;
+    sact.sa_handler = action;
+    sigemptyset(&sact.sa_mask);
+    
+    if (sigaddset(&sact.sa_mask, signum) != 0)
+        return SIG_ERR;
+
+    if (sigaction(signum, &sact, &oldact) != 0)
+        return SIG_ERR;
+
+    return oldact.sa_handler;
+}
