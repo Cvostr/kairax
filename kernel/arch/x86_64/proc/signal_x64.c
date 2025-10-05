@@ -1,5 +1,6 @@
 #include "kairax/signal.h"
 #include "cpu/cpu_local_x64.h"
+#include "kairax/intctl.h"
 #include "x64_context.h"
 #include "memory/mem_layout.h"
 #include "kairax/string.h"
@@ -22,8 +23,6 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
         // Процесс завершается
         return;
     }
-
-    printk("Caller %i handler %p\n", caller, sigact->handler);
 
     if (caller == CALLER_SYSCALL)
     {
@@ -51,16 +50,20 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
         save_frame->rsp = old_stackptr;
         save_frame->rbp = syscall_frame->rbp;
 
+        save_frame->rflags = syscall_frame->r11;
+
         save_frame->r8 = syscall_frame->r8;
         save_frame->r9 = syscall_frame->r9;
         save_frame->r10 = syscall_frame->r10;
-        save_frame->r11 = syscall_frame->r11;
         save_frame->r12 = syscall_frame->r12;
         save_frame->r13 = syscall_frame->r13;
         save_frame->r14 = syscall_frame->r14;
         save_frame->r15 = syscall_frame->r15;
 
+        // Кладем в стек адрес возврата, 
+        // на который будет передаваться управление после выхода из функции обработчика
         new_stackptr -= 8;
+        *((uintptr_t*) new_stackptr) = process->sighandle_trampoline;
 
         // Заполняем возврат
         syscall_frame->rdi = signum;
@@ -68,6 +71,20 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
 
         this_core->user_stack = new_stackptr;
     }
+    else
+    {
+        printk("Handler is not implemented for caller %i\n", caller);
+    }
+}
 
-    //printk("Handlers are not implemented\n");
+void arch_sigreturn()
+{
+    struct thread* thr = cpu_get_current_thread();
+
+    thread_frame_t* old_frame = this_core->user_stack;
+    old_frame->cs = GDT_BASE_USER_CODE_SEG | 0b11;
+    old_frame->ss = GDT_BASE_USER_DATA_SEG | 0b11;
+
+    disable_interrupts();
+    scheduler_exit(old_frame);
 }

@@ -136,7 +136,8 @@ int sys_sigaction(int signum, const struct sigaction *act, struct sigaction *old
     return 0;
 }
 
+extern void arch_sigreturn();
 int sys_sigreturn()
 {
-    return 0; // Should return ?
+    arch_sigreturn();
 }

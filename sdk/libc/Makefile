@@ -79,7 +79,8 @@ COMPILED_OBJS = obj/math.o \
 				obj/threads/cnd.o \
 				obj/x64/syscalls.o \
 				obj/x64/math.o \
-				obj/x64/setjmp.o
+				obj/x64/setjmp.o \
+				obj/x64/sig_trampoline.o
 
 all: $(OBJ_DIRS) libc errno
 

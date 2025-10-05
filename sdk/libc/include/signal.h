@@ -46,6 +46,8 @@ typedef void (*sighandler_t)(int);
 #define SIGWINCH        28
 
 #define SA_SIGINFO	    0x00000004
+#define SA_RESTORER	    0x04000000
+#define SA_NODEFER	    0x40000000
 
 __BEGIN_DECLS
 
@@ -82,7 +84,7 @@ struct sigaction {
     void (*sa_sigaction)(int, siginfo_t *, void *);
     sigset_t sa_mask;
     int sa_flags;
-    void (*sa_trampoline)(void);
+    void (*sa_restorer)(void);
 };
 
 int raise(int sig) __THROW;
