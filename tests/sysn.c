@@ -190,6 +190,13 @@ int main(int argc, char** argv, char** envp) {
         return 1;
     }
 
+    if (argc > 1 && strcmp(argv[1], "loop") == 0)
+    {
+        while (1)
+        {
+        }
+    }
+
     int send = 343;
     pid_t tpi = create_thread(thread_func, &send);
     printf("TID %i \t", tpi);

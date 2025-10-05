@@ -60,6 +60,9 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
         save_frame->r14 = syscall_frame->r14;
         save_frame->r15 = syscall_frame->r15;
 
+        save_frame->cs = GDT_BASE_USER_CODE_SEG | 0b11;
+        save_frame->ss = GDT_BASE_USER_DATA_SEG | 0b11;
+
         // Кладем в стек адрес возврата, 
         // на который будет передаваться управление после выхода из функции обработчика
         new_stackptr -= 8;
@@ -69,7 +72,41 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
         syscall_frame->rdi = signum;
         syscall_frame->rcx = sigact->handler;
 
+        // Устанавливаем стек
+        syscall_frame->rbp = new_stackptr;
         this_core->user_stack = new_stackptr;
+    }
+    else if (caller == CALLER_SCHEDULER)
+    {
+        thread_frame_t* old_frame = thr->context; 
+
+        old_stackptr = old_frame->rsp;
+        new_stackptr = old_stackptr;
+
+        *((uint32_t*) old_stackptr) = 0;
+
+        new_stackptr -= 128;    // red zone
+        // Надо также выровнять до 16 байт вниз
+        new_stackptr -= new_stackptr % 16;
+        // Вычитаем размер фрейма
+        new_stackptr -= sizeof(thread_frame_t);
+
+        // Копирование старого фрейма
+        memcpy(new_stackptr, old_frame, sizeof(thread_frame_t));
+
+        // Кладем в стек адрес возврата, 
+        // на который будет передаваться управление после выхода из функции обработчика
+        new_stackptr -= 8;
+        *((uintptr_t*) new_stackptr) = process->sighandle_trampoline;
+
+        old_frame->rdi = signum;
+        old_frame->rip = sigact->handler;
+
+        // Устанавливаем стек
+        old_frame->rsp = new_stackptr;
+        old_frame->rbp = new_stackptr;
+
+        return;
     }
     else
     {
@@ -82,8 +119,6 @@ void arch_sigreturn()
     struct thread* thr = cpu_get_current_thread();
 
     thread_frame_t* old_frame = this_core->user_stack;
-    old_frame->cs = GDT_BASE_USER_CODE_SEG | 0b11;
-    old_frame->ss = GDT_BASE_USER_DATA_SEG | 0b11;
 
     disable_interrupts();
     scheduler_exit(old_frame);
