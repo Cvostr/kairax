@@ -83,8 +83,8 @@ void ast_exec_func(struct ast_node* node)
 
             int status = 0;
             waitpid(pid, &status, 0);
-            if (status > 128) {
-                int sig = status - 128;
+            if (WIFSIGNALED(status)) {
+                int sig = WTERMSIG(status);
                 switch (sig) {
                     case SIGABRT:
                         printf("Aborted\n");

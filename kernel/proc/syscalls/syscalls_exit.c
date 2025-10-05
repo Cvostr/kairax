@@ -4,7 +4,7 @@
 
 #include "cpu/cpu_local.h"
 
-void sys_exit_process(int code)
+void exit_process(int code)
 {
     struct thread* thr = cpu_get_current_thread();
     struct process* process = thr->process;
@@ -43,11 +43,16 @@ void sys_exit_process(int code)
     scheduler_yield(FALSE);
 }
 
+void sys_exit_process(int code)
+{
+    exit_process(MAKEEXITCODE(code));
+}
+
 void sys_exit_thread(int code)
 {
     // Получить объект потока
     struct thread* thr = cpu_get_current_thread();
-    thr->code = code;
+    thr->code = MAKEEXITCODE(code);
 
     // Уничтожить данные потока
     thread_clear_stack_tls(thr);

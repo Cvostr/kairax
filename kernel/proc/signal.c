@@ -78,7 +78,7 @@ void process_handle_signals(int caller, void* frame)
         int sigdefault = signals_table[signal];
 
         if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
-		    sys_exit_process(128 + signal);
+		    exit_process(MAKETERMCODE(signal));
         }
     } 
     else

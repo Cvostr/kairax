@@ -7,6 +7,12 @@
 
 int main(int argc, char** argv) {
 
+    if (argc > 1 && strcmp(argv[1], "segv") == 0)
+    {
+        int *__ptr = 0;
+        *__ptr = 0;
+    }
+
     int rc = 0;
     printf("SIGSEGV test on dereference of NULL\n");
     pid_t pid = fork();
@@ -17,7 +23,7 @@ int main(int argc, char** argv) {
     } else {
         waitpid(pid, &rc, 0);
         printf("child code %i\n", rc);
-        if (WSTOPSIG(rc) != SIGSEGV)
+        if (WTERMSIG(rc) != SIGSEGV)
         {
             printf("Incorrect result code %i\n", rc);
             return -1;
@@ -33,7 +39,7 @@ int main(int argc, char** argv) {
     } else {
         waitpid(pid, &rc, 0);
         printf("child code %i\n", rc);
-        if (WSTOPSIG(rc) != SIGABRT)
+        if (WTERMSIG(rc) != SIGABRT)
         {
             printf("Incorrect result code %i\n", rc);
             return -1;

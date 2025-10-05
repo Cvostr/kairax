@@ -28,6 +28,10 @@
 typedef unsigned long long CLOEXEC_INT_TYPE;
 #define CLOEXEC_INT_SIZE    sizeof(CLOEXEC_INT_TYPE)
 
+#define MAKESTOPCODE(sig) ((sig) << 8 | 0x7f)
+#define MAKETERMCODE(sig) ((sig) << 8 | sig)
+#define MAKEEXITCODE(code) ((code) << 8)
+
 struct proc_sigact
 {
     uintptr_t handler;
@@ -111,15 +115,14 @@ int process_get_relative_direntry(struct process* process, int dirfd, const char
 int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end);
 
 struct process* process_get_child_by_id(struct process* process, pid_t id);
-
 struct thread* process_get_thread_by_id(struct process* process, pid_t id);
 
 void  process_remove_child(struct process* process, struct process* child);
-
 void  process_remove_thread(struct process* process, struct thread* thread);
 
 void process_free_resources(struct process* process);
 
+void exit_process(int code);
 void free_process(struct process* process);
 
 // Установить адрес конца памяти процесса

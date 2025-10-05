@@ -61,7 +61,7 @@ void test1()
 
     for (int i = 0; i < TEST1_PROCS; i ++) {
         int rc = waitpid(pids[i], &status, 0);
-        if (status != RC) {
+        if (! WIFEXITED(status) || WEXITSTATUS(status) != RC) {
             printf("PANIC\n");
         }
     }
@@ -79,7 +79,7 @@ void test2()
             _exit(RC);
         } else {
             int rc = waitpid(pid, &status, 0);
-            if (status != RC) {
+            if (! WIFEXITED(status) || WEXITSTATUS(status) != RC) {
                 printf("PANIC\n");
             }
         }
