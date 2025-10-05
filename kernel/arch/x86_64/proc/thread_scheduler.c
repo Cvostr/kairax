@@ -194,7 +194,7 @@ int scheduler_handler(thread_frame_t* frame)
 
     // Обработать сигналы, если процесс был в userspace
     if (thread_frame->cs == 0x23) {
-        process_handle_signals();
+        process_handle_signals(CALLER_SCHEDULER, thread_frame);
     }
 
     // Заменить таблицу виртуальной памяти процесса
@@ -210,7 +210,7 @@ int scheduler_handler(thread_frame_t* frame)
         cpu_set_current_vm_table(NULL);
     }
 
-    scheduler_exit(new_thread->context);
+    scheduler_exit(thread_frame);
 }
 
 void scheduler_start()

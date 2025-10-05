@@ -73,6 +73,7 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 sighandler_t signal(int signum, sighandler_t action)
 {
     struct sigaction sact, oldact;
+    sact.sa_flags = 0;
     sact.sa_handler = action;
     sigemptyset(&sact.sa_mask);
     

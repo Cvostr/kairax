@@ -146,6 +146,11 @@ void exception_handler(interrupt_frame_t* frame)
         // Завершаем процесс
         int rc = -1;
         switch (frame->int_no) {
+            case EXCEPTION_DIVISION_BY_ZERO:
+            case EXCEPTION_SIMD:
+            case EXCEPTION_FPU_FAULT:
+                rc = 128 + SIGFPE;
+                break;
             case EXCEPTION_PAGE_FAULT:
                 rc = 128 + SIGSEGV;
                 break;

@@ -55,6 +55,7 @@ gcc $GCC_ARGS $x64_SRC/dev/pci.c -o ./bin/pci_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/thread_scheduler.c -o ./bin/thread_scheduler_x64.o
 gcc $GCC_ARGS $x64_SRC/proc/tasklet_x64.c -o ./bin/tasklet_x64.o
+gcc $GCC_ARGS $x64_SRC/proc/signal_x64.c -o ./bin/signal_x64.o
 
 #raxlib
 gcc $GCC_ARGS $KAIRAX_PATH/list/list.c -o ./bin/list.o

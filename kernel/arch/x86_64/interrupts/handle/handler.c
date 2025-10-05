@@ -28,7 +28,7 @@ void int_handler(interrupt_frame_t* frame)
 		exception_handler(frame);
 	
 		if (frame->cs == 0x23) {
-			process_handle_signals();
+			process_handle_signals(CALLER_INTERRUPT, frame);
 		}
 
 		return;
@@ -40,7 +40,7 @@ void int_handler(interrupt_frame_t* frame)
 		handler(frame, irq_handlers[frame->int_no].data);
 
 	if (frame->cs == 0x23) {
-		process_handle_signals();
+		process_handle_signals(CALLER_INTERRUPT, frame);
 	}
 
 	if (frame->int_no >= 0x20) {

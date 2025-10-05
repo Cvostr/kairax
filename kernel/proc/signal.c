@@ -42,7 +42,10 @@ int signals_table[SIGNALS] = {
     // todo: add more
 };
 
-void process_handle_signals()
+// специфические реализации для разных CPU архитектур
+extern void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame);
+
+void process_handle_signals(int caller, void* frame)
 {
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
@@ -80,6 +83,6 @@ void process_handle_signals()
     } 
     else
     {
-        printk("Handlers are not implemented\n");
+        arch_signal_handler(thread, signal, caller, frame);
     }
 }

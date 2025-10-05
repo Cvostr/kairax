@@ -72,6 +72,9 @@ syscall_entry_x64:
     mov rcx, r10
     call syscalls_table[rax * 8]
     mov [rsp + RAX_OFFSET], rax
+
+    mov rdi, 3
+    mov rsi, rsp
     call process_handle_signals
 
 syscalls_exit:

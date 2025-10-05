@@ -24,9 +24,10 @@ void initTermios()
 
 void inthandler(int arg)
 {
-	printf("Terminate [y/n]?");
+    printf("signal handled with arg %i\n", arg);
+	printf("Terminate [y/n]?\n");
 	char r;
-	scanf("%s", &r);
+	scanf("%c", &r);
 	if (r == 'y')
 	{
 		printf("input: %c\n", r);

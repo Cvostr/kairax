@@ -88,6 +88,9 @@ struct sigaction {
 #define SA_NODEFER	    0x40000000
 #define SA_RESETHAND	0x80000000
 
-void process_handle_signals();
+#define CALLER_SCHEDULER    1
+#define CALLER_INTERRUPT    2
+#define CALLER_SYSCALL      3
+void process_handle_signals(int caller, void* frame);
 
 #endif
