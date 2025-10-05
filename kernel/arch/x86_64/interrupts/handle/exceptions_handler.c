@@ -144,21 +144,26 @@ void exception_handler(interrupt_frame_t* frame)
     if (frame->cs == 0x23) {
         // Исключение произошло в пользовательском процессе
         // Завершаем процесс
-        int rc = -1;
+        int signal = 0;
         switch (frame->int_no) {
             case EXCEPTION_DIVISION_BY_ZERO:
             case EXCEPTION_SIMD:
             case EXCEPTION_FPU_FAULT:
-                rc = 128 + SIGFPE;
+                signal = SIGFPE;
                 break;
             case EXCEPTION_PAGE_FAULT:
-                rc = 128 + SIGSEGV;
+                signal = SIGSEGV;
                 break;
             case EXCEPTION_INVALID_OPCODE:
-                rc = 128 + SIGILL;
+                signal = SIGILL;
+                break;
+            default:
+                signal = SIGABRT;
                 break;
         }
-        sys_exit_process(rc);
+
+        thread_send_signal(cpu_get_current_thread(), signal);
+        return;
 
     } else {
 

@@ -34,6 +34,12 @@ void inthandler(int arg)
 	}
 }
 
+void segfaulthandle(int arg)
+{
+    printf("SIGSEGV handled\n");
+	exit(1);
+}
+
 void resetTermios(void) 
 {
     tcsetattr(0, TCSANOW, &old);
@@ -195,6 +201,13 @@ int main(int argc, char** argv, char** envp) {
         while (1)
         {
         }
+    }
+
+    if (argc > 1 && strcmp(argv[1], "segv") == 0)
+    {
+        signal(SIGSEGV, segfaulthandle);
+        int *__ptr = 0;
+        *__ptr = 0;
     }
 
     int send = 343;
