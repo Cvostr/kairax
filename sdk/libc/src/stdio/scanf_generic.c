@@ -10,6 +10,8 @@ int scanf_generic(struct arg_scanf* fn, const char *format, va_list args)
     char sch = 0;   // Текущий символ строки 
     int base;
     unsigned long long numval;
+    double floatval;
+    double factor;
     // Флаги чтения чисел
     int half_count; // Количество флагов - половина
     int long_count; // Количество флагов - длинный
@@ -71,6 +73,54 @@ next_modifier:
                         }
                         sch = fn->getch(fn->data);
                         spos++;
+                        break;
+                    case 'f':
+                        floatval = 0;
+                        factor = 1;
+                        // Пропускаем пробелы входной строки
+                        while(isspace(sch)) {
+                            sch = fn->getch(fn->data);
+                            spos++;
+                        }
+                        if (sch == EOF)
+                            break;
+
+                        switch (sch) {
+                            case '-': 
+                                sign = -1;
+                            case '+':
+                                spos++;
+                                sch = fn->getch(fn->data);
+                        }
+
+                        // Считываем целую часть
+                        while (isdigit(sch)) {
+                            floatval = floatval * 10 + (sch++ - '0');
+                            // Считать следующий символ
+                            sch = fn->getch(fn->data);
+                            spos++;
+                        }
+
+                        // Добрались до дробной части
+                        if (sch == '.') {
+                            // Считать следующий символ
+                            sch = fn->getch(fn->data);
+                            spos++;
+
+                            while (isdigit(sch)) {
+                                factor *= 0.1;
+                                floatval = floatval + (sch - '0') * factor;
+                                // Считать следующий символ
+                                sch = fn->getch(fn->data);
+                                spos++;
+                            }
+                        }
+
+                        if (long_count == 0) {
+                            *((float *) va_arg(args, float*)) = floatval * sign;
+                        } else {
+                            *((double *) va_arg(args, double*)) = floatval * sign;
+                        }
                         break;
                     case 's':
                         // считываем строку

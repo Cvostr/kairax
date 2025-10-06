@@ -63,8 +63,9 @@ int main(int argc, char** argv) {
     int xv;
     int neg;
     int oct;
-    sscanf("123abab 456asas 7891011 FFFF -234 12", "%s %s %i %x %i %o", a, b, &nv, &xv, &neg, &oct);
-    printf("1: %s 2: %s 3 NUM: %i 4: %i 5: %i 6: %i\n", a, b, nv, xv, neg, oct);
+    float fval, fval2;
+    sscanf("123abab 456asas 7891011 FFFF -234 12 123.456 -768.333", "%s %s %i %x %i %o %f %f", a, b, &nv, &xv, &neg, &oct, &fval, &fval2);
+    printf("1: %s 2: %s 3 NUM: %i 4: %i 5: %i 6: %i 7: %f 8: %f\n", a, b, nv, xv, neg, oct, fval, fval2);
 
     sscanf("   0xFFF, 0xDE - test 77", "   0x%x, 0x%x - test %o", &nv, &xv, &oct);
     printf("1: %i 2: %x 3: %o 4: %f 5: %G\n", nv, xv, oct, 123.123456, 232.90921);
