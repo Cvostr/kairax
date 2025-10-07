@@ -121,3 +121,7 @@ cd ..
 cd stat
 make
 cd ..
+
+cd touch
+make
+cd ..
