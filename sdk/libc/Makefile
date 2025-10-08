@@ -75,6 +75,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/termios.o \
 				obj/netdb.o \
 				obj/addrinfo.o \
+				obj/getopt.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
 				obj/x64/syscalls.o \
@@ -87,8 +88,8 @@ all: $(OBJ_DIRS) libc errno
 $(OBJ_DIRS):
 	mkdir -p $@
 
-errno: obj/errno.o
-	ar rcs liberrno.a obj/errno.o
+errno: obj/errno.o obj/getopt_data.o
+	ar rcs liberrno.a obj/errno.o obj/getopt_data.o
 
 libc: $(COMPILED_OBJS)
 	$(CC) -fPIC -nostdlib -shared -o libc.so $(COMPILED_OBJS)
