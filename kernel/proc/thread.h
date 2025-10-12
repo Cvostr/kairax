@@ -20,8 +20,6 @@ struct thread {
     int                 code;
     // Имя потока
     char                name[PROCESS_NAME_MAX_LEN];
-    // Список потоков, находящихся в ожидании завершения
-    struct thread*      waiter;
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     struct mmap_range*  stack_mapping;

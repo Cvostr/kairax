@@ -28,9 +28,10 @@ void inthandler(int arg)
 	printf("Terminate [y/n]?\n");
 	char r;
 	scanf("%c", &r);
-	if (r == 'y')
+	printf("input: %c (%i)\n", r, r);
+    if (r == 'y')
 	{
-		printf("input: %c\n", r);
+        exit(0);
 	}
 }
 

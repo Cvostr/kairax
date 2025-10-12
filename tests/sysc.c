@@ -72,6 +72,15 @@ int main(int argc, char** argv) {
 
     printf("PID : %i\n", getpid());
 
+    printf("Various scanf test %%i %%c %%i\n");
+    char rch;
+    int num1, num2;
+    scanf("%i %c %i", &num1, &rch, &num2);
+    printf("NUM1: %i, CHAR: %c NUM2: %i\n", num1, rch, num2);
+    printf("scanf test %%c\n");
+    scanf("%c", &rch);
+    printf("CHAR: %c (%i)\n", rch, rch);
+
     int status = 0;
 
     char* args[3];
@@ -125,10 +134,6 @@ int main(int argc, char** argv) {
     int written = fwrite("abab", 1, 4, tsf);
     fclose(tsf);
     printf("Written: %i bytes\n", written);
-
-    int num1, num2;
-    scanf("%i %i", &num1, &num2);
-    printf("NUM1: %i, NUM2: %i\n", num1, num2);
 
     char sym = 'A';
     for(int iterations = 0; iterations < 5; iterations ++) {

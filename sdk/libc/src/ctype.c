@@ -2,7 +2,7 @@
 
 int isspace(int c)
 {
-	return c == ' ';
+	return c == ' ' || c == '\n' || c == '\r' || c == '\v' || c == '\t' || c == '\f';
 }
 
 int isdigit(int c)

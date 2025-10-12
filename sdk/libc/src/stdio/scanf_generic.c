@@ -143,8 +143,17 @@ next_modifier:
                         }
                         break;
                     case 'c':
+                        // Пропускаем пробелы входной строки
+                        while (isspace(sch)) {
+                            sch = fn->getch(fn->data);
+                            spos++;
+                        }
+                        
                         char* dchr = (char *) va_arg(args, char*);
                         *dchr = sch;
+
+                        sch = fn->getch(fn->data);
+                        spos++;
                         break;
                     case 'x':
                     case 'X':
