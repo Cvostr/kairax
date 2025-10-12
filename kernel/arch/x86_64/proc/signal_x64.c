@@ -167,6 +167,49 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
     }
 }
 
+void arch_exit_process_from_handler(int exit_code, int caller, void* frame)
+{
+    struct thread* thr = cpu_get_current_thread();
+    if (caller == CALLER_SYSCALL)
+    {
+        exit_process(exit_code);
+    } 
+    else if (caller == CALLER_SCHEDULER)
+    {
+        thread_frame_t* old_frame = thr->context; 
+
+        // Заполняем возврат
+        old_frame->rdi = exit_code;
+        old_frame->rip = exit_process;
+
+        // Устанавливаем стек
+        old_frame->rsp = thr->kernel_stack_ptr + 4096;
+        old_frame->rbp = thr->kernel_stack_ptr + 4096;
+
+        old_frame->ss = GDT_BASE_KERNEL_DATA_SEG;
+        old_frame->cs = GDT_BASE_KERNEL_CODE_SEG;
+
+        return;
+    } 
+    else if (caller == CALLER_INTERRUPT)
+    {
+        interrupt_frame_t* old_frame = frame; 
+
+        // Заполняем возврат
+        old_frame->rdi = exit_code;
+        old_frame->rip = exit_process;
+
+        // Устанавливаем стек
+        old_frame->rsp = thr->kernel_stack_ptr + 4096;
+        old_frame->rbp = thr->kernel_stack_ptr + 4096;
+
+        old_frame->ss = GDT_BASE_KERNEL_DATA_SEG;
+        old_frame->cs = GDT_BASE_KERNEL_CODE_SEG;
+
+        return;
+    }
+}
+
 void arch_sigreturn()
 {
     struct thread* thr = cpu_get_current_thread();

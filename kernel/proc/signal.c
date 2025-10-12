@@ -44,6 +44,7 @@ int signals_table[SIGNALS] = {
 
 // специфические реализации для разных CPU архитектур
 extern void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame);
+extern void arch_exit_process_from_handler(int exit_code, int caller, void* frame);
 
 void process_handle_signals(int caller, void* frame)
 {
@@ -78,7 +79,8 @@ void process_handle_signals(int caller, void* frame)
         int sigdefault = signals_table[signal];
 
         if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
-		    exit_process(MAKETERMCODE(signal));
+		    //exit_process(MAKETERMCODE(signal));
+            arch_exit_process_from_handler(MAKETERMCODE(signal), caller, frame);
         }
     } 
     else
