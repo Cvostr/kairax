@@ -75,11 +75,11 @@ int main(int argc, char** argv) {
     int status = 0;
 
     char* args[3];
-    args[0] = "ls.a";
+    args[0] = "bin/ls";
     args[1] = "-a";
     args[2] = NULL;
     pid_t pid = 0;
-    posix_spawn(&pid, "/ls.a", args);
+    posix_spawn(&pid, "bin/ls", args);
     printf("CREATED PROCESS %i, errno = %i\n", pid, errno);
     pid_t rc = waitpid(pid, &status, 0);
     printf("PROCESS FINISHED WITH CODE %i, rc = %i, errno = %i\n", status, rc, errno);

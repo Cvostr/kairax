@@ -10,6 +10,8 @@
 #include "string.h"
 #include "proc/timer.h"
 
+#define WNOHANG		0x00000001
+
 pid_t sys_wait(pid_t id, int* status, int options)
 {
     pid_t       result = -1;
@@ -35,22 +37,52 @@ pid_t sys_wait(pid_t id, int* status, int options)
                     result = -ERROR_NO_CHILD;
                     goto exit;
                 }
+            }            
+
+            if (child->state == STATE_ZOMBIE) 
+            {
+                break;
+            }
+            else if ((options & WNOHANG) == WNOHANG)
+            {
+                result = 0;
+                goto exit;
             }
 
-            if (child->state == STATE_ZOMBIE)
-                break;
-
             release_spinlock(&process->wait_lock);
-            child->waiter = thread;
-            scheduler_sleep1();
-            child->waiter = NULL;
+            
+            if (scheduler_sleep_on(&process->wait_blocker) == 1)
+            {
+                return -EINTR;
+            }
+            
             acquire_spinlock(&process->wait_lock);
         }
     } else if (id == -1) {
         // Завершить любой дочерний процесс, который зомби
-        // TODO
-        goto exit;
-        
+        for (;;)
+        {
+            child = process_get_first_zombie(process);
+
+            if (child != NULL) 
+            {
+                break;
+            }
+            else if ((options & WNOHANG) == WNOHANG)
+            {
+                result = 0;
+                goto exit;
+            }
+
+            release_spinlock(&process->wait_lock);
+            
+            if (scheduler_sleep_on(&process->wait_blocker) == 1)
+            {
+                return -EINTR;
+            }
+            
+            acquire_spinlock(&process->wait_lock);
+        }
     } else {
         goto exit;
     }
@@ -58,11 +90,6 @@ pid_t sys_wait(pid_t id, int* status, int options)
     // Процесс завершен
     // Сохранить код вовзрата
     int code = child->code;
-
-    while (child->state != STATE_ZOMBIE)
-    {
-        scheduler_yield(TRUE);
-    }
 
     // Удалить процесс из списка
     process_remove_from_list(child);

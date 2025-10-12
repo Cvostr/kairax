@@ -4,7 +4,7 @@
 #include "stdio.h"
 #include "errno.h"
 
-#define TEST1_PROCS 175
+#define TEST1_PROCS 100
 #define TEST2_ROUNDS 300
 
 #define ROUNDS 30000

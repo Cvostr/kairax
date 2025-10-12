@@ -93,6 +93,7 @@ struct process {
     spinlock_t          mmap_lock;
     // Для ожиданий
     spinlock_t          wait_lock;
+    struct blocker      wait_blocker;
 };
 
 struct process_create_info {
@@ -116,6 +117,8 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
 
 struct process* process_get_child_by_id(struct process* process, pid_t id);
 struct thread* process_get_thread_by_id(struct process* process, pid_t id);
+
+struct process* process_get_first_zombie(struct process* process);
 
 void  process_remove_child(struct process* process, struct process* child);
 void  process_remove_thread(struct process* process, struct thread* thread);

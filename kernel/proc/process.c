@@ -376,6 +376,24 @@ exit:
     return result;
 }
 
+struct process* process_get_first_zombie(struct process* process)
+{
+    struct process* result = NULL;
+    acquire_spinlock(&process->children_lock);
+    
+    for (size_t i = 0; i < list_size(process->children); i ++) {
+        struct process* child = list_get(process->children, i);
+        if (child->state == STATE_ZOMBIE) {
+            result = child;
+            goto exit;
+        }
+    }
+
+exit:
+    release_spinlock(&process->children_lock);
+    return result;
+}
+
 void  process_remove_child(struct process* process, struct process* child)
 {
     acquire_spinlock(&process->children_lock);

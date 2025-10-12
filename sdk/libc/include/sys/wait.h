@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+#define WNOHANG		0x00000001
+
 #define	WEXITSTATUS(status)	(((status) & 0xff00) >> 8)
 #define	WIFSTOPPED(status)	(((status) & 0xff) == 0x7f)
 

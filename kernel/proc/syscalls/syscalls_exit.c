@@ -8,6 +8,7 @@ void exit_process(int code)
 {
     struct thread* thr = cpu_get_current_thread();
     struct process* process = thr->process;
+    struct process* parent_process = process->parent;
     // Сохранить код возврата
     process->code = code;
 
@@ -16,12 +17,6 @@ void exit_process(int code)
 
     // Очистить ресурсы процесса
     process_free_resources(process);
-
-    // Дикий кейс
-    while (process->waiter == NULL)
-    {
-        scheduler_yield(TRUE);
-    }
 
     // Данная операция должна выполниться атомарно
     disable_interrupts();
@@ -36,9 +31,7 @@ void exit_process(int code)
     process->state = STATE_ZOMBIE;
 
     // Разбудить потоки, ждущие pid
-    if (process->waiter) {
-        scheduler_wakeup1(process->waiter);
-    }
+    scheduler_wake(&parent_process->wait_blocker, INT_MAX);
     
     scheduler_yield(FALSE);
 }
@@ -52,6 +45,8 @@ void sys_exit_thread(int code)
 {
     // Получить объект потока
     struct thread* thr = cpu_get_current_thread();
+    struct process* process = thr->process;
+
     thr->code = MAKEEXITCODE(code);
 
     // Уничтожить данные потока
@@ -65,9 +60,7 @@ void sys_exit_thread(int code)
     thread_become_zombie(thr);
 
     // Разбудить потоки, ждущие pid
-    if (thr->waiter) {
-        scheduler_wakeup1(thr->waiter);
-    }
+    scheduler_wake(&process->wait_blocker, INT_MAX);
 
     // Выйти
     scheduler_yield(FALSE);
