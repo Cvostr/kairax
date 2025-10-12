@@ -44,6 +44,7 @@ struct thread {
 
     int                 sleep_interrupted;
     int                 balance_forbidden;
+    int                 killing;
     uint32_t            cpu;
 #ifdef X86_64
     uint8_t*            fpu_context;
@@ -71,6 +72,15 @@ void thread_clear_stack_tls(struct thread* thread);
 void thread_become_zombie(struct thread* thread);
 void thread_destroy(struct thread* thread);
 
+/// @brief Отправляет сигнал потоку, при необходимости будит его
+/// @param thread объект потока
+/// @param signal номер сигнала
+/// @return 0 - при успехе, -1 при блокировке сигнала
 int thread_send_signal(struct thread* thread, int signal);
+/// @brief Подготавливает поток для уничтожения из другого потока. 
+/// Обычно это используется при завершении процесса, чтобы безопасно остановить работу других потоков, если они были.
+/// В конечном итоге state станет ZOMBIE и поток выпадет из очереди на выполнение
+/// @param thread 
+void thread_prepare_for_kill(struct thread* thread);
 
 #endif

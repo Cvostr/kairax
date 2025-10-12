@@ -51,6 +51,14 @@ void process_handle_signals(int caller, void* frame)
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
 
+    // Сначала проверим, не надо ли убить этот поток, так как заввершается процесс
+    if (thread->killing == TRUE)
+    {
+        thread->state = STATE_ZOMBIE;
+        scheduler_remove_thread(thread);
+        scheduler_yield(FALSE);
+    }
+
     sigset_t sigs = thread->pending_signals;
 
     if (sigs == 0) {

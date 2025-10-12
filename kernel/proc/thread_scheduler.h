@@ -37,8 +37,6 @@ void scheduler_add_thread(struct thread* thread);
 
 void scheduler_remove_thread(struct thread* thread);
 
-void scheduler_remove_process_threads(struct process* process, struct thread* despite);
-
 struct thread* scheduler_get_next_runnable_thread();
 
 void scheduler_yield(int save_context);

@@ -12,8 +12,15 @@ void exit_process(int code)
     // Сохранить код возврата
     process->code = code;
 
-    // Удалить другие потоки процесса из планировщика
-    scheduler_remove_process_threads(process, thr);
+    // Безопасно останавливаем работу других потоков, если они были
+    for (size_t i = 0; i < list_size(process->threads); i ++) {
+        struct thread* thread = list_get(process->threads, i);
+        if (thread != thr) 
+        {
+            thread_prepare_for_kill(thread);
+            while (thread->state != STATE_ZOMBIE);
+        }
+    }
 
     // Очистить ресурсы процесса
     process_free_resources(process);
@@ -22,7 +29,7 @@ void exit_process(int code)
     disable_interrupts();
 
     // Удалить текущий оставшийся поток из планировщика
-    scheduler_remove_process_threads(process, NULL);
+    scheduler_remove_thread(thr);
 
     // После этого Данные оставшегося потока можно безопасно уничтожить
     thr->state = STATE_ZOMBIE;

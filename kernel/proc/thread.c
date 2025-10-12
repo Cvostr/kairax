@@ -74,3 +74,21 @@ int thread_send_signal(struct thread* thread, int signal)
 
     return 0;
 }
+
+void thread_prepare_for_kill(struct thread* thread)
+{
+    thread->killing = TRUE;
+
+    if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
+    {
+        // Если поток был усыплен
+        if (thread->sleep_raiser != NULL && *thread->sleep_raiser != NULL) 
+        {
+            *thread->sleep_raiser = NULL;
+            thread->sleep_raiser = NULL;
+        }
+
+        thread->sleep_interrupted = TRUE;
+        scheduler_wakeup1(thread);
+    }
+}

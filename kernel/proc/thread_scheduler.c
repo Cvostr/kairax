@@ -199,18 +199,6 @@ void scheduler_remove_thread(struct thread* thread)
     ENABLE_INTS
 }
 
-void scheduler_remove_process_threads(struct process* process, struct thread* despite)
-{
-    // TODO: Ожидание выхода всех потоков из системных вызовов
-    for (size_t i = 0; i < list_size(process->threads); i ++) {
-        struct thread* thread = list_get(process->threads, i);
-        if (thread != despite) {
-            scheduler_remove_thread(thread);
-            thread->state = STATE_ZOMBIE;
-        }
-    }
-}
-
 void scheduler_sleep(void* handle, spinlock_t* lock)
 {
     printk("Deprecated!\n");
