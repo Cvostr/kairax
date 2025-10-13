@@ -77,7 +77,6 @@ void free_process(struct process* process)
 
         while (thread->state != STATE_ZOMBIE);
 
-        //printf("THR REM %i\n", thread->id);
         process_remove_from_list(thread);
         // Уничтожить объект потока
         thread_destroy(thread);

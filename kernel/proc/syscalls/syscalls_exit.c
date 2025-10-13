@@ -25,21 +25,23 @@ void exit_process(int code)
     // Очистить ресурсы процесса
     process_free_resources(process);
 
-    // Данная операция должна выполниться атомарно
-    disable_interrupts();
-
-    // Удалить текущий оставшийся поток из планировщика
-    scheduler_remove_thread(thr);
-
-    // После этого Данные оставшегося потока можно безопасно уничтожить
-    thr->state = STATE_ZOMBIE;
-
     // Установить состояние zombie
     process->state = STATE_ZOMBIE;
 
     // Разбудить потоки, ждущие pid
     scheduler_wake(&parent_process->wait_blocker, INT_MAX);
-    
+
+    // Каждая из следующих операций приведет к тому, что поток больше не будет запускаться
+    // Но они должны быть выполнены все
+    // поэтому их надо делать с выключенными прерываниями
+    disable_interrupts();
+
+    // Пометим поток как зомби, чтобы планировщик не пытался его исполнить
+    thr->state = STATE_ZOMBIE;
+
+    // Удалить текущий оставшийся поток из планировщика
+    scheduler_remove_thread(thr);
+
     scheduler_yield(FALSE);
 }
 
