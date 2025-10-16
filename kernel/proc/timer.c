@@ -5,7 +5,7 @@
 #include "list/list.h"
 #include "thread_scheduler.h"
 
-#include "cpu/cpu_local_x64.h"
+#include "cpu/cpu_local.h"
 
 struct timespec current_ticks = {0, 0}; // Время, вычисляемое обработчиком прерывания таймера
 spinlock_t timers_lock = 0;
@@ -53,7 +53,12 @@ void timer_handle()
             if (timespec_is_zero(&ev_timer->when)) {
                 //scheduler_wakeup_intrusive(&ev_timer->wait_head, &ev_timer->wait_tail, NULL, INT_MAX);
                 
-                if (ev_timer->wait_head) scheduler_wakeup1(ev_timer->wait_head);
+                struct thread* thr = ev_timer->wait_head;
+                if (thr) 
+                {
+                    thr->timer = NULL;
+                    scheduler_wakeup1(thr);
+                }
                 
                 ev_timer->alarmed = 1;
             }
@@ -90,8 +95,9 @@ struct event_timer* register_event_timer(struct timespec duration)
 
 int sleep_on_timer(struct event_timer* timer)
 {   
+    struct thread* thread = cpu_get_current_thread();
     timer->wait_head = cpu_get_current_thread();
-    timer->wait_head->sleep_raiser = &timer->wait_head;
+    thread->timer = timer;
     return scheduler_sleep1();
 }
 

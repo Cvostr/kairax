@@ -36,9 +36,10 @@ struct thread {
     struct blocker*     blocker;
     int                 timeslice;
     sigset_t            pending_signals;
-    // Следующий поток при блокировке на семафоре
-    struct thread**     sleep_raiser;
+    // Указатель на объект таймера спящего потока
+    void                *timer; 
     int                 in_queue;
+    // Следующий поток при блокировке на семафоре
     struct thread*      prev;
     struct thread*      next;
 

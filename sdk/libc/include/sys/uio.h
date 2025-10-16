@@ -1,5 +1,5 @@
-#ifndef _UN_H
-#define _UN_H
+#ifndef _UIO_H
+#define _UIO_H
 
 #include <sys/cdefs.h>
 #include "types.h"

@@ -235,6 +235,12 @@ void scheduler_wakeup1(struct thread* thread)
 
     if (thread->state == STATE_INTERRUPTIBLE_SLEEP || thread->state == STATE_UNINTERRUPTIBLE_SLEEP)
     {
+        // Если поток был усыплен на таймере
+        if (thread->timer != NULL)
+        {
+            unregister_event_timer(thread->timer);
+        }
+
         if (thread->blocker)
         {
             thread_intrusive_remove(&thread->blocker->head, &thread->blocker->tail, thread);
@@ -256,7 +262,7 @@ int scheduler_wakeup(void* handle, int max)
 void scheduler_unblock(struct thread* thread)
 {
     thread->state = STATE_RUNNABLE;
-    thread->sleep_raiser = NULL;
+    thread->timer = NULL;
 }
 
 struct thread* scheduler_get_next_runnable_thread()
