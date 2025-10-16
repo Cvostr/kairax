@@ -5,6 +5,7 @@
 #include "types.h"
 #include "stddef.h"
 #include "stdint.h"
+#include "sys/uio.h"
 
 __BEGIN_DECLS
 
@@ -12,6 +13,7 @@ __BEGIN_DECLS
 #define AF_LOCAL    1
 #define AF_UNIX     AF_LOCAL
 #define AF_INET     2
+#define PF_INET		AF_INET
 #define AF_INET6    10
 #define AF_PACKET	17
 
@@ -57,11 +59,6 @@ __BEGIN_DECLS
 #define SHUT_RD 0
 #define SHUT_WR 1
 #define SHUT_RDWR 2
-
-struct iovec {
-    void *iov_base;
-    size_t iov_len;
-};
 
 struct sockaddr {
     sa_family_t sa_family;
