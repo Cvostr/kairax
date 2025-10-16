@@ -5,6 +5,7 @@
 #include "stddef.h"
 #include "unistd.h"
 #include "stdio.h"
+#include "netdb.h"
 
 unsigned short checksum(void *b, int len);
 
@@ -31,8 +32,15 @@ int main(int argc, char** argv)
     } else {
         ip4_addr = inet_addr(addr);
         if (ip4_addr == (in_addr_t) - 1) {
-            printf("Incorrect address\n");
-            return 1;
+            // Вероятно доменное имя, пробуем DNS
+            struct hostent* host = gethostbyname(addr);
+            if (host == NULL)
+            {
+                printf("traceroute: %s\n", hstrerror(h_errno));
+                return 1;
+            }
+            
+            ip4_addr = ((struct in_addr*) host->h_addr_list[0])->s_addr;
         }
     }
 

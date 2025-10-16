@@ -7,6 +7,18 @@
 
 __BEGIN_DECLS
 
+extern int* __h_errno_location();
+#define h_errno (*__h_errno_location ())
+
+#define HOST_NOT_FOUND  1
+#define TRY_AGAIN       2
+#define NO_RECOVERY     3
+#define NO_DATA         4
+#define NO_ADDRESS	NO_DATA
+#define NETDB_INTERNAL	-1
+
+extern const char *hstrerror (int err_num) __THROW;
+
 struct hostent {
     char *h_name;			/* Official name of host.  */
     char **h_aliases;		/* Alias list.  */

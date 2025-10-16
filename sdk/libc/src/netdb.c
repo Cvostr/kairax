@@ -27,6 +27,20 @@ struct hostent *gethostbyname(const char *name)
     return gethostbyname2(name, AF_INET);
 }
 
+const char* hstrerror(int e) {
+    switch (e) {
+        case 0: 
+            return "OK";
+        case NO_DATA: 
+            return "No data of requested type.";
+        case TRY_AGAIN: 
+            return "Temporary failure.";
+        case HOST_NOT_FOUND:
+        default: 
+            return "Unknown host.";
+    }
+}
+
 struct hostent *gethostbyname2(const char *name, int af)
 {
     int i;
@@ -47,6 +61,7 @@ struct hostent *gethostbyname2(const char *name, int af)
         h_len = 16;
         break;
     default:
+        h_errno = NETDB_INTERNAL;
         return NULL;
     }
 
@@ -56,6 +71,7 @@ struct hostent *gethostbyname2(const char *name, int af)
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) 
     { 
+        h_errno = NETDB_INTERNAL;
         return NULL;    
     } 
 
@@ -90,17 +106,35 @@ struct hostent *gethostbyname2(const char *name, int af)
     
     if (nsresp_header->id != nsreq_header->id)
     {
+        h_errno = TRY_AGAIN;
         return NULL;
     }
 
     if (nsresp_header->qr != 1)
     {
+        h_errno = TRY_AGAIN;
         return NULL;
     }
 
-    if (nsresp_header->rcode != 0)
+    // Маппинг кода ошибок
+    int rcode = nsresp_header->rcode; 
+    switch (rcode)
     {
-        //printf("DNS RCODE is %i\n", nsresp_header->rcode);
+    case RCODE_NOERROR:
+        break;
+    case RCODE_NXDOMAIN:
+        h_errno = HOST_NOT_FOUND;
+        return NULL;
+    case RCODE_SERVFAIL:
+        h_errno = TRY_AGAIN;
+        return NULL;
+    case RCODE_FORMERR:
+    case RCODE_REFUSED:
+    case RCODE_NOTIMPL:
+        h_errno = NO_RECOVERY;
+        return NULL;
+    default:
+        h_errno = NO_ADDRESS;
         return NULL;
     }
 
