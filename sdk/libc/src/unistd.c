@@ -115,6 +115,11 @@ int usleep(unsigned long useconds)
     return nanosleep(&tmscp, &tmscp);
 }
 
+int pause(void)
+{
+    __set_errno(syscall_pause());
+}
+
 char* getcwd(char* buf, size_t size)
 {
     int rc = syscall_get_working_dir(buf, size);

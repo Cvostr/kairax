@@ -78,6 +78,8 @@ void sys_exit_thread(int code);
 
 int sys_thread_sleep(time_t tv_sec, long int tv_nsec);
 
+int sys_pause();
+
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags, int fd, int offset);
 
 int sys_memory_protect(void* address, uint64_t length, int protection);

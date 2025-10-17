@@ -58,6 +58,8 @@ int rmdir(const char *path);
 int usleep(unsigned long useconds);
 unsigned int sleep(unsigned int seconds);
 
+int pause(void) __THROW;
+
 off_t lseek(int fd, off_t offset, int whence);
 
 int link(const char *oldpath, const char *newpath);

@@ -204,6 +204,15 @@ int main(int argc, char** argv, char** envp) {
         }
     }
 
+    if (argc > 1 && strcmp(argv[1], "paus") == 0)
+    {
+        while (1)
+        {
+            int ret = pause();
+            printf("result %i should be %i\n", errno, EINTR);
+        }
+    }
+
     if (argc > 1 && strcmp(argv[1], "segv") == 0)
     {
         signal(SIGSEGV, segfaulthandle);

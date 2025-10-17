@@ -89,38 +89,6 @@ int sys_poweroff(int cmd)
     return -1;
 }
 
-int sys_thread_sleep(time_t sec, long int nsec)
-{
-    int rc = 0;
-
-    if (sec == 0 && nsec == 0) {
-        goto exit;
-    }
-
-    if (sec < 0 || nsec < 0) {
-        rc = -ERROR_INVALID_VALUE;
-        goto exit;
-    }
-
-    struct thread* thread = cpu_get_current_thread();
-    struct timespec duration = {.tv_sec = sec, .tv_nsec = nsec};
-    struct event_timer* timer = register_event_timer(duration);
-    if (timer == NULL) {
-        return -ENOMEM;
-    }
-    
-    if (sleep_on_timer(timer) == 1)
-    {
-        rc = -EINTR;
-    }
-
-    unregister_event_timer(timer);
-    kfree(timer);
-
-exit:
-    return rc;
-}
-
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
