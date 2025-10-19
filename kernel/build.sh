@@ -138,6 +138,8 @@ gcc $GCC_ARGS proc/syscalls/syscalls_pid.c -o ./bin/syscalls_pid.o
 gcc $GCC_ARGS proc/syscalls/syscall_sysinfo.c -o ./bin/syscall_sysinfo.o
 gcc $GCC_ARGS proc/syscalls/syscall_nodename.c -o ./bin/syscall_nodename.o
 gcc $GCC_ARGS proc/syscalls/syscall_sleep.c -o ./bin/syscall_sleep.o
+gcc $GCC_ARGS proc/syscalls/syscall_select.c -o ./bin/syscall_select.o
+gcc $GCC_ARGS proc/syscalls/syscall_poll.c -o ./bin/syscall_poll.o
 gcc $GCC_ARGS proc/syscalls_table.c -o ./bin/syscalls_table.o
 gcc $GCC_ARGS proc/timer.c -o ./bin/timer.o
 gcc $GCC_ARGS proc/idle.c -o ./bin/idle.o

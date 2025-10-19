@@ -29,13 +29,14 @@ DEFINE_SYSCALL syscall_write,       0x1
 DEFINE_SYSCALL syscall_open_file,   0x2
 DEFINE_SYSCALL syscall_close,       0x3
 DEFINE_SYSCALL syscall_fdstat,      0x5
-DEFINE_SYSCALL syscall_wait,        0x7
+DEFINE_SYSCALL syscall_poll,        0x7
 DEFINE_SYSCALL syscall_file_seek,   0x8
 DEFINE_SYSCALL syscall_map_memory,  0x9
 DEFINE_SYSCALL syscall_protect_memory,  0xA
 DEFINE_SYSCALL syscall_sigaction,   0xD
 DEFINE_SYSCALL syscall_ioctl,       0x10
 DEFINE_SYSCALL syscall_create_pipe, 0x16
+DEFINE_SYSCALL syscall_select,      0x17
 DEFINE_SYSCALL syscall_sched_yield, 0x18
 
 DEFINE_SYSCALL syscall_dup,         0x20
@@ -58,6 +59,7 @@ DEFINE_SYSCALL syscall_fork,        0x39
 DEFINE_SYSCALL syscall_vfork,       0x3A
 DEFINE_SYSCALL syscall_execve,      0x3B
 DEFINE_SYSCALL syscall_process_exit, 0x3C
+DEFINE_SYSCALL syscall_wait,        0x3D
 DEFINE_SYSCALL syscall_kill,        0x3E
 DEFINE_SYSCALL syscall_fcntl,       0x48
 DEFINE_SYSCALL syscall_readdir,     0x4E

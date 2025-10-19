@@ -66,6 +66,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys/socket.o \
 				obj/sys/mount.o \
 				obj/sys/uio.o \
+				obj/sys/select.o \
 				obj/time.o \
 				obj/gmtime_r.o \
 				obj/timegm.o \
@@ -77,6 +78,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/netdb.o \
 				obj/addrinfo.o \
 				obj/getopt.o \
+				obj/poll.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
 				obj/x64/syscalls.o \

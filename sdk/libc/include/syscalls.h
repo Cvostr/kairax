@@ -29,6 +29,8 @@ extern long long syscall_getpgid(long long pid);
 extern long syscall_thread_get_id();
 extern int syscall_sleep(long long sec, long long nsec);
 extern int syscall_pause();
+extern int syscall_select(int n, void *readfds, void *writefds, void *exceptfds, void *timeout);
+extern int syscall_poll(void *ufds, unsigned long nfds, int timeout);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
 extern int syscall_set_working_dir(const char* path);
 extern int syscall_fdstat(int dirfd, const char* filepath, void* stat_buffer, int flags);

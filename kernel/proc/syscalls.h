@@ -7,6 +7,8 @@
 #include "kairax/time.h"
 #include "kairax/in.h"
 #include "kairax/signal.h"
+#include "kairax/select.h"
+#include "kairax/poll.h"
 
 #define VALIDATE_NULL_POINTER(base) if (base == 0) {return -ERROR_INVALID_VALUE;}
 #define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,base,len,0) == 0) {return -ERROR_INVALID_VALUE;}
@@ -133,6 +135,9 @@ int sys_dup2(int oldfd, int newfd);
 
 int sys_sethostname(const char *name, size_t len);
 int sys_setdomainname(const char *name, size_t len);
+
+int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout);
 
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
