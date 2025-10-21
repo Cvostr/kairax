@@ -54,3 +54,6 @@ ld $LD_ARGS -o bin/load.a obj/load.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerr
 
 gcc $ARGS getopt.c -o obj/getopt.o
 ld $LD_ARGS -o bin/getopt.a obj/getopt.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS poll.c -o obj/poll.o
+ld $LD_ARGS -o bin/poll.a obj/poll.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

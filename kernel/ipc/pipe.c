@@ -6,12 +6,14 @@
 
 struct file_operations pipe_fops_read = {
     .read = pipe_file_read,
-    .close = pipe_file_close
+    .close = pipe_file_close,
+    .poll = pipe_poll
 };
 
 struct file_operations pipe_fops_write = {
     .write = pipe_file_write,
-    .close = pipe_file_close
+    .close = pipe_file_close,
+    .poll = pipe_poll
 };
 
 struct pipe* new_pipe(size_t size)
@@ -121,6 +123,8 @@ exit_wake_writers:
     // Пробуждаем записывающих
     scheduler_wake(&pipe->writeb, INT_MAX);
 
+    poll_wakeall(&pipe->poll_wq);
+
 exit:
     release_spinlock(&pipe->lock);
     return i;
@@ -166,8 +170,27 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
     // Пробуждаем читающих  
     scheduler_wake(&pipe->readb, INT_MAX);
 
+    poll_wakeall(&pipe->poll_wq);
+
     release_spinlock(&pipe->lock);
     return count;
+}
+
+short pipe_poll(struct file *file, struct poll_ctl *pctl)
+{
+    short poll_mask = 0;
+    struct pipe* p = (struct pipe*) file->private_data;
+
+    poll_wait(pctl, file, &p->poll_wq);
+
+    int writefd = (file->flags & FILE_OPEN_MODE_WRITE_ONLY) == FILE_OPEN_MODE_WRITE_ONLY;
+
+    if ((writefd == FALSE) && (p->read_pos < p->write_pos))
+        poll_mask |= (POLLIN | POLLRDNORM);
+    if ((writefd == TRUE) && (p->write_pos < p->read_pos + PIPE_SIZE))
+        poll_mask |= (POLLOUT | POLLWRNORM);
+    
+    return poll_mask;
 }
 
 ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset)

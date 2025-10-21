@@ -27,6 +27,8 @@ struct pipe {
 
     struct blocker readb;
     struct blocker writeb;
+
+    struct poll_wait_queue poll_wq;
 };
 
 struct pipe* new_pipe();
@@ -36,6 +38,7 @@ void free_pipe(struct pipe* pipe);
 ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock);
 ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count);
 
+short pipe_poll(struct file *file, struct poll_ctl *pctl);
 ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 int pipe_file_close(struct inode *inode, struct file *file);
