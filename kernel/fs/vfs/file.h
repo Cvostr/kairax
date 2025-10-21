@@ -7,6 +7,7 @@
 #include "dentry.h"
 #include "kairax/errors.h"
 #include "mem/vm_area.h"
+#include "kairax/poll.h"
 
 #define FILE_OPEN_MODE_READ_ONLY    00000000
 #define FILE_OPEN_MODE_WRITE_ONLY   00000001
@@ -42,6 +43,7 @@ struct file_operations {
     struct dirent* (*readdir)(struct file* file, uint32_t index);
     int (*ioctl)(struct file* file, uint64_t request, uint64_t arg);
     int (*mmap)(struct file* file, struct mmap_range *area);
+    short (*poll) (struct file *, struct poll_ctl *);
 
     int (*open) (struct inode *inode, struct file *file);
     int (*close) (struct inode *inode, struct file *file);

@@ -70,6 +70,7 @@ gcc $GCC_ARGS $KAIRAX_PATH/ctype.c -o ./bin/stdc_ctype.o
 gcc $GCC_ARGS $KAIRAX_PATH/stdio.c -o ./bin/stdc_stdio.o
 gcc $GCC_ARGS $KAIRAX_PATH/time.c -o ./bin/time.o
 gcc $GCC_ARGS $KAIRAX_PATH/version.c -o ./bin/version.o
+gcc $GCC_ARGS $KAIRAX_PATH/poll.c -o ./bin/poll.o
 
 #generic dev
 gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o

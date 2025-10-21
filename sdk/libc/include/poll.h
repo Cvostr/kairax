@@ -11,6 +11,8 @@ __BEGIN_DECLS
 #define POLLERR     0x008
 #define POLLHUP     0x010
 #define POLLNVAL    0x020
+#define POLLRDNORM  0x040
+#define POLLWRNORM	0x100
 
 struct pollfd {
     int fd;

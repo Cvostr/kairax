@@ -1,12 +1,81 @@
 #include "proc/syscalls.h"
 #include "cpu/cpu_local.h"
+#include "kairax/errors.h"
+#include "proc/thread_scheduler.h"
+#include "proc/timer.h"
+#include "kairax/string.h"
 
 int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
     struct thread *thread = cpu_get_current_thread();
     struct process *process = thread->process;
+    int rc = -1;
+    int catched = 0;
+    int fd;
+    short revents;
 
-    VALIDATE_USER_POINTER(process, ufds, sizeof(struct pollfd) * nfds)
+    struct poll_ctl pctl;
+    memset(&pctl, 0, sizeof(    struct poll_ctl));
 
-    return -1;
+    VALIDATE_USER_POINTER_PROTECTION(process, ufds, sizeof(struct pollfd) * nfds, PAGE_PROTECTION_WRITE_ENABLE)
+
+    while (1)
+    {
+        for (nfds_t i = 0; i < nfds; i ++)
+        {
+            struct pollfd *pfd = &ufds[i];
+            fd = pfd->fd;
+
+            if (fd < 0)
+            {
+                // При отрицательных дескрипторах зануляем revents и пропускаем
+                pfd->revents = 0;
+                continue;
+            }
+
+            struct file* file = process_get_file_ex(process, fd, TRUE);
+            if (file == NULL)
+            {
+                rc = -ERROR_BAD_FD;
+                goto exit;
+            }
+
+            if (file->ops->poll)
+            {
+                // вызываем poll для файла
+                revents = file->ops->poll(file, &pctl);
+                // Маскируем ненужные события
+                revents = pfd->events & revents;
+                if (revents != 0)
+                {
+                    pfd->revents = revents;
+                    catched ++;
+                }
+            }
+            else
+            {
+                rc = -ERROR_BAD_FD;
+                file_close(file);
+                goto exit;
+            }
+
+            file_close(file);
+        }
+
+        if (catched > 0)
+        {
+            rc = catched;
+            goto exit;
+        }
+
+        if (scheduler_sleep1() == 1)
+        {
+            rc = -EINTR;
+            goto exit;
+        }
+    }
+
+exit:
+    poll_unwait(&pctl);
+    return rc;
 }
