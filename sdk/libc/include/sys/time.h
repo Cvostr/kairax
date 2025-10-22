@@ -2,6 +2,9 @@
 #define _SYS_TIME_H_
 
 #include "types.h"
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 struct tm {
     int tm_sec;			
@@ -33,7 +36,11 @@ struct timezone {
     int tz_dsttime;
 };
 
+#include <sys/select.h>
+
 int gettimeofday(struct timeval *tv, struct timezone *tz);
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
+
+__END_DECLS
 
 #endif
