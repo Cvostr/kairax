@@ -84,5 +84,19 @@ int main(int argc, char** argv) {
     events = poll(pfds, 2, TIMEOUT);
     printf("got %i events. revents1 = %i revents2 = %i\n", events, pfds[0].revents, pfds[1].revents);
 
+    printf("Test 5\n");
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(fds[0], &readfds);
+
+    pid = create_thread(thread, NULL);
+
+    printf("select()\n");
+    events = select(fds[0] + 1, &readfds, NULL, NULL, NULL);
+    printf("got %i events\n", events);
+    read(fds[0], &val, 1);
+
+    waitpid(pid, &status,  0);
+
     return 0;
 }

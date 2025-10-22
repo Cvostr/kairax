@@ -22,7 +22,12 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
 
     struct poll_ctl pctl;
     memset(&pctl, 0, sizeof(struct poll_ctl));
-    
+
+    if (n < 0)
+    {
+        return -EINVAL;
+    }
+
     if (readfds)
         VALIDATE_USER_POINTER(process, readfds, sizeof(fd_set))
     if (writefds)
@@ -31,6 +36,10 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
         VALIDATE_USER_POINTER(process, exceptfds, sizeof(fd_set))
     if (timeout)
         VALIDATE_USER_POINTER(process, timeout, sizeof(struct timeval))
+
+    fd_set _readfds, _writefds;
+    FD_ZERO(&_readfds);
+    FD_ZERO(&_writefds);
 
     while (1)
     {
@@ -63,15 +72,14 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
                     if ((revents & POLLIN) != 0)
                     {
                         catched ++;
-                        FD_SET(i, readfds);
-                    } else
-                        FD_CLR(i, readfds);
+                        FD_SET(i, &_readfds);
+                    }
+
                     if ((revents & POLLOUT) != 0)
                     {
                         catched ++;
-                        FD_SET(i, writefds);
-                    } else
-                        FD_CLR(i, writefds);
+                        FD_SET(i, &_writefds);
+                    }
                     // TODO: exceptfds
                 }
                 else
@@ -133,5 +141,9 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
 
 exit:
     poll_unwait(&pctl);
+    if (readfds != NULL)
+        memcpy(readfds, &_readfds, sizeof(fd_set));
+    if (writefds)
+        memcpy(writefds, &_writefds, sizeof(fd_set));
     return rc;
 }
