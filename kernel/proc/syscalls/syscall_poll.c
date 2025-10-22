@@ -69,11 +69,30 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
             goto exit;
         }
 
-        if (scheduler_sleep1() == 1)
+        if (timeout < 0)
         {
-            rc = -EINTR;
+            // Отрицательный таймаут - бесконечный сон
+            if (scheduler_sleep1() == 1)
+            {
+                rc = -EINTR;
+                goto exit;
+            }
+        }
+        else if (timeout == 0)
+        {
+            // Нулевой таймаут - моментальный выход
+            rc = 0;
             goto exit;
         }
+        else
+        {
+            // Спим с таймаутом
+            struct timespec ts;
+            ts.tv_sec = timeout / 1000;
+            ts.tv_nsec = (timeout % 1000) * 1000000;
+            // TODO: сделать
+        }
+ 
     }
 
 exit:

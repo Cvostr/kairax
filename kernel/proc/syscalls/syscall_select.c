@@ -89,10 +89,21 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
             goto exit;
         }
 
-        if (scheduler_sleep1() == 1)
+        if (timeout == NULL)
         {
-            rc = -EINTR;
-            goto exit;
+            // timeout = NULL - бесконечный сон
+            if (scheduler_sleep1() == 1)
+            {
+                rc = -EINTR;
+                goto exit;
+            }
+        }
+        else
+        {
+            struct timespec *ts;
+            ts->tv_sec = timeout->tv_sec;
+            ts->tv_nsec = timeout->tv_usec * 1000;
+            // TODO: сделать
         }
     }
 
