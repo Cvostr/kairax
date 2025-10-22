@@ -19,6 +19,7 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
     int catched;
     int wake_reason;
     struct event_timer* timer = NULL;
+    struct timespec ts;
 
     struct poll_ctl pctl;
     memset(&pctl, 0, sizeof(struct poll_ctl));
@@ -107,7 +108,13 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
         }
         else
         {
-            struct timespec ts;
+            if (timeout->tv_sec == 0 && timeout->tv_usec == 0)
+            {
+                // Если оба значения 0 - значит сразу выходим
+                rc = 0;
+                goto exit;
+            }
+
             ts.tv_sec = timeout->tv_sec;
             ts.tv_nsec = timeout->tv_usec * 1000;
             // Объект таймера
