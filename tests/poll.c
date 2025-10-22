@@ -6,6 +6,7 @@
 #include "errno.h"
 #include "sys/wait.h"
 #include "poll.h"
+#include "sys/select.h"
 
 int fds[2];
 int fds1[2];
@@ -71,6 +72,16 @@ int main(int argc, char** argv) {
 
     printf("poll() with timeout 0\n");
     events = poll(pfds, 2, 0);
+    printf("got %i events. revents1 = %i revents2 = %i\n", events, pfds[0].revents, pfds[1].revents);
+
+    int TIMEOUT = 2000;
+    printf("Test 4\n");
+    pfds[0].revents = 0;
+    pfds[1].revents = 0;
+    pfds[2].revents = 0;
+
+    printf("poll() with timeout %i\n", TIMEOUT);
+    events = poll(pfds, 2, TIMEOUT);
     printf("got %i events. revents1 = %i revents2 = %i\n", events, pfds[0].revents, pfds[1].revents);
 
     return 0;

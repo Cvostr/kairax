@@ -69,10 +69,11 @@ int scheduler_sleep_on(struct blocker* blocker)
     thr->blocker = blocker;
     scheduler_sleep_intrusive(&blocker->head, &blocker->tail, &blocker->lock);
 
-    if (thr->sleep_interrupted == TRUE)
+    int wake_rsn = thr->wake_reason; 
+    if (wake_rsn != WAKE_NORMAL)
     {
-        thr->sleep_interrupted = FALSE;
-        return 1;
+        thr->wake_reason = WAKE_NORMAL;
+        return wake_rsn;
     }
 
     return 0;
@@ -220,10 +221,11 @@ int scheduler_sleep1()
     // Передача управления другому процессу
     scheduler_yield(TRUE);
 
-    if (thr->sleep_interrupted == TRUE)
+    int wake_rsn = thr->wake_reason; 
+    if (wake_rsn != WAKE_NORMAL)
     {
-        thr->sleep_interrupted = FALSE;
-        return 1;
+        thr->wake_reason = WAKE_NORMAL;
+        return wake_rsn;
     }
 
     return 0;

@@ -2,6 +2,7 @@
 #include "cpu/cpu_local.h"
 #include "kairax/string.h"
 #include "kairax/select.h"
+#include "proc/timer.h"
 
 #define FD_ZERO(set)        (memset ((void*) (set), 0, sizeof(fd_set)))
 #define FD_SET(d, set)	    ((set)->fds_bits[__FDSET_BYTE(d)] |= __MAKE_FDMASK(d))
@@ -16,6 +17,8 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
     int rc;
     short revents;
     int catched;
+    int wake_reason;
+    struct event_timer* timer = NULL;
 
     struct poll_ctl pctl;
     memset(&pctl, 0, sizeof(struct poll_ctl));
@@ -32,7 +35,7 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
     while (1)
     {
         catched = 0;
-        for (int i = 0; i < FD_SETSIZE; i ++)
+        for (int i = 0; i < n; i ++)
         {
             short reqdpollmask = 0;
             if ((readfds != NULL) && FD_ISSET(i, readfds))
@@ -92,18 +95,39 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
         if (timeout == NULL)
         {
             // timeout = NULL - бесконечный сон
-            if (scheduler_sleep1() == 1)
-            {
-                rc = -EINTR;
-                goto exit;
-            }
+            wake_reason = scheduler_sleep1(); 
         }
         else
         {
-            struct timespec *ts;
-            ts->tv_sec = timeout->tv_sec;
-            ts->tv_nsec = timeout->tv_usec * 1000;
-            // TODO: сделать
+            struct timespec ts;
+            ts.tv_sec = timeout->tv_sec;
+            ts.tv_nsec = timeout->tv_usec * 1000;
+            // Объект таймера
+            timer = register_event_timer(ts);
+            if (timer == NULL) {
+                rc = -ENOMEM;
+                goto exit;
+            }
+            
+            // Засыпаем на таймере
+            wake_reason = sleep_on_timer(timer);
+
+            // Удаляем таймер из списка и освобождаем память
+            unregister_event_timer(timer);
+            kfree(timer);
+        }
+
+        // анализируем причину пробуждения
+        switch (wake_reason)
+        {
+            case WAKE_SIGNAL:
+                rc = -EINTR;
+                goto exit;
+            case WAKE_TIMER:
+                rc = 0;
+                goto exit;
+            default:
+                continue;
         }
     }
 

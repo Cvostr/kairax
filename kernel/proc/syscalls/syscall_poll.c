@@ -4,6 +4,7 @@
 #include "proc/thread_scheduler.h"
 #include "proc/timer.h"
 #include "kairax/string.h"
+#include "mem/kheap.h"
 
 int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
@@ -13,6 +14,8 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
     int catched;
     int fd;
     short revents;
+    int wake_reason;
+    struct event_timer* timer = NULL;
 
     struct poll_ctl pctl;
     memset(&pctl, 0, sizeof(struct poll_ctl));
@@ -72,11 +75,7 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
         if (timeout < 0)
         {
             // Отрицательный таймаут - бесконечный сон
-            if (scheduler_sleep1() == 1)
-            {
-                rc = -EINTR;
-                goto exit;
-            }
+            wake_reason = scheduler_sleep1();
         }
         else if (timeout == 0)
         {
@@ -90,9 +89,33 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
             struct timespec ts;
             ts.tv_sec = timeout / 1000;
             ts.tv_nsec = (timeout % 1000) * 1000000;
-            // TODO: сделать
+            // Объект таймера
+            timer = register_event_timer(ts);
+            if (timer == NULL) {
+                rc = -ENOMEM;
+                goto exit;
+            }
+            
+            // Засыпаем на таймере
+            wake_reason = sleep_on_timer(timer);
+
+            // Удаляем таймер из списка и освобождаем память
+            unregister_event_timer(timer);
+            kfree(timer);
         }
- 
+
+        // анализируем причину пробуждения
+        switch (wake_reason)
+        {
+            case WAKE_SIGNAL:
+                rc = -EINTR;
+                goto exit;
+            case WAKE_TIMER:
+                rc = 0;
+                goto exit;
+            default:
+                continue;
+        }
     }
 
 exit:

@@ -23,7 +23,7 @@ int sys_thread_sleep(time_t sec, long int nsec)
         return -ENOMEM;
     }
     
-    if (sleep_on_timer(timer) == 1)
+    if (sleep_on_timer(timer) == WAKE_SIGNAL)
     {
         rc = -EINTR;
     }

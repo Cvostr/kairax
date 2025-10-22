@@ -9,6 +9,10 @@
 
 #include "blocker.h"
 
+#define WAKE_NORMAL 0
+#define WAKE_SIGNAL 1
+#define WAKE_TIMER  2
+
 struct thread {
     // Тип объекта
     int                 type;
@@ -43,7 +47,7 @@ struct thread {
     struct thread*      prev;
     struct thread*      next;
 
-    int                 sleep_interrupted;
+    int                 wake_reason;
     int                 balance_forbidden;
     int                 killing;
     uint32_t            cpu;

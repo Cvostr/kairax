@@ -57,6 +57,7 @@ void timer_handle()
                 if (thr) 
                 {
                     thr->timer = NULL;
+                    thr->wake_reason = WAKE_TIMER;
                     scheduler_wakeup1(thr);
                 }
                 
