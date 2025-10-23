@@ -7,6 +7,7 @@
 #include "sys/wait.h"
 #include "poll.h"
 #include "sys/select.h"
+#include "string.h"
 
 int fds[2];
 int fds1[2];
@@ -105,6 +106,12 @@ int main(int argc, char** argv) {
     read(fds[0], &val, 1);
 
     waitpid(pid, &status,  0);
+
+    int FDSC = 10000000;
+    printf("Test 7\n");
+    printf("select() with %i fds\n", FDSC);
+    events = select(FDSC, &readfds, NULL, NULL, NULL);
+    printf("got %i events, errno = %i\n", events, errno);
 
     return 0;
 }

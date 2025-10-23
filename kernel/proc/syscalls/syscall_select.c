@@ -24,17 +24,17 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
     struct poll_ctl pctl;
     memset(&pctl, 0, sizeof(struct poll_ctl));
 
-    if (n < 0)
+    if (n < 0 || n > FD_SETSIZE)
     {
         return -EINVAL;
     }
 
     if (readfds)
-        VALIDATE_USER_POINTER(process, readfds, sizeof(fd_set))
+        VALIDATE_USER_POINTER_PROTECTION(process, readfds, sizeof(fd_set), PAGE_PROTECTION_WRITE_ENABLE)
     if (writefds)
-        VALIDATE_USER_POINTER(process, writefds, sizeof(fd_set))
+        VALIDATE_USER_POINTER_PROTECTION(process, writefds, sizeof(fd_set), PAGE_PROTECTION_WRITE_ENABLE)
     if (exceptfds)
-        VALIDATE_USER_POINTER(process, exceptfds, sizeof(fd_set))
+        VALIDATE_USER_POINTER_PROTECTION(process, exceptfds, sizeof(fd_set), PAGE_PROTECTION_WRITE_ENABLE)
     if (timeout)
         VALIDATE_USER_POINTER(process, timeout, sizeof(struct timeval))
 
