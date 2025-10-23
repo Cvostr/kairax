@@ -85,6 +85,14 @@ int main(int argc, char** argv) {
     printf("got %i events. revents1 = %i revents2 = %i\n", events, pfds[0].revents, pfds[1].revents);
 
     printf("Test 5\n");
+    struct pollfd pfdWrong;
+    pfdWrong.fd = 20;
+    pfdWrong.events = POLLIN | POLLOUT;
+    printf("poll() with incorrect fd\n");
+    events = poll(&pfdWrong, 1, TIMEOUT);
+    printf("got %i events. revents1 = %i\n", events, pfdWrong.revents);
+
+    printf("Test 6\n");
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(fds[0], &readfds);

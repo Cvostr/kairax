@@ -40,8 +40,10 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
             struct file* file = process_get_file_ex(process, fd, TRUE);
             if (file == NULL)
             {
-                rc = -ERROR_BAD_FD;
-                goto exit;
+                // Файл отсутствует - POLLNVAL
+                pfd->revents = POLLNVAL;
+                catched ++;
+                continue;
             }
 
             if (file->ops->poll)
