@@ -14,6 +14,7 @@
 #define TIOCGWINSZ  0x5413
 #define TIOCSWINSZ  0x5414
 
+#define FIONBIO		0x5421
 #define TIOCNOTTY	0x5422
 
 struct winsize {

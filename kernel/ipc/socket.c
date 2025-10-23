@@ -10,6 +10,8 @@ spinlock_t sock_families_lock = 0;
 struct file_operations socket_fops = {
     .read = socket_read,
     .write = socket_write,
+    .ioctl = socket_ioctl,
+    .poll = socket_poll,
     .close = socket_close
 };
 
@@ -179,4 +181,26 @@ ssize_t socket_write(struct file* file, const char* buffer, size_t count, loff_t
 {
     struct socket* sock = (struct socket*) file->inode;
     return socket_sendto(sock, buffer, count, 0, NULL, 0);
+}
+
+int socket_ioctl(struct file* file, uint64_t request, uint64_t arg)
+{
+    struct socket* sock = (struct socket*) file->inode;
+
+    if (sock->ops->ioctl == NULL) {
+        return -ERROR_INVALID_VALUE;
+    }
+
+    return sock->ops->ioctl(sock, request, arg);
+}
+
+short socket_poll(struct file *file, struct poll_ctl *pctl)
+{
+    struct socket* sock = (struct socket*) file->inode;
+
+    if (sock->ops->poll == NULL) {
+        return POLLNVAL;
+    }
+
+    return sock->ops->poll(sock, file, pctl);
 }

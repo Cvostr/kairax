@@ -25,8 +25,10 @@ struct udp4_socket_data {
     spinlock_t rx_queue_lock;
 
     struct blocker blk;
+    struct poll_wait_queue poll_wq;
 
     uint8_t allow_broadcast;
+    uint8_t nonblock;
 };
 
 int udp_ip4_handle(struct net_buffer* nbuffer);
@@ -41,6 +43,8 @@ int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
 ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
+int sock_udp4_ioctl(struct socket *sock, uint64_t request, uint64_t arg);
+short sock_udp4_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl);
 int sock_udp4_close(struct socket* sock);
 
 #endif

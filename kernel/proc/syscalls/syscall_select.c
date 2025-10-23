@@ -3,6 +3,7 @@
 #include "kairax/string.h"
 #include "kairax/select.h"
 #include "proc/timer.h"
+#include "mem/kheap.h"
 
 #define FD_ZERO(set)        (memset ((void*) (set), 0, sizeof(fd_set)))
 #define FD_SET(d, set)	    ((set)->fds_bits[__FDSET_BYTE(d)] |= __MAKE_FDMASK(d))

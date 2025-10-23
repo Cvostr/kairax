@@ -113,5 +113,13 @@ int main(int argc, char** argv) {
     events = select(FDSC, &readfds, NULL, NULL, NULL);
     printf("got %i events, errno = %i\n", events, errno);
 
+    printf("Test 8\n");
+    printf("select() with timeout %i\n", TIMEOUT);
+    struct timeval stim;
+    stim.tv_sec = TIMEOUT / 1000;
+    stim.tv_usec = 0;
+    events = select(fds[0] + 1, &readfds, NULL, NULL, &stim);
+    printf("got %i events\n", events);
+
     return 0;
 }

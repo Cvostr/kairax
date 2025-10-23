@@ -106,6 +106,8 @@ struct socket_prot_ops ipv4_dgram_ops = {
     .recvfrom = sock_udp4_recvfrom,
     .sendto = sock_udp4_sendto,
     .setsockopt = sock_udp4_setsockopt,
+    .ioctl = sock_udp4_ioctl,
+    .poll = sock_udp4_poll,
     .close = sock_udp4_close
 };
 
@@ -164,12 +166,10 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     nbuffer = list_dequeue(&sock_data->rx_queue);
     release_spinlock(&sock_data->rx_queue_lock);
 
-    list_dequeue(&sock_data->rx_queue);
-
     if (nbuffer == NULL) 
     {
         // неблокирующее чтение
-        if ((flags & MSG_DONTWAIT) == MSG_DONTWAIT)
+        if (((flags & MSG_DONTWAIT) == MSG_DONTWAIT) || sock_data->nonblock == 1)
         {
             return -EAGAIN;
         }
@@ -327,6 +327,38 @@ int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void
         
     };
     return 0;
+}
+
+int sock_udp4_ioctl(struct socket *sock, uint64_t request, uint64_t arg)
+{
+    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    switch (request)
+    {
+        case FIONBIO:
+            //VALIDATE_USER_POINTER(process, arg, sizeof(struct winsize))
+            sock_data->nonblock = *((int*) arg);
+            break;
+        default:
+            return -EINVAL;
+    }
+
+    return 0;
+}
+
+short sock_udp4_poll(struct socket *sock, struct file *file, struct poll_ctl *pctl)
+{
+    short poll_mask = 0;
+    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+
+    poll_wait(pctl, file, &sock_data->poll_wq);
+
+    if (sock_data->rx_queue.head != NULL)
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // Пока что всегда разрешаем запись
+    poll_mask |= (POLLOUT | POLLWRNORM);
+    
+    return poll_mask;
 }
 
 int sock_udp4_close(struct socket* sock)

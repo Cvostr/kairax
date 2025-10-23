@@ -109,6 +109,8 @@ struct socket {
 #define SHUT_WR 1
 #define SHUT_RDWR 2
 
+#define FIONBIO		0x5421
+
 struct socket_prot_ops {
     int (*create) (struct socket *sock);
     int	(*connect) (struct socket *sock, struct sockaddr* saddr, int sockaddr_len);
@@ -122,7 +124,8 @@ struct socket_prot_ops {
     int	(*close) (struct socket *sock);
     int (*getpeername) (struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
     int (*getsockname) (struct socket *sock, struct sockaddr *name, socklen_t *namelen);
-
+    int (*ioctl) (struct socket *sock, uint64_t request, uint64_t arg);
+    short (*poll) (struct socket *, struct file *, struct poll_ctl *);
     //int	(*sendmsg) (struct socket* sock, struct msghdr* m, int flags);
     //int	(*recvmsg) (struct socket* sock, struct msghdr* msg, int flags);
 };
@@ -152,5 +155,7 @@ int socket_getsockname(struct socket *sock, struct sockaddr *name, socklen_t *na
 int socket_close(struct inode *inode, struct file *file);
 ssize_t socket_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t socket_write(struct file* file, const char* buffer, size_t count, loff_t offset);
+int socket_ioctl(struct file *file, uint64_t request, uint64_t arg);
+short socket_poll(struct file *file, struct poll_ctl *pctl);
 
 #endif
