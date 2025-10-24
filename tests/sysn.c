@@ -9,6 +9,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include <termios.h>
+#include "threads.h"
 
 char buff[220];
 static struct termios old, current;
@@ -202,6 +203,19 @@ int main(int argc, char** argv, char** envp) {
         while (1)
         {
         }
+    }
+
+    if (argc > 1 && strcmp(argv[1], "cnd") == 0)
+    {
+        struct timespec tsp;
+        tsp.tv_sec = 7;
+        tsp.tv_nsec = 0;
+        printf("CND test\n");
+        cnd_t cndtest;
+        mtx_t mttest;
+        mtx_init(&mttest, mtx_plain);
+        cnd_init(&cndtest);
+        cnd_timedwait(&cndtest, &mttest, &tsp);
     }
 
     if (argc > 1 && strcmp(argv[1], "paus") == 0)

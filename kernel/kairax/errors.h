@@ -36,6 +36,7 @@
 #define	ESPIPE		                29
 #define EROFS		                30
 #define EPIPE		                32
+#define ENOSYS		                38
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
@@ -47,6 +48,7 @@
 #define ECONNRESET	    104
 #define EISCONN         106
 #define ENOTCONN        107
+#define ETIMEDOUT	    110
 #define ECONNREFUSED	111
 #define ENETUNREACH     113
 

@@ -3,6 +3,7 @@
 #include "proc/thread_scheduler.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "proc/timer.h"
 
 #define FUTEX_WAIT 0
 #define FUTEX_WAKE 1
@@ -98,55 +99,95 @@ exit:
     return result;
 }
 
+int futex_wait(struct process* process, void* futex, int val, const struct timespec *timeout)
+{
+    int sleep_result;
+    struct futex* futx = NULL;
+    struct event_timer* timer = NULL;
+
+    if (timeout != NULL)
+    {
+        VALIDATE_USER_POINTER(process, timeout, sizeof(struct timespec))
+    }
+
+    if (*((int*)futex) != val) {
+        return -EAGAIN;
+    }
+
+    futx = process_get_futex(process, futex);
+
+    if (futx == NULL) 
+    {
+        futx = new_futex();
+        futx->futex = futex;
+        acquire_spinlock(&process->futex_list_lock);
+        futex_intrusive_add(&process->futex_list_head, &process->futex_list_tail, futx);
+        release_spinlock(&process->futex_list_lock);
+    }
+
+    if (timeout != NULL)
+    {
+        timer = register_event_timer(*timeout);
+        
+        // Засыпаем на таймере
+        sleep_result = sleep_on_timer(timer);
+
+        // Удаляем таймер из списка и освобождаем память
+        unregister_event_timer(timer);
+        kfree(timer);
+    }
+    else
+    {
+        sleep_result = scheduler_sleep_on(&futx->blocker); 
+    }
+
+    switch (sleep_result)
+    {
+        case WAKE_SIGNAL:
+            return -EINTR;
+        case WAKE_TIMER:
+            return -ETIMEDOUT;
+    }     
+    
+    return 0;
+}
+
+int futex_wake(struct process* process, void* futex, int val)
+{
+    struct futex* futx = process_get_futex(process, futex);
+    if (futx == NULL) {
+        return -EINVAL;
+    }
+
+    int r = scheduler_wake(&futx->blocker, val);
+
+    if (futx->blocker.head == NULL && futx->blocker.tail == NULL)
+    {
+        // Разбудили всех - можно убивать объект futex
+        acquire_spinlock(&process->futex_list_lock);
+        futex_intrusive_remove(&process->futex_list_head, &process->futex_list_tail, futx);
+        release_spinlock(&process->futex_list_lock);
+        kfree(futx);
+    }
+
+    return r;
+}
+
 int sys_futex(void* futex, int op, int val, const struct timespec *timeout)
 {
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
 
-    struct futex* futx = NULL;
-
     VALIDATE_USER_POINTER(process, futex, sizeof(int))
 
     if (op == FUTEX_WAIT)
     {
-        if (*((int*)futex) != val) {
-            return -EAGAIN;
-        }
-
-        futx = process_get_futex(process, futex);
-
-        if (futx == NULL) 
-        {
-            futx = new_futex();
-            futx->futex = futex;
-            acquire_spinlock(&process->futex_list_lock);
-            futex_intrusive_add(&process->futex_list_head, &process->futex_list_tail, futx);
-            release_spinlock(&process->futex_list_lock);
-        }
-
-        scheduler_sleep_on(&futx->blocker);
-       
-    } else if (op == FUTEX_WAKE) {
-        //printk(" WOKE UP  %i  ", futex_physaddr);
-
-        futx = process_get_futex(process, futex);
-        if (futx == NULL) {
-            return 0; // ???
-        }
-
-        int r = scheduler_wake(&futx->blocker, val);
-
-        if (futx->blocker.head == NULL && futx->blocker.tail == NULL)
-        {
-            // Разбудили всех - можно убивать объект futex
-            acquire_spinlock(&process->futex_list_lock);
-            futex_intrusive_remove(&process->futex_list_head, &process->futex_list_tail, futx);
-            release_spinlock(&process->futex_list_lock);
-            kfree(futx);
-        }
-
-        return r;
+        return futex_wait(process, futex, val, timeout);
+    } 
+    else if (op == FUTEX_WAKE) 
+    {
+        return futex_wake(process, futex, val);
     }
 
-    return 0;
+    return -ENOSYS;
 }

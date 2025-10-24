@@ -35,7 +35,7 @@ int cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex, const struct time
     mtx_unlock(mutex);
 
     do {
-        rc = futex(&cond->cnd, FUTEX_WAIT, 1, time_point);
+        rc = futex(&cond->cnd, FUTEX_WAIT, 0, time_point);
         if (rc == -1) {
             if (errno == EAGAIN) {
                 break;

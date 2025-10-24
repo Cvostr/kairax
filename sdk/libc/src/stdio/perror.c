@@ -41,6 +41,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(ECONNRESET, "Connection reset by peer"),
     DEFINE_ERROR(EISCONN, "Transport endpoint is already connected"),
     DEFINE_ERROR(ENOTCONN, "Transport endpoint is not connected"),
+    DEFINE_ERROR(ETIMEDOUT, "Connection timed out"),
     DEFINE_ERROR(ECONNREFUSED, "Connection refused"),
     DEFINE_ERROR(EHOSTUNREACH, "No route to host")
 };
