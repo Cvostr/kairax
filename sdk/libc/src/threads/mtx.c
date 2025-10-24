@@ -32,6 +32,8 @@ int mtx_timedlock(mtx_t* mutex, const struct timespec* time)
                 if (errno == EAGAIN) {
                     rc = 0;
                     break;
+                } else if (errno == EINTR) {
+                    continue;
                 } else if (errno == ETIMEDOUT) {
                     return thrd_timedout;
                 }

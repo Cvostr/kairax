@@ -81,6 +81,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/poll.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
+				obj/threads/thrd.o \
 				obj/x64/syscalls.o \
 				obj/x64/math.o \
 				obj/x64/setjmp.o \
