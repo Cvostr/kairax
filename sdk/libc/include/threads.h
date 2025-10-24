@@ -26,6 +26,8 @@ enum {
 };
 
 int thrd_create(thrd_t *thr, thrd_start_t func, void *arg);
+void thrd_exit(int res);
+int thrd_join(thrd_t thr, int* res);
 
 enum {
     mtx_plain = 0,

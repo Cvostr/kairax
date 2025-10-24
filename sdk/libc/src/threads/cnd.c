@@ -39,9 +39,11 @@ int cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex, const struct time
         if (rc == -1) {
             if (errno == EAGAIN) {
                 break;
-            } else {
-                break;
+            } else if (errno == EINTR) {
+                continue;
             }
+        } else {
+            break;
         }
 
     } while (rc == 0);

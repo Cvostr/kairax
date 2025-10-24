@@ -118,6 +118,7 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
 
     if (futx == NULL) 
     {
+        // такого futex еще не было - ок, создадим
         futx = new_futex();
         futx->futex = futex;
         acquire_spinlock(&process->futex_list_lock);
@@ -156,7 +157,7 @@ int futex_wake(struct process* process, void* futex, int val)
 {
     struct futex* futx = process_get_futex(process, futex);
     if (futx == NULL) {
-        return -EINVAL;
+        return 0;   // ???
     }
 
     int r = scheduler_wake(&futx->blocker, val);

@@ -50,7 +50,6 @@ int* __errno_location();
 #define ETIMEDOUT	                110
 #define ECONNREFUSED	            111
 #define EHOSTUNREACH	            113
-#define ETIMEDOUT                   116
 
 
 #endif
