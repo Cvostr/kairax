@@ -98,13 +98,8 @@ int main(int argc, char** argv)
 
         if (recv_hdr->un.echo.id == ichdr.un.echo.id)
         {
-            int exceeded = recv_hdr->type == ICMP_TIME_EXCEEDED;
             int reply = recv_hdr->type == ICMP_ECHOREPLY;
-
-            if (exceeded || reply) 
-            {
-                printf("%i: %s\n", i, inet_ntoa(recv_addr.sin_addr));
-            }
+            printf("%i: %s\n", i, inet_ntoa(recv_addr.sin_addr));
 
             if (reply) 
             {
