@@ -7,6 +7,8 @@
 #include "stdio.h"
 #include "netdb.h"
 #include "poll.h"
+#include "string.h"
+#include "stdlib.h"
 
 unsigned short checksum(void *b, int len);
 
@@ -21,7 +23,10 @@ int main(int argc, char** argv)
         char* arg = argv[i];
         if (arg[0] == '-') 
         {
-            // параметр
+            if (strcmp(arg, "-m") == 0)
+            {
+                probe_times = atoi(argv[++i]);
+            }
         } else {
             addr = arg;
         }
@@ -45,17 +50,21 @@ int main(int argc, char** argv)
         }
     }
 
+    struct in_addr trace_addr;
+    trace_addr.s_addr = ip4_addr;
+    printf("traceroute to %s, %i hops max\n", inet_ntoa(trace_addr), probe_times);
+
     struct icmphdr ichdr;
     bzero(&ichdr, sizeof(struct icmphdr));
 
     ichdr.type = ICMP_ECHO;
-    ichdr.un.echo.id = getpid();
+    ichdr.un.echo.id = htons(getpid());
     ichdr.un.echo.sequence = 0;
 
     struct sockaddr_in ping_addr;
     ping_addr.sin_family = AF_INET;
 	ping_addr.sin_port = htons(0);
-	ping_addr.sin_addr.s_addr = ip4_addr;
+	ping_addr.sin_addr = trace_addr;
 
     struct sockaddr_in recv_addr;
     int recv_addr_len = sizeof(struct sockaddr_in);
@@ -96,16 +105,15 @@ int main(int argc, char** argv)
 
         struct icmphdr* recv_hdr = (struct icmphdr*) recv_buffer;
 
-        if (recv_hdr->un.echo.id == ichdr.un.echo.id)
+        if (recv_hdr->type == ICMP_TIME_EXCEEDED || recv_hdr->type == ICMP_ECHOREPLY)
         {
-            int reply = recv_hdr->type == ICMP_ECHOREPLY;
             printf("%i: %s\n", i, inet_ntoa(recv_addr.sin_addr));
+        }
 
-            if (reply) 
-            {
-                printf("Completed!\n");
-                break;
-            }
+        if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id)
+        {
+            printf("Completed!\n");
+            break;
         }
 
         i++;
