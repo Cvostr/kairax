@@ -9,8 +9,8 @@
 #define FUTEX_WAKE 1
 
 struct futex {
-
-    uintptr_t futex;
+    atomic_t    refs;
+    uintptr_t   futex;
     struct blocker blocker;
 
     struct futex_holder* prev;
@@ -88,6 +88,7 @@ struct futex* process_get_futex(struct process* process, uintptr_t futex_addr)
     {
         if (current->futex == futex_addr) {
             result = current;
+            atomic_inc(&result->refs);
             goto exit;
         }
 
@@ -97,6 +98,17 @@ struct futex* process_get_futex(struct process* process, uintptr_t futex_addr)
 exit:
     release_spinlock(&process->futex_list_lock);
     return result;
+}
+
+void futex_free(struct process* process, struct futex* futx)
+{
+    if (atomic_dec_and_test(&futx->refs))
+    {
+        acquire_spinlock(&process->futex_list_lock);
+        futex_intrusive_remove(&process->futex_list_head, &process->futex_list_tail, futx);
+        release_spinlock(&process->futex_list_lock);
+        kfree(futx);
+    }
 }
 
 int futex_wait(struct process* process, void* futex, int val, const struct timespec *timeout)
@@ -114,6 +126,7 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
         return -EAGAIN;
     }
 
+    // Найти futex с увеличением счетчика ссылок
     futx = process_get_futex(process, futex);
 
     if (futx == NULL) 
@@ -121,7 +134,9 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
         // такого futex еще не было - ок, создадим
         futx = new_futex();
         futx->futex = futex;
+        // добавление в список с увеличением счетчика ссылок
         acquire_spinlock(&process->futex_list_lock);
+        atomic_inc(&futx->refs);
         futex_intrusive_add(&process->futex_list_head, &process->futex_list_tail, futx);
         release_spinlock(&process->futex_list_lock);
     }
@@ -142,6 +157,9 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
         sleep_result = scheduler_sleep_on(&futx->blocker); 
     }
 
+    // Освобождаем объект futex
+    futex_free(process, futx);
+
     switch (sleep_result)
     {
         case WAKE_SIGNAL:
@@ -155,21 +173,17 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
 
 int futex_wake(struct process* process, void* futex, int val)
 {
+    // Найти futex с увеличением счетчика ссылок
     struct futex* futx = process_get_futex(process, futex);
     if (futx == NULL) {
         return 0;   // ???
     }
 
+    // Пробуждаем
     int r = scheduler_wake(&futx->blocker, val);
 
-    if (futx->blocker.head == NULL && futx->blocker.tail == NULL)
-    {
-        // Разбудили всех - можно убивать объект futex
-        acquire_spinlock(&process->futex_list_lock);
-        futex_intrusive_remove(&process->futex_list_head, &process->futex_list_tail, futx);
-        release_spinlock(&process->futex_list_lock);
-        kfree(futx);
-    }
+    // Освобождаем объект futex
+    futex_free(process, futx);
 
     return r;
 }
