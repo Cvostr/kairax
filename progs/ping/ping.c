@@ -9,8 +9,23 @@
 #include "errno.h"
 #include "netdb.h"
 #include <stdlib.h>
+#include "signal.h"
 
 unsigned short checksum(void *b, int len);
+
+int transmitted = 0;
+int received = 0;
+
+void print_stats()
+{
+    printf("%i packets transmitted, %i received\n", transmitted, received);
+}
+
+void inthandler(int arg)
+{
+    print_stats();
+    exit(0);
+}
 
 int main(int argc, char** argv) 
 {
@@ -85,7 +100,7 @@ int main(int argc, char** argv)
                     break;
                 default:
                     printf("Not implemented for af %i\n", ping_addr->sa_family);
-                    return;
+                    return 1;
             }
 
             real_addr = malloc(200);
@@ -105,12 +120,15 @@ int main(int argc, char** argv)
 
     printf("PING %s\n", real_addr);
 
+    signal(SIGINT, inthandler);
+
     int sockfd = socket(sockfamily, SOCK_RAW, IPPROTO_ICMP);
     if (sockfd < 0) {
         printf("ping: socket() error: %s\n", strerror(errno));
         return 1;
     }
 
+    struct icmphdr* recv_hdr;
     char recv_buffer[128];
     int i = 0;
     int rc = 0;
@@ -125,21 +143,29 @@ int main(int argc, char** argv)
         ichdr.checksum = checksum(&ichdr, sizeof(ichdr));
         
         rc = sendto(sockfd, &ichdr, sizeof(ichdr), 0, ping_addr, ping_addr_size);
+        transmitted ++;
         if (rc == -1)
         {
             printf("Error sending ping packet to %s: %i\n", addr, errno);
             continue;
         }
 
-        recvfrom(sockfd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr*) &recv_addr, &recv_addr_len);
-
-        struct icmphdr* recv_hdr = (struct icmphdr*) recv_buffer;
-
-        if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id) 
+        while (1)
         {
-            printf("Ping response from %s: icmp seq=%i\n", real_addr, htons(recv_hdr->un.echo.sequence));
+            recvfrom(sockfd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr*) &recv_addr, &recv_addr_len);
+
+            recv_hdr = (struct icmphdr*) recv_buffer;
+
+            if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id) 
+            {
+                received++;
+                printf("Ping response from %s: icmp seq=%i\n", real_addr, htons(recv_hdr->un.echo.sequence));
+                break;
+            }
         }
     }
+
+    print_stats();
 }
 
 unsigned short checksum(void *b, int len) 
