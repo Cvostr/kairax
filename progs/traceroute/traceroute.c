@@ -6,6 +6,7 @@
 #include "unistd.h"
 #include "stdio.h"
 #include "netdb.h"
+#include "poll.h"
 
 unsigned short checksum(void *b, int len);
 
@@ -65,6 +66,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    struct pollfd sock_pfd;
+    sock_pfd.fd = sockfd;
+    sock_pfd.events = POLLIN;
+    sock_pfd.revents = 0;
+
     char recv_buffer[128];
     int i = 1;
     while (i < probe_times) 
@@ -77,19 +83,34 @@ int main(int argc, char** argv)
         
         sendto(sockfd, &ichdr, sizeof(ichdr), 0, (struct sockaddr*) &ping_addr, sizeof(ping_addr));
 
+        sock_pfd.revents = 0;
+        int events = poll(&sock_pfd, 1, 5000);
+        if (events == 0)
+        {
+            printf("%i: timeout\n", i);
+            i++;
+            continue;
+        }
+
         recvfrom(sockfd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr*) &recv_addr, &recv_addr_len);
 
         struct icmphdr* recv_hdr = (struct icmphdr*) recv_buffer;
 
-        //if (recv_hdr->type == ICMP_TIME_EXCEEDED && recv_hdr->un.echo.id == ichdr.un.echo.id) 
-        //{
-            printf("%i: %s\n", i, inet_ntoa(recv_addr.sin_addr));
-        //}
-
-        if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id) 
+        if (recv_hdr->un.echo.id == ichdr.un.echo.id)
         {
-            printf("Completed!\n");
-            break;
+            int exceeded = recv_hdr->type == ICMP_TIME_EXCEEDED;
+            int reply = recv_hdr->type == ICMP_ECHOREPLY;
+
+            if (exceeded || reply) 
+            {
+                printf("%i: %s\n", i, inet_ntoa(recv_addr.sin_addr));
+            }
+
+            if (reply) 
+            {
+                printf("Completed!\n");
+                break;
+            }
         }
 
         i++;

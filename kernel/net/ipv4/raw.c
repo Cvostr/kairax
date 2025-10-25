@@ -13,6 +13,7 @@ struct socket_prot_ops ipv4_raw_ops = {
     .create = sock_raw4_create,
     .recvfrom = sock_raw4_recvfrom,
     .sendto = sock_raw4_sendto,
+    .poll = sock_raw4_poll,
     .setsockopt = sock_raw4_setsockopt,
     .close = sock_raw4_close
 };
@@ -55,6 +56,8 @@ void raw_ip4_put_to_rx_queue(struct socket* sock, struct net_buffer* nbuffer)
 
     // Разбудить ожидающих приема
     scheduler_wake(&sockdata->rx_blk, 1);
+    // Будим наблюдающих
+    poll_wakeall(&sockdata->poll_wq);
 }
 
 int sock_raw4_create (struct socket* sock)
@@ -222,6 +225,22 @@ int sock_raw4_setsockopt(struct socket* sock, int level, int optname, const void
     };
 
     return 0;
+}
+
+short sock_raw4_poll(struct socket *sock, struct file *file, struct poll_ctl *pctl)
+{
+    short poll_mask = 0;
+    struct raw4_socket_data* sock_data = (struct raw4_socket_data*) sock->data;
+
+    poll_wait(pctl, file, &sock_data->poll_wq);
+
+    if (sock_data->rx_queue.head != NULL)
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // Пока что всегда разрешаем запись
+    poll_mask |= (POLLOUT | POLLWRNORM);
+    
+    return poll_mask;
 }
 
 void sock_raw4_drop_recv_buffer(struct raw4_socket_data* sock_data)

@@ -89,6 +89,8 @@ int udp_ip4_handle(struct net_buffer* nbuffer)
 
         // Будим ожидающих
         scheduler_wake(&sock_data->blk, 1);
+        // Будим наблюдающих
+        poll_wakeall(&sock_data->poll_wq);
     }
 
     return 0;
