@@ -189,6 +189,13 @@ short pipe_poll(struct file *file, struct poll_ctl *pctl)
         poll_mask |= (POLLIN | POLLRDNORM);
     if ((writefd == TRUE) && (p->write_pos < p->read_pos + PIPE_SIZE))
         poll_mask |= (POLLOUT | POLLWRNORM);
+
+    // Закрылся файл для записи
+    if (writefd == FALSE && p->nwritefds == 0)
+        poll_mask |= POLLHUP;
+    // Закрылся файл для чтения
+    if (writefd == TRUE && p->nreadfds == 0)
+        poll_mask |= POLLERR;
     
     return poll_mask;
 }
@@ -209,13 +216,17 @@ int pipe_file_close(struct inode *inode, struct file *file)
 {
     struct pipe* p = (struct pipe*) file->private_data;
     
-    if (file->flags & FILE_OPEN_MODE_READ_ONLY) {
-
+    if (file->flags & FILE_OPEN_MODE_READ_ONLY) 
+    {
         p->nreadfds --;
-
-    } else if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) {
+    } 
+    else if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) 
+    {
         p->nwritefds --;
     }
+
+    // Будим наблюдающих
+    poll_wakeall(&p->poll_wq);
 
     if (atomic_dec_and_test(&p->ref_count)) {
         free_pipe(p);

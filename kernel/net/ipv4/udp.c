@@ -320,13 +320,13 @@ int sock_udp4_setsockopt_sol_socket(struct socket* sock, int optname, const void
 
 int sock_udp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
 {
-    printk("Setsockopt level:%i name:%i\n");
     switch (level) {
         case SOL_SOCKET:
             return sock_udp4_setsockopt_sol_socket(sock, optname, optval, optlen);
         case SOL_IP:
             return sock_udp4_setsockopt_sol_IP(sock, optname, optval, optlen);
-        
+        default:
+            printk("Setsockopt level:%i name:%i\n");
     };
     return 0;
 }

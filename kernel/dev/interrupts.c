@@ -7,7 +7,7 @@
 list_t interrupts = {0,};
 spinlock_t interrupts_lock = 0;
 
-int is_irq_free(int irq) 
+struct interrupt* get_irq(int irq) 
 {
     struct list_node* current_node = interrupts.head;
     struct interrupt* intrpt = NULL;
@@ -17,14 +17,14 @@ int is_irq_free(int irq)
         intrpt = (struct interrupt*) current_node->element;
 
         if (intrpt->irq == irq) {
-            return 0;
+            return intrpt;
         }
         
         // Переход на следующий элемент
         current_node = current_node->next;
     }
 
-    return 1;
+    return NULL;
 }
 
 int get_free_irq()
@@ -32,7 +32,7 @@ int get_free_irq()
     int start_irq = 20;
     int max_irq = 128;
     for (int i = start_irq; i < max_irq; i ++) {
-        if (is_irq_free(i)) {
+        if (get_irq(i) == NULL) {
             return i;
         }
     }

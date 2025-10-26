@@ -6,6 +6,8 @@
 #include "kairax/string.h"
 #include "mem/kheap.h"
 
+#define MANDATORY_EVENTS    (POLLHUP | POLLERR)
+
 int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
     struct thread *thread = cpu_get_current_thread();
@@ -51,7 +53,7 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
                 // вызываем poll для файла
                 revents = file->ops->poll(file, &pctl);
                 // Маскируем ненужные события
-                revents = pfd->events & revents;
+                revents = (pfd->events | MANDATORY_EVENTS) & revents;
                 if (revents != 0)
                 {
                     pfd->revents = revents;

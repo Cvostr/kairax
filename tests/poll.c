@@ -21,6 +21,15 @@ void thread(void* n) {
     thread_exit(125);
 }
 
+void thread_closefd(void* n) {
+    sleep(1);
+
+    int* f = n;
+    close(*f);
+
+    thread_exit(125);
+}
+
 int main(int argc, char** argv) {
 
     char val = '0';
@@ -120,6 +129,19 @@ int main(int argc, char** argv) {
     stim.tv_usec = 0;
     events = select(fds[0] + 1, &readfds, NULL, NULL, &stim);
     printf("got %i events\n", events);
+
+
+
+    struct pollfd closepfd;
+    closepfd.fd = fds[0];
+    closepfd.events = 0;
+    printf("Test 9\n");
+
+    pid = create_thread(thread_closefd, &fds[1]);
+    printf("poll() with pipe with closing write end\n");
+    events = poll(&closepfd, 1, -1);
+    printf("got %i events. revents1 = %i\n", events, closepfd.revents);
+    waitpid(pid, &status,  0);
 
     return 0;
 }
