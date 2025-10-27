@@ -54,6 +54,8 @@ struct tcp4_socket_data {
     uint32_t ack;
 
     int is_rst;
+    int shut_rd;
+    int shut_wr;
 
     // Ожидаемые подключения
     //struct net_buffer **backlog;
@@ -106,6 +108,7 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
 int sock_tcp4_close(struct socket* sock);
 int	sock_tcp4_shutdown(struct socket *sock, int how);
 int sock_tcp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
+short sock_tcp4_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl);
 int sock_tcp4_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
 
 #endif

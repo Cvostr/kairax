@@ -209,6 +209,12 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer)
 {
+    if (sock_data->shut_rd == TRUE)
+    {
+        // после shutdown(SHUT_RD) больше ничего не принимаем
+        return;
+    }
+
     acquire_spinlock(&sock_data->rx_queue_lock);
 
     // Добавить буфер в очередь приема с увеличением количества ссылок
@@ -705,7 +711,7 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     struct net_buffer* rcv_buffer = list_head(&sock_data->rx_queue);
 
-    if (rcv_buffer == NULL) 
+    while (rcv_buffer == NULL) 
     {
         // неблокирующее чтение
         if ((flags & MSG_DONTWAIT) == MSG_DONTWAIT)
@@ -713,35 +719,34 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
             return -EAGAIN;
         }
 
-        if (rcv_buffer == NULL) 
+        // shutdown(SHUT_RD)
+        if (sock_data->shut_rd == TRUE)
         {
-            // Ожидание пакета
-            scheduler_sleep_on(&sock_data->rx_blk);
+            return 0;
+        }
 
-            // Пробуем вытащить пакет
-            acquire_spinlock(&sock_data->rx_queue_lock);
-            rcv_buffer = list_head(&sock_data->rx_queue);
-            release_spinlock(&sock_data->rx_queue_lock);
+        // Пришел RST
+        if (sock_data->is_rst) 
+        {
+            return -ECONNRESET;
+        }
 
-            // Пришел RST
-            if (sock_data->is_rst && rcv_buffer == NULL) 
-            {
-                return -ECONNRESET;
-            }
+        // Ожидание пакета
+        if (scheduler_sleep_on(&sock_data->rx_blk) == WAKE_SIGNAL)
+        {
+            // нас разбудили сигналом
+            return -EINTR;
+        }
 
-            if (rcv_buffer == NULL)
-            {
-                if (sock->state != SOCKET_STATE_CONNECTED)
-                {
-                    // Все данные считаны и сокет закрыт пиром через FIN
-                    return 0;
-                }
-                else  
-                {
-                    // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
-                    return -EINTR;
-                }
-            }
+        // Пробуем вытащить пакет
+        acquire_spinlock(&sock_data->rx_queue_lock);
+        rcv_buffer = list_head(&sock_data->rx_queue);
+        release_spinlock(&sock_data->rx_queue_lock);
+
+        if ((sock->state != SOCKET_STATE_CONNECTED) && rcv_buffer == NULL)
+        {
+            // Все данные считаны и сокет закрыт пиром через FIN
+            return 0;
         }
     }
 
@@ -774,6 +779,12 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     }
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    if (sock_data->shut_wr == TRUE)
+    {
+        // shutdown(SHUT_WR)
+        return -EPIPE;
+    }
 
     // Маршрут назначения
     in_addr_t dst_addr = sock_data->addr.sin_addr.s_addr;
@@ -828,7 +839,7 @@ int sock_tcp4_close(struct socket* sock)
 #endif
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
-    if (sock->state != SOCKET_STATE_LISTEN)
+    if (sock->state != SOCKET_STATE_LISTEN && sock_data->shut_wr == FALSE)
     {
         int rc = tcp_ip4_fin(sock_data);
         if (rc != 0)
@@ -894,12 +905,31 @@ int	sock_tcp4_shutdown(struct socket *sock, int how)
     int shut_read = (how == SHUT_RD || how == SHUT_RDWR);
     int shut_write = (how == SHUT_WR || how == SHUT_RDWR);
 
-    printk("tcp: shutdown() is not implemented!\n");
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    if (shut_read == TRUE)
+    {
+        sock_data->shut_rd = TRUE;
+        scheduler_wake(&sock_data->rx_blk, INT_MAX);
+    }
 
-    return -1;
+    if (shut_write == TRUE)
+    {
+        // TODO: когда появится очередь отправки, реализовать отправку всей очереди  
+        // FIN
+        tcp_ip4_fin(sock_data);
+        sock_data->shut_wr = TRUE;
+    }
+
+    return 0;
 }
 
 int sock_tcp4_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen)
+{
+    printk("TCP Setsockopt level:%i name:%i\n");
+    return 0;
+}
+
+short sock_tcp4_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl)
 {
     return 0;
 }
