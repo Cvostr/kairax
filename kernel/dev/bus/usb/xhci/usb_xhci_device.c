@@ -172,7 +172,6 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         printk("XHCI: Transfer completed on slot %i on endpoint %i trb index %i with code %i\n", event->transfer_event.slot_id, endpoint_id, cmd_trb_index, status_code);
 #endif
         struct xhci_transfer_ring_completion* compl = &ep_ring->compl[cmd_trb_index];
-        memcpy(&compl->trb, event, sizeof(struct xhci_trb));
         // Выполнить callback, если указан
         struct usb_msg* msg = compl->msg;
         if (msg)
@@ -182,6 +181,10 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
             msg->status = xhci_map_completion_code(status_code);
             if (msg->callback)
                 msg->callback(msg);
+        }
+        else
+        {
+            memcpy(&compl->trb, event, sizeof(struct xhci_trb));
         }
     }
 
