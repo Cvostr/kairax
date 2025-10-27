@@ -12,6 +12,7 @@ struct socket_prot_ops packet_raw_ops = {
     .bind = sock_packet_raw_bind,
     .recvfrom = sock_packet_raw_recvfrom,
     .sendto = sock_packet_raw_sendto,
+    .poll = sock_packet_raw_poll,
     .close = sock_packet_raw_close
 };
 
@@ -58,6 +59,8 @@ void packet_raw_put_to_rx_queue(struct socket* sock, struct net_buffer* nbuffer)
 
     // Разбудить ожидающих приема
     scheduler_wake(&sockdata->rx_blk, 1);
+    // Будим наблюдающих
+    poll_wakeall(&sockdata->poll_wq);
 }
 
 int sock_packet_raw_create (struct socket* sock)
@@ -182,6 +185,22 @@ ssize_t sock_packet_raw_recvfrom(struct socket* sock, void* buf, size_t len, int
     }
 
     return 0;
+}
+
+short sock_packet_raw_poll(struct socket *sock, struct file *file, struct poll_ctl *pctl)
+{
+    short poll_mask = 0;
+    struct packet_raw_socket_data* sock_data = (struct packet_raw_socket_data*) sock->data;
+
+    poll_wait(pctl, file, &sock_data->poll_wq);
+
+    if (sock_data->rx_queue.head != NULL)
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // Пока что всегда разрешаем запись
+    poll_mask |= (POLLOUT | POLLWRNORM);
+    
+    return poll_mask;
 }
 
 int sock_packet_raw_close(struct socket* sock)
