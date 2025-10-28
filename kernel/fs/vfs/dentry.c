@@ -51,6 +51,30 @@ int dentry_close(struct dentry* dentry)
     return 0;
 }
 
+void dentry_purge_recursive(struct dentry* dentry)
+{
+    // Пройтись по детям
+    struct list_node* current = dentry->subdirs->head;
+    struct dentry* child = NULL;
+
+    while (current != NULL) {
+        
+        child = (struct dentry*)current->element;
+
+        // Удалить dentry из списка дочерних
+        dentry_remove_subdir(dentry, child);
+        // Уничтожение дочернего dentry
+        dentry_purge_recursive(child);
+
+        // Переход на следующий элемент
+        current = current->next;
+    }
+
+    inode_close(dentry->d_inode);
+
+    free_dentry(dentry);
+}
+
 void dentry_add_subdir(struct dentry* parent, struct dentry* dir)
 {
     acquire_spinlock(&parent->lock);
@@ -91,6 +115,35 @@ int dentry_is_child(struct dentry* d1, struct dentry* d2)
     } 
 
     return 0;
+}
+
+int dentry_is_fs_busy(struct dentry* den, int is_root)
+{
+    // У корневой dentry всегда будет минимум 1 ссылка
+    int reqd_refs = is_root ? 1 : 0;
+    if (den->refs_count.counter > reqd_refs)
+    {
+        return TRUE;
+    }
+
+    // Проверить детей
+    struct list_node* current = den->subdirs->head;
+    struct dentry* child = NULL;
+
+    while (current != NULL) {
+        
+        child = (struct dentry*)current->element;
+
+        if (dentry_is_fs_busy(child, FALSE) == TRUE)
+        {
+            return TRUE;
+        }
+
+        // Переход на следующий элемент
+        current = current->next;
+    }
+
+    return FALSE;
 }
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name)

@@ -914,5 +914,17 @@ int fat_statfs(struct superblock *sb, struct statfs* stat)
 
 int fat_unmount(struct superblock* sb)
 {
+    struct fat_instance* inst = (struct fat_instance*) sb->fs_info;
 
+    if (inst->bpb)
+    {
+        kfree(inst->bpb);
+    }
+
+    if (inst->fsinfo32)
+    {
+        kfree(inst->fsinfo32);
+    }
+
+    kfree(inst);
 }

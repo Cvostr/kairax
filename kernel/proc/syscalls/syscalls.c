@@ -137,6 +137,19 @@ int sys_mount(const char* device, const char* mount_dir, const char* fs, unsigne
     return vfs_mount_fs(mount_dir, partition, fs);
 }
 
+int sys_unmount(const char* mount_dir, unsigned long flags)
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    VALIDATE_USER_STRING(process, mount_dir)
+
+    if (process->euid != 0) {
+        return -EPERM;
+    }
+    
+    return vfs_unmount(mount_dir);
+}
+
 int sys_get_time_epoch_protected(struct timeval *tv)
 {
     struct process* process = cpu_get_current_thread()->process;

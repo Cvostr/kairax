@@ -308,6 +308,10 @@ int ext2_unmount(struct superblock* sb)
     // Перезаписать на диск BGD и суперблок
     ext2_write_bgds(inst);
     ext2_rewrite_superblock(inst);
+
+    kfree(inst->bgds);
+    kfree(inst->superblock);
+    kfree(inst);
 }
 
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)

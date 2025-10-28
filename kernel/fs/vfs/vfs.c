@@ -110,20 +110,35 @@ int vfs_unmount(char* mount_path)
     root_dentry = root_dentry->sb->root_dir;
 
     struct superblock* sb = root_dentry->sb;
-
     struct list_node* sb_list_node = list_get_node(vfs_mounts, sb);
 
-    if (sb_list_node) {
+    // Проверим занятость ФС
+    if (dentry_is_fs_busy(root_dentry, TRUE) == TRUE)
+    {
+        return -ERROR_BUSY;
+    }
+
+    if (sb_list_node) 
+    {
+        // Удаляем dentry из списка дочерних элементов родителя
+        dentry_remove_subdir(root_dentry->parent, root_dentry);
+
+        //dentry_close(root_dentry);
         //выполнить отмонтирование ФС
         if (sb->filesystem->unmount != NULL) {
             sb->filesystem->unmount(sb);
         }
+
+        // Уничтожаем всю иерархию, начиная с корневой dentry
+        dentry_purge_recursive(root_dentry);
 
         //Освободить память
         free_superblock(sb);
 
         // Удалить из списка
         list_remove(vfs_mounts, sb);
+
+        kfree(sb);
     } else {
         return -ERROR_INVALID_VALUE;
     }

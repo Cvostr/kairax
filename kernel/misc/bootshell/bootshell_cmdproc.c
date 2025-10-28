@@ -117,6 +117,7 @@ void bootshell_process_cmd(char* cmdline)
     }
     if(strcmp(cmd, "unmount") == 0){
         int result = vfs_unmount(args[1]);
+        printk("Unmount result %i\n", -result);
     }
     if(strcmp(cmd, "dentry") == 0) {
         dentry_debug_tree();

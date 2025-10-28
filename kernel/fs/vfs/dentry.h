@@ -27,6 +27,7 @@ struct dentry {
 struct dentry* new_dentry();
 
 void free_dentry(struct dentry* dentry);
+void dentry_purge_recursive(struct dentry* dentry);
 
 void dentry_open(struct dentry* dentry);
 int dentry_close(struct dentry* dentry);
@@ -36,6 +37,7 @@ void dentry_remove_subdir(struct dentry* parent, struct dentry* dir);
 void dentry_reparent(struct dentry* dentr, struct dentry* newparent);
 
 int dentry_is_child(struct dentry* d1, struct dentry* d2);
+int dentry_is_fs_busy(struct dentry* den, int is_root);
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name);
 
