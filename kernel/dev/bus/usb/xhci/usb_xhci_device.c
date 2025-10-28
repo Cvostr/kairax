@@ -182,10 +182,6 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
             if (msg->callback)
                 msg->callback(msg);
         }
-        else
-        {
-            memcpy(&compl->trb, event, sizeof(struct xhci_trb));
-        }
     }
 
     return 0;
@@ -510,37 +506,20 @@ int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoi
 
 int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length)
 {
-    struct xhci_trb transfer_trb;
-    transfer_trb.type = XHCI_TRB_TYPE_NORMAL;
-    transfer_trb.normal.data_buffer_pointer       = data;
-	transfer_trb.normal.trb_transfer_length       = length;
-	transfer_trb.normal.td_size                   = 0;
-	transfer_trb.normal.interrupt_target          = 0;
-	transfer_trb.normal.interrupt_on_completion   = 1;
-	transfer_trb.normal.interrupt_on_short_packet = 1;
+    struct usb_msg msg;
+    memset(&msg, 0, sizeof(struct usb_msg));
+    msg.data = data;
+    msg.length = length;
 
     struct xhci_device* xhci_dev = dev->controller_device_data;
-    struct xhci_transfer_ring* ep_ring = endpoint->transfer_ring;
+    xhci_device_msg_async(xhci_dev, endpoint, &msg);
 
-    // Добавить в очередь
-    size_t index = xhci_transfer_ring_enqueue(ep_ring, &transfer_trb);
-
-    // Сбросить
-    struct xhci_transfer_ring_completion* compl = &ep_ring->compl[index];
-    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
-
-    // Запустить выполнение
-    xhci_dev->controller->doorbell[dev->slot_id].doorbell = xhci_ep_get_absolute_id(&endpoint->descriptor);
-
-    // Ожидание
-    while (compl->trb.raw.status == 0)
+    while (msg.status == -EINPROGRESS)
 	{
-		// wait
+
 	}
 
-    uint32_t status = compl->trb.transfer_event.completion_code; 
-
-    return xhci_map_completion_code(status);
+    return msg.status;
 }
 
 int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg)
@@ -897,7 +876,6 @@ int xhci_device_msg_async(struct xhci_device* dev, struct usb_endpoint* ep, stru
 
     // Сбросить
     struct xhci_transfer_ring_completion* compl = &ep_ring->compl[index];
-    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
     compl->msg = msg;
 
     // Начальный статус сообщения - выполняется
