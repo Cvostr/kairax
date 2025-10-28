@@ -7,6 +7,7 @@
 __BEGIN_DECLS
 
 int mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags);
+int unmount(const char *mount_dir, int flags);
 
 __END_DECLS
 

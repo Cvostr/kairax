@@ -84,6 +84,7 @@ DEFINE_SYSCALL syscall_mknodat,     0x85
 DEFINE_SYSCALL syscall_sethostname, 0xAA
 DEFINE_SYSCALL syscall_setdomainname, 0xAB
 DEFINE_SYSCALL syscall_mount,       0xA5
+DEFINE_SYSCALL syscall_unmount,     0xA6
 DEFINE_SYSCALL syscall_poweroff,    0xA9
 
 DEFINE_SYSCALL syscall_load_module, 0xAF

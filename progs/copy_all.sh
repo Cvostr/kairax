@@ -29,6 +29,7 @@ sudo cp ./dhcl/dhcl.a /mnt/kxvol/bin/dhcl
 sudo cp ./stty/stty.a /mnt/kxvol/bin/stty
 sudo cp ./stat/stat.a /mnt/kxvol/bin/stat
 sudo cp ./touch/touch.a /mnt/kxvol/bin/touch
+sudo cp ./umount/umount.a /mnt/kxvol/bin/umount
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo

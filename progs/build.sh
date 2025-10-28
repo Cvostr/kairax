@@ -125,3 +125,7 @@ cd ..
 cd touch
 make
 cd ..
+
+cd umount
+make
+cd ..
