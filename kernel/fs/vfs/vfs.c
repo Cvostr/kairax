@@ -100,20 +100,23 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
 
 int vfs_unmount(char* mount_path)
 {
-    struct dentry* root_dentry = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
+    struct dentry* den = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
     
-    if (!root_dentry) {
+    if (!den) {
         return -ERROR_INVALID_VALUE;
     }
 
-    // получение корневой dentry монтирования
-    root_dentry = root_dentry->sb->root_dir;
+    // Проверим, что это точка монтирования
+    if ((den->flags & DENTRY_MOUNTPOINT) == 0)
+    {
+        return -EINVAL;
+    }
 
-    struct superblock* sb = root_dentry->sb;
+    struct superblock* sb = den->sb;
     struct list_node* sb_list_node = list_get_node(vfs_mounts, sb);
 
     // Проверим занятость ФС
-    if (dentry_is_fs_busy(root_dentry, TRUE) == TRUE)
+    if (dentry_is_fs_busy(den, TRUE) == TRUE)
     {
         return -ERROR_BUSY;
     }
@@ -121,24 +124,21 @@ int vfs_unmount(char* mount_path)
     if (sb_list_node) 
     {
         // Удаляем dentry из списка дочерних элементов родителя
-        dentry_remove_subdir(root_dentry->parent, root_dentry);
+        dentry_remove_subdir(den->parent, den);
 
-        //dentry_close(root_dentry);
         //выполнить отмонтирование ФС
         if (sb->filesystem->unmount != NULL) {
             sb->filesystem->unmount(sb);
         }
 
         // Уничтожаем всю иерархию, начиная с корневой dentry
-        dentry_purge_recursive(root_dentry);
+        dentry_purge_recursive(den);
 
         //Освободить память
         free_superblock(sb);
 
         // Удалить из списка
         list_remove(vfs_mounts, sb);
-
-        kfree(sb);
     } else {
         return -ERROR_INVALID_VALUE;
     }
