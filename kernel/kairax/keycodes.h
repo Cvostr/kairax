@@ -89,7 +89,13 @@
 #define KRXK_PAGEUP     81
 #define KRXK_PAGEDOWN   82
 
-#define RKXK_OEM_1  83
+#define KRXK_LSUPER  83
+#define KRXK_RSUPER  84
+
+#define KRXK_LBRACE  85
+#define KRXK_RBRACE  86   
+
+#define RKXK_OEM_1  87
 
 
 #endif

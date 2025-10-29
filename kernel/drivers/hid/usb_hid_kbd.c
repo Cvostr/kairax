@@ -19,7 +19,7 @@
 #define HID_KANA        0b10000
 
 short hid_kbd_modifiers[8] = {
-    KRXK_LCTRL, KRXK_LSHIFT, KRXK_LALT, 0, KRXK_RCTRL, KRXK_RSHIFT, KRXK_RALT, 0
+    KRXK_LCTRL, KRXK_LSHIFT, KRXK_LALT, KRXK_LSUPER, KRXK_RCTRL, KRXK_RSHIFT, KRXK_RALT, KRXK_RSUPER
 };
 
 short hid_kbd_bindings[256] = {
@@ -81,7 +81,8 @@ short hid_kbd_bindings[256] = {
     [0x2C] = KRXK_SPACE,
     [0x2D] = KRXK_MINUS,
     [0x2E] = KRXK_EQUAL,
-
+    [0x2F] = KRXK_LBRACE,
+    [0x30] = KRXK_RBRACE,
     [0x31] = KRXK_BSLASH,
 
     [0x33] = KRXK_SEMICOLON,
@@ -164,7 +165,7 @@ void hid_kbd_process_input(struct usb_msg* msg)
 
     if (msg->status != 0)
     {
-        printk("HID keyboard Error!!!\n");
+        printk("HID keyboard Error!!! (%i)\n", -msg->status);
     }
 
     uint8_t current_presses[6];

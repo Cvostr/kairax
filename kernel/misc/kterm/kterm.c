@@ -239,6 +239,10 @@ char keyboard_get_key_ascii(int shifted, char keycode)
 			return '?';
 		case KRXK_BSLASH:
 			return '|';
+		case KRXK_LBRACE:
+			return '{';
+		case KRXK_RBRACE:
+			return '}';
 		default:
 			char upcase = keyboard_get_key_ascii_normal(keycode);
 			if ((upcase >= 'a' && upcase <= 'z'))
@@ -350,6 +354,10 @@ char keyboard_get_key_ascii_normal(char keycode)
 		return ';';
 	case KRXK_QUOTES:
 		return '\'';
+	case KRXK_LBRACE:
+		return '[';
+	case KRXK_RBRACE:
+		return ']';
       break;
     default:
         //if (keycode != 0)

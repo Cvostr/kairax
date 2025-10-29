@@ -13,11 +13,13 @@ int ps2kbd_tag_F0 = 0;
 
 uint8_t kbd_set2_ext_mappings[256] = {
     [0x11] = KRXK_RALT,
+    [0x27] = KRXK_RSUPER,
     [0x6B] = KRXK_LEFT,
     [0x71] = KRXK_DEL,
     [0x72] = KRXK_DOWN,
     [0x74] = KRXK_RIGHT,
     [0x75] = KRXK_UP,
+    [0x1F] = KRXK_LSUPER
 };
 
 uint8_t kbd_set2_mappings[256] = {
@@ -79,12 +81,12 @@ uint8_t kbd_set2_mappings[256] = {
     [0x4D] = KRXK_P,
     [0x4E] = KRXK_MINUS,
     [0x52] = KRXK_QUOTES,
-    //[0x54] = KRXK_P,  [
+    [0x54] = KRXK_LBRACE,
     [0x55] = KRXK_EQUAL,
     [0x58] = KRXK_CAPS,
     [0x59] = KRXK_RSHIFT,
     [0x5A] = KRXK_ENTER,
-    //[0x5B] = KRXK_ENTER,  ]
+    [0x5B] = KRXK_RBRACE,
     [0x5D] = KRXK_BSLASH,
     [0x66] = KRXK_BKSP,
 
