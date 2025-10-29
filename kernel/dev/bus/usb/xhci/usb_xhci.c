@@ -812,8 +812,9 @@ int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb)
 		return 0;
 	}
 
-	memcpy(trb, dequed, sizeof(struct xhci_trb));
-	ring->last_processed_trb_index = ring->next_trb_index;
+	trb->raw.parameter = dequed->raw.parameter;
+	trb->raw.status = dequed->raw.status;
+	trb->raw.control = dequed->raw.control;
 
 	// Если считали полный круг - возвращаемся в начало
 	if (++ring->next_trb_index >= ring->trb_count)
@@ -894,7 +895,7 @@ void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_
 {
 	// 5.5.2.3.3
 	// When software finishes processing an Event TRB, it will write the address of that Event TRB to the ERDP
-	uintptr_t trb_offset = ring->trbs_phys + ring->last_processed_trb_index * sizeof(struct xhci_trb);
+	uintptr_t trb_offset = ring->trbs_phys + ring->next_trb_index * sizeof(struct xhci_trb);
 	intr->erdp = trb_offset | XHCI_EVENT_HANDLER_BUSY;
 }
 

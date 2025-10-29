@@ -458,7 +458,6 @@ struct xhci_event_ring
 
 	size_t next_trb_index;
 	uint8_t cycle_bit;
-	size_t last_processed_trb_index;
 
 	struct xhci_trb* 	trbs;
 	uintptr_t 			trbs_phys;
