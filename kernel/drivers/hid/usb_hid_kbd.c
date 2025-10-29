@@ -7,15 +7,20 @@
 #include "kairax/keycodes.h"
 #include "kairax/string.h"
 #include "drivers/char/input/keyboard.h"
+#include "proc/tasklet.h"
 
 #define HID_BOOT_MAX_KEYS   6
 
 // Для зажигания светодиодов
-#define HID_NUM_LOCK    0b1
-#define HID_CAPS_LOCK   0b10
+#define HID_NUM_LOCK    0b001
+#define HID_CAPS_LOCK   0b010
 #define HID_SCROLL_LOCK 0b100
 #define HID_COMPOSE     0b1000
 #define HID_KANA        0b10000
+
+short hid_kbd_modifiers[8] = {
+    KRXK_LCTRL, KRXK_LSHIFT, KRXK_LALT, 0, KRXK_RCTRL, KRXK_RSHIFT, KRXK_RALT, 0
+};
 
 short hid_kbd_bindings[256] = {
     [0x04] = KRXK_A,
@@ -125,8 +130,12 @@ struct usb_hid_kbd {
     size_t                              report_buffer_pages;
     uintptr_t                           report_buffer_phys;
     struct hid_kbd_boot_int_report*     report_buffer;
+
+    struct tasklet event_handle_tasklet;
+
     // Буфер для хранения предыдущего состояния
     uint8_t                             old_state[HID_BOOT_MAX_KEYS];
+    uint8_t                             old_modifier_state;
 };
 
 int usb_hid_set_report(struct usb_device* device, struct usb_interface* interface, uint8_t report_type, uint8_t report_id, void* report, uint32_t report_length)
@@ -145,7 +154,7 @@ int usb_hid_set_report(struct usb_device* device, struct usb_interface* interfac
     return usb_device_send_request(device, &req, report, report_length);
 }
 
-void event_callback(struct usb_msg* msg)
+void hid_kbd_process_input(struct usb_msg* msg)
 {
     struct usb_hid_kbd* kbd = msg->private;
     struct hid_kbd_boot_int_report* rep = kbd->report_buffer;
@@ -158,12 +167,38 @@ void event_callback(struct usb_msg* msg)
         printk("HID keyboard Error!!!\n");
     }
 
-    //printk("Key pressed %x %x %x %x %x %x\n", rep->presses[0], rep->presses[1], rep->presses[2], rep->presses[3], rep->presses[4], rep->presses[5]);
+    uint8_t current_presses[6];
+    memcpy(current_presses, rep->presses, HID_BOOT_MAX_KEYS);
+    uint8_t current_modifier = rep->modifier_key_status;
+    uint8_t old_modifier = kbd->old_modifier_state;
+
+    kbd->old_modifier_state = current_modifier;
+
+    // Ожидание прерывания
+    usb_send_async_msg(kbd->device, kbd->ep, msg);
+
+    for (i = 0; i < 8; i ++)
+    {
+        uint8_t new_mask = current_modifier & 1;
+        uint8_t old_mask = old_modifier & 1;
+
+        if (new_mask == 1 && old_mask == 0)
+        {
+            keyboard_add_event(hid_kbd_modifiers[i], KRXK_PRESSED);
+        }
+        if (new_mask == 0 && old_mask == 1)
+        {
+            keyboard_add_event(hid_kbd_modifiers[i], KRXK_RELEASED);
+        }
+
+        current_modifier >>= 1;
+        old_modifier >>= 1;
+    }
 
     // Обработать нажатия
     for (i = 0; i < HID_BOOT_MAX_KEYS; i ++)
     {
-        uint8_t ek = rep->presses[i];
+        uint8_t ek = current_presses[i];
         if (ek == 0) continue;
 
         found = FALSE;
@@ -195,7 +230,7 @@ void event_callback(struct usb_msg* msg)
         
         for (j = 0; j < HID_BOOT_MAX_KEYS; j ++)
         {
-            if (rep->presses[j] == ek)
+            if (current_presses[j] == ek)
             {
                 // Кнопка по прежнему зажата
                 found = TRUE;
@@ -211,10 +246,14 @@ void event_callback(struct usb_msg* msg)
     }
 
     // Обновить буфер
-    memcpy(kbd->old_state, rep->presses, HID_BOOT_MAX_KEYS);
+    memcpy(kbd->old_state, current_presses, HID_BOOT_MAX_KEYS);
+}
 
-    // Ожидание прерывания
-    usb_send_async_msg(kbd->device, kbd->ep, msg);
+void event_callback(struct usb_msg* msg)
+{
+    struct usb_hid_kbd* kbd = msg->private;
+    tasklet_schedule(&kbd->event_handle_tasklet);
+    //hid_kbd_process_input(msg);
 }
 
 struct usb_endpoint* usb_hid_find_ep(struct usb_interface* interface)
@@ -338,6 +377,8 @@ int usb_hid_kbd_device_probe(struct device *dev)
     // Сбросим LED индикаторы клавиатуры
     uint8_t val = 0;
     rc = usb_hid_set_report(device, interface, 0x02, 0, &val, 1);
+
+    tasklet_init(&kbd->event_handle_tasklet, hid_kbd_process_input, msg);
     
 	return 0;
 }

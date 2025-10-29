@@ -227,6 +227,8 @@ char keyboard_get_key_ascii(int shifted, char keycode)
 			return ')';
 		case KRXK_DOT:
 			return '>';
+		case KRXK_COMMA:
+			return '<';
 		case KRXK_EQUAL:
 			return '+';
 		case KRXK_MINUS:
@@ -342,6 +344,8 @@ char keyboard_get_key_ascii_normal(char keycode)
       	return '\\';
     case KRXK_DOT:
       	return '.';
+	case KRXK_COMMA:
+		return ',';
 	case KRXK_SEMICOLON:
 		return ';';
 	case KRXK_QUOTES:
