@@ -32,6 +32,7 @@ gcc $GCC_ARGS $x64_SRC/kernel.c -o ./bin/kernel.o
 gcc $GCC_ARGS $x64_SRC/interrupts/idt.c -o ./bin/idt.o
 gcc $GCC_ARGS $x64_SRC/time/pit.c -o ./bin/pit.o
 gcc $GCC_ARGS $x64_SRC/time/timer.c -o ./bin/timer_x64.o
+gcc $GCC_ARGS $x64_SRC/time/time_x64.c -o ./bin/time_x64.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/handler.c -o ./bin/ints_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/handle/exceptions_handler.c -o ./bin/exceptions_handler.o
 gcc $GCC_ARGS $x64_SRC/interrupts/pic.c -o ./bin/pic.o
