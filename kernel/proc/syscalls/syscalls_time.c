@@ -2,6 +2,10 @@
 #include "proc/timer.h"
 #include "cpu/cpu_local.h"
 
+// Архитектурно-специфично
+void arch_sys_get_time_epoch(struct timeval *tv);
+void arch_sys_set_time_epoch(const struct timeval *tv);
+
 int sys_get_time_epoch_protected(struct timeval *tv)
 {
     struct process* process = cpu_get_current_thread()->process;

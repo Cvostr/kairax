@@ -171,6 +171,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 									datetime.tm_mon + 1,
 									datetime.tm_year + 1900);
 
+	arch_time_init();
+
 	vfs_init();
 	ext2_init();
 	fat_init();

@@ -98,17 +98,3 @@ void cmos_rtc_set_datetime_tm(struct tm* time)
 
     cmos_write(CMOS_STATUS_B, cmos_ctrl);
 }
-
-void arch_sys_get_time_epoch(struct timeval *tv)
-{
-    struct tm datetime;
-	cmos_rtc_get_datetime_tm(&datetime);
-    tv->tv_sec = tm_to_epoch(&datetime);
-}
-
-void arch_sys_set_time_epoch(const struct timeval *tv)
-{
-    struct tm datetime;
-    epoch_to_tm(&tv->tv_sec, &datetime);
-    cmos_rtc_set_datetime_tm(&datetime);
-}

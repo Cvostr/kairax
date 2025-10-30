@@ -13,9 +13,13 @@
 #define HPET_CONFIG_DISABLE 0b0
 #define HPET_CONFIG_LEGACY_MODE 0b10
 
+#define HPET_FEMTOSECONDS_PER_SEC	(1000000000000000)
+#define HPET_FEMTOSECONDS_PER_MICROSEC	(1000000000)
+
 int init_hpet(acpi_hpet_t* hpet);
 int hpet_is_available();
 uint64_t hpet_get_counter();
+uint64_t hpet_get_period();
 void hpet_reset_counter();
 
 int hpet_nanosleep(uint64_t nanoseconds);

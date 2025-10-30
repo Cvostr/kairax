@@ -10,6 +10,7 @@
 #include "netdb.h"
 #include <stdlib.h>
 #include "signal.h"
+#include "sys/time.h"
 
 unsigned short checksum(void *b, int len);
 
@@ -33,6 +34,7 @@ int main(int argc, char** argv)
     char* real_addr = NULL;
     in_addr_t ip4_addr = 0;
     int ping_times = 4;
+    struct timeval stop, start;
 
     for (int i = 1; i < argc; i ++)
     {
@@ -142,6 +144,10 @@ int main(int argc, char** argv)
         ichdr.checksum = 0;
         ichdr.checksum = checksum(&ichdr, sizeof(ichdr));
         
+        // Запоминаем время отправки
+        gettimeofday(&start, NULL);
+
+        // Отправляем
         rc = sendto(sockfd, &ichdr, sizeof(ichdr), 0, ping_addr, ping_addr_size);
         transmitted ++;
         if (rc == -1)
@@ -158,8 +164,17 @@ int main(int argc, char** argv)
 
             if (recv_hdr->type == ICMP_ECHOREPLY && recv_hdr->un.echo.id == ichdr.un.echo.id) 
             {
+                gettimeofday(&stop, NULL);
+
+                // Вычисление времени в микросекундах
+                unsigned long delta_time_usec = (stop.tv_sec - start.tv_sec);
+                delta_time_usec *= 1000000;
+                delta_time_usec += (stop.tv_usec - start.tv_usec);
+                // Вычисление времени в миллисекундах
+                double delta_time_ms = delta_time_usec;
+                delta_time_ms /= 1000;
                 received++;
-                printf("Ping response from %s: icmp seq=%i\n", real_addr, htons(recv_hdr->un.echo.sequence));
+                printf("Ping response from %s: icmp seq=%i time=%f ms\n", real_addr, htons(recv_hdr->un.echo.sequence), delta_time_ms);
                 break;
             }
         }
