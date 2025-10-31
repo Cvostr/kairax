@@ -578,7 +578,7 @@ int usb_mass_device_probe(struct device *dev)
 		struct device* lun_dev = new_device();
 		lun_dev->dev_type = DEVICE_TYPE_DRIVE;
 		device_set_parent(lun_dev, dev);
-		lun_dev->dev_data = usb_mass;
+		device_set_data(lun_dev, usb_mass);
 		lun_dev->drive_info = drive_info;
 		strncpy(lun_dev->dev_name, inq_result.t10_vendor_identification, 8);
 		strncat(lun_dev->dev_name, inq_result.product_identification, sizeof(inq_result.product_identification));

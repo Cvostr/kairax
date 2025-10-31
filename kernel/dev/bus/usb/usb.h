@@ -92,6 +92,7 @@ struct usb_msg {
     int status;
     uint32_t transferred_length;
 
+    struct usb_device_request* control_msg;
     void* private;
 };
 

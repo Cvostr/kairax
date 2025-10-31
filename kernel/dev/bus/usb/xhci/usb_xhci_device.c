@@ -144,6 +144,7 @@ int xhci_device_update_actual_max_packet_size(struct xhci_device* dev, uint32_t 
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event)
 {
     uint32_t endpoint_id = event->transfer_event.endpoint_id;
+    struct xhci_transfer_ring_completion* compl = NULL;
 
     if (endpoint_id == 0)
     {
@@ -156,9 +157,19 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         // Событие по Control Endpoint
         struct xhci_transfer_ring* ep_ring = dev->control_transfer_ring;
         size_t cmd_trb_index = (event->cmd_completion.cmd_trb_ptr - ep_ring->trbs_phys) / sizeof(struct xhci_trb);
+        uint32_t status_code = event->transfer_event.completion_code;
 
-        struct xhci_transfer_ring_completion* compl = &ep_ring->compl[cmd_trb_index];
+        compl = &ep_ring->compl[cmd_trb_index];
         memcpy(&compl->trb, event, sizeof(struct xhci_trb));
+        // Выполнить callback, если указан
+        struct usb_msg* msg = compl->msg;
+        if (msg)
+        {   
+            // в trb_transfer_length записано количество НЕпереданных байт
+            msg->transferred_length = msg->length - event->transfer_event.trb_transfer_length; 
+            __atomic_store_n(&msg->status, xhci_map_completion_code(status_code), __ATOMIC_SEQ_CST);
+            compl->msg = NULL;
+        }
     } 
     else
     {
@@ -171,7 +182,7 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
 #ifdef XHCI_LOG_TRANSFER
         printk("XHCI: Transfer completed on slot %i on endpoint %i trb index %i with code %i\n", event->transfer_event.slot_id, endpoint_id, cmd_trb_index, status_code);
 #endif
-        struct xhci_transfer_ring_completion* compl = &ep_ring->compl[cmd_trb_index];
+        compl = &ep_ring->compl[cmd_trb_index];
         // Выполнить callback, если указан
         struct usb_msg* msg = compl->msg;
         if (msg)
@@ -181,6 +192,7 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
             msg->status = xhci_map_completion_code(status_code);
             if (msg->callback)
                 msg->callback(msg);
+            compl->msg = NULL;
         }
     }
 
@@ -550,16 +562,14 @@ ssize_t xhci_get_string(struct usb_device* device, int index, char* buffer, size
     return avail_len;
 }
 
-int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length)
+int xhci_device_msg_control_async(struct xhci_device* dev, struct usb_msg *msg)
 {
+    uint32_t length = msg->length;
+    struct usb_device_request* req = msg->control_msg;
+
     struct xhci_trb setup_stage;
     struct xhci_trb data_stage;
     struct xhci_trb status_stage;
-
-    // Для временной памяти
-    size_t tmp_data_buffer_pages = 0;
-    uintptr_t tmp_data_buffer_phys;
-    uintptr_t tmp_data_buffer;
 
     // Определим значение TRT для Setup Stage
     uint32_t setup_stage_transfer_type = XHCI_SETUP_STAGE_TRT_NO_DATA;
@@ -596,17 +606,12 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
 
     if (length > 0)
     {
-        // Данная операция будет возвращать данные
-
-        // Для начала выделим временную память под выходные данные
-        tmp_data_buffer_phys = (uintptr_t) pmm_alloc(length, &tmp_data_buffer_pages);
-        tmp_data_buffer = map_io_region(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
-        memset(tmp_data_buffer, 0, tmp_data_buffer_pages * PAGE_SIZE); 
+        // Данная операция будет возвращать данные 
 
         // Затем подготовим структуру Data Stage
         memset(&data_stage, 0, sizeof(struct xhci_trb));
         data_stage.type = XHCI_TRB_TYPE_DATA;
-        data_stage.data_stage.data_buffer = tmp_data_buffer_phys;
+        data_stage.data_stage.data_buffer = msg->data;
         data_stage.data_stage.trb_transfer_length = length;
         data_stage.data_stage.td_size = 0;
         data_stage.data_stage.interrupt_target = 0;
@@ -633,18 +638,45 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
 
     // Занулить ответную структуру
     struct xhci_transfer_ring_completion* compl = &dev->control_transfer_ring->compl[index];
-    memset(compl, 0, sizeof(struct xhci_transfer_ring_completion));
+    compl->msg = msg;
+
+    // Начальный статус сообщения - выполняется
+    msg->status = -EINPROGRESS;
 
     // Запустить выполнение
     dev->controller->doorbell[dev->slot_id].doorbell = XHCI_DOORBELL_CONTROL_EP_RING;
 
-	while (compl->trb.raw.status == 0)
-	{
-		// wait
-	}
+    return 0;
+}
 
-    // TODO: костыль, так как нет атомарности
-    hpet_sleep(10);
+int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length)
+{
+    // Для временной памяти
+    size_t tmp_data_buffer_pages = 0;
+    uintptr_t tmp_data_buffer_phys = NULL;
+    uintptr_t tmp_data_buffer;
+
+    if (length > 0)
+    {
+        // Данная операция будет возвращать данные
+        // Для начала выделим временную память под выходные данные
+        tmp_data_buffer_phys = (uintptr_t) pmm_alloc(length, &tmp_data_buffer_pages);
+        tmp_data_buffer = map_io_region(tmp_data_buffer_phys, tmp_data_buffer_pages * PAGE_SIZE);
+        memset(tmp_data_buffer, 0, tmp_data_buffer_pages * PAGE_SIZE); 
+    }
+
+    struct usb_msg msg;
+    memset(&msg, 0, sizeof(struct usb_msg));
+    msg.data = tmp_data_buffer_phys;
+    msg.length = length;
+    msg.control_msg = req;
+
+    xhci_device_msg_control_async(dev, &msg);
+
+    while (msg.status == -EINPROGRESS)
+	{
+
+	}
 
     if (length > 0)
     {
@@ -656,8 +688,7 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
         pmm_free_pages(tmp_data_buffer_phys, tmp_data_buffer_pages);
     }
 
-    uint32_t status = compl->trb.transfer_event.completion_code;
-    return xhci_map_completion_code(status);
+    return msg.status;
 }
 
 uint32_t xhci_ilog2(uint32_t val)
