@@ -7,3 +7,7 @@ cd ..
 cd ahci
 make
 cd ..
+
+cd fat
+make
+cd ..

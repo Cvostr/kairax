@@ -79,7 +79,7 @@ int mb2_load_modules(taglist_t *tags)
         case MBOOT2_MODULE:
             module_t* mod = tag->data;
             size_t modsize = mod->mod_end - mod->mod_start;
-            size_t mod_pages = align(modsize, PAGE_SIZE) / PAGE_SIZE;
+            size_t mod_pages = modsize / PAGE_SIZE; //align(modsize, PAGE_SIZE) / PAGE_SIZE;
 
             // Прогрузка модуля в ядро
             printk("Loading module %s, size %i\n", mod->name, modsize);

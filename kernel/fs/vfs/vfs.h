@@ -1,7 +1,7 @@
 #ifndef _VFS_H
 #define _VFS_H
 
-#include "types.h"
+#include "kairax/types.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 #include "filesystems.h"
 

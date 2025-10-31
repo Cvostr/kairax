@@ -1,6 +1,6 @@
 #include "filesystems.h"
 #include "mem/kheap.h"
-#include "string.h"
+#include "kairax/string.h"
 #include "list/list.h"
 
 list_t filesystems = {0,};

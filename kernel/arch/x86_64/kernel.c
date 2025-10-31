@@ -175,7 +175,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 
 	vfs_init();
 	ext2_init();
-	fat_init();
+	//fat_init();
 	devfs_init();
 	usb_init();
 	tty_init();

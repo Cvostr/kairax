@@ -1,9 +1,9 @@
 #ifndef _SUPERBLOCK_H
 #define _SUPERBLOCK_H
 
-#include "types.h"
+#include "kairax/types.h"
 #include "inode.h"
-#include "list/list.h"
+#include "kairax/list/list.h"
 #include "filesystems.h"
 #include "dentry.h"
 #include "drivers/storage/partitions/storage_partitions.h"

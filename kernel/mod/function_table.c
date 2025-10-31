@@ -27,6 +27,7 @@ struct kernel_function functions[] = {
     KFUNCTION(devfs_add_char_device),
     KFUNCTION(kmalloc),
     KFUNCTION(kfree),
+    KFUNCTION(tm_to_epoch),
     KFUNCTION(register_pci_device_driver),
     KFUNCTION(pci_config_read16),
     KFUNCTION(pci_config_read32),
@@ -84,14 +85,25 @@ struct kernel_function functions[] = {
     KFUNCTION(usb_send_async_msg),
     KFUNCTION(usb_device_bulk_msg),
     KFUNCTION(usb_set_interface),
+    // filesystems
+    KFUNCTION(new_filesystem),
+    KFUNCTION(filesystem_register),
+    KFUNCTION(new_vfs_inode),
+    KFUNCTION(new_vfs_dirent),
+    // partition
+    KFUNCTION(partition_read),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),
     KFUNCTION(strcpy),
+    KFUNCTION(strncpy),
     KFUNCTION(strcmp),
     KFUNCTION(strlen),
     KFUNCTION(strcat),
+    KFUNCTION(strchr),
+    KFUNCTION(strrchr),
     KFUNCTION(align),
+    KFUNCTION(tolower),
     KFUNCTION(itoa)
 };
 
