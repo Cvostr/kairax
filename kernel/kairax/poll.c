@@ -29,8 +29,8 @@ int poll_intrusive_add(struct poll_queued** head, struct poll_queued** tail, str
 
 int poll_intrusive_remove(struct poll_queued** head, struct poll_queued** tail, struct poll_queued* pq)
 {
-    struct futex* prev = pq->prev;
-    struct futex* next = pq->next;
+    struct poll_queued* prev = pq->prev;
+    struct poll_queued* next = pq->next;
 
     if (prev) {
         pq->next = next;

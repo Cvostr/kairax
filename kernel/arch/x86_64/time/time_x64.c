@@ -31,6 +31,11 @@ void arch_sys_get_time_epoch(struct timeval *tv)
 void arch_sys_set_time_epoch(const struct timeval *tv)
 {
     struct tm datetime;
+
+    __boot_time.tv_sec = tv->tv_sec;
+    __boot_time.tv_usec = 0;
+    hpet_reset_counter();
+
     epoch_to_tm(&tv->tv_sec, &datetime);
     cmos_rtc_set_datetime_tm(&datetime);
 }

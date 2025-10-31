@@ -38,6 +38,13 @@ int main(int argc, char** argv) {
 
 	if (argc > 1) {
 
+		if (strcmp(argv[1], "--help") == 0)
+		{
+			printf("Usage:\n");
+			printf("date -set DD MMM YY HH:MM:SS\n");
+			return 1;
+		}
+
 		if (strcmp(argv[1], "-set") == 0) {
 			
 			if (argc < 6) {
@@ -57,7 +64,7 @@ int main(int argc, char** argv) {
 			}
 
 			int hour, min, sec;
-			sscanf(time, "%d;%d;%d", &hour, &min, &sec);
+			sscanf(time, "%d:%d:%d", &hour, &min, &sec);
 
 			printf("Setting date to %02i:%02i:%02i   %i %s %i\n", hour, min, sec, day, mon, year);
 
