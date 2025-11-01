@@ -128,6 +128,7 @@ int ip4_send_ttl(struct net_buffer* nbuffer, struct route4* route, uint32_t dest
 	pkt.protocol = prot;
 	pkt.size = htons(len);
 	pkt.ttl = ttl;
+	pkt.frag_offset_flags = htons(IP_FLAG_DF);
 
 	pkt.header_checksum = htons(ipv4_calculate_checksum(&pkt, sizeof(struct ip4_packet)));
 

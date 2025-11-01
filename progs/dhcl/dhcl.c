@@ -362,8 +362,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // Вычисляем адрес сети
+    in_addr_t netaddr = offered_addr.s_addr & offer_opts.subnet_mask.s_addr;
+
     printf("Creating default route\n");
-    // Создаем маршрут
+    // Создаем маршрут по умолчанию
     struct RouteInfo4 info;
     memset(&info, 0, sizeof(struct RouteInfo4));
     info.gateway = offer_opts.router.s_addr;
@@ -371,7 +374,21 @@ int main(int argc, char** argv)
 
     rc = RouteAdd4(&info);
     if (rc != 0) {
-        perror("Add route failed");
+        perror("dhcl: add default route failed");
+        return 1;
+    }
+
+    printf("Creating route\n");
+    // Создаем внутренний маршрут для сети
+    memset(&info, 0, sizeof(struct RouteInfo4));
+    info.dest = netaddr;
+    info.netmask = offer_opts.subnet_mask.s_addr;
+    info.gateway = 0;
+    strcpy(info.nic_name, iface_name);
+
+    rc = RouteAdd4(&info);
+    if (rc != 0) {
+        perror("dhcl: add route failed");
         return 1;
     }
 

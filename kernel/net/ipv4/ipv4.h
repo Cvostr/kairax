@@ -16,6 +16,10 @@ int ipv4_sock_create(struct socket* s, int type, int protocol);
 
 #define IPV4_DEFAULT_TTL 64
 
+#define	IP_FLAG_RF 0x8000
+#define	IP_FLAG_DF 0x4000
+#define	IP_FLAG_MF 0x2000
+
 union ip4uni {
     uint32_t val;
     uint8_t array[4];
@@ -30,9 +34,7 @@ struct ip4_packet {
     uint8_t     tos;
     uint16_t    size;
     uint16_t    id;
-    uint8_t     flags : 3;
-    uint8_t     frag_offset_h : 5;
-    uint8_t     frag_offset_l;
+    uint16_t     frag_offset_flags;
     uint8_t     ttl;
     uint8_t     protocol;
     uint16_t    header_checksum;

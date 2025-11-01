@@ -198,7 +198,16 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 
 		}
 
+		if (msg->status != 0)
+		{
+			printk("CDC: Rx status %i (%i)\n", -msg->status, msg->status);
+			continue;
+		}
+
 		uint32_t received_bytes = msg->transferred_length;
+
+		eth_dev->iface->stats.rx_bytes += received_bytes;
+		eth_dev->iface->stats.rx_packets += 1;
 	
 		if (received_bytes > 0)
 		{
@@ -223,12 +232,16 @@ int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 
 	// Отправить
 	int rc = usb_device_bulk_msg(eth_dev->usbdev, eth_dev->data_out, tmp_data_buffer_phys, size);
+	if (rc != 0)
+	{
+		printk("Tx result %i (%i)\n", -rc, rc);
+	}
 
 	// Очистка
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
     pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
 
-	return 0;
+	return rc;
 }
 
 int usb_cdc_device_probe(struct device *dev) 
