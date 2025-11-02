@@ -72,6 +72,7 @@ gcc $GCC_ARGS $KAIRAX_PATH/stdio.c -o ./bin/stdc_stdio.o
 gcc $GCC_ARGS $KAIRAX_PATH/time.c -o ./bin/time.o
 gcc $GCC_ARGS $KAIRAX_PATH/version.c -o ./bin/version.o
 gcc $GCC_ARGS $KAIRAX_PATH/poll.c -o ./bin/poll.o
+gcc $GCC_ARGS $KAIRAX_PATH/siphash.c -o ./bin/siphash.o
 
 #generic dev
 gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o
@@ -104,7 +105,6 @@ gcc $GCC_ARGS drivers/hid/usb_hid_mouse.c -o ./bin/usb_hid_mouse.o
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
 gcc $GCC_ARGS fs/ext2/ext2.c -o ./bin/ext2.o
-#gcc $GCC_ARGS fs/fat/fat.c -o ./bin/fat.o
 gcc $GCC_ARGS fs/vfs/vfs.c -o ./bin/vfs.o
 gcc $GCC_ARGS fs/vfs/filesystems.c -o ./bin/filesystems.o
 gcc $GCC_ARGS fs/vfs/inode.c -o ./bin/inode.o

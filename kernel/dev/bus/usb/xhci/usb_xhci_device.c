@@ -93,7 +93,10 @@ int xhci_map_completion_code(uint32_t transfer_code)
         case XHCI_COMPLETION_CODE_SUCCESS:
             return 0;
         case XHCI_COMPLETION_CODE_STALL:
+        case XHCI_COMPLETION_CODE_BABBLE:
             return -EPIPE;
+        case XHCI_COMPLETION_CODE_SHORT_PACKET:
+            return 0; // TODO: временно
         default:
             return transfer_code;
     }

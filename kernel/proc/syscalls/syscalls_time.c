@@ -3,8 +3,8 @@
 #include "cpu/cpu_local.h"
 
 // Архитектурно-специфично
-void arch_sys_get_time_epoch(struct timeval *tv);
-void arch_sys_set_time_epoch(const struct timeval *tv);
+void arch_get_time_epoch(struct timeval *tv);
+void arch_set_time_epoch(const struct timeval *tv);
 
 int sys_get_time_epoch_protected(struct timeval *tv)
 {
@@ -16,7 +16,7 @@ int sys_get_time_epoch_protected(struct timeval *tv)
 
 int sys_get_time_epoch(struct timeval *tv)
 {
-    arch_sys_get_time_epoch(tv);
+    arch_get_time_epoch(tv);
     return 0;
 }
 
@@ -29,7 +29,7 @@ int sys_set_time_epoch(const struct timeval *tv)
         return -ERROR_INVALID_VALUE;
     }
 
-    arch_sys_set_time_epoch(tv);
+    arch_set_time_epoch(tv);
     return 0;
 }
 

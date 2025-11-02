@@ -137,7 +137,7 @@ uint8_t* arp_get_ip4(struct nic* nic, uint32_t addr)
         // Посылаем ARP запрос
         arp_send_request (nic, addr);
 
-        while (rounds < 5) {
+        while (rounds < 10) {
 
             sys_thread_sleep(0, 100000);
 

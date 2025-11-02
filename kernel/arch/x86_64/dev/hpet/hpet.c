@@ -20,8 +20,6 @@ int init_hpet(acpi_hpet_t* hpet)
 
     hpet_period = hpet_read(HPET_GENERAL_CAPABILITIES) >> HPET_COUNTER_CLOCK_OFFSET;
 
-    printk("HPET period %i\n", hpet_period);
-
     hpet_write(HPET_GENERAL_CONFIG, HPET_CONFIG_DISABLE);
     hpet_write(HPET_MAIN_COUNTER_VALUE, 0);
     hpet_write(HPET_GENERAL_CONFIG, HPET_CONFIG_ENABLE);

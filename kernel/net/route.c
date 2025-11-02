@@ -19,6 +19,7 @@ struct route4* route4_resolve(uint32_t dest)
     struct list_node* current = route_table4.head;
     struct route4* route = NULL;
     struct route4* chosen = NULL;
+    struct route4* default_route = NULL;
 
     while (current != NULL) {
         
@@ -26,7 +27,7 @@ struct route4* route4_resolve(uint32_t dest)
 
         // Сеть по умолчанию 0.0.0.0
         if (route->dest == 0) {
-            chosen = route;
+            default_route = route;
         }
 
         // Полное совпадение
@@ -44,6 +45,11 @@ struct route4* route4_resolve(uint32_t dest)
 
         // Переход на следующий элемент
         current = current->next;
+    }
+
+    // Если маршрут так и не нашли - используем маршрут по умолчанию
+    if (chosen == NULL) {
+        chosen = default_route;
     }
 
     return chosen;

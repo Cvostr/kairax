@@ -13,7 +13,7 @@ void arch_time_init()
     __boot_time.tv_usec = 0;
 } 
 
-void arch_sys_get_time_epoch(struct timeval *tv)
+void arch_get_time_epoch(struct timeval *tv)
 {
     uint64_t cntr = hpet_get_counter();
     uint64_t period = hpet_get_period();
@@ -28,7 +28,7 @@ void arch_sys_get_time_epoch(struct timeval *tv)
     tv->tv_usec = microsecs;
 }
 
-void arch_sys_set_time_epoch(const struct timeval *tv)
+void arch_set_time_epoch(const struct timeval *tv)
 {
     struct tm datetime;
 
