@@ -8,6 +8,7 @@
 #include "drivers/char/random.h"
 #include "net/route.h"
 #include "kairax/kstdlib.h"
+#include "kairax/siphash.h"
 #include "stdio.h"
 
 #define TCP_MAX_PORT        65535
@@ -30,6 +31,8 @@ struct ip4_protocol ip4_tcp_protocol = {
     .handler = tcp_ip4_handle
 };
 
+struct siphash_key syncookie_key;
+
 struct socket_prot_ops ipv4_stream_ops = {
     .create = sock_tcp4_create,
     .connect = sock_tcp4_connect,
@@ -40,6 +43,7 @@ struct socket_prot_ops ipv4_stream_ops = {
     .sendto = sock_tcp4_sendto,
     .close = sock_tcp4_close,
     .shutdown = sock_tcp4_shutdown,
+    .poll = sock_tcp4_poll,
     .setsockopt = sock_tcp4_setsockopt,
     .getpeername = sock_tcp4_getpeername
 };
@@ -108,47 +112,39 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     {
         // Пришли данные по порту сокета-слушателя, при этом соединение уже было установлено
         // Значит надо найти клиентский сокет внутри этого слушателя
-        sock = tcp_ip4_listener_get(sock_data, ip4p->src_ip, tcp_packet->src_port);
+        struct socket* child_sock = tcp_ip4_listener_get(sock_data, ip4p->src_ip, tcp_packet->src_port);
 
-        if (sock == NULL)
+        if (child_sock == NULL)
         {
-            // ??? - реализовать
+            // Не нашли сокет, пробуем обработь ожидаемые подключения
+            if (((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) && tcp_ip4_listener_handle_ack(sock, nbuffer) == TRUE)
+            {
+                return 0;
+            }
+
+            // отсутствует сокет
+            // TODO: обработать
             return -1;
         }
 
+
+        // Переопределяем sock и sock_data, чтобы дальше работать уже с ними
+        sock = child_sock;
         sock_data = (struct tcp4_socket_data*) sock->data;
     }
 
     if (is_syn) 
     {    
         // Пришел SYN пакет - это первая попытка подключения к серверу
-        // Добавляем пакет в backlog
-
         if (is_listener == 0) {
             // ? CONNREFUSED?
             tcp_ip4_err_rst(tcp_packet, ip4p);
             return 1;
         }
 
-        acquire_spinlock(&sock_data->backlog_lock);
-        // запрос соединения
-        if (list_size(&sock_data->backlog) < sock_data->backlog_sz) 
-        {
-            // Добавляем запрос к очереди подключений
-            net_buffer_acquire(nbuffer);
-            list_add(&sock_data->backlog, nbuffer);
-
-            // Разбудить ожидающих подключений
-            scheduler_wake(&sock_data->backlog_blk, 1);
-        } else {
-            // Очередь заполнена - отправляем RST
-            tcp_ip4_err_rst(tcp_packet, ip4p);
-            return -1;            
-        }
-
-        release_spinlock(&sock_data->backlog_lock);
-
-    } else if ((flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYNACK) 
+        tcp_ip4_handle_syn(sock, nbuffer);
+    } 
+    else if ((flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYNACK) 
     {
         // ACK - следующий номер для SN пришедшего пакета
         sock_data->ack = htonl(tcp_packet->sn) + 1;
@@ -157,10 +153,15 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         tcp_ip4_ack(sock_data);
 
-        // Добавить пакет в очередь приема сокета и разбудить один из потоков
-        tcp_ip4_put_to_rx_queue(sock_data, nbuffer);
-        
-    } else if ((flags & TCP_FLAG_PSH) == TCP_FLAG_PSH) 
+        // Ставим статус подключен
+        sock->state = SOCKET_STATE_CONNECTED;
+
+        // Разбудить ожидающих приема
+        scheduler_wake(&sock_data->rx_blk, 1);
+        // Будим наблюдающих
+        poll_wakeall(&sock_data->rx_poll_wq);
+    } 
+    else if ((flags & TCP_FLAG_PSH) == TCP_FLAG_PSH) 
     {
         // Пришли данные
         // ACK - прибавим длину нагрузки
@@ -171,7 +172,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         // Добавить пакет в очередь приема сокета и разбудить один из потоков
         tcp_ip4_put_to_rx_queue(sock_data, nbuffer);
-    } else if ((flags & TCP_FLAG_FIN) == TCP_FLAG_FIN)
+    } 
+    else if ((flags & TCP_FLAG_FIN) == TCP_FLAG_FIN)
     {
         sock_data->ack += 1;
 
@@ -200,11 +202,145 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
         //printk("RST \n");
-    } else if ((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) {
-
-        //sock_data->ack = htonl(tcp_packet->sn);
-        //printk("ACK \n");
     } 
+    else if ((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) 
+    {
+        //tcp_ip4_handle_ack(sock, nbuffer);
+    } 
+}
+
+uint32_t tcp_ip4_make_syn_cookie(uint32_t saddr, uint32_t destaddr, uint16_t srcport, uint16_t dstport, uint32_t seq)
+{
+    // Получаем текущее время
+    struct timeval tv;
+    arch_get_time_epoch(&tv);
+
+    uint32_t ports = ((uint32_t) srcport) << 16 | dstport; 
+
+    // Одна из компонент cookie. Время в секундах.
+    uint32_t t = tv.tv_sec >> 6;
+
+    uint32_t s = siphash_4u32(saddr, destaddr, ports, t, &syncookie_key);
+
+    return s;
+}
+
+void tcp_ip4_handle_syn(struct socket* sock, struct net_buffer* nbuffer)
+{
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // Вытащим указатели на заголовки L4 и L3
+    struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->transp_header;
+    struct ip4_packet* ip4p = nbuffer->netw_header;
+
+#ifdef TCP_LOG_ACCEPTED_CLIENT
+    union ip4uni src;
+	src.val = ip4p->src_ip; 
+	printk("SYN client: IP4 : %i.%i.%i.%i, port: %i, sn %u, ack %u - unf SN %u\n", src.array[0], src.array[1], src.array[2], src.array[3],
+        ntohs(tcp_packet->src_port),
+        ntohl(tcp_packet->sn),
+        ntohl(tcp_packet->ack),
+        tcp_packet->sn);
+#endif
+
+    // Считаем Cookie
+    uint32_t sn = tcp_ip4_make_syn_cookie(ip4p->src_ip, ip4p->dst_ip, tcp_packet->src_port, tcp_packet->dst_port, tcp_packet->sn);
+    uint32_t ack = ntohl(tcp_packet->sn) + 1;
+
+    // Отправляем SYNACK
+    // Маршрут назначения
+    struct route4* route = route4_resolve(ip4p->src_ip);
+    if (route == NULL)
+    {
+        printk("NO ROUTE ON SYNACK\n");
+        return;
+    }
+
+    // Готовим ответ SYN | ACK
+    struct net_buffer* resp = new_net_buffer_out(2048);
+    resp->netdev = route->interface;
+
+    int flags = (TCP_FLAG_SYN | TCP_FLAG_ACK);
+
+    struct tcp_packet pkt;
+    memset(&pkt, 0, TCP_HEADER_LEN);
+    pkt.src_port = tcp_packet->dst_port;
+    pkt.dst_port = tcp_packet->src_port;
+    pkt.ack = ntohl(ack);
+    pkt.sn = ntohl(sn);
+    pkt.urgent_point = 0;
+    pkt.window_size = htons(65535);
+    pkt.hlen_flags = htons(flags | TCP_HEADER_SZ_VAL);
+    pkt.checksum = 0;
+
+    struct tcp_checksum_proto checksum_struct;
+    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
+    checksum_struct.dest = ip4p->src_ip;
+    checksum_struct.src = ip4p->dst_ip;
+    checksum_struct.prot = IPV4_PROTOCOL_TCP;
+    checksum_struct.len = htons(TCP_HEADER_LEN);
+    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, TCP_HEADER_LEN, NULL, 0));
+
+    // Добавить заголовок TCP к буферу  ответа
+    net_buffer_add_front(resp, &pkt, TCP_HEADER_LEN);
+    
+    // Попытка отправить ответ
+    int rc = ip4_send(resp, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
+    if (rc != 0)
+        printk("Send rc %i\n", -rc);
+
+    net_buffer_free(resp);
+}
+
+int tcp_ip4_listener_handle_ack(struct socket* sock, struct net_buffer* nbuffer)
+{
+    int handled = FALSE;
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // Вытащим указатели на заголовки L4 и L3
+    struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->transp_header;
+    struct ip4_packet* ip4p = nbuffer->netw_header;
+
+    // Получаем старый SN клиента (который использовался на момент создания Cookie)
+    uint32_t old_client_sn = htonl(ntohl(tcp_packet->sn) - 1);
+    // Получаем старый SN сервера (который должен быть равен новой cookie)
+    uint32_t old_server_sn = ntohl(tcp_packet->ack) - 1;
+    // Считаем Cookie еще раз
+    uint32_t calculated_cookie = tcp_ip4_make_syn_cookie(ip4p->src_ip, ip4p->dst_ip, tcp_packet->src_port, tcp_packet->dst_port, old_client_sn);
+
+    if (calculated_cookie == old_server_sn)
+    {
+        if (list_size(&sock_data->accept_queue) >= sock_data->backlog_sz)
+        {
+            printk("ACCEPT QUEUE IS FULL\n");
+            //tcp_ip4_err_rst(tcp_packet, ip4p);
+            return FALSE;
+        }
+
+        // Заполним структуру запроса соединения
+        struct tcp_connection_request *request = kmalloc(sizeof(struct tcp_connection_request));
+        request->addr = ip4p->src_ip;
+        request->port = tcp_packet->src_port;
+        // Сразу заполним SN и ACK
+        request->sn = old_server_sn;
+        request->ack = ntohl(tcp_packet->sn);
+
+        acquire_spinlock(&sock_data->accept_queue_lock);
+        // Добавляем запрос к очереди SYN
+        list_add(&sock_data->accept_queue, request);
+
+        release_spinlock(&sock_data->accept_queue_lock);
+
+        // Будим ожидающих подключений
+        scheduler_wake(&sock_data->backlog_blk, 1);
+
+        // Будим наблюдающих
+        poll_wakeall(&sock_data->rx_poll_wq);
+
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer)
@@ -225,6 +361,8 @@ void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buff
 
     // Разбудить ожидающих приема
     scheduler_wake(&sock_data->rx_blk, 1);
+    // Будим наблюдающих
+    poll_wakeall(&sock_data->rx_poll_wq);
 }
 
 void tcp_ip4_sock_drop_recv_buffer(struct tcp4_socket_data* sock)
@@ -464,43 +602,27 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
     if (rc < 0)
         return rc;
 
-    // Ожидание SYN | ACK
-    acquire_spinlock(&sock_data->rx_queue_lock);
+    // TODO: если сокет неблокирующийся, выходить на этом моменте с -EINPGROGRESS
 
-    if (sock_data->rx_queue.head == NULL) 
+    // Проверяем, успели ли мы подключиться
+    // Получение SYNACK, отправка ACK, установка статуса будет производиться в фоне (tcp_ip4_handle())
+    while (sock->state != SOCKET_STATE_CONNECTED)
     {
-        release_spinlock(&sock_data->rx_queue_lock);
+        // Засыпаем
+        // TODO: добавить таймаут с раундами
+        if (scheduler_sleep_on(&sock_data->rx_blk) == WAKE_SIGNAL)
+        {
+            return -EINTR;
+        }
 
-        scheduler_sleep_on(&sock_data->rx_blk);
-
+        // Пришел RST
         if (sock_data->is_rst) 
         {
             return -ECONNREFUSED;
         }
-
-        if (sock_data->rx_queue.head == NULL)
-        {
-            // Мы проснулись, но данные так и не пришли. Вероятно, нас разбудили сигналом
-            return -EINTR;
-        }
-
-        acquire_spinlock(&sock_data->rx_queue_lock);
     }
 
-    struct net_buffer* synack = list_dequeue(&sock_data->rx_queue);
-    //struct tcp_packet* tcpp = (struct tcp_packet*) synack->transp_header;
-    //struct ip4_packet* ip4p = (struct ip4_packet*) synack->netw_header;
-
-    release_spinlock(&sock_data->rx_queue_lock);
-
-    //uint16_t flags = ntohs(tcpp->hlen_flags);
-    //flags &= 0b111111111;
-
-    net_buffer_free(synack);
-
-    sock->state = SOCKET_STATE_CONNECTED;
-
-    return rc;   
+    return 0;
 }
 
 void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, struct ip4_packet* ip4p)
@@ -553,30 +675,25 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 {
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
-    // Вытаскиваем из начала списка
-    struct net_buffer* syn_req_buffer = list_dequeue(&sock_data->backlog);
+    struct tcp_connection_request *conn_request = list_dequeue(&sock_data->accept_queue);
 
-    if (syn_req_buffer == NULL)
+    if (conn_request == NULL)
     {
         // Ожидание подключений
         scheduler_sleep_on(&sock_data->backlog_blk);
 
         // Пробуем вытащить пакет
-        acquire_spinlock(&sock_data->rx_queue_lock);
-        syn_req_buffer = list_dequeue(&sock_data->backlog);
-        release_spinlock(&sock_data->rx_queue_lock);
+        acquire_spinlock(&sock_data->accept_queue_lock);
+        conn_request = list_dequeue(&sock_data->accept_queue);
+        release_spinlock(&sock_data->accept_queue_lock);
 
-        if (syn_req_buffer == NULL)
+        if (conn_request == NULL)
         {
             // Мы проснулись, но пакетов нет - выходим с EINTR
             return -EINTR;
         }
     }
-
-    // Извлекаем заголовки
-    struct tcp_packet* tcpp = (struct tcp_packet*) syn_req_buffer->transp_header;
-    struct ip4_packet* ip4p = (struct ip4_packet*) syn_req_buffer->netw_header;
-
+    
     // Создание сокета клиента
     struct socket* client_sock = new_socket();
     sock_tcp4_create(client_sock);
@@ -584,77 +701,26 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
 
     struct tcp4_socket_data* client_sockdata = (struct tcp4_socket_data*) client_sock->data;
 
-    // Биндинг сокета клиента
-    tcp4_fill_sockaddr_in(&client_sockdata->addr, tcpp, ip4p);
+    // Биндинг сокета клиента - заполняем адрес пира
+    client_sockdata->addr.sin_family = AF_INET;
+    client_sockdata->addr.sin_addr.s_addr = conn_request->addr;
+    client_sockdata->addr.sin_port = conn_request->port;
     // Общаемся с клиентом от имени порта сервера
     client_sockdata->src_port = sock_data->bound_port;
     // Биндинг сокета клиента по порту источника
     client_sockdata->bound_port = htons(client_sockdata->addr.sin_port);
-    
+    // Заполняем SN ACK
+    client_sockdata->sn = conn_request->sn;
+    client_sockdata->ack = conn_request->ack;
     // Указатель на listener
     client_sockdata->listener = sock_data;
     // Добавить в список клиентских сокетов
     tcp_ip4_listener_add(sock_data, client_sock);
 
-#ifdef TCP_LOG_ACCEPTED_CLIENT
-    union ip4uni src;
-	src.val = client_sockdata->addr.sin_addr.s_addr; 
-	printk("Accepted client: IP4 : %i.%i.%i.%i, port: %i,\n", src.array[0], src.array[1], src.array[2], src.array[3], client_sockdata->addr.sin_port);
-#endif
-
-    // Маршрут назначения
-    struct route4* route = route4_resolve(ip4p->src_ip);
-    if (route == NULL)
-    {
-        return -ENETUNREACH;
-    }
-
-    // Готовим ответ SYN | ACK
-    struct net_buffer* resp = new_net_buffer_out(4096);
-    resp->netdev = route->interface;
-
-    int flags = (TCP_FLAG_SYN | TCP_FLAG_ACK);
-    
-    // Генерируем начальный SN
-    client_sockdata->sn = krand();
-    client_sockdata->ack = ntohl(tcpp->sn);
-
-    int header_len = (sizeof(struct tcp_packet));
-
-    struct tcp_packet pkt;
-    memset(&pkt, 0, sizeof(struct tcp_packet));
-    pkt.src_port = htons(client_sockdata->src_port);
-    pkt.dst_port = client_sockdata->addr.sin_port;
-    pkt.ack = ntohl(client_sockdata->ack + 1);
-    pkt.sn = ntohl(client_sockdata->sn);
-    pkt.urgent_point = 0;
-    pkt.window_size = htons(65535);
-    pkt.hlen_flags = htons(flags | TCP_HEADER_SZ_VAL);
-    pkt.checksum = 0;
-
-    struct tcp_checksum_proto checksum_struct;
-    memset(&checksum_struct, 0, sizeof(struct tcp_checksum_proto));
-    checksum_struct.dest = ip4p->src_ip;
-    checksum_struct.src = ip4p->dst_ip;
-    checksum_struct.prot = IPV4_PROTOCOL_TCP;
-    checksum_struct.len = htons(sizeof(struct tcp_packet));
-    pkt.checksum = htons(tcp_ip4_calc_checksum(&checksum_struct, &pkt, header_len, NULL, 0));
-
-    // Добавить заголовок TCP к буферу  ответа
-    net_buffer_add_front(resp, &pkt, sizeof(struct tcp_packet));
-    
-    // Освободить буфер с запросом SYN
-    net_buffer_free(syn_req_buffer);
-
-    // Попытка отправить ответ
-    ip4_send(resp, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
-    net_buffer_free(resp);
-
-    // TODO: завершить handshake - ожидание ACK
-
     client_sock->state = SOCKET_STATE_CONNECTED;
     *newsock = client_sock;
-
+    
+    kfree(conn_request);
     return 0;
 }
 
@@ -848,7 +914,7 @@ int sock_tcp4_close(struct socket* sock)
         }
     }
 
-    sock->state == SOCKET_STATE_UNCONNECTED;
+    sock->state = SOCKET_STATE_UNCONNECTED;
 
     if (sock_data) 
     {
@@ -931,11 +997,29 @@ int sock_tcp4_setsockopt(struct socket* sock, int level, int optname, const void
 
 short sock_tcp4_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl)
 {
-    return 0;
+    short poll_mask = 0;
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    poll_wait(nctl, file, &sock_data->rx_poll_wq);
+
+    if ((sock->state == SOCKET_STATE_LISTEN) && (sock_data->accept_queue.head != NULL))
+        return POLLIN | POLLRDNORM;
+
+    if (sock_data->rx_queue.head != NULL)
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // Пока что запись возможна, когда сокет соединен
+    // Это также позволяет асинхронно ожидать connect()
+    if (sock->state == SOCKET_STATE_CONNECTED)
+        poll_mask |= (POLLOUT | POLLWRNORM);
+    
+    return poll_mask;
 }
 
 void tcp_ip4_init()
 {
+    // Генерация ключа для SYN Cookie
+    siphash_keygen(&syncookie_key);
     ip4_register_protocol(&ip4_tcp_protocol, IPV4_PROTOCOL_TCP);
 }
 

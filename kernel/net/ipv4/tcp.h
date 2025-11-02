@@ -38,6 +38,13 @@ struct tcp_checksum_proto {
 #define TCP_FLAG_NS     256
 #define TCP_FLAG_SYNACK (TCP_FLAG_SYN | TCP_FLAG_ACK)
 
+struct tcp_connection_request {
+    uint32_t sn;
+    uint32_t ack;
+    uint32_t addr;
+    // в сетевой кодировке (Big Endian)
+    uint16_t port;
+};
 
 struct tcp4_socket_data {
 
@@ -57,11 +64,10 @@ struct tcp4_socket_data {
     int shut_rd;
     int shut_wr;
 
-    // Ожидаемые подключения
-    //struct net_buffer **backlog;
     uint32_t backlog_sz;
-    list_t backlog;
-    spinlock_t backlog_lock;
+    // Очередь подключенных сокетов, ожидающих accept
+    list_t accept_queue;
+    spinlock_t accept_queue_lock;
 
     list_t children;
     spinlock_t children_lock;
@@ -75,6 +81,8 @@ struct tcp4_socket_data {
 
     struct blocker backlog_blk;
     struct blocker rx_blk;
+
+    struct poll_wait_queue rx_poll_wq;
 };
 
 uint16_t tcp_ip4_calc_checksum( struct tcp_checksum_proto* prot, 
@@ -83,10 +91,16 @@ uint16_t tcp_ip4_calc_checksum( struct tcp_checksum_proto* prot,
                                 const unsigned char* payload,
                                 size_t payload_size);
 
-int tcp_ip4_handle(struct net_buffer* nbuffer);
+// Методы для отправки сообщений
 int tcp_ip4_ack(struct tcp4_socket_data* sock_data);
 int tcp_ip4_fin(struct tcp4_socket_data* sock_data);
 int tcp_ip4_err_rst(struct tcp_packet* tcp_packet, struct ip4_packet* ip4p);
+
+// Методы для обработки входящих сообщений 
+void tcp_ip4_handle_syn(struct socket* sock, struct net_buffer* nbuffer);
+int tcp_ip4_listener_handle_ack(struct socket* sock, struct net_buffer* nbuffer);
+
+int tcp_ip4_handle(struct net_buffer* nbuffer);
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
 void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client);
@@ -97,7 +111,7 @@ struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t 
 
 void tcp_ip4_init();
 
-
+// Операции с сокетом
 int sock_tcp4_create (struct socket* sock);
 int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
 int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr);
