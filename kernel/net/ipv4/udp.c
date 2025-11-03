@@ -31,6 +31,7 @@ int udp_ip4_alloc_dynamic_port(struct socket* sock)
             // порт с порядком байтов хоста
             sock_data->port = port;
             udp4_bindings[port] = sock;
+            acquire_socket(sock);
             return 1;
         }
     }
@@ -140,9 +141,11 @@ int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
     printk("bind() to port %i\n", port);
 #endif
 
+    // Биндинг сокета с увеличением счетчика ссылок
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     sock_data->port = port;
     udp4_bindings[port] = sock;
+    acquire_socket(sock);
 
     return 0;
 }
@@ -369,11 +372,12 @@ int sock_udp4_close(struct socket* sock)
     printk("UDP: close()\n");
 #endif
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
-    sock->data = NULL;
 
+    // Удаление биндинга с уменьшением счетчика ссылок
     if (udp4_bindings[sock_data->port] == sock) 
     {
         udp4_bindings[sock_data->port] = NULL;
+        free_socket(sock);
     }
 
     acquire_spinlock(&sock_data->rx_queue_lock);
@@ -385,9 +389,6 @@ int sock_udp4_close(struct socket* sock)
     }
     
     release_spinlock(&sock_data->rx_queue_lock);
-
-    kfree(sock_data);
-
     return 0;
 }
 

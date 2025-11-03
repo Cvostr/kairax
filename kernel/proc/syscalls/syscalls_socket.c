@@ -7,9 +7,9 @@
 struct file* make_file_from_sock(struct socket* sock)
 {
     struct file* fsock = new_file();
-    fsock->inode = (struct inode*) sock;
-    fsock->ops = ((struct inode*) sock)->file_ops;
-    inode_open((struct inode*) sock, 0);
+    fsock->inode = sock->inode;
+    fsock->ops = sock->inode->file_ops;
+    inode_open(fsock->inode, 0);
     return fsock;
 }
 
@@ -81,7 +81,8 @@ int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
         goto exit;
     }
 
-    rc = socket_bind((struct socket*) file->inode, addr, addrlen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_bind(sock, addr, addrlen);
 
 exit:
     return rc;
@@ -104,7 +105,8 @@ int sys_listen(int sockfd, int backlog)
         goto exit;
     }
 
-    rc = socket_listen((struct socket*) file->inode, backlog);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_listen(sock, backlog);
 
 exit:
     return rc;
@@ -127,8 +129,9 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
         goto exit;
     }
 
+    struct socket* sock = (struct socket*) file->inode->private_data;
     struct socket* newsock = NULL;
-    rc = socket_accept((struct socket*) file->inode, &newsock, addrlen);
+    rc = socket_accept(sock, &newsock, addrlen);
     if (rc == 0 && newsock != NULL) {
         // Создаем файл из сокета и добавляем
         struct file* fsock = make_file_from_sock(newsock);
@@ -157,7 +160,8 @@ int sys_setsockopt(int sockfd, int level, int optname, const void *optval, sockl
         goto exit;
     }
 
-    rc = socket_setsockopt((struct socket*) file->inode, level, optname, optval, optlen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_setsockopt(sock, level, optname, optval, optlen);
 
 exit:
     return rc;
@@ -181,7 +185,8 @@ int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
         goto exit;
     }
 
-    rc = socket_connect((struct socket*) file->inode, addr, addrlen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_connect(sock, addr, addrlen);
 
 exit:
     return rc;
@@ -204,7 +209,8 @@ int sys_shutdown(int sockfd, int how)
         goto exit;
     }
 
-    rc = socket_shutdown((struct socket*) file->inode, how);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_shutdown(sock, how);
 
 exit:
     return rc;
@@ -226,7 +232,8 @@ int sys_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
         goto exit;
     }
 
-    rc = socket_getpeername((struct socket*) file->inode, addr, addrlen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_getpeername(sock, addr, addrlen);
 
 exit:
     return rc;
@@ -248,7 +255,8 @@ int sys_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen)
         goto exit;
     }
 
-    rc = socket_getsockname((struct socket*) file->inode, name, namelen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_getsockname(sock, name, namelen);
 
 exit:
     return rc;
@@ -276,7 +284,8 @@ int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
         goto exit;
     }
 
-    rc = socket_sendto((struct socket*) file->inode, msg, len, flags, to, tolen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_sendto(sock, msg, len, flags, to, tolen);
 
 exit:
     return rc;
@@ -318,7 +327,8 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
         flags |= MSG_DONTWAIT;
     }
 
-    rc = socket_recvfrom((struct socket*) file->inode, buf, len, flags, from, addrlen);
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    rc = socket_recvfrom(sock, buf, len, flags, from, addrlen);
 
 exit:
     return rc;

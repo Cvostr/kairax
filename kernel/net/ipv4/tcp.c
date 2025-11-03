@@ -939,8 +939,6 @@ int sock_tcp4_close(struct socket* sock)
         // TODO: должно происходить только при освобождении inode
         // Очищаем очередь приема
         tcp_ip4_sock_drop_recv_buffer(sock_data);
-
-        kfree(sock_data);
     }
 
     return 0;

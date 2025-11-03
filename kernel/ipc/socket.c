@@ -34,10 +34,33 @@ struct socket* new_socket()
 
     result->state = SOCKET_STATE_UNCONNECTED;
 
-    result->ino.mode = INODE_FLAG_SOCKET;
-    result->ino.file_ops = &socket_fops;
+    struct inode* ino = new_vfs_inode();
+    ino->mode = INODE_FLAG_SOCKET;
+    ino->file_ops = &socket_fops;
+    ino->private_data = result;
+    acquire_socket(result);
+
+    result->inode = ino;
 
     return result;
+}
+
+void acquire_socket(struct socket* sock)
+{
+    atomic_inc(&sock->refs);
+}
+
+void free_socket(struct socket* sock)
+{
+    if (atomic_dec_and_test(&sock->refs)) 
+    {
+        if (sock->data)
+        {
+            kfree(sock->data);
+        }
+
+        kfree(sock);
+    }
 }
 
 int socket_init(struct socket* sock, int domain, int type, int protocol)
@@ -147,12 +170,6 @@ int socket_shutdown(struct socket* sock, int how)
     return sock->ops->shutdown(sock, how);
 }
 
-int socket_close(struct inode *inode, struct file *file)
-{
-    struct socket* sock = (struct socket*) inode;
-    return sock->ops->close(sock);
-}
-
 int socket_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen)
 {
     if (sock->ops->getpeername == NULL) {
@@ -173,19 +190,19 @@ int socket_getsockname(struct socket *sock, struct sockaddr *name, socklen_t *na
 
 ssize_t socket_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
-    struct socket* sock = (struct socket*) file->inode;
+    struct socket* sock = (struct socket*) file->inode->private_data;
     return socket_recvfrom(sock, buffer, count, 0, NULL, 0);
 }
 
 ssize_t socket_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
-    struct socket* sock = (struct socket*) file->inode;
+    struct socket* sock = (struct socket*) file->inode->private_data;
     return socket_sendto(sock, buffer, count, 0, NULL, 0);
 }
 
 int socket_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
-    struct socket* sock = (struct socket*) file->inode;
+    struct socket* sock = (struct socket*) file->inode->private_data;
 
     if (sock->ops->ioctl == NULL) {
         return -ERROR_INVALID_VALUE;
@@ -196,11 +213,21 @@ int socket_ioctl(struct file* file, uint64_t request, uint64_t arg)
 
 short socket_poll(struct file *file, struct poll_ctl *pctl)
 {
-    struct socket* sock = (struct socket*) file->inode;
+    struct socket* sock = (struct socket*) file->inode->private_data;
 
     if (sock->ops->poll == NULL) {
         return POLLNVAL;
     }
 
     return sock->ops->poll(sock, file, pctl);
+}
+
+int socket_close(struct inode *inode, struct file *file)
+{
+    struct socket* sock = (struct socket*) file->inode->private_data;
+    int rc = sock->ops->close(sock);
+
+    free_socket(sock);
+
+    return rc;
 }

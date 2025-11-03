@@ -52,12 +52,18 @@ struct protocol {
 #define SOCKET_STATE_CONNECTING     3
 #define SOCKET_STATE_CONNECTED      4
 
+#define SOCKET_STATE_CLOSE_WAIT     10
+#define SOCKET_STATE_LAST_ACK       12
+#define SOCKET_STATE_FIN_WAIT1      13
+#define SOCKET_STATE_FIN_WAIT2      14
+
 struct socket_data;
 struct socket_prot_ops;
 
 struct socket {
     
-    struct inode ino;
+    struct inode *inode;
+    atomic_t refs;
 
     int domain;
     int type;
@@ -138,6 +144,8 @@ struct socket_family {
 void register_sock_family(struct socket_family* family);
 
 struct socket* new_socket();
+void acquire_socket(struct socket* sock);
+void free_socket(struct socket* sock);
 
 int socket_init(struct socket* sock, int domain, int type, int protocol);
 

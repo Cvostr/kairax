@@ -72,7 +72,7 @@ int sock_raw4_create (struct socket* sock)
 
     acquire_spinlock(&raw_sockets_lock);
     list_add(&raw_sockets, sock);
-    inode_open((struct inode*) sock, 0);
+    acquire_socket(sock);
     release_spinlock(&raw_sockets_lock);
 
     return 0;
@@ -265,7 +265,7 @@ int sock_raw4_close(struct socket* sock)
     // удалить сокет из списка raw сокетов
     acquire_spinlock(&raw_sockets_lock);
     list_remove(&raw_sockets, sock);
-    inode_close((struct inode*) sock);
+    free_socket(sock);
     release_spinlock(&raw_sockets_lock);
 
     // Разбудить спящих
@@ -273,7 +273,5 @@ int sock_raw4_close(struct socket* sock)
 
     // Освободить память
     sock_raw4_drop_recv_buffer(sock_data);
-    kfree(sock_data);
-
     return 0;
 }

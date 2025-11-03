@@ -91,7 +91,7 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
         }
 
         // Запомнить указатель на сокет в private_data
-        inode_open((struct inode*) sock, 0);
+        acquire_socket(sock);
         file->inode->private_data = sock;
 
         // Сохранить указатель на inode в сокет
@@ -148,11 +148,11 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     struct local_socket* client_pair_sock_data = (struct local_socket*) client_pair_sock->data;
     // Установка пира для клиентского сокета со стороны сервера
     client_pair_sock_data->peer = client_sock;
-    inode_open((struct inode*) client_sock, 0);
+    acquire_socket(client_sock);
 
     // Установить пира для клиента
     client_sock_data->peer = client_pair_sock;
-    inode_open((struct inode*) client_pair_sock, 0);
+    acquire_socket(client_pair_sock);
     // Разбудить поток, ожидающий подключения
     client_sock_data->connection_accepted = 1;
     scheduler_wake(&client_sock_data->connect_blk, 1);
@@ -160,7 +160,7 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     *newsock = client_pair_sock;
 
     // Уменьшить счетчик ссылок, т.к мы вытащили иноду из очереди
-    inode_close((struct inode*) client_sock);
+    free_socket(client_sock);
 
     return 0;
 }
@@ -236,7 +236,7 @@ int socket_local_append_to_backlog(struct socket* server_sock, struct socket* so
     if (list_size(&server_sock_data->backlog) < server_sock_data->backlog_sz) 
     {
         // Добавляем сокет к очереди подключений
-        inode_open((struct inode*) sock, 0);
+        acquire_socket(sock);
         list_add(&server_sock_data->backlog, sock);
 
         // Разбудить ожидающих подключений
@@ -267,10 +267,10 @@ int sock_local_close(struct socket* sock)
         peer_data->peer_disconnected = 1;
         
         sock_data->peer = NULL;
-        inode_close((struct inode*) peer);
+        free_socket(peer);
 
         peer_data->peer = NULL;
-        inode_close((struct inode*) sock);
+        free_socket(sock);
 
         peer->state = SOCKET_STATE_UNCONNECTED;
 
@@ -290,7 +290,7 @@ int sock_local_close(struct socket* sock)
     // Освободить память под inode файла сокета
     if (sock_data->bound_inode != NULL)
     {
-        inode_close((struct inode*) sock_data->bound_inode->private_data);
+        free_socket(sock_data->bound_inode->private_data);
         sock_data->bound_inode->private_data = NULL;
 
         inode_close(sock_data->bound_inode);
@@ -307,16 +307,13 @@ int sock_local_close(struct socket* sock)
             // Будим поток, ожидающий подключения
             scheduler_wake(&peer_sock_data->connect_blk, INT_MAX);
             // Снижаем счетчик ссылок на сокет
-            inode_close((struct inode*) current_peer);
+            free_socket(current_peer);
         }
 
         release_spinlock(&sock_data->backlog_lock);
     }
 
     sock->state = SOCKET_STATE_UNCONNECTED;
-
-    kfree(sock_data);
-
     return 0;
 }
 
