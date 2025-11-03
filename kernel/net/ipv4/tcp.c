@@ -51,6 +51,37 @@ struct socket_prot_ops ipv4_stream_ops = {
 // Сокеты по портам в порядке байтов хоста
 struct socket* tcp4_bindings[TCP_PORTS];
 
+void tcpdump()
+{
+    for (int i = 0; i < TCP_PORTS; i ++)
+    {
+        struct socket* sck = tcp4_bindings[i];
+        if (sck != NULL)
+        {
+            struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sck->data;
+            printk("Socket port %i, state %i\n", sock_data->bound_port, sck->state);
+
+            if (sock_data->is_listener)
+            {
+                struct list_node* current = sock_data->children.head;
+                while (current != NULL)
+                {
+                    struct socket* sock = current->element;
+                    struct tcp4_socket_data* sockdata = (struct tcp4_socket_data*) sock->data; 
+
+                    union ip4uni src;
+	                src.val = sockdata->addr.sin_addr.s_addr; 
+
+                    printk("  Socket - bound port %i, src port %i, state %i peer %i.%i.%i.%i\n", sockdata->bound_port, sock_data->src_port, sock->state, 
+                    src.array[0], src.array[1], src.array[2], src.array[3]);
+
+                    current = current->next;
+                }
+            }
+        }
+    }
+}
+
 int tcp_ip4_handle(struct net_buffer* nbuffer)
 {
     struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->transp_header;
@@ -93,16 +124,17 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 #endif
 
     struct socket* sock = tcp4_bindings[dst_port];
+
     if (sock == NULL)
     {
 #ifdef TCP_LOG_NO_SOCK_PORT
         printk("No socket bound to TCP port %i\n", dst_port);
 #endif
-        // ??? - реализовать
-        // Пока не отправляем RST потому что сокет выпадет из списка раньше и уйдет RST на попытку FIN
-        //tcp_ip4_err_rst(tcp_packet, ip4p);
+        tcp_ip4_err_rst(tcp_packet, ip4p);
         return -1;
     }
+
+    //acquire_socket(sock);
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
@@ -112,12 +144,13 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     int is_active_listener = sock->state == SOCKET_STATE_LISTEN;
     // Сообщение - первая попытка подключения?
     int is_syn = (flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYN;
+    int is_ack = (flags & TCP_FLAG_ACK) == TCP_FLAG_ACK;
 
     if (is_listener == 1 && !is_syn)
     {
         // Пришли данные по порту сокета-слушателя, при этом соединение уже было установлено
         // Значит надо найти клиентский сокет внутри этого слушателя
-        struct socket* child_sock = tcp_ip4_listener_get(sock_data, ip4p->src_ip, tcp_packet->src_port);
+        struct socket* child_sock = tcp_ip4_listener_get(sock, ip4p->src_ip, tcp_packet->src_port);
 
         if (child_sock == NULL)
         {
@@ -128,13 +161,15 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
             }
 
             // отсутствует сокет
-            // TODO: обработать
+            tcp_ip4_err_rst(tcp_packet, ip4p);
             return -1;
         }
 
 
         // Переопределяем sock и sock_data, чтобы дальше работать уже с ними
+        //free_socket(sock);
         sock = child_sock;
+        //acquire_socket(sock);
         sock_data = (struct tcp4_socket_data*) sock->data;
     }
 
@@ -144,6 +179,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         if (is_active_listener == 0) {
             // ? CONNREFUSED?
             tcp_ip4_err_rst(tcp_packet, ip4p);
+            //free_socket(sock);
             return 1;
         }
 
@@ -180,18 +216,11 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     } 
     else if ((flags & TCP_FLAG_FIN) == TCP_FLAG_FIN)
     {
-        sock_data->ack += 1;
-
-        // закрыть соединение
-        sock->state = SOCKET_STATE_UNCONNECTED;
-
-        // Разбудить всех ожидающих приема
-        // Чтобы они могли сразу выйти с ошибкой
-        scheduler_wake(&sock_data->rx_blk, INT_MAX);
-
-        // Ответить ACK
-        tcp_ip4_ack(sock_data);
-    } else if ((flags & TCP_FLAG_RST) == TCP_FLAG_RST) {
+        tcp_ip4_handle_fin(sock, nbuffer, is_ack);
+        //free_socket(sock);
+        return;
+    }
+    else if ((flags & TCP_FLAG_RST) == TCP_FLAG_RST) {
 
         // закрыть соединение
         sock->state = SOCKET_STATE_UNCONNECTED;
@@ -208,10 +237,114 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         //printk("RST \n");
     } 
-    else if ((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) 
+    else if (is_ack) 
     {
-        //tcp_ip4_handle_ack(sock, nbuffer);
+        tcp_ip4_handle_ack(sock, nbuffer);
     } 
+
+    //free_socket(sock);
+}
+
+void tcp_ip4_destroy(struct socket* sock)
+{
+    //printk ("SD ");
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // TODO: должно происходить только при освобождении inode
+    // Очищаем очередь приема
+    tcp_ip4_sock_drop_recv_buffer(sock_data);
+
+    // Если закрываемый сокет - дочерний сокет от сервера
+    // То надо удалить его из этого серверного сокета 
+    if (sock_data->listener != NULL) 
+    {
+        // Удаляем сокет из списка дочерних
+        // Если ссылок не осталось, то сокет уничтожится
+        tcp_ip4_listener_remove(sock_data->listener, sock);
+        return;
+    }
+
+    // Освободить порт
+    // Если ссылок больше не останется, то сокет будет уничтожен
+    tcp_ip4_unbind_sock(sock);
+}
+
+void tcp_ip4_handle_ack(struct socket* sock, struct net_buffer* nbuffer)
+{
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    
+    if (sock->state == SOCKET_STATE_LAST_ACK)
+    {
+        //printk("LAST ACK");
+        tcp_ip4_destroy(sock);
+        return;
+    }
+
+    if (sock->state == SOCKET_STATE_CLOSING)
+    {
+        tcp_ip4_destroy(sock);
+        return;
+    }
+
+    if (sock->state == SOCKET_STATE_FIN_WAIT1)
+    {
+        sock->state = SOCKET_STATE_FIN_WAIT2;
+        return;
+    }
+}
+
+void tcp_ip4_handle_fin(struct socket* sock, struct net_buffer* nbuffer, int has_ack)
+{
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    if (sock->state == SOCKET_STATE_CONNECTED)
+    {
+        // Статус - ожидание закрытия со стороны приложения
+        sock->state = SOCKET_STATE_CLOSE_WAIT;
+
+        sock_data->ack += 1;
+        // Ответить ACK
+        tcp_ip4_ack(sock_data);
+
+        // Разбудить всех ожидающих приема
+        // Чтобы они могли сразу выйти с ошибкой
+        scheduler_wake(&sock_data->rx_blk, INT_MAX);
+        return;
+    }
+
+    if (sock->state == SOCKET_STATE_FIN_WAIT1 && has_ack == FALSE)
+    {
+        // Статус - закрываемся)))
+        sock->state = SOCKET_STATE_CLOSING;
+
+        // отправляем ACK с увеличением ack
+        sock_data->ack += 1;
+        // Ответить ACK
+        tcp_ip4_ack(sock_data);
+        return;
+    }
+
+    if (sock->state == SOCKET_STATE_FIN_WAIT1 && has_ack == TRUE)
+    {
+        // отправляем ACK с увеличением ack
+        sock_data->ack += 1;
+        // Ответить ACK
+        tcp_ip4_ack(sock_data);
+
+        tcp_ip4_destroy(sock);
+        return;
+    }
+
+    if (sock->state == SOCKET_STATE_FIN_WAIT2)
+    {
+        // отправляем ACK с увеличением ack
+        sock_data->ack += 1;
+        // Ответить ACK
+        tcp_ip4_ack(sock_data);
+
+        tcp_ip4_destroy(sock);
+        return;
+    }
 }
 
 uint32_t tcp_ip4_make_syn_cookie(uint32_t saddr, uint32_t destaddr, uint16_t srcport, uint16_t dstport, uint32_t seq)
@@ -514,11 +647,22 @@ int tcp_ip4_alloc_dynamic_port(struct socket* sock)
         {
             sock_data->src_port = port;
             tcp4_bindings[port] = sock;
+            acquire_socket(sock);
             return 1;
         }
     }
 
     return 0;
+}
+
+void tcp_ip4_unbind_sock(struct socket* sock)
+{
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    if (tcp4_bindings[sock_data->bound_port] == sock)
+    {
+        tcp4_bindings[sock_data->bound_port] = NULL;
+        free_socket(sock);
+    }
 }
 
 int sock_tcp4_create (struct socket* sock)
@@ -637,32 +781,49 @@ void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, str
     dst->sin_port = tcpp->src_port;
 }
 
-void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client)
+void tcp_ip4_listener_add(struct socket* listener, struct socket* client)
 {
-    acquire_spinlock(&listener->children_lock);
-    list_add(&listener->children, client);
-    release_spinlock(&listener->children_lock);
+    struct tcp4_socket_data* listener_data = listener->data;
+
+    acquire_spinlock(&listener_data->children_lock);
+    list_add(&listener_data->children, client);
+    release_spinlock(&listener_data->children_lock);
+
+    acquire_socket(client);
 }
 
-void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct socket* client)
+void tcp_ip4_listener_remove(struct socket *sock, struct socket* client)
 {
-    acquire_spinlock(&listener->children_lock);
-    list_remove(&listener->children, client);
-    release_spinlock(&listener->children_lock);
+    struct tcp4_socket_data* listener_data = sock->data;
+
+    acquire_spinlock(&listener_data->children_lock);
+    list_remove(&listener_data->children, client);
+    int remaining = list_size(&listener_data->children);
+    release_spinlock(&listener_data->children_lock);
+
+    free_socket(client);
+
+    if (sock->state == SOCKET_STATE_UNCONNECTED && remaining == 0)
+    {
+        // Сокет закрыт и у него больше не осталось детей
+        // Снимаем биндинг сокета по порту и (вероятно) уничтожаем
+        tcp_ip4_unbind_sock(sock);
+    }
 }
 
-struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port)
+struct socket* tcp_ip4_listener_get(struct socket* listener, uint32_t addr, uint16_t port)
 {
-    acquire_spinlock(&listener->children_lock);
+    struct tcp4_socket_data* listener_data = (struct tcp4_socket_data*) listener->data;
+    acquire_spinlock(&listener_data->children_lock);
 
     struct socket* result = NULL;
-    struct list_node* current = listener->children.head;
+    struct list_node* current = listener_data->children.head;
     while (current != NULL)
     {
         struct socket* sock = current->element;
         struct tcp4_socket_data* sockdata = (struct tcp4_socket_data*) sock->data; 
 
-        if (sock != NULL && sockdata->addr.sin_port == port && sockdata->addr.sin_addr.s_addr == addr)
+        if (sock != NULL && (sockdata->addr.sin_port == port) && (sockdata->addr.sin_addr.s_addr == addr))
         {
             result = sock;
             break;
@@ -671,7 +832,7 @@ struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t 
         current = current->next;
     }
 
-    release_spinlock(&listener->children_lock);
+    release_spinlock(&listener_data->children_lock);
 
     return result;
 }
@@ -718,9 +879,9 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     client_sockdata->sn = conn_request->sn;
     client_sockdata->ack = conn_request->ack;
     // Указатель на listener
-    client_sockdata->listener = sock_data;
+    client_sockdata->listener = sock;
     // Добавить в список клиентских сокетов
-    tcp_ip4_listener_add(sock_data, client_sock);
+    tcp_ip4_listener_add(sock, client_sock);
 
     client_sock->state = SOCKET_STATE_CONNECTED;
     *newsock = client_sock;
@@ -751,6 +912,7 @@ int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t a
     // Bind port
     sock_data->bound_port = port;
     tcp4_bindings[port] = sock;
+    acquire_socket(sock);
 
     return 0;
 }
@@ -913,40 +1075,47 @@ int sock_tcp4_close(struct socket* sock)
 #endif
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
-    if (sock->state != SOCKET_STATE_LISTEN && sock_data->shut_wr == FALSE)
+    if (sock_data->is_listener == FALSE)
     {
+        // Мы не сокет-слушатель.
+        if (sock->state == SOCKET_STATE_CLOSE_WAIT)
+        {
+            // Сокет был закрыт со стороны пира и в ожидании закрытия приложением
+            // Переводим его в ожидание ACK
+            sock->state = SOCKET_STATE_LAST_ACK; 
+        }
+        else if (sock->state == SOCKET_STATE_CONNECTED) 
+        {
+            // Соединение было, значит закрываем сами
+            sock->state = SOCKET_STATE_FIN_WAIT1;
+        }
+        else if (sock->state == SOCKET_STATE_CONNECTING)
+        {
+            // Мы еще только подключаемся
+            tcp_ip4_unbind_sock(sock);
+        }
+
+        // Надо отправить FIN в сторону пира
+        // TODO: не отправлять после SHUTDOWN_WR? (sock_data->shut_wr == FALSE)
         int rc = tcp_ip4_fin(sock_data);
         if (rc != 0)
         {
             printk("tcp: close() error: %i", rc);
         }
     }
-
-    sock->state = SOCKET_STATE_UNCONNECTED;
-
-    if (sock_data) 
+    else if (sock_data->is_listener == TRUE)
     {
-        // Если закрываемый сокет - дочерний сокет от сервера
-        // То надо удалить его из этого серверного сокета 
-        if (sock_data->listener != NULL) 
+        // Мы слушатель
+        // Запрещаем новые подключения, снимая признак активного слушателя
+        // И ждем, пока отключатся все дочерние сокеты
+        sock->state = SOCKET_STATE_UNCONNECTED;   
+
+        if (list_size(&sock_data->children) == 0)
         {
-            tcp_ip4_listener_remove(sock_data->listener, sock);
-            sock_data->listener = NULL;
+            // Если детей уже не было, то сразу
+            // Снимаем биндинг сокета по порту и (вероятно) уничтожаем
+            tcp_ip4_unbind_sock(sock);
         }
-
-        // Разбудить всех ожидающих приема
-        // Чтобы они могли дочитать буфер или сразу выйти с ошибкой
-        scheduler_wake(&sock_data->rx_blk, INT_MAX);
-
-        // Освободить порт
-        if (tcp4_bindings[sock_data->bound_port] == sock)
-        {
-            tcp4_bindings[sock_data->bound_port] = NULL;
-        }
-
-        // TODO: должно происходить только при освобождении inode
-        // Очищаем очередь приема
-        tcp_ip4_sock_drop_recv_buffer(sock_data);
     }
 
     return 0;

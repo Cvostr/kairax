@@ -48,9 +48,9 @@ struct tcp_connection_request {
 
 struct tcp4_socket_data {
 
-    // порт, от имени которого будут уходить сообщения
+    // порт, от имени которого будут уходить сообщения (кодировка компьютера)
     uint16_t            src_port;
-    // порт, назначенный сокету локально
+    // порт, назначенный сокету локально  (кодировка компьютера)
     // для клиента - случайно сгенерированный
     // для сервера - назначенный через bind()
     uint16_t            bound_port;
@@ -74,7 +74,7 @@ struct tcp4_socket_data {
     spinlock_t children_lock;
     
     // Указатель на listener сокет (сервер)
-    struct tcp4_socket_data* listener;
+    struct socket *listener;
 
     // очередь приема
     list_t rx_queue;
@@ -99,16 +99,21 @@ int tcp_ip4_err_rst(struct tcp_packet* tcp_packet, struct ip4_packet* ip4p);
 
 // Методы для обработки входящих сообщений 
 void tcp_ip4_handle_syn(struct socket* sock, struct net_buffer* nbuffer);
+void tcp_ip4_handle_fin(struct socket* sock, struct net_buffer* nbuffer, int has_ack);
+void tcp_ip4_handle_ack(struct socket* sock, struct net_buffer* nbuffer);
 int tcp_ip4_listener_handle_ack(struct socket* sock, struct net_buffer* nbuffer);
 
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
-void tcp_ip4_listener_add(struct tcp4_socket_data* listener, struct socket* client);
-void tcp_ip4_listener_remove(struct tcp4_socket_data* listener, struct socket* client);
+void tcp_ip4_unbind_sock(struct socket* sock);
+void tcp_ip4_listener_add(struct socket* listener, struct socket* client);
+// Удалить дочерний сокет из сокета-слушателя
+// Если слушатель был закрыт и сокетов в нем не останется, то он будет уничтожен 
+void tcp_ip4_listener_remove(struct socket *sock, struct socket* client);
 void tcp_ip4_sock_drop_recv_buffer(struct tcp4_socket_data* sock);
 // addr и port в порядке байт сети (Big Endian)
-struct socket* tcp_ip4_listener_get(struct tcp4_socket_data* listener, uint32_t addr, uint16_t port);
+struct socket* tcp_ip4_listener_get(struct socket* listener, uint32_t addr, uint16_t port);
 
 void tcp_ip4_init();
 

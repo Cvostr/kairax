@@ -216,6 +216,10 @@ void bootshell_process_cmd(char* cmdline)
             printf_stdout("Error unloading module : %i\n", -rc);
         }
     }
+    if (strcmp(cmd, "tcp") == 0)
+    {
+        tcpdump();
+    }
     if (strcmp(cmd, "exec") == 0) {
 
         struct process_create_info info;

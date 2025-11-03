@@ -51,6 +51,7 @@ struct protocol {
 #define SOCKET_STATE_LISTEN         2
 #define SOCKET_STATE_CONNECTING     3
 #define SOCKET_STATE_CONNECTED      4
+#define SOCKET_STATE_CLOSING        5
 
 #define SOCKET_STATE_CLOSE_WAIT     10
 #define SOCKET_STATE_LAST_ACK       12
