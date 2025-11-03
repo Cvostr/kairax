@@ -60,6 +60,7 @@ struct tcp4_socket_data {
     uint32_t sn;
     uint32_t ack;
 
+    int is_listener;
     int is_rst;
     int shut_rd;
     int shut_wr;

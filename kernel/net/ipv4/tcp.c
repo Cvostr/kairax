@@ -103,10 +103,15 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         //tcp_ip4_err_rst(tcp_packet, ip4p);
         return -1;
     }
-    int is_listener = sock->state == SOCKET_STATE_LISTEN;
-    int is_syn = (flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYN;
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // Является ли сокет - слушающим?
+    int is_listener = sock_data->is_listener;
+    // Является ли сокет активно слушающим? (после close перестает быть таковым)
+    int is_active_listener = sock->state == SOCKET_STATE_LISTEN;
+    // Сообщение - первая попытка подключения?
+    int is_syn = (flags & TCP_FLAG_SYNACK) == TCP_FLAG_SYN;
 
     if (is_listener == 1 && !is_syn)
     {
@@ -136,7 +141,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     if (is_syn) 
     {    
         // Пришел SYN пакет - это первая попытка подключения к серверу
-        if (is_listener == 0) {
+        if (is_active_listener == 0) {
             // ? CONNREFUSED?
             tcp_ip4_err_rst(tcp_packet, ip4p);
             return 1;
@@ -756,6 +761,9 @@ int sock_tcp4_listen(struct socket* sock, int backlog)
     sock_data->backlog_sz = backlog;
 
     // Принимающий подключения
+    sock_data->is_listener = TRUE;
+    
+    // Активно принимающий подключения
     sock->state = SOCKET_STATE_LISTEN;
 
     // На всякий случай
