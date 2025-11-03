@@ -43,6 +43,7 @@ int routectl4(int action, int arg, struct route4_info* route)
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, route, sizeof(struct route4_info))
 
+    int rc;
     struct nic* nic = NULL;
 
     if (route->nic_name[0] != 0)
@@ -76,7 +77,10 @@ int routectl4(int action, int arg, struct route4_info* route)
             new_route->flags = route->flags;
             new_route->metric = route->metric;
             new_route->interface = nic;
-            return route4_add(new_route);
+            rc = route4_add(new_route);
+            if (rc != 0)
+                kfree(new_route);
+            return rc;
         default:
             return -EINVAL;
     }
