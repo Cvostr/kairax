@@ -280,7 +280,6 @@ void tcp_ip4_handle_ack(struct socket* sock, struct net_buffer* nbuffer)
     
     if (sock->state == SOCKET_STATE_LAST_ACK)
     {
-        //printk("LAST ACK");
         tcp_ip4_destroy(sock);
         return;
     }
@@ -307,6 +306,9 @@ void tcp_ip4_handle_fin(struct socket* sock, struct net_buffer* nbuffer, int has
         // Статус - ожидание закрытия со стороны приложения
         sock->state = SOCKET_STATE_CLOSE_WAIT;
 
+        // Закрыли запись с той стороны, значит мы со своей стороны закрываем чтение
+        sock_data->shut_rd = TRUE;
+
         sock_data->ack += 1;
         // Ответить ACK
         tcp_ip4_ack(sock_data);
@@ -314,6 +316,9 @@ void tcp_ip4_handle_fin(struct socket* sock, struct net_buffer* nbuffer, int has
         // Разбудить всех ожидающих приема
         // Чтобы они могли сразу выйти с ошибкой
         scheduler_wake(&sock_data->rx_blk, INT_MAX);
+
+        // Будим наблюдающих
+        poll_wakeall(&sock_data->rx_poll_wq);
         return;
     }
 
@@ -1185,7 +1190,16 @@ short sock_tcp4_poll(struct socket *sock, struct file *file, struct poll_ctl *nc
     if ((sock->state == SOCKET_STATE_LISTEN) && (sock_data->accept_queue.head != NULL))
         return POLLIN | POLLRDNORM;
 
-    if (sock_data->rx_queue.head != NULL)
+    // Запись закрыта с обеих сторон - HUP
+    if ((sock_data->shut_rd == TRUE) && (sock_data->shut_wr == TRUE))
+        poll_mask |= POLLHUP;
+
+    // Пришел FIN
+    if (sock_data->shut_rd == TRUE)
+        poll_mask |= POLLIN | POLLRDNORM | POLLRDHUP;
+
+    // очередь приема не пуста?
+    if (list_size(&sock_data->rx_queue) > 0)
         poll_mask |= (POLLIN | POLLRDNORM);
 
     // Пока что запись возможна, когда сокет соединен

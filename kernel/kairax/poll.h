@@ -12,6 +12,7 @@
 #define POLLNVAL    0x020
 #define POLLRDNORM  0x040
 #define POLLWRNORM	0x100
+#define POLLRDHUP   0x2000
 
 struct file;
 
