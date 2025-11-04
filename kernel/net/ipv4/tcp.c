@@ -124,7 +124,6 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 #endif
 
     struct socket* sock = tcp4_bindings[dst_port];
-
     if (sock == NULL)
     {
 #ifdef TCP_LOG_NO_SOCK_PORT
@@ -134,7 +133,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         return -1;
     }
 
-    //acquire_socket(sock);
+    int rc = 0;
+    acquire_socket(sock);
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
@@ -157,19 +157,21 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
             // Не нашли сокет, пробуем обработь ожидаемые подключения
             if (((flags & TCP_FLAG_ACK) == TCP_FLAG_ACK) && tcp_ip4_listener_handle_ack(sock, nbuffer) == TRUE)
             {
-                return 0;
+                rc = 0;
+                goto exit;
             }
 
             // отсутствует сокет
             tcp_ip4_err_rst(tcp_packet, ip4p);
-            return -1;
+            rc = -1;
+            goto exit;
         }
 
 
         // Переопределяем sock и sock_data, чтобы дальше работать уже с ними
-        //free_socket(sock);
+        free_socket(sock);
         sock = child_sock;
-        //acquire_socket(sock);
+        acquire_socket(sock);
         sock_data = (struct tcp4_socket_data*) sock->data;
     }
 
@@ -179,8 +181,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         if (is_active_listener == 0) {
             // ? CONNREFUSED?
             tcp_ip4_err_rst(tcp_packet, ip4p);
-            //free_socket(sock);
-            return 1;
+            rc = 1;
+            goto exit;
         }
 
         tcp_ip4_handle_syn(sock, nbuffer);
@@ -217,8 +219,8 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     else if ((flags & TCP_FLAG_FIN) == TCP_FLAG_FIN)
     {
         tcp_ip4_handle_fin(sock, nbuffer, is_ack);
-        //free_socket(sock);
-        return;
+        rc = 0;
+        goto exit;
     }
     else if ((flags & TCP_FLAG_RST) == TCP_FLAG_RST) {
 
@@ -242,13 +244,16 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         tcp_ip4_handle_ack(sock, nbuffer);
     } 
 
-    //free_socket(sock);
+exit:
+    free_socket(sock);
+    return rc;
 }
 
 void tcp_ip4_destroy(struct socket* sock)
 {
-    //printk ("SD ");
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    sock->state = SOCKET_STATE_UNCONNECTED;
 
     // TODO: должно происходить только при освобождении inode
     // Очищаем очередь приема
