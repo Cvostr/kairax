@@ -7,6 +7,7 @@
 #include "list/list.h"
 #include "sync/spinlock.h"
 #include "proc/blocker.h"
+#include "ipv4.h"
 
 struct udp_packet {
     uint16_t    src_port;
@@ -29,6 +30,9 @@ struct udp4_socket_data {
 
     uint8_t allow_broadcast;
     uint8_t nonblock;
+
+    // Для хранения состояния соединения
+    struct sockaddr_in peer;
 };
 
 int udp_ip4_handle(struct net_buffer* nbuffer);
@@ -39,6 +43,7 @@ void udp_ip4_init();
 uint16_t udp4_calc_checksum(uint32_t src, uint32_t dest, struct udp_packet* header, const unsigned char* payload, size_t payload_size);
 
 int sock_udp4_create(struct socket* sock);
+int	sock_udp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
 int sock_udp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
 ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);

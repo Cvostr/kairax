@@ -41,6 +41,7 @@ int udp_ip4_alloc_dynamic_port(struct socket* sock)
 
 int udp_ip4_handle(struct net_buffer* nbuffer)
 {
+    struct sockaddr_in *peer = NULL;
     struct udp4_socket_data* sock_data = NULL;
     struct udp_packet* udphdr = (struct udp_packet*) nbuffer->transp_header;
 
@@ -59,10 +60,10 @@ int udp_ip4_handle(struct net_buffer* nbuffer)
         }
     }
 
-    uint16_t src_port = ntohs(udphdr->src_port);
     uint16_t dst_port = ntohs(udphdr->dst_port);
 
 #ifdef UDP4_LOGGING
+    uint16_t src_port = ntohs(udphdr->src_port);
     printk("UDP: src port: %i, dest port: %i, len: %i, payload_len: %i\n", src_port, dst_port, ntohs(udphdr->len), nbuffer->payload_size);
 #endif
 
@@ -76,23 +77,30 @@ int udp_ip4_handle(struct net_buffer* nbuffer)
         return -1;
     }
 
-    if (sock->data != NULL) 
+    sock_data = (struct udp4_socket_data*) sock->data;
+
+    // Если сокет соединен - значит надо проверить адрес отправителя
+    if (sock->state == SOCKET_STATE_CONNECTED)
     {
-        sock_data = (struct udp4_socket_data*) sock->data;
-
-        acquire_spinlock(&sock_data->rx_queue_lock);
-
-        // Добавить буфер в очередь приема с увеличением количества ссылок
-        net_buffer_acquire(nbuffer);
-        list_add(&sock_data->rx_queue, nbuffer);
-        
-        release_spinlock(&sock_data->rx_queue_lock);
-
-        // Будим ожидающих
-        scheduler_wake(&sock_data->blk, 1);
-        // Будим наблюдающих
-        poll_wakeall(&sock_data->poll_wq);
+        peer = &sock_data->peer;
+        if (udphdr->src_port != peer->sin_port || ip4p->src_ip != peer->sin_addr.s_addr)
+        {
+            return -1;
+        }
     }
+
+    acquire_spinlock(&sock_data->rx_queue_lock);
+
+    // Добавить буфер в очередь приема с увеличением количества ссылок
+    net_buffer_acquire(nbuffer);
+    list_add(&sock_data->rx_queue, nbuffer);
+    
+    release_spinlock(&sock_data->rx_queue_lock);
+
+    // Будим ожидающих
+    scheduler_wake(&sock_data->blk, 1);
+    // Будим наблюдающих
+    poll_wakeall(&sock_data->poll_wq);
 
     return 0;
 }
@@ -106,6 +114,7 @@ void udp_ip4_init()
 struct socket_prot_ops ipv4_dgram_ops = {
     .create = sock_udp4_create,
     .bind = sock_udp4_bind,
+    .connect = sock_udp4_connect,
     .recvfrom = sock_udp4_recvfrom,
     .sendto = sock_udp4_sendto,
     .setsockopt = sock_udp4_setsockopt,
@@ -123,6 +132,22 @@ int sock_udp4_create(struct socket* sock)
     }
     
     memset(sock->data, 0, sizeof(struct udp4_socket_data));
+    return 0;
+}
+
+int	sock_udp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
+{
+    if (saddr->sa_family != AF_INET || sockaddr_len != sizeof(struct sockaddr_in))
+    {
+        return -EINVAL;
+    }
+
+    // Копируем адрес пира
+    struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
+    memcpy(&sock_data->peer, saddr, sizeof(struct sockaddr_in));
+
+    // Ставим состояние - соединен
+    sock->state = SOCKET_STATE_CONNECTED;
     return 0;
 }
 
@@ -158,8 +183,6 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
     }
 
     struct sockaddr_in* src_addr_in = (struct sockaddr_in*) src_addr;
-
-    // TODO: проверить что сокет точно udp ip4
 
     // Получение внутренних UDP данных сокета
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
@@ -219,18 +242,32 @@ ssize_t sock_udp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
 int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
-    if (to == NULL)
-    {
-        return -EINVAL;
-    }
-
-    if (tolen != sizeof(struct sockaddr_in))
-    {
-        return -EINVAL;
-    }
-
     struct udp4_socket_data* sock_data = (struct udp4_socket_data*) sock->data;
     struct sockaddr_in* dest_addr_in = (struct sockaddr_in*) to;
+
+    // Указан ли адрес назначения?
+    if (to == NULL)
+    {
+        // Подключен ли сокет?
+        if (sock->state == SOCKET_STATE_CONNECTED)
+        {
+            // Если да, то отправляем в пира
+            dest_addr_in = &sock_data->peer;
+        }
+        else
+        {
+            // Если не подключен и адресат не указан, то ошибка
+            return -EINVAL;
+        }
+    }
+    else
+    {
+        // Если указан адрес, то проверим tolen
+        if (tolen != sizeof(struct sockaddr_in))
+        {
+            return -EINVAL;
+        }
+    }
 
     // Для UDP допускается broadcast. Если не включено явно, то не разрешаем
     if ((dest_addr_in->sin_addr.s_addr == INADDR_BROADCAST) && sock_data->allow_broadcast == FALSE)
@@ -251,7 +288,6 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     struct route4* route = route4_resolve(dest_addr_in->sin_addr.s_addr);
     if (route == NULL)
     {
-        //printk("UDP: NO ROUTE!!!\n");
         return -ENETUNREACH;
     }
 
