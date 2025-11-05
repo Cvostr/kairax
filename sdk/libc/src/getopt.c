@@ -5,8 +5,17 @@
 // https://pubs.opengroup.org/onlinepubs/009696799/functions/getopt.html
 int getopt(int argc, char *const argv[], const char *options)
 {
+    // Для поддержки слитных опций (-abc) 
+    static int argoffset;
+    static int lastoptind;
+
     if (optind == 0)
+    {
         optind = 1;
+        lastoptind = 0;
+    }
+
+begin:
     
     char* arg = argv[optind];
     char* optschem;
@@ -16,14 +25,31 @@ int getopt(int argc, char *const argv[], const char *options)
         return -1;
     }
 
+    // Аргумент '--' невалиден
     if (arg[0] == '-' && arg[1] == '-' && arg[2] == 0)
     {
         optind++;
         return -1;
     }
 
+    // Перешли ли мы на новый аргумент?
+    if (lastoptind != optind) 
+    {
+        // Если да, надо сбросить Offset
+        lastoptind = optind;
+        argoffset = 0;
+    }
+
     // буква параметра
-    optopt = arg[1];
+    optopt = arg[argoffset + 1];
+
+    // Если буква - терминатор
+    if (optopt == '\0')
+    {
+        // Значит мы закончили читать этот аргумент и надо переходить к следующему
+        optind++;
+        goto begin;
+    }
 
     optschem = strchr(options, optopt);
     if (optschem == NULL)
@@ -61,8 +87,8 @@ int getopt(int argc, char *const argv[], const char *options)
     }
     else
     {
-        // аргумент не нужен
-        optind++;
+        // аргумент не нужен. Увеличиваем смещение в этом же аргументе, вдруг там еще что то есть
+        argoffset++;
         return optopt;
     }
 }
