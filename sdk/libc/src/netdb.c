@@ -41,6 +41,33 @@ const char* hstrerror(int e) {
     }
 }
 
+int __map_rcode(int rcode)
+{
+    int rc;
+    switch (rcode)
+    {
+    case RCODE_NOERROR:
+        rc = 0;
+        break;
+    case RCODE_NXDOMAIN:
+        rc = HOST_NOT_FOUND;
+        break;
+    case RCODE_SERVFAIL:
+        rc = TRY_AGAIN;
+        break;
+    case RCODE_FORMERR:
+    case RCODE_REFUSED:
+    case RCODE_NOTIMPL:
+        rc = NO_RECOVERY;
+        break;
+    default:
+        rc = NO_ADDRESS;
+        break;
+    }
+
+    return rc;
+}
+
 struct hostent *gethostbyname2(const char *name, int af)
 {
     int i;
@@ -117,24 +144,10 @@ struct hostent *gethostbyname2(const char *name, int af)
     }
 
     // Маппинг кода ошибок
-    int rcode = nsresp_header->rcode; 
-    switch (rcode)
+    int herr = __map_rcode(nsresp_header->rcode); 
+    h_errno = herr;
+    if (herr != 0)
     {
-    case RCODE_NOERROR:
-        break;
-    case RCODE_NXDOMAIN:
-        h_errno = HOST_NOT_FOUND;
-        return NULL;
-    case RCODE_SERVFAIL:
-        h_errno = TRY_AGAIN;
-        return NULL;
-    case RCODE_FORMERR:
-    case RCODE_REFUSED:
-    case RCODE_NOTIMPL:
-        h_errno = NO_RECOVERY;
-        return NULL;
-    default:
-        h_errno = NO_ADDRESS;
         return NULL;
     }
 
@@ -178,6 +191,142 @@ struct hostent *gethostbyname2(const char *name, int af)
         // Записать адрес
         result->h_addr_list[i] = hostent_alloc(&hostent_buff_offset, result->h_length);
         memcpy(result->h_addr_list[i], answ->rddata, result->h_length);
+    }
+
+    return result;
+}
+
+#define REVERSE(addr) (addr >> 24) | ((addr & 0xff0000) >> 8) | ((addr & 0xff00) << 8) | (addr << 24)
+
+void __inet_form_dns_inverse_request_str(char* buffer, int bufsz, const struct in_addr* addr)
+{
+    struct in_addr reversed;
+    memset(buffer, 0, bufsz);
+    reversed.s_addr = REVERSE(addr->s_addr);
+    inet_ntoa_r(reversed, buffer);
+    strcat(buffer, ".in-addr.arpa");
+}
+
+struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type)
+{
+    int i;
+    int sockfd;
+    struct sockaddr_in     dnssrv_addr; 
+    int h_len = 0;
+
+    char requested_name[100];
+    
+    switch (type)
+    {
+    case AF_INET:
+        h_len = 4;
+        __inet_form_dns_inverse_request_str(requested_name, 100, addr);
+        break;
+    case AF_INET6:
+        h_len = 16;
+        break;
+    default:
+        h_errno = NETDB_INTERNAL;
+        return NULL;
+    }
+
+    dnssrv_addr.sin_family = AF_INET; 
+    dnssrv_addr.sin_port = htons(53); 
+    dnssrv_addr.sin_addr.s_addr = inet_addr(NSSERV); 
+
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) 
+    { 
+        h_errno = NETDB_INTERNAL;
+        return NULL;    
+    } 
+
+    char nsreq[256];
+    memset(nsreq, 0, sizeof(nsreq));
+    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsreq;
+    // Формируем DNS заголовок
+    nsreq_header->id = 0xAA19;
+    nsreq_header->qr = 0;  // Это вопрос
+    nsreq_header->opcode = OP_QUERY;   // Инверсный запрос
+    nsreq_header->rd = 1;  // Разрешена рекурсия
+    nsreq_header->qdcount = htons(1); // Всего 1 запрос
+    // Формируем вопрос
+    char* dst = nsreq + sizeof(DNS_HEADER);
+    size_t question_sz = ns_form_question(dst, requested_name, TYPE_PTR, CLASS_IN);
+
+    size_t total_sz = sizeof(DNS_HEADER) + question_sz;
+
+    connect(sockfd, (const struct sockaddr *) &dnssrv_addr,  
+            sizeof(dnssrv_addr));
+
+    send(sockfd, (const char *) nsreq, total_sz, 0); 
+           
+    char nsresp[256];
+    int resp_addr_len = sizeof(dnssrv_addr);
+    size_t ns_resp_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
+                0, (struct sockaddr *) &dnssrv_addr, 
+                &resp_addr_len); 
+
+    close(sockfd);
+
+    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsresp;
+    
+    if (nsresp_header->id != nsreq_header->id)
+    {
+        h_errno = TRY_AGAIN;
+        return NULL;
+    }
+
+    if (nsresp_header->qr != 1)
+    {
+        h_errno = TRY_AGAIN;
+        return NULL;
+    }
+
+    // Маппинг кода ошибок
+    int herr = __map_rcode(nsresp_header->rcode); 
+    h_errno = herr;
+    if (herr != 0)
+    {
+        return NULL;
+    }
+
+    uint16_t resp_questions = ntohs(nsresp_header->qdcount);
+    uint16_t resp_answers = ntohs(nsresp_header->ancount);
+
+    size_t hostent_buff_offset = sizeof(struct hostent);
+    // Зануляем буфер
+    struct hostent *result = (struct hostent *) hostent_buffer;
+    memset(result, 0, HOSTENTBUFSZ);
+    // Заполнить начальную информацию
+    result->h_addrtype = type;
+    result->h_length = h_len;
+
+    // Выделить память под список ответов
+    size_t addrlist_len = sizeof(char*) * (resp_answers + 1);
+    result->h_addr_list = (char**) hostent_alloc(&hostent_buff_offset, addrlist_len);
+    memset(result->h_addr_list, 0, addrlist_len);
+
+    char tempname[256];
+    char* resp_current = nsresp + sizeof(DNS_HEADER);
+
+    // Пропустим отзеркленную секцию вопросов
+    for (i = 0; i < resp_questions; i ++)
+    {
+        size_t len = ns_read_query(resp_current, tempname, NULL, NULL);
+        resp_current += len;
+    }
+
+    // Обработаем ответы
+    for (i = 0; i < resp_answers; i ++)
+    {
+        DNS_ANSWER* answ = (DNS_ANSWER*) resp_current;
+        uint16_t rdlen = ntohs(answ->rdlength);
+        
+        // переход к следующему ответу
+        resp_current += sizeof(DNS_ANSWER) + rdlen;
+        // Записать адрес
+        result->h_addr_list[i] = hostent_alloc(&hostent_buff_offset, result->h_length);
+        ns_read_name(answ->rddata, result->h_addr_list[i]);
     }
 
     return result;

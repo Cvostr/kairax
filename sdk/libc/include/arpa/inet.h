@@ -14,6 +14,7 @@ char* inet_ntoa(struct in_addr in);
 char* inet_ntoa_r(struct in_addr in, char* buf);
 
 const char* inet_ntop (int af, const void* src, char* dst, size_t len);
+int inet_pton(int af, const char* src, void* dst);
 
 __END_DECLS
 

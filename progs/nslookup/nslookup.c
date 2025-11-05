@@ -3,6 +3,9 @@
 #include "arpa/inet.h"
 #include "netinet/in.h"
 
+int find_direct(char* addr);
+int find_inverse(int af, void* addr, socklen_t addrlen);
+
 int main(int argc, char** argv) {
 
     if (argc != 2)
@@ -12,6 +15,40 @@ int main(int argc, char** argv) {
     }
 
     char* addr = argv[1];
+
+    struct in_addr ip4addr;
+
+    if (inet_pton(AF_INET, addr, &ip4addr) == 1)
+    {
+        return find_inverse(AF_INET, &ip4addr, sizeof(struct in_addr));
+    } 
+    else if (inet_pton(AF_INET6, addr, &ip4addr) == 1)
+    {
+        return 2;
+    }
+    
+    return find_direct(addr);
+}
+
+int find_inverse(int af, void* addr, socklen_t addrlen)
+{
+    struct hostent* host = gethostbyaddr(addr, addrlen, af);
+    if (host == NULL)
+    {
+        printf("nslookup: %s\n", hstrerror(h_errno));
+        return 1;
+    }
+
+    for (int i = 0; host->h_addr_list[i] != NULL; i ++ )
+    {
+        printf("%s\n",  host->h_addr_list[i]);
+    }
+
+    return 0;
+}
+
+int find_direct(char* addr)
+{
     int has_response = 0;
 
     // Получить для IPv4
@@ -54,4 +91,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

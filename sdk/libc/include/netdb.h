@@ -32,6 +32,8 @@ struct hostent {
 struct hostent *gethostbyname(const char *name);
 struct hostent *gethostbyname2(const char *name, int af);
 
+struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type);
+
 #define EAI_FAMILY -1
 #define EAI_SOCKTYPE -2
 #define EAI_BADFLAGS -3

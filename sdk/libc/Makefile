@@ -46,6 +46,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/netinet/in.o \
 				obj/arpa/inet.o \
 				obj/arpa/inet_ntop.o \
+				obj/arpa/inet_pton.o \
 				obj/arpa/nameser.o \
 				obj/string.o \
 				obj/strtok.o \
