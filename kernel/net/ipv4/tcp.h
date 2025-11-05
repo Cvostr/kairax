@@ -106,6 +106,8 @@ int tcp_ip4_listener_handle_ack(struct socket* sock, struct net_buffer* nbuffer)
 int tcp_ip4_handle(struct net_buffer* nbuffer);
 void tcp_ip4_put_to_rx_queue(struct tcp4_socket_data* sock_data, struct net_buffer* nbuffer);
 int tcp_ip4_alloc_dynamic_port(struct socket* sock);
+// Запуск процесса закрытия сокета
+void sock_tcp4_shutdown_sequense(struct socket* sock);
 void tcp_ip4_unbind_sock(struct socket* sock);
 void tcp_ip4_listener_add(struct socket* listener, struct socket* client);
 // Удалить дочерний сокет из сокета-слушателя

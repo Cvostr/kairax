@@ -806,11 +806,13 @@ void tcp_ip4_listener_remove(struct socket *sock, struct socket* client)
 {
     struct tcp4_socket_data* listener_data = sock->data;
 
+    // Удаляем сокет-клиент из списка
     acquire_spinlock(&listener_data->children_lock);
     list_remove(&listener_data->children, client);
     int remaining = list_size(&listener_data->children);
     release_spinlock(&listener_data->children_lock);
 
+    // Снижаем ссылки у сокета-клиента
     free_socket(client);
 
     if (sock->state == SOCKET_STATE_UNCONNECTED && remaining == 0)
@@ -965,7 +967,8 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
             return -EAGAIN;
         }
 
-        // shutdown(SHUT_RD)
+        // shutdown(SHUT_RD) или закрыт с той стороны
+        // Если сообщений нет, то уже и не будет, сразу выходим с 0
         if (sock_data->shut_rd == TRUE)
         {
             return 0;
@@ -1078,6 +1081,42 @@ int sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
     return rc;
 }
 
+void sock_tcp4_shutdown_sequense(struct socket* sock)
+{
+    int rc;
+    int do_fin = 0;
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+    if (sock->state == SOCKET_STATE_CLOSE_WAIT)
+    {
+        // Сокет был закрыт со стороны пира и в ожидании закрытия приложением
+        // Переводим его в ожидание ACK
+        sock->state = SOCKET_STATE_LAST_ACK;
+        do_fin = TRUE; 
+    }
+    else if (sock->state == SOCKET_STATE_CONNECTED) 
+    {
+        // Соединение было, значит закрываем сами
+        sock->state = SOCKET_STATE_FIN_WAIT1;
+        do_fin = TRUE; 
+    }
+    else if (sock->state == SOCKET_STATE_CONNECTING)
+    {
+        // Мы еще только подключаемся
+        tcp_ip4_unbind_sock(sock);
+        do_fin = TRUE;
+    }
+
+    // Надо отправить FIN в сторону пира, если необходимо
+    if (do_fin == TRUE)
+    {
+        rc = tcp_ip4_fin(sock_data);
+        if (rc != 0)
+        {
+            printk("tcp: close() error: %i", rc);
+        }
+    }
+}
+
 int sock_tcp4_close(struct socket* sock)
 {
 #ifdef TCP_LOG_SOCK_CLOSE
@@ -1087,31 +1126,11 @@ int sock_tcp4_close(struct socket* sock)
 
     if (sock_data->is_listener == FALSE)
     {
-        // Мы не сокет-слушатель.
-        if (sock->state == SOCKET_STATE_CLOSE_WAIT)
-        {
-            // Сокет был закрыт со стороны пира и в ожидании закрытия приложением
-            // Переводим его в ожидание ACK
-            sock->state = SOCKET_STATE_LAST_ACK; 
-        }
-        else if (sock->state == SOCKET_STATE_CONNECTED) 
-        {
-            // Соединение было, значит закрываем сами
-            sock->state = SOCKET_STATE_FIN_WAIT1;
-        }
-        else if (sock->state == SOCKET_STATE_CONNECTING)
-        {
-            // Мы еще только подключаемся
-            tcp_ip4_unbind_sock(sock);
-        }
-
-        // Надо отправить FIN в сторону пира
-        // TODO: не отправлять после SHUTDOWN_WR? (sock_data->shut_wr == FALSE)
-        int rc = tcp_ip4_fin(sock_data);
-        if (rc != 0)
-        {
-            printk("tcp: close() error: %i", rc);
-        }
+        // Сразу закрываем и чтение и запись
+        sock_data->shut_rd = TRUE;
+        sock_data->shut_wr = TRUE;
+        // Мы не сокет-слушатель. Запускаем graceful shutdown
+        sock_tcp4_shutdown_sequense(sock);
     }
     else if (sock_data->is_listener == TRUE)
     {
@@ -1120,12 +1139,24 @@ int sock_tcp4_close(struct socket* sock)
         // И ждем, пока отключатся все дочерние сокеты
         sock->state = SOCKET_STATE_UNCONNECTED;   
 
+        // Очищаем accept очередь (если не пустая)
+        acquire_spinlock(&sock_data->accept_queue_lock);
+        struct net_buffer* current; 
+        while ((current = list_dequeue(&sock_data->accept_queue)) != NULL)
+        {
+            kfree(current);
+        }
+        release_spinlock(&sock_data->accept_queue_lock);
+
         if (list_size(&sock_data->children) == 0)
         {
             // Если детей уже не было, то сразу
             // Снимаем биндинг сокета по порту и (вероятно) уничтожаем
             tcp_ip4_unbind_sock(sock);
         }
+
+        // Биндинг не снимаем, потому что нам по прежнему надо обслуживать уже соединенные сокеты
+        // Когда будут закрыты все дочерние сокеты, биндинг снимется сам
     }
 
     return 0;
@@ -1159,15 +1190,18 @@ int	sock_tcp4_shutdown(struct socket *sock, int how)
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     if (shut_read == TRUE)
     {
+        // Помечаем запрет на чтение (новые пакеты больше не будут добавляться в очередь)
         sock_data->shut_rd = TRUE;
+        // Пробуждаем всех, пусть считают что осталось
         scheduler_wake(&sock_data->rx_blk, INT_MAX);
+        // TODO: Надо ли будить наблюдателей?
     }
 
     if (shut_write == TRUE)
     {
         // TODO: когда появится очередь отправки, реализовать отправку всей очереди  
-        // FIN
-        tcp_ip4_fin(sock_data);
+        // Запускаем Graceful shutdown
+        sock_tcp4_shutdown_sequense(sock);
         sock_data->shut_wr = TRUE;
     }
 
