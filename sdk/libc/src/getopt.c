@@ -196,10 +196,8 @@ begin:
             if (*optstring == ':') 
                 return ':';
             // вывод ошибки
-            fprintf(stderr, "invalid option `%.*s`.\n", param_sz, argval);
-            //write(2, "invalid option `", 16);
-            //write(2, argval, param_sz);
-            //write(2, "'.\n", 3);
+            if (opterr == 1)
+                fprintf(stderr, "invalid option `%.*s`.\n", param_sz, argval);
             ++optind;
             return '?';
         }

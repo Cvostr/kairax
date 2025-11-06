@@ -3,6 +3,8 @@
 #include "string.h"
 #include "stdlib.h"
 
+#define __MIN(a,b) (((a)<(b))?(a):(b))
+
 size_t skip_to_percent(const char* format) {
     size_t n = 0;
     while (format[n] != '\0' && format[n] != '%') {
@@ -11,7 +13,7 @@ size_t skip_to_percent(const char* format) {
     return n;
 }
 
-int printf_write_padding(struct arg_printf* fn, char chr, int len) 
+int printf_write_padding(struct arg_printf* fn, char chr, size_t len) 
 {
     if (len <= 0)
         return 0;
@@ -23,10 +25,11 @@ int printf_write_padding(struct arg_printf* fn, char chr, int len)
     return len;
 }
 
-int write_padded(struct arg_printf* fn, int pad_left, const char* str, char ch, int len) 
+int write_padded(struct arg_printf* fn, int pad_left, const char* str, char ch, ssize_t len) 
 {   
-    size_t strl = strlen(str);
     int written = 0;
+    size_t strl = strlen(str);
+
     if (!pad_left && len > strl) {
         written += printf_write_padding(fn, ch, len - strl);
     }
@@ -56,6 +59,7 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list args)
     long long llvalue;
     int pad_left = 0;
     int width = 0;
+    int length_limited = 0;
     char pad_char = ' ';
     int capitalize = 0;
 
@@ -76,6 +80,7 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list args)
             width = 0;
             pad_char = ' ';
             capitalize = 0;
+            length_limited = 0;
 
 printf_nextchar:
             switch (ch = *(format++)) {
@@ -87,6 +92,13 @@ printf_nextchar:
                     break;
                 case 's':
                     str = va_arg(args, char*);
+                    if (length_limited == 1)
+                    {
+                        len = __MIN(strlen(str), width);
+                        fn->put(fn->data, str, len);
+                        written += len;
+                        break;
+                    }
                     written += write_padded(fn, pad_left, str, pad_char, width);
                     break;
                 case 'z':
@@ -99,6 +111,11 @@ printf_nextchar:
                 case '.':
                     // todo : добавить точность
                     pad_char = '0';
+                    // Флаг того, что устанавливается максимальная длина
+                    length_limited = 1;
+                    goto printf_nextchar;
+                case '*':
+                    width = va_arg(args, int);
                     goto printf_nextchar;
                 case '0':
                 case '1':
