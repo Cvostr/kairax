@@ -83,6 +83,7 @@ struct hda_stream {
 struct hda_widget {
 
     int type;
+    int node;
     struct hda_stream* ostream;
 
     struct hda_dev* dev;
@@ -153,6 +154,7 @@ struct hda_dev {
 #define HDA_VERB_SET_AMP_GAIN_MUTE          0x300
 #define HDA_VERB_GET_VOLUME_CONTROL         0xF0F
 #define HDA_VERB_SET_VOLUME_CONTROL         0x70F
+#define HDA_VERB_GET_PIN_WIDGET_CTL         0xF07
 #define HDA_VERB_SET_PIN_WIDGET_CTL         0x707
 #define HDA_VERB_GET_CONNECTION_DEFAULTS    0xF1C
 
@@ -186,6 +188,11 @@ struct hda_dev {
 #define HDA_CD          3
 #define HDA_SPDIF_OUT   4
 #define HDA_LINE_IN     8
+
+// PIN CTL
+#define PIN_CTL_H_PNH_ENABLE    (1 << 7)
+#define PIN_CTL_OUT_ENABLE      (1 << 6)
+#define PIN_CTL_IN_ENABLE       (1 << 5)
 
 uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t offset, uint32_t size);
 void hda_stream_run(struct hda_dev* dev, struct hda_stream* stream);

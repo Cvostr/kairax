@@ -12,6 +12,9 @@
 #define BDL_NUM 8
 #define BDL_SIZE 4096
 
+#define LOG_WIDGETS_INFO
+#define LOG_PIN_INFO
+
 int hda_fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t offset);
 
 struct audio_operations output_ops = {
@@ -259,6 +262,14 @@ int hda_device_probe(struct device *dev)
 {
     printk("HD Audio Device found!\n");
 
+    struct pci_device_info* device_desc = dev->pci_info;
+    // давайте не будем с NVIDIA работать
+	if (device_desc->vendor_id == 0x10DE)
+	{
+        printk("HDA for NVIDIA is disabled\n");
+        return -1;
+    }
+
     pci_set_command_reg(dev->pci_info, pci_get_command_reg(dev->pci_info) | PCI_DEVCMD_BUSMASTER_ENABLE | PCI_DEVCMD_MSA_ENABLE);
     pci_device_set_enable_interrupts(dev->pci_info, 1);
 
@@ -331,7 +342,7 @@ int hda_device_probe(struct device *dev)
     delay();
 
     uint32_t status = hda_ind(dev_data, STATESTS);
-    //printk("STATESTS %i\n", status);
+    printk("STATESTS %i\n", status);
 
     for (int codec_i = 0; codec_i < HDA_MAX_CODECS; codec_i ++) {
         if (status & (1 >> codec_i)) {
@@ -346,6 +357,40 @@ int hda_device_probe(struct device *dev)
     printk("HDA device initialized\n");
 
     return 0;
+}
+
+void hda_pin_widget_obtain_connections(struct hda_dev* dev, int codec, struct hda_codec* cd, struct hda_widget* widget)
+{
+    int node = widget->node;
+    // Ищем все аудио входы/выходы
+    uint32_t conn_list_len_value = hda_codec_get_param(dev, codec, node, HDA_CODEC_GET_CONN_LIST_LEN);
+    // Connection List Length
+    int conn_list_len = conn_list_len_value & 0x07;
+    // Long form
+    int is_long_form = (conn_list_len_value & 0x80) != 0;
+
+    // Обычно для 0 возвращаются значения под индексами 0, 1, 2, 3
+    // Для 4 - под индексами 4, 5, 6, 7 и т.д.
+    // Для Long Form все делится на 2
+    int multiplier = is_long_form ? 2 : 4;
+
+    for (int i = 0; i * multiplier < conn_list_len; i += multiplier) 
+    {
+        uint32_t value = hda_codec_exec(dev, codec, node, HDA_VERB_GET_CONN_LIST_ENTRY, i);
+
+        for (int conn_i = 0; conn_i < multiplier && (i + conn_i < conn_list_len); conn_i ++) 
+        {
+            int conn_node = (value >> (8 * conn_i)) & 0xFF;
+            // Найдем виджет с этим номером
+            struct hda_widget* connected_node = cd->widgets[conn_node];
+            // Добавляем в список коннектов текущего PIN
+            widget->connections[widget->connections_num ++] = connected_node;
+
+            #ifdef LOG_PIN_INFO
+            printk("PIN %i connected to node %i with type %i\n", node, conn_node, connected_node->type);
+            #endif
+        }
+    }
 }
 
 struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec)
@@ -386,17 +431,25 @@ struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec)
         hcodec->nodes_num);
 
     // Ищем виджеты, прицепленные к этому кодеку
-    for (int node_i = hcodec->starting_node; node_i < hcodec->starting_node + hcodec->nodes_num; node_i ++) {
-
+    for (int node_i = hcodec->starting_node; node_i < hcodec->starting_node + hcodec->nodes_num; node_i ++) 
+    {
         uint32_t subnodes = hda_codec_get_param(dev, codec, node_i, HDA_CODEC_PARAM_SUB_NODE_COUNT);
         uint32_t starting_node = (subnodes >> 16) & 0xFF;
         uint32_t nodes_num = (subnodes) & 0xFF;
 
-        for (int subnode_i = starting_node; subnode_i < starting_node + nodes_num; subnode_i ++) {
-
+        for (int subnode_i = starting_node; subnode_i < starting_node + nodes_num; subnode_i ++) 
+        {
             struct hda_widget* widget = hda_determine_widget(dev, hcodec, codec, subnode_i, 0);
             hcodec->widgets[subnode_i] = widget;
         }
+    }
+
+    // Составим связи
+    for (int widget_i = 0; widget_i < HDA_MAX_WIDGETS; widget_i ++)
+    {
+        struct hda_widget* wgt = hcodec->widgets[widget_i];
+        if (wgt != NULL && wgt->type == HDA_WIDGET_AUDIO_PIN_COMPLEX)
+            hda_pin_widget_obtain_connections(dev, codec, hcodec, wgt);
     }
 
     return hcodec;
@@ -411,6 +464,7 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
     widget->func_group_type = hda_codec_get_param(dev, codec, node, HDA_CODEC_FUNCTION_GROUP_TYPE);
     widget->caps = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_AUDIO_WIDGET_CAPS);
     widget->type = (widget->caps >> 20) & 0xF;
+    widget->node = node;
 
     widget->amp_cap = hda_codec_get_param(dev, codec, node, HDA_CODEC_AMP_CAPS);
     uint32_t subnodes = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_SUB_NODE_COUNT);
@@ -421,49 +475,37 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
     // Включить
     hda_codec_exec(dev, codec, node, HDA_VERB_SET_POWER_STATE, 0x0000);
 
+    #ifdef LOG_WIDGETS_INFO
     printk("Node %i ", node);
-
-    for (int i = 0; i < nest; i ++) {
-        printk("\t");
-    }
+    #endif
 
     switch (widget->type) {
         case HDA_WIDGET_AUDIO_PIN_COMPLEX:
-            
+            #ifdef LOG_WIDGETS_INFO
             printk("Widget type : PIN \n");
+            #endif
 
             widget->conn_defaults = hda_codec_exec(dev, codec, node, HDA_VERB_GET_CONNECTION_DEFAULTS, 0);
-            //printk("default DEV %i\n", (widget->conn_defaults >> 20) & 0xF);
+            uint8_t connectivity = (widget->conn_defaults >> 30) & 0b11;
+            uint8_t location = (widget->conn_defaults >> 24) & 0b11111;
+            uint8_t default_device = (widget->conn_defaults >> 20) & 0b1111;
+            uint8_t connect_type = (widget->conn_defaults >> 16) & 0b1111;
+            uint8_t color = (widget->conn_defaults >> 12) & 0b1111;
+#ifdef LOG_PIN_INFO
+            printk("PIN location %i, default DEV %i, conn_type %i, color %i\n", location, default_device, connect_type, color);
+#endif
 
             // Включить пин виджет
-            hda_codec_exec(dev, codec, node, HDA_VERB_SET_PIN_WIDGET_CTL, 0xC0);
+            //uint8_t old_ctl = hda_codec_exec(dev, codec, node, HDA_VERB_GET_PIN_WIDGET_CTL, 0);
+            hda_codec_exec(dev, codec, node, HDA_VERB_SET_PIN_WIDGET_CTL, (PIN_CTL_H_PNH_ENABLE | PIN_CTL_OUT_ENABLE));
 
-            // Ищем все аудио входы/выходы
-            uint32_t conn_list_len_value = hda_codec_get_param(dev, codec, node, HDA_CODEC_GET_CONN_LIST_LEN);
-            int conn_list_len = conn_list_len_value & 0x07;
-            int is_long_form = (conn_list_len_value & 0x80) != 0;
-
-            // Обычно для 0 возвращаются значения под индексами 0, 1, 2, 3
-            // Для 4 - под индексами 4, 5, 6, 7 и т.д.
-            // Для Long Form все делится на 2
-            int multiplier = is_long_form ? 2 : 4;
-
-            for (int i = 0; i * multiplier < conn_list_len; i += multiplier) {
-
-                uint32_t value = hda_codec_exec(dev, codec, node, HDA_VERB_GET_CONN_LIST_ENTRY, i);
-
-                for (int conn_i = 0; conn_i < multiplier && (i + conn_i < conn_list_len); conn_i ++) {
-                    int conn_node = (value >> (8 * conn_i)) & 0xFF;
-
-                    printk("    Connection node %i\n", conn_node);
-                    widget->connections[widget->connections_num ++] = cd->widgets[conn_node];
-
-                }
-            }
-
+            uint32_t amp1 = hda_codec_exec(dev, codec, node, HDA_VERB_GET_AMP_GAIN_MUTE, 0) | 0xb000 | 127;
+            hda_codec_exec(dev, codec, node, HDA_VERB_SET_AMP_GAIN_MUTE, amp1);
             break;
         case HDA_WIDGET_AUDIO_OUTPUT:
+            #ifdef LOG_WIDGETS_INFO
             printk("Widget type : Audio output\n");
+            #endif
 
             widget->stream_formats = hda_codec_get_param(dev, codec, node, HDA_CODEC_SUPPORTED_STREAM_FORMATS);
             widget->pcm_rates = hda_codec_get_param(dev, codec, node, HDA_CODEC_PARAM_PCM_SIZE_RATE);
@@ -497,13 +539,19 @@ struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* c
 
             break;
         case HDA_WIDGET_AUDIO_INPUT:
-            printk("Widget type : Audio input\n");
+            #ifdef LOG_WIDGETS_INFO
+                printk("Widget type : Audio input\n");
+            #endif
             break;
         case HDA_WIDGET_AUDIO_MIXER:
-            printk("Widget type : Audio mixer\n");
+            #ifdef LOG_WIDGETS_INFO
+                printk("Widget type : Audio mixer\n");
+            #endif
             break;
         default:
-            printk("Widget type : Unknown (%i) !!!!\n", widget->type);
+            #ifdef LOG_WIDGETS_INFO
+                printk("Widget type : Unknown (%i) !!!!\n", widget->type);
+            #endif
             break;
     }
 
