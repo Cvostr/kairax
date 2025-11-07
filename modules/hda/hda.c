@@ -19,6 +19,7 @@ int hda_fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t off
 
 struct audio_operations output_ops = {
     //.on_write = hda_fwrite
+    .set_volume = hda_set_volume,
     .on_write = NULL
 };
 
@@ -27,6 +28,13 @@ int hda_fwrite(struct audio_endpoint* ep, char* buffer, size_t count, size_t off
     printk("Unsupported\n");
 	return 0;
 }
+
+int hda_set_volume(struct audio_endpoint* ep, uint8_t left, uint8_t right)
+{
+    printk("not implemented\n");
+	return 0;
+}
+
 
 struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, int type, uint16_t format) 
 {

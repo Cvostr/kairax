@@ -273,16 +273,15 @@ int sys_readdir(int fd, struct dirent* dirent)
 
     VALIDATE_USER_POINTER_PROTECTION(process, dirent, sizeof(struct dirent), PAGE_PROTECTION_WRITE_ENABLE)
 
-    struct file* file = process_get_file(process, fd);
+    struct file* file = process_get_file_ex(process, fd, TRUE);
 
     if (file != NULL) {
         // Вызов readdir из файла   
         rc = file_readdir(file, dirent);
+        file_close(file);
     } else {
         rc = -ERROR_BAD_FD;
     }
-
-exit:
 
     return rc;
 }
@@ -292,10 +291,11 @@ int sys_ioctl(int fd, uint64_t request, uint64_t arg)
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
 
-    struct file* file = process_get_file(process, fd);
+    struct file* file = process_get_file_ex(process, fd, TRUE);
 
     if (file != NULL) {
         rc = file_ioctl(file, request, arg);
+        file_close(file);
     } else {
         rc = -ERROR_BAD_FD;
     }

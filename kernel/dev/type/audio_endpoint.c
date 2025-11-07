@@ -81,16 +81,18 @@ size_t audio_endpoint_gather_samples(struct audio_endpoint* ep, char* out, size_
 
     size_t i;
     size_t sample_buffer_sz = ep->sample_buffer_size;
+    uint64_t* sample_buffer32 = ep->sample_buffer;
 
-    for (i = 0; i < len; i ++) {
-
+    for (i = 0; i < len / sizeof(uint64_t); i ++) 
+    {
         if (ep->read_offset == ep->write_offset)
             break;
             
-        out[i] = ep->sample_buffer[ep->read_offset++ % sample_buffer_sz];
+        ((uint64_t*)out)[i] = sample_buffer32[(ep->read_offset % sample_buffer_sz) / sizeof(uint64_t)];
+        ep->read_offset += sizeof(uint64_t);
     }
 
-    return i;
+    return i * sizeof(uint64_t);
 }
 
 int audio_endpoint_file_open(struct inode *inode, struct file *file)
@@ -144,8 +146,18 @@ ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, siz
 int audio_endpoint_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
     struct audio_endpoint* ep = file->inode->private_data;
+    struct audio_operations *ops = &ep->ops;
 
     switch (request) {
+        case AUDCTL_SET_VOLUME:
+            uint16_t volume = arg & 0xFFFF;
+            uint8_t volume_left = arg & 0xFF;
+            uint8_t volume_right = (arg >> 8);
+            if (volume_left > 100 || volume_right > 100)
+                return -EINVAL;
+            if (ops->set_volume)
+                ops->set_volume(ep, volume_left, volume_right);
+            break;
         default:
             return -EINVAL;
     }

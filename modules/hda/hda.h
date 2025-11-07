@@ -194,6 +194,24 @@ struct hda_dev {
 #define PIN_CTL_OUT_ENABLE      (1 << 6)
 #define PIN_CTL_IN_ENABLE       (1 << 5)
 
+// PCM Formats
+#define HDA_PCM_B32             (1 << 20)
+#define HDA_PCM_B24             (1 << 19)
+#define HDA_PCM_B20             (1 << 18)
+#define HDA_PCM_B16             (1 << 17)
+#define HDA_PCM_B8              (1 << 16)
+
+#define HDA_PCM_8_0             (1)
+#define HDA_PCM_11_025          (1 << 1)
+#define HDA_PCM_16_0            (1 << 2)
+#define HDA_PCM_22_05           (1 << 3)
+#define HDA_PCM_32_0            (1 << 4)
+#define HDA_PCM_44_1            (1 << 5)
+#define HDA_PCM_48_0            (1 << 6)
+#define HDA_PCM_88_2            (1 << 7)
+
+int hda_set_volume(struct audio_endpoint* ep, uint8_t left, uint8_t right);
+
 uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t offset, uint32_t size);
 void hda_stream_run(struct hda_dev* dev, struct hda_stream* stream);
 void hda_register_stream(struct hda_dev* dev, struct hda_stream* stream);

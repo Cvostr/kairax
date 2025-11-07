@@ -6,7 +6,7 @@
 #include "fs/vfs/file.h"
 
 struct audio_operations {
-    void (*set_volume) ();
+    void (*set_volume) (struct audio_endpoint*, uint8_t left, uint8_t right);
     size_t (*on_write) (struct audio_endpoint*, char* buffer, size_t count, size_t offset);
 };
 
@@ -31,6 +31,8 @@ struct audio_endpoint {
 
     struct audio_operations ops;
 };
+
+#define AUDCTL_SET_VOLUME       0x200
 
 struct audio_endpoint* new_audio_endpoint(struct audio_endpoint_creation_args *args);
 void free_audio_endpoint(struct audio_endpoint* ep);
