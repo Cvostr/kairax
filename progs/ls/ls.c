@@ -39,7 +39,9 @@ char linkbuff[300] = {0,};
 
 int main(int argc, char** argv) {
 
+    int verbose = 0;
     int all = 0;
+
     int rc;
 
     char* path = "";
@@ -48,6 +50,9 @@ int main(int argc, char** argv) {
             path = argv[i];
         } else {
             if (argv[i][1] == 'l') {
+                verbose = 1;
+            }
+            if (argv[i][1] == 'a') {
                 all = 1;
             }
         }
@@ -66,8 +71,13 @@ int main(int argc, char** argv) {
 
     while ((dr = readdir(dir)) != NULL) {
 
-        if (all) {
-        
+        if ((all == 0) && (strcmp(dr->d_name, ".") == 0 || strcmp(dr->d_name, "..") == 0))
+        {
+            continue;
+        }
+
+        if (verbose) 
+        {
             rc = fstatat(dirfd, dr->d_name, &file_stat, AT_SYMLINK_NOFOLLOW);
             int perm = file_stat.st_mode & 0777;
         
@@ -75,7 +85,7 @@ int main(int argc, char** argv) {
                 printf("Error! Can't stat file %s, error=%i\n", dr->d_name, errno);
             }
         
-            struct tm* t = gmtime(&file_stat.st_ctim.tv_sec);
+            struct tm* t = gmtime(&file_stat.st_mtim.tv_sec);
 
             char perm_str[9 + 1];
             memset(perm_str, 0, sizeof(perm_str));
@@ -97,7 +107,7 @@ int main(int argc, char** argv) {
                 linkbuff[0] = 0;
             }
 
-            printf("%s %s %i %i %9i %02i:%02i:%02i %02i:%02i:%i %s %s\n", 
+            printf("%s %s %i %i %9i %02i:%02i:%02i %02i-%02i-%i %s %s\n", 
                 to_filetype(dr->d_type),
                 perm_str,
                 file_stat.st_uid,

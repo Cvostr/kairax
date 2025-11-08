@@ -22,6 +22,7 @@ struct inode_operations {
     int      (*rmdir)(struct inode*, struct dentry*);
     int      (*mknod)(struct inode*, const char*, mode_t);
     int      (*symlink)(struct inode*, const char*, const char*);
+    int      (*set_datetime)(struct inode*, struct timespec*, struct timespec*);
     ssize_t  (*readlink)(struct inode*, char*, size_t);
 };
 

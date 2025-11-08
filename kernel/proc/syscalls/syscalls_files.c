@@ -263,7 +263,7 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
 }
 
 void arch_get_timespec(struct timespec *ts);
-int syscall_set_fdate(int fd, const char* path, const struct timespec *times, int flag)
+int sys_set_fdate(int fd, const char* path, const struct timespec *times, int flag)
 {
     int rc;
     struct process* process = cpu_get_current_thread()->process;
@@ -324,7 +324,7 @@ int syscall_set_fdate(int fd, const char* path, const struct timespec *times, in
 
     if (inode->uid == process->euid || process->euid == 0)
     {
-        //rc = inode_set_time(inode, &_times[0], &_times[1]);
+        rc = inode_set_time(inode, &_times[0], &_times[1]);
     } 
     else 
     {

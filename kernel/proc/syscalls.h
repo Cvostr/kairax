@@ -33,7 +33,7 @@ ssize_t sys_write_file(int fd, const char* buffer, size_t size);
 int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags);
 
 int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags);
-int syscall_set_fdate(int fd, const char* path, const struct timespec *times, int flag);
+int sys_set_fdate(int fd, const char* path, const struct timespec *times, int flag);
 
 int sys_readdir(int fd, struct dirent* dirent);
 

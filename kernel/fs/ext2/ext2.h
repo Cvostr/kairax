@@ -179,7 +179,7 @@ void ext2_rewrite_superblock(ext2_instance_t* inst);
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
 // Запись метаданных inode
-void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
+int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
 // Создание новой inode на диске
 uint32_t ext2_alloc_inode(ext2_instance_t* inst);
@@ -232,6 +232,8 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
 
 int ext2_chmod(struct inode * inode, uint32_t mode);
+
+int ext2_set_datetime(struct inode* inode, struct timespec* atime, struct timespec* mtime);
 
 int ext2_truncate(struct inode* inode);
 

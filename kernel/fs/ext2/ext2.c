@@ -28,11 +28,13 @@ void ext2_init()
     filesystem_register(ext2fs);
 
     file_inode_ops.chmod = ext2_chmod;
+    file_inode_ops.set_datetime = ext2_set_datetime;
     file_inode_ops.truncate = ext2_truncate;
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
     dir_inode_ops.chmod = ext2_chmod;
+    dir_inode_ops.set_datetime = ext2_set_datetime;
     dir_inode_ops.rename = ext2_rename;
     dir_inode_ops.unlink = ext2_unlink;
     dir_inode_ops.link = ext2_linkat;
@@ -62,14 +64,14 @@ ext2_inode_t* new_ext2_inode()
     return ext2_inode;
 }
 
-uint32_t ext2_partition_read_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
+int ext2_partition_read_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
 {
     uint64_t    start_lba = block_start * (inst->block_size / 512);
     uint64_t    lba_count = blocks  * (inst->block_size / 512);
     return partition_read(inst->partition, start_lba, lba_count, buffer);
 }
 
-uint32_t ext2_partition_write_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
+int ext2_partition_write_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
 {
     uint64_t    start_lba = block_start * inst->block_size / 512;
     uint64_t    lba_count = blocks  * inst->block_size / 512;
@@ -902,7 +904,7 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
     kfree(buffer);
 }
 
-void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
+int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 {
     node_index--;
     //Группа, к которой принадлежит инода с указанным индексом
@@ -924,6 +926,8 @@ void ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint3
     ext2_partition_write_block_virt(inst, inode_table_block + block_offset, 1, buffer);
     //Освободить временный буфер
     kfree(buffer);
+
+    return 0;
 }
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num)
@@ -1154,6 +1158,36 @@ int ext2_chmod(struct inode * inode, uint32_t mode)
     e2_inode->mode = (e2_inode->mode & 0xFFFFF000) | mode;
     ext2_write_inode_metadata(inst, e2_inode, inode->inode);
     kfree(e2_inode);
+
+    return 0;
+}
+
+int ext2_set_datetime(struct inode* inode, struct timespec* atime, struct timespec* mtime)
+{
+    ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
+    ext2_inode_t* e2_inode = new_ext2_inode();
+    ext2_inode(inst, e2_inode, inode->inode);
+
+    time_t new_atime_sec = inode->access_time.tv_sec;
+    time_t new_mtime_sec = inode->modify_time.tv_sec;
+
+    if (atime->tv_nsec != UTIME_OMIT)
+    {
+        new_atime_sec = atime->tv_sec;
+    }
+    if (mtime->tv_nsec != UTIME_OMIT)
+    {
+        new_mtime_sec = mtime->tv_sec;
+    }
+
+    e2_inode->atime = new_atime_sec;
+    e2_inode->mtime = new_mtime_sec;
+
+    ext2_write_inode_metadata(inst, e2_inode, inode->inode);
+    kfree(e2_inode);
+
+    inode->access_time.tv_sec = new_atime_sec;
+    inode->modify_time.tv_sec = new_mtime_sec;
 
     return 0;
 }

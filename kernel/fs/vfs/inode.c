@@ -84,14 +84,9 @@ int inode_set_time(struct inode* node, const struct timespec *atime, const struc
     int rc = -1;
     acquire_spinlock(&node->spinlock);
 
-    if (node->operations && node->operations->chmod) 
+    if (node->operations && node->operations->set_datetime) 
     {
-        //rc = node->operations->chmod(node, mode);
-        if (atime->tv_nsec != UTIME_OMIT)
-        {
-            //node->access_time = 
-        }
-        //node->mode = (node->mode & 0xFFFFF000) | mode;
+        rc = node->operations->set_datetime(node, atime, mtime);
     }
 
     release_spinlock(&node->spinlock);

@@ -45,7 +45,7 @@ char* str_filetype(mode_t mode)
 
 void print_date(char* field, struct tm* t)
 {
-    printf("%s: %02i:%02i:%02i %02i:%02i:%i\n", 
+    printf("%s: %02i:%02i:%02i %02i-%02i-%i\n", 
             field,
             t->tm_hour, 
 			t->tm_min,

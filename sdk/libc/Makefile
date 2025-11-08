@@ -53,6 +53,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/strings.o \
 				obj/strerror.o \
 				obj/unistd.o \
+				obj/utime.o \
 				obj/hostname.o \
 				obj/exec.o \
 				obj/assert.o \
