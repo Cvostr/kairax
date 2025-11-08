@@ -71,9 +71,9 @@ struct inode {
 
     atomic_t    reference_count;
 
-    uint64_t    create_time;
-    uint64_t    access_time;
-    uint64_t    modify_time;
+    struct timespec    create_time;
+    struct timespec    access_time;
+    struct timespec    modify_time;
 
     struct inode_operations* operations;
     struct file_operations*  file_ops;   
@@ -87,10 +87,7 @@ struct inode* new_vfs_inode();
 
 int inode_check_perm(struct inode* ino, uid_t uid, gid_t gid, int ubit, int gbit, int obit);
 
-int inode_chmod(struct inode* node, uint32_t mode);
-
 void inode_open(struct inode* node, uint32_t flags);
-
 void inode_close(struct inode* node);
 
 int inode_stat(struct inode* node, struct stat* sstat);
@@ -103,6 +100,8 @@ int inode_rmdir(struct inode* parent, struct dentry* child);
 int inode_rename(struct inode* parent, struct dentry* orig, struct inode* new_parent, const char* name);
 int inode_mknod(struct inode* parent, const char* name, mode_t mode);
 int inode_symlink(struct inode* parent, const char* name, const char* target);
+int inode_chmod(struct inode* node, uint32_t mode);
+int inode_set_time(struct inode* node, const struct timespec *atime, const struct timespec *mtime);
 ssize_t inode_readlink(struct inode* symlink, char* buf, size_t buflen);
 
 #endif

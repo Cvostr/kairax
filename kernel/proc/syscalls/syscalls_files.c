@@ -262,6 +262,81 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     return rc;
 }
 
+void arch_get_timespec(struct timespec *ts);
+int syscall_set_fdate(int fd, const char* path, const struct timespec *times, int flag)
+{
+    int rc;
+    struct process* process = cpu_get_current_thread()->process;
+    struct file* file = NULL;
+
+    // Время для установки
+    struct timespec _times[2];
+
+    if (times != NULL)
+    {
+        VALIDATE_USER_POINTER(process, times, sizeof(struct timespec) * 2)
+
+        if (times[0].tv_nsec == UTIME_OMIT && times[1].tv_nsec == UTIME_OMIT)
+            return 0;
+
+        for (int i = 0; i < 2; i ++)
+        {
+            struct timespec *t = &times[i];
+            long int nsec = t->tv_nsec;
+
+            if (nsec == UTIME_NOW)
+            {
+                // текущее время
+                arch_get_timespec(&_times[i]);
+            }
+            else
+            {
+                if ((nsec != UTIME_OMIT) && (nsec < 0 || nsec > 999999999ULL))
+                {
+                    return -EINVAL;
+                }
+
+                memcpy(&_times[i], &times[i], sizeof(struct timespec));
+            }
+        }
+    }
+    else
+    {
+        // получить текущее
+        arch_get_timespec(&_times[0]);
+        arch_get_timespec(&_times[1]);
+    }
+
+    // Путь может быть пустым
+    if (path != NULL)
+    {
+        // Проверить адрес строки пути файла
+        VALIDATE_USER_STRING(process, path)
+    }
+
+    // Открыть файл относительно папки и флагов
+    rc = process_open_file_relative(process, fd, path, flag, &file);
+    if (rc != 0) {
+        return rc;
+    }
+
+    struct inode* inode = file->inode;
+
+    if (inode->uid == process->euid || process->euid == 0)
+    {
+        //rc = inode_set_time(inode, &_times[0], &_times[1]);
+    } 
+    else 
+    {
+        rc = -EPERM;
+    }
+
+    // Закрыть файл
+    file_close(file);
+
+    return rc;
+}
+
 int sys_readdir(int fd, struct dirent* dirent)
 {
     int rc = -1;

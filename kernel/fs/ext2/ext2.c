@@ -1017,9 +1017,9 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     result->size = inode->size;
     result->blocks = inode->num_blocks;
     result->mode = inode->mode;
-    result->access_time = inode->atime;
-    result->create_time = inode->ctime;
-    result->modify_time = inode->mtime;
+    result->access_time.tv_sec = inode->atime;
+    result->create_time.tv_sec = inode->ctime;
+    result->modify_time.tv_sec = inode->mtime;
     result->hard_links = inode->hard_links;
     result->device = (dev_t) inst;
 

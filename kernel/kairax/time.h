@@ -6,6 +6,9 @@
 #define NSEC_MAX_VALUE 999999999U
 #define NSESC_IN_SEC   1000000000U
 
+#define UTIME_NOW	1000000001
+#define UTIME_OMIT	1000000002
+
 struct tm {
     int tm_sec;			
     int tm_min;			

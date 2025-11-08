@@ -79,6 +79,25 @@ int inode_chmod(struct inode* node, uint32_t mode)
     return rc;
 }
 
+int inode_set_time(struct inode* node, const struct timespec *atime, const struct timespec *mtime)
+{
+    int rc = -1;
+    acquire_spinlock(&node->spinlock);
+
+    if (node->operations && node->operations->chmod) 
+    {
+        //rc = node->operations->chmod(node, mode);
+        if (atime->tv_nsec != UTIME_OMIT)
+        {
+            //node->access_time = 
+        }
+        //node->mode = (node->mode & 0xFFFFF000) | mode;
+    }
+
+    release_spinlock(&node->spinlock);
+    return rc;
+}
+
 int inode_mkdir(struct inode* node, const char* name, uint32_t mode)
 {
     int rc = -1;
@@ -264,9 +283,9 @@ int inode_stat(struct inode* node, struct stat* sstat)
     sstat->st_uid = node->uid;
     sstat->st_gid = node->gid;
     sstat->st_dev = node->device;
-    sstat->st_atime = node->access_time;
-    sstat->st_ctime = node->create_time;
-    sstat->st_mtime = node->modify_time;
+    sstat->st_atim = node->access_time;
+    sstat->st_ctim = node->create_time;
+    sstat->st_mtim = node->modify_time;
 
     release_spinlock(&node->spinlock);
     return 0;

@@ -82,6 +82,8 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0xBA, sys_get_thread_id),
     DEFINE_SYSCALL(0xCA, sys_futex),
 
+    DEFINE_SYSCALL(0x118, syscall_set_fdate),
+
     // Не POSIX вызовы
     DEFINE_SYSCALL(0x2FF, sys_create_thread),
     DEFINE_SYSCALL(0x300, sys_create_process),

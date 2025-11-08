@@ -22,20 +22,22 @@ uint64_t inode_index = DEVFS_ROOT_INODE;
 
 spinlock_t  devfs_lock;
 
+void arch_get_timespec(struct timespec *ts);
+
 void devfs_init()
 {
     devfs_devices = create_list();
 
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    arch_get_timespec(&current_time);
 
     // Заранее создать корневую inode
     devfs_root_inode = new_vfs_inode();
     devfs_root_inode->inode = inode_index++;                   
     devfs_root_inode->mode = INODE_TYPE_DIRECTORY | DEVFS_ROOT_INODE_DEFAULT_PERM;
-    devfs_root_inode->create_time = current_time.tv_sec;
-    devfs_root_inode->access_time = current_time.tv_sec;
-    devfs_root_inode->modify_time = current_time.tv_sec;
+    devfs_root_inode->create_time = current_time;
+    devfs_root_inode->access_time = current_time;
+    devfs_root_inode->modify_time = current_time;
     devfs_root_inode->operations = &root_inode_ops;
     devfs_root_inode->file_ops = &root_file_ops;
     devfs_root_inode->hard_links = 1;
@@ -111,17 +113,17 @@ int devfs_add_char_device(const char* name, struct file_operations* fops, void* 
 
     struct devfs_device* device = new_devfs_device_struct();
 
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    arch_get_timespec(&current_time);
 
     // Создание inode
     device->inode = new_vfs_inode();
     device->inode->inode = inode_index++;                   
     device->inode->mode = INODE_FLAG_CHARDEVICE | DEVFS_INODE_DEFAULT_PERM;
     device->inode->sb = devfs_root_inode->sb;
-    device->inode->create_time = current_time.tv_sec;
-    device->inode->access_time = current_time.tv_sec;
-    device->inode->modify_time = current_time.tv_sec;
+    device->inode->create_time = current_time;
+    device->inode->access_time = current_time;
+    device->inode->modify_time = current_time;
     device->inode->file_ops = fops;
     device->inode->operations = &dev_inode_ops;
     device->inode->hard_links = 1;

@@ -314,9 +314,9 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     result->gid = 0;
     result->size = 0;
     result->mode = INODE_TYPE_DIRECTORY | 0777;
-    result->access_time = 0;
-    result->create_time = 0;
-    result->modify_time = 0;
+    result->access_time.tv_sec = 0;
+    result->create_time.tv_sec = 0;
+    result->modify_time.tv_sec = 0;
     result->hard_links = 1;
     result->device = (dev_t) instance;
     result->file_ops = &fat_dir_ops;
@@ -483,9 +483,9 @@ struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
     result->size = direntry.file_size;
     result->mode = is_dir ? INODE_TYPE_DIRECTORY : INODE_TYPE_FILE;
     result->mode |= 0777;   // в FAT нет ACL
-    result->access_time = fat_date_to_epoch(&direntry.last_access_date, NULL);
-    result->create_time = fat_date_to_epoch(&direntry.creat_date, &direntry.creat_time);
-    result->modify_time = fat_date_to_epoch(&direntry.write_date, &direntry.write_time);
+    result->access_time.tv_sec = fat_date_to_epoch(&direntry.last_access_date, NULL);
+    result->create_time.tv_sec = fat_date_to_epoch(&direntry.creat_date, &direntry.creat_time);
+    result->modify_time.tv_sec = fat_date_to_epoch(&direntry.write_date, &direntry.write_time);
     result->hard_links = 1;
     result->device = (dev_t) inst;
 

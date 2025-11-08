@@ -48,3 +48,8 @@ int mknodat (int dirfd, const char *path, mode_t mode, dev_t dev)
 {
     __set_errno(syscall_mknodat(dirfd, path, mode, dev));
 }
+
+int utimensat(int fd, const char* path, const struct timespec times[2], int flag)
+{
+    __set_errno(syscall_set_fdate(fd, path, times, flag));
+}

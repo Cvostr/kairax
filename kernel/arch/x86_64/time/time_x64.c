@@ -28,6 +28,21 @@ void arch_get_time_epoch(struct timeval *tv)
     tv->tv_usec = microsecs;
 }
 
+void arch_get_timespec(struct timespec *ts)
+{
+    uint64_t cntr = hpet_get_counter();
+    uint64_t period = hpet_get_period();
+
+    uint64_t ticks_per_sec = HPET_FEMTOSECONDS_PER_SEC / period;
+
+    uint64_t secs = cntr / ticks_per_sec;
+    uint64_t ticks_in_sec = cntr % ticks_per_sec;
+    uint64_t nsecs = ticks_in_sec * period / HPET_FEMTOSECONDS_PER_NANOSEC;
+    
+    ts->tv_sec = __boot_time.tv_sec + secs;
+    ts->tv_nsec = nsecs;
+}
+
 void arch_set_time_epoch(const struct timeval *tv)
 {
     struct tm datetime;

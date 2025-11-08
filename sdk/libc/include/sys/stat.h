@@ -36,6 +36,9 @@
 #define S_IWOTH	    00002	
 #define S_IXOTH	    00001	
 
+#define UTIME_NOW	1000000001
+#define UTIME_OMIT	1000000002
+
 struct stat {
     dev_t      st_dev;      /* ID of device containing file */
     ino_t      st_ino;      /* Inode number */
@@ -58,20 +61,18 @@ struct stat {
 };
 
 int chmod(const char* filepath, mode_t mode);
-
 int fchmod(int fd, mode_t mode);
-
 int fchmodat(int dirfd, const char* filepath, mode_t mode, int flags);
 
 int stat(const char* filepath, struct stat* st);
-
 int fstat(int fd, struct stat* st);
-
 int fstatat(int dirfd, const char* filepath, struct stat* st, int flags);
 
 int mkdir(const char* dirpath, int mode);
 
 int mknod(const char *path, mode_t mode, dev_t dev);
 int mknodat (int dirfd, const char *path, mode_t mode, dev_t dev);
+
+int utimensat(int fd, const char* path, const struct timespec times[2], int flag);
 
 #endif
