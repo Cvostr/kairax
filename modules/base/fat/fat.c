@@ -484,8 +484,8 @@ struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
     result->mode = is_dir ? INODE_TYPE_DIRECTORY : INODE_TYPE_FILE;
     result->mode |= 0777;   // в FAT нет ACL
     result->access_time.tv_sec = fat_date_to_epoch(&direntry.last_access_date, NULL);
-    result->create_time.tv_sec = fat_date_to_epoch(&direntry.creat_date, &direntry.creat_time);
     result->modify_time.tv_sec = fat_date_to_epoch(&direntry.write_date, &direntry.write_time);
+    result->create_time.tv_sec = fat_date_to_epoch(&direntry.creat_date, &direntry.creat_time);
     result->hard_links = 1;
     result->device = (dev_t) inst;
 

@@ -163,6 +163,12 @@ struct fat_instance {
 
 #define FAT_DIRENTRY_GET_CLUSTER(x) ((((uint32_t) x.first_cluster_hi) << 16) | x.first_cluster_lo)
 
+int fat_init();
+void fat_exit(void);
+
+int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
+int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer);
+
 // Функции для получения номера следующего кластера в цепочке
 int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer, uint32_t* last_sector, uint32_t *next_cluster);
 uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster);

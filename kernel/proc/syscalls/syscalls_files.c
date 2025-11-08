@@ -378,7 +378,7 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 {
     off_t result = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = process_get_file(process, fd);
+    struct file* file = process_get_file_ex(process, fd, TRUE);
 
     if (file != NULL) {
 
@@ -390,7 +390,7 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
         }
 
         result = file_seek(file, offset, whence);
-
+        file_close(file);
     } else {
         result = -ERROR_BAD_FD;
     }
