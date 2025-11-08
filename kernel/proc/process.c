@@ -737,7 +737,7 @@ int process_get_relative_direntry1(struct process* process, int dirfd, const cha
     return 0;
 }
 
-int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end)
+int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file)
 {
     int fopen_flag = 0;
     if ((flags & AT_SYMLINK_NOFOLLOW) == AT_SYMLINK_NOFOLLOW)
@@ -747,11 +747,11 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
 
     if (flags & AT_EMPTY_PATH) {
         // Дескриптор файла передан в dirfd
-        *file = process_get_file(process, dirfd);
+        // Получим файл с увеличением счетчика ссылок
+        *file = process_get_file_ex(process, dirfd, TRUE);
     } else if (dirfd == FD_CWD && process->pwd) {
         // Указан путь относительно рабочей директории
         *file = file_open(process->pwd, path, fopen_flag, 0);
-        *close_at_end = 1;
     } else {
         // Открываем файл относительно dirfd
         struct file* dirfile = process_get_file(process, dirfd);
@@ -770,12 +770,10 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
 
         // Открыть файл
         *file = file_open(dirfile->dentry, path, fopen_flag, 0);
-        *close_at_end = 1;
     }
 
     if (*file == NULL) {
         // Не получилось открыть файл, выходим
-        *close_at_end = 0;
         if (flags & AT_EMPTY_PATH) {
             return -ERROR_BAD_FD;
         } else {

@@ -112,7 +112,7 @@ void process_set_name(struct process* process, const char* name);
 
 int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result);
 
-int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file, int* close_at_end);
+int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file);
 
 struct process* process_get_child_by_id(struct process* process, pid_t id);
 struct thread* process_get_thread_by_id(struct process* process, pid_t id);

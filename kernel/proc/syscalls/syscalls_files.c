@@ -199,7 +199,6 @@ exit:
 int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
 {
     int rc = -1;
-    int close_at_end = 0;
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
 
@@ -214,7 +213,7 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     VALIDATE_USER_POINTER_PROTECTION(process, statbuf, sizeof(struct stat), PAGE_PROTECTION_WRITE_ENABLE)
 
     // Открыть файл относительно папки и флагов
-    rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
+    rc = process_open_file_relative(process, dirfd, filepath, flags, &file);
     if (rc != 0) {
         return rc;
     }
@@ -222,9 +221,8 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     struct inode* inode = file->inode;
     rc = inode_stat(inode, statbuf);
 
-    if (close_at_end) {
-        file_close(file);
-    }
+    // Закрыть файл
+    file_close(file);
 
     return rc;
 }
@@ -232,7 +230,6 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
 int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
 {
     int rc = -1;
-    int close_at_end = 0;
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
 
@@ -244,7 +241,7 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     }
     
     // Открыть файл относительно папки и флагов
-    rc = process_open_file_relative(process, dirfd, filepath, flags, &file, &close_at_end);
+    rc = process_open_file_relative(process, dirfd, filepath, flags, &file);
     if (rc != 0) {
         return rc;
     }
@@ -259,9 +256,8 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
         rc = -EPERM;
     }
 
-    if (close_at_end) {
-        file_close(file);
-    }
+    // Закрыть файл
+    file_close(file);
 
     return rc;
 }
