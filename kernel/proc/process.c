@@ -678,34 +678,6 @@ int process_get_cloexec(struct process* process, int fd)
     return (process->close_on_exec[lindex] >> fdindex) & 1;
 }
 
-int process_get_relative_direntry(struct process* process, int dirfd, const char* path, struct dentry** result)
-{
-    if (dirfd == FD_CWD && process->pwd) {
-        // Открыть относительно рабочей директории
-        *result = process->pwd;
-        
-    } else if (!vfs_is_path_absolute(path)) {
-        // Открыть относительно другого файла
-        // Получить файл по дескриптору
-        struct file* dirfile = process_get_file(process, dirfd);
-
-        if (dirfile) {
-
-            // проверить тип inode от dirfd
-            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
-                return -ERROR_NOT_A_DIRECTORY;
-            }
-
-            *result = dirfile->dentry;
-        } else {
-            // Файл не нашелся, а путь не является абсолютным - выходим
-            return -ERROR_BAD_FD;
-        }
-    }
-
-    return 0;
-}
-
 int process_get_relative_direntry1(struct process* process, int dirfd, const char* path, struct dentry** result)
 {
     if (dirfd == FD_CWD && process->pwd) {

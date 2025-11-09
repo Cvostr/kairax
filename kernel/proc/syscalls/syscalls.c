@@ -169,7 +169,8 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     }
 
     // Получить dentry, относительно которой открыть файл
-    fd = process_get_relative_direntry(process, dirfd, filepath, &dir_dentry);
+    // С увеличением ссылок
+    fd = process_get_relative_direntry1(process, dirfd, filepath, &dir_dentry);
 
     if (fd != 0) {
         // Не получилось найти директорию с файлом
@@ -178,6 +179,9 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
     // Открыть исполняемый файл
     struct file* file = file_open(dir_dentry, filepath, FILE_OPEN_MODE_READ_ONLY, 0);
+
+    // Уменьшить ссылки
+    dentry_close(dir_dentry);
 
     if (file == NULL) {
         // Файл не найден
