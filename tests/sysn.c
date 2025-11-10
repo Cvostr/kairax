@@ -73,6 +73,36 @@ int qscompare(const void* a, const void* b)
 	return (*(int*)a - *(int*)b);
 }
 
+int bsearchtest()
+{
+    // Initialize array
+    int arr[] = { 1, 2, 5, 6, 8, 10, 45};
+
+    // Calculate the number of elements in the array
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    // Define the key to search for
+    int key = 8;
+
+    // Declare a pointer to hold the result of the search
+    int* item;
+
+    // Search for the key in the array using bsearch()
+    item = (int*)bsearch(&key, arr, n, sizeof(int), qscompare);
+
+    // If the key is found, print its value and index
+    // If not found, print a message indicating it was not
+    // found
+    if (item != NULL) {
+        printf("%d Found at index %ld\n", *item,
+               item - arr);
+    }
+    else {
+        printf("Key = %d is not found\n", key);
+    }
+    return 0;
+}
+
 int main(int argc, char** argv, char** envp) {
 
     int counter = 0;
@@ -153,6 +183,8 @@ int main(int argc, char** argv, char** envp) {
 	    printf("%d ", values[n]);
     printf("\n");
     ///
+
+    bsearchtest();
 
     ///
     const char *string = "abcde312$#@";
