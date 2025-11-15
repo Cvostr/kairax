@@ -44,6 +44,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/atexit.o \
 				obj/stdlib/qsort.o \
 				obj/stdlib/bsearch.o \
+				obj/stdlib/realpath.o \
 				obj/netinet/in.o \
 				obj/arpa/inet.o \
 				obj/arpa/inet_ntop.o \

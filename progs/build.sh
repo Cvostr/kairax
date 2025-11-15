@@ -129,3 +129,7 @@ cd ..
 cd umount
 make
 cd ..
+
+cd realpath
+make
+cd ..

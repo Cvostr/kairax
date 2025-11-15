@@ -42,7 +42,7 @@ extern int syscall_symlinkat(const char *target, int newdirfd, const char *linkp
 extern long long syscall_readlinkat(int dirfd, const char *pathname, char *buf, unsigned long long bufsize);
 extern int syscall_unlink(int fd, const char* path, int flags);
 extern int syscall_mknodat(int fd, const char *path, unsigned long long mode, unsigned long long dev);
-extern int syscall_set_fdate(int fd, const char* path, const struct timespec *times, int flag);
+extern int syscall_set_fdate(int fd, const char* path, const void *times, int flag);
 extern int syscall_rmdir(const char* path);
 extern int syscall_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath);
 extern int syscall_mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags);
@@ -65,6 +65,7 @@ extern int syscall_sigaction(int signum, const void *act, void *oldact, unsigned
 extern int syscall_load_module(void* module_image, unsigned long long image_size);
 extern int syscall_unload_module(const char* module_name);
 
+extern long long syscall_abspath(int fd, const char* path, char *buffer, unsigned long long buflen);
 extern long long int syscall_create_thread(void* entry, void* arg, unsigned long long stack_size);
 extern long long int syscall_create_process(int dirfd, const char* filepath, void* info);
 extern void syscall_thread_exit(int code);

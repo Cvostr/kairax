@@ -13,6 +13,10 @@ extern void* isr_stub_table[256]; //таблица ISR
 
 extern void x64_lidt(idtr_t *idt);
 
+#define IDT_FLAG_PRESENT    (1 << 7)
+#define IDT_FLAG_INTERRUPT  (0xE)
+#define IDT_FLAG_TRAP       (0xF)
+
 void set_int_descriptor(uint8_t vector, void* isr, uint8_t ist, uint8_t flags)
 {
 	idt_descriptor_t* descriptor = &idt_descriptors[vector];
@@ -32,8 +36,10 @@ void setup_idt()
 	idtr.base = (uint64_t)(idt_descriptors); //адрес таблицы дескрипторов
     idtr.limit = (uint16_t)sizeof(idt_descriptor_t) * IDT_MAX_DESCRIPTORS - 1;
 
+    uint8_t idt_flag = (IDT_FLAG_INTERRUPT | IDT_FLAG_PRESENT);
+
 	for (uint8_t vector = 0; vector < 255; vector++) {
-      	set_int_descriptor(vector, isr_stub_table[vector], 0, 0x8E);
+      	set_int_descriptor(vector, isr_stub_table[vector], 0, idt_flag);
     }
 }
 

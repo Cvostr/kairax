@@ -92,6 +92,7 @@ int sys_memory_unmap(void* address, uint64_t length);
 int sys_mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags);
 int sys_unmount(const char* mount_dir, unsigned long flags);
 
+ssize_t sys_abspath(int fd, const char* path, char *buffer, size_t buflen);
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size);
 
 pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_info* info);

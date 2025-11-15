@@ -89,6 +89,43 @@ int sys_poweroff(int cmd)
     return -1;
 }
 
+ssize_t sys_abspath(int fd, const char* path, char *buffer, size_t buflen)
+{
+    int rc = 0;
+    size_t reqd_size = 0;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
+
+    struct file* dstfile = NULL;
+
+    VALIDATE_USER_STRING(process, path)
+    VALIDATE_USER_POINTER_PROTECTION(process, buffer, buflen, PAGE_PROTECTION_WRITE_ENABLE)
+
+    rc = process_open_file_relative(process, fd, path, 0, &dstfile);
+    if (rc != 0) 
+        return rc;
+
+    // Вычисляем необходимый размер буфера
+    vfs_dentry_get_absolute_path(dstfile->dentry, &reqd_size, NULL);
+        
+    if (reqd_size + 1 > buflen) {
+        // Размер буфера недостаточный
+        rc = -ERROR_RANGE;
+        goto exit;
+    }
+
+    // Записываем путь в буфер
+    vfs_dentry_get_absolute_path(dstfile->dentry, NULL, buffer);
+
+    rc = reqd_size;
+
+exit:
+    if (dstfile != NULL)
+        file_close(dstfile);
+        
+    return rc;
+}
+
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
