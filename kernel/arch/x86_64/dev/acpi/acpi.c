@@ -5,6 +5,8 @@
 #include "mem/pmm.h"
 #include "io.h"
 #include "dev/hpet/hpet.h"
+#include "interrupts/ioapic.h"
+#include "dev/interrupts.h"
 
 #define to_acpi_header(x)  (acpi_header_t*)(uintptr_t)(x)
 
@@ -132,6 +134,69 @@ uint16_t acpi_is_enabled()
     return inw((uint32_t) acpi_fadt->pm1a_control_block) & 1;
 }
 
+uint16_t acpi_gas_inw(acpi_generic_address_struct_t* gas)
+{
+    void *val = P2V(gas->address);
+    switch (gas->address_space)
+    {
+    case ACPI_GAS_MEMORY:
+        return *((uint16_t*) val);
+    
+    default:
+        printk("ACPI GAS not implemented type %i\n", gas->address_space);
+        break;
+    }
+}
+
+uint16_t acpi_gas_outw(acpi_generic_address_struct_t* gas, uint16_t val)
+{
+    void *addr = P2V(gas->address);
+    switch (gas->address_space)
+    {
+    case ACPI_GAS_MEMORY:
+        return *((uint16_t*) addr) = val;
+    
+    default:
+        printk("ACPI GAS not implemented type %i\n", gas->address_space);
+        break;
+    }
+}
+
+void acpi_set_sci_eventmask(uint16_t value)
+{
+    uint16_t portoffset = acpi_fadt->pm1_event_length / 2;
+    
+    uint16_t port_a = acpi_fadt->pm1a_event_block + portoffset;
+    uint16_t port_b = acpi_fadt->pm1b_event_block + portoffset;
+
+    outw(port_a, value);
+    outw(port_b, value);
+}
+
+uint16_t acpi_get_sci_events()
+{
+    uint16_t port_a, port_b;
+    if (acpi_fadt->pm1a_event_block)
+    {
+        port_a = inw(acpi_fadt->pm1a_event_block);
+        outw(acpi_fadt->pm1a_event_block, port_a);
+    }
+
+    if (acpi_fadt->pm1b_event_block)
+    {
+        port_b = inw(acpi_fadt->pm1b_event_block);
+        outw(acpi_fadt->pm1b_event_block, port_b);
+    }
+
+    return port_a | port_b;
+}
+
+void acpi_irq()
+{
+    uint16_t events = acpi_get_sci_events();
+    printk("ACPI IRQ. events %i. PWRBTN=%i\n", events, events & ACPI_EVT_POWER_BUTTON);
+}
+
 int acpi_enable()
 {
     if (!acpi_fadt) {
@@ -157,6 +222,9 @@ int acpi_enable()
             return ACPI_ERROR_ENABLE;
         }
     }
+
+    register_irq_handler(acpi_fadt->sci_interrupt, acpi_irq, NULL);
+    acpi_set_sci_eventmask(ACPI_EVT_POWER_BUTTON | ACPI_EVT_SLEEP_BUTTON | ACPI_EVT_WAKE);
 
     return 0;
 }

@@ -94,6 +94,7 @@ typedef struct PACKED
 
 //FADT
 
+// Table 5.1
 typedef struct PACKED
 {
   uint8_t address_space;
@@ -101,8 +102,26 @@ typedef struct PACKED
   uint8_t bit_offset;
   uint8_t access_size;
   uint64_t address;
-} acpi_fadt_generic_address_struct_t;
+} acpi_generic_address_struct_t;
 
+#define ACPI_GAS_MEMORY     0
+#define ACPI_GAS_IO         1
+#define ACPI_GAS_PCI_CONF   2
+#define ACPI_GAS_SMBUS      4
+
+#define FADT_FLAG_WBINVD            (1)
+#define FADT_FLAG_WBINVD_FLUSH      (1 << 1)
+#define FADT_FLAG_PROC_C1           (1 << 2)
+#define FADT_FLAG_P_LVL2_UP         (1 << 3)
+#define FADT_FLAG_PWR_BUTTON        (1 << 4)
+#define FADT_FLAG_SLP_BUTTON        (1 << 5)
+#define FADT_FLAG_FIX_RTC           (1 << 6)
+#define FADT_FLAG_RTC_S4            (1 << 7)
+#define FADT_FLAG_HW_REDUCED        (1ULL << 20)
+
+#define FADT_IAPC_BOOT_8042                    (1 << 1)
+#define FADT_IAPC_BOOT_VGA_NOT_PRESENT         (1 << 2)
+#define FADT_IAPC_BOOT_MSI_NOT_SUPPORTED       (1 << 3)
 typedef struct PACKED
 {
     acpi_header_t   header;
@@ -144,13 +163,15 @@ typedef struct PACKED
     uint8_t         month_alarm;
     uint8_t         century;
 
-    //Используется начиная с версии 2
+    // Используется начиная с версии 2
+    // ACPI Spec 6.4, Table 5.11
     uint16_t        boot_architecture_flags;
 
     uint8_t         reserved2;
+    // ACPI Spec 6.4, Table 5.10
     uint32_t        flags;
 
-    acpi_fadt_generic_address_struct_t  reset_reg;
+    acpi_generic_address_struct_t  reset_reg;
 
     uint8_t         reset_value;
     uint8_t         reserved3[3];
@@ -158,7 +179,8 @@ typedef struct PACKED
     uint64_t        x_firmware_ctrl;
     uint64_t        x_dsdt;
 
-    acpi_fadt_generic_address_struct_t  x_pm1a_event_block;
+    acpi_generic_address_struct_t  x_pm1a_event_block;
+    acpi_generic_address_struct_t  x_pm1b_event_block;
 } acpi_fadt_t;
 
 #endif

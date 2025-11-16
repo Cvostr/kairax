@@ -6,6 +6,15 @@
 #define ACPI_ERROR_NO_FADT 1
 #define ACPI_ERROR_ENABLE 2
 
+#define ACPI_EVT_TIMER 0x0001
+#define ACPI_EVT_BUSMASTER 0x0010
+#define ACPI_EVT_GLOBAL 0x0020
+#define ACPI_EVT_POWER_BUTTON 0x0100
+#define ACPI_EVT_SLEEP_BUTTON 0x0200
+#define ACPI_EVT_RTC_ALARM 0x0400
+#define ACPI_EVT_PCIE_WAKE 0x4000
+#define ACPI_EVT_WAKE 0x8000
+
 typedef struct PACKED {
     char        signature[8];
     uint8_t     checksum;
@@ -20,37 +29,27 @@ typedef struct PACKED {
 } acpi_rsdp_t;
 
 acpi_fadt_t* acpi_get_fadt();
-
 uint32_t acpi_fadt_get_smi_cmd_port();
-
 uint32_t acpi_get_cpus_apic_count();
-
 acpi_madt_t* acpi_get_madt();
-
 apic_local_cpu_t** acpi_get_cpus_apic();
-
 apic_io_t*  acpi_get_global_apic();
-
 ioapic_iso_t* acpi_madt_get_iso(uint32_t index);
+char* acpi_get_oem_str();
+int acpi_get_revision();
+uint16_t acpi_is_enabled();
+int acpi_aml_is_struct_valid(uint8_t* struct_address);
+
+uint16_t acpi_gas_inw(acpi_generic_address_struct_t* gas);
 
 void acpi_parse_apic_madt(acpi_madt_t* madt);
-
 void acpi_parse_dsdt(acpi_header_t* dsdt);
 
 int acpi_init(void* rsdp_ptr);
-
-char* acpi_get_oem_str();
-
-int acpi_get_revision();
-
-uint16_t acpi_is_enabled();
-
 int acpi_enable();
 
-int acpi_aml_is_struct_valid(uint8_t* struct_address);
 
 void acpi_poweroff();
-
 void acpi_reboot();
 
 int acpi_delay(size_t us);

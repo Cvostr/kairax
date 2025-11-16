@@ -271,7 +271,7 @@ int ps2_check_acpi()
         // 1. Поле IA PC Boot Architecture Flags присутствует - Размер FADT больше либо равен его смещению
         // 2. Бит 1 в этом поле не установлен
         // Значит PS/2 контроллера нет  
-        if ((fadt_len >= iapc_flag_end) && !(fadt->boot_architecture_flags & (1 << 1)))
+        if ((fadt_len >= iapc_flag_end) && !(fadt->boot_architecture_flags & FADT_IAPC_BOOT_8042))
         {
             // PS2 отсутствует
             return FALSE;
