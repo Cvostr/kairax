@@ -567,6 +567,8 @@ struct xhci_device {
 	uint8_t port_speed;
 	uint8_t ctx_size;
 
+	atomic_t pending_transfers;
+
 	struct usb_device* usb_device;
 	struct device* composite_dev;
 	struct usb_endpoint* eps[30];

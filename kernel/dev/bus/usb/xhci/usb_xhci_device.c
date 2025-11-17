@@ -199,6 +199,8 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         }
     }
 
+    atomic_dec(&dev->pending_transfers);
+
     return 0;
 }
 
@@ -646,6 +648,8 @@ int xhci_device_msg_control_async(struct xhci_device* dev, struct usb_msg *msg)
     // Начальный статус сообщения - выполняется
     msg->status = -EINPROGRESS;
 
+    atomic_inc(&dev->pending_transfers);
+
     // Запустить выполнение
     dev->controller->doorbell[dev->slot_id].doorbell = XHCI_DOORBELL_CONTROL_EP_RING;
 
@@ -914,6 +918,8 @@ int xhci_device_msg_async(struct xhci_device* dev, struct usb_endpoint* ep, stru
 
     // Начальный статус сообщения - выполняется
     msg->status = -EINPROGRESS;
+
+    atomic_inc(&dev->pending_transfers);
 
     // Запустить выполнение
     dev->controller->doorbell[dev->slot_id].doorbell = xhci_ep_get_absolute_id(&ep->descriptor);
