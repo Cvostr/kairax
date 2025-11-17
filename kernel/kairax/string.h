@@ -19,6 +19,7 @@ char* strrchr(const char * string, int symbol);
 char* strrnchr(const char * string, int symbol);
 
 char *strdup (const char *__s);
+char* strrev(char *str);
 
 int memcmp(const void*, const void*, size_t);
 void* memcpy(void* __restrict, const void* __restrict, size_t);

@@ -2,6 +2,7 @@
 #include "io.h"
 #include "kairax/types.h"
 #include "kairax/stdio.h"
+#include "drivers/char/input/mouse.h"
 
 #define PS2_MOUSE_SET_SAMPLE_RATE   0xF3
 
@@ -11,6 +12,14 @@ uint8_t ps2_mouse_buffer_len = 3;
 
 // extension
 int ps2_mouse_z_axis = 0;
+
+uint8_t ps2_mouse_old_btn_state;
+
+uint8_t ps2_buttons_mappings[3] = {
+    MOUSE_BUTTON_LEFT,
+    MOUSE_BUTTON_RIGHT,
+    MOUSE_BUTTON_MIDDLE
+};
 
 /*
 yo	Y-Axis Overflow
@@ -27,7 +36,7 @@ struct ps2_mouse {
     uint8_t desc;       // yo xo ys xs 1 bm br bl
     uint8_t axis_x;
     uint8_t axis_y;
-    uint8_t axis_z;
+    int8_t axis_z;
 };
 
 void ps2_mouse_setup(int portid)
@@ -96,6 +105,7 @@ void ps2_mouse_setup(int portid)
 
 void ps2_mouse_irq_handler()
 {
+    int32_t relX, relY;
     // Считать
     uint8_t mouse_packet = inb(PS2_DATA_REG);
     // Поместить в буфер
@@ -107,12 +117,58 @@ void ps2_mouse_irq_handler()
         return;
     }
 
+    struct mouse_event msevent;
+
     if (ps2_mouse_buffer_pos == ps2_mouse_buffer_len)
     {
         // Считали один полный буфер
         // Сбрасываем позицию
         ps2_mouse_buffer_pos = 0;
-        //printk("Mouse %x %x %x %x\n", ps2_mouse_buffer[0], ps2_mouse_buffer[1], ps2_mouse_buffer[2]);
         // https://wiki.osdev.org/PS/2_Mouse
+
+        struct ps2_mouse* mouse_pack = ps2_mouse_buffer;
+
+        uint8_t new_btn_state = mouse_pack->desc & 0b111;
+        if (ps2_mouse_old_btn_state != new_btn_state)
+        {
+            for (int i = 0; i < 3; i ++)
+            {
+                uint8_t btnID = ps2_buttons_mappings[i];
+                // Получим старое и новое состояние кнопки
+                int old_state = ps2_mouse_old_btn_state & (1 << i);
+                int new_state = new_btn_state & (1 << i);
+
+                if (old_state != new_state)
+                {
+                    msevent.event_type = new_state == 1 ? MOUSE_EVENT_BUTTON_DOWN : MOUSE_EVENT_BUTTON_UP;
+                    msevent.u_event.btn.id = btnID;
+                    mouse_add_event(&msevent);
+                }
+            }
+
+            ps2_mouse_old_btn_state = new_btn_state;
+        }
+
+        relX = mouse_pack->axis_x;
+        relY = mouse_pack->axis_y;
+        if (relX || relX)
+        {  
+            if (mouse_pack->desc & (1 << 4))
+                relX = (int8) mouse_pack->axis_x;
+            if (mouse_pack->desc & (1 << 5))
+                relY = (int8) mouse_pack->axis_y;
+
+            msevent.event_type = MOUSE_EVENT_MOVE;
+            msevent.u_event.move.rel_x = relX;
+            msevent.u_event.move.rel_y = relY;
+            mouse_add_event(&msevent);
+        }
+
+        if (ps2_mouse_z_axis == TRUE && mouse_pack->axis_z != 0)
+        {
+            msevent.event_type = MOUSE_EVENT_SCROLL;
+            msevent.u_event.scroll.value = mouse_pack->axis_z;
+            mouse_add_event(&msevent);
+        }
     }
 }

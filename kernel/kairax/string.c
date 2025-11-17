@@ -166,3 +166,12 @@ char *strdup (const char *__s)
 
     return memcpy(str, __s, strsize);
 }
+
+char* strrev(char *str)
+{
+    for (size_t i = 0, j = strlen(str) - 1; i < j; i ++, j --) {
+        char c = str[i];
+        str[i] = str[j];
+        str[j] = c;
+    }
+}

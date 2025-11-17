@@ -179,6 +179,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	tty_init();
 	serial_init();
 	keyboard_init();
+	mouse_init();
 
 	// Загружаем все необходимые модули multiboot2								
 	mb2_load_modules(P2V(multiboot_struct_ptr));

@@ -1,5 +1,10 @@
-#ifndef _INPUT_H
-#define _INPUT_H
+#ifndef _MOUSE_H
+#define _MOUSE_H
+
+#include "kairax/types.h"
+
+#define KEY_BUFFER_SIZE 20
+#define KEY_BUFFERS_MAX 10
 
 #define MOUSE_EVENT_BUTTON_UP       1
 #define MOUSE_EVENT_BUTTON_DOWN     2
@@ -11,7 +16,7 @@
 #define MOUSE_BUTTON_RIGHT          3
 
 struct mouse_event {
-    uint8_t type;
+    uint8_t event_type;
 
     union {
         struct {
@@ -29,5 +34,14 @@ struct mouse_event {
 
     } u_event;
 };
+
+struct mouse_buffer {
+    struct mouse_event events[KEY_BUFFER_SIZE];
+    unsigned char start;
+    unsigned char end;
+};
+
+void mouse_add_event(struct mouse_event* event);
+void mouse_init();
 
 #endif
