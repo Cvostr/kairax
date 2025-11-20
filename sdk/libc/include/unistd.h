@@ -95,6 +95,14 @@ int sethostname(const char *name, size_t len) __THROW;
 int getdomainname(char *name, size_t len) __THROW;
 int setdomainname(const char *name, size_t len) __THROW;
 
+#define R_OK 4
+#define W_OK 2
+#define X_OK 1
+#define F_OK 0
+
+int access(const char *name, int mode) __THROW;
+int faccessat(int dirfd, const char *pathname, int mode, int flags) __THROW;
+
 __END_DECLS
 
 #endif
