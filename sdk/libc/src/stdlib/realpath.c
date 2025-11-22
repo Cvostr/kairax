@@ -12,6 +12,7 @@ char *__realpath(const char *path, char *out)
 {
 	struct stat fst;
 	size_t len;
+	ssize_t lnklen;
 	char buf[PATH_MAX + 1];
 	const char* originalpath = path;
 
@@ -24,6 +25,14 @@ char *__realpath(const char *path, char *out)
     }
 
 	// Пути не существует
+	// Возможно, это символьная ссылка, которая указывает на несуществующий файл
+	if ((lnklen = readlink(path, buf, PATH_MAX + 1)) > 0)
+	{
+		memcpy(out, buf, lnklen);
+		return out;
+	}
+	
+	// Это не символьная ссылка
 	// Тогда выводим так <директория выше>/<имя последнего файла>
 	// Переходим на уровень выше
 	char *slash = strrchr(path, '/');

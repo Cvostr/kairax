@@ -8,6 +8,7 @@ extern long long syscall_write(int fd, const char* buffer, unsigned long long si
 extern int syscall_ioctl(int fd, unsigned long long request, unsigned long long arg);
 extern int syscall_fcntl(int fd, int cmd, void* arg);
 extern int syscall_readdir(int fd, void* buffer);
+extern int syscall_faccessat(int dirfd, const char *pathname, int mode, int flags);
 
 extern long long syscall_fork(void);
 extern long long syscall_vfork(void);

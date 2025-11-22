@@ -97,7 +97,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
     nbuffer->payload_size = nbuffer->netw_packet_size - (tcp_header_size);
 
     // Проверка контрольной суммы
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
     uint16_t orig_checksum = tcp_packet->checksum;
     tcp_packet->checksum = 0;
     struct tcp_checksum_proto checksum_struct;
@@ -379,7 +379,7 @@ void tcp_ip4_handle_syn(struct socket* sock, struct net_buffer* nbuffer)
 
     // Вытащим указатели на заголовки L4 и L3
     struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->transp_header;
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
 #ifdef TCP_LOG_ACCEPTED_CLIENT
     union ip4uni src;
@@ -447,7 +447,7 @@ int tcp_ip4_listener_handle_ack(struct socket* sock, struct net_buffer* nbuffer)
 
     // Вытащим указатели на заголовки L4 и L3
     struct tcp_packet* tcp_packet = (struct tcp_packet*) nbuffer->transp_header;
-    struct ip4_packet* ip4p = nbuffer->netw_header;
+    struct ip4_packet* ip4p = (struct ip4_packet*) nbuffer->netw_header;
 
     // Получаем старый SN клиента (который использовался на момент создания Cookie)
     uint32_t old_client_sn = htonl(ntohl(tcp_packet->sn) - 1);

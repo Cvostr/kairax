@@ -10,6 +10,13 @@
 #include "ipc/pipe.h"
 #include "fs/vfs/superblock.h"
 
+#define R_OK 4
+#define W_OK 2
+#define X_OK 1
+#define F_OK 0
+#define ACCESS_ALL (X_OK | W_OK | R_OK)
+#define AT_EACCESS          0x200
+
 int sys_open_file(int dirfd, const char* path, int flags, int mode)
 {
     int fd = -1;
@@ -396,6 +403,71 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
     }
 
     return result;
+}
+
+int sys_faccessat(int dirfd, const char *pathname, int mode, int flags)
+{
+    int rc;
+    uid_t uid;
+    gid_t gid;
+    struct file* file = NULL;
+    struct process* process = cpu_get_current_thread()->process;
+
+    if ((mode != F_OK) && (mode > ACCESS_ALL))
+    {
+        return -EINVAL;
+    }
+
+    // Проверить адрес строки пути файла
+    VALIDATE_USER_STRING(process, pathname)
+
+    // Открыть файл относительно папки и флагов
+    rc = process_open_file_relative(process, dirfd, pathname, flags, &file);
+    if (rc != 0) {
+        return rc;
+    }
+
+    struct inode* inode = file->inode;
+    if ((flags & AT_EACCESS) == AT_EACCESS)
+    {
+        uid = process->euid;
+        gid = process->egid;
+    }
+    else
+    {
+        uid = process->uid;
+        gid = process->gid;
+    }
+
+    if (mode == F_OK)
+    {
+        rc = 0;
+        goto exit;
+    }
+
+    if (((mode & R_OK) == R_OK) && (inode_check_perm(inode, uid, gid, S_IRUSR, S_IRGRP, S_IROTH) == 0))
+    {
+        rc = -EACCES;
+        goto exit;
+    }
+
+    if (((mode & W_OK) == W_OK) && (inode_check_perm(inode, uid, gid, S_IWUSR, S_IWGRP, S_IWOTH) == 0))
+    {
+        rc = -EACCES;
+        goto exit;
+    }
+
+    if (((mode & X_OK) == X_OK) && (inode_check_perm(inode, uid, gid, S_IXUSR, S_IXGRP, S_IXOTH) == 0))
+    {
+        rc = -EACCES;
+        goto exit;
+    }
+
+
+exit:
+    // Закрыть файл
+    file_close(file);
+    return rc;
 }
 
 int sys_unlink(int dirfd, const char* path, int flags)

@@ -241,3 +241,13 @@ long sysconf(int name)
     errno = ENOSYS;
     return -1;
 }
+
+int access(const char *name, int mode)
+{
+    return faccessat(AT_FDCWD, name, mode, 0);
+}
+
+int faccessat(int dirfd, const char *pathname, int mode, int flags)
+{
+    __set_errno(syscall_faccessat(dirfd, pathname, mode, flags));
+}

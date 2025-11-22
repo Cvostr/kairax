@@ -21,6 +21,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0xD, sys_sigaction),
     DEFINE_SYSCALL(0xF, sys_sigreturn),
     DEFINE_SYSCALL(0x10, sys_ioctl),
+    DEFINE_SYSCALL(0x15, sys_faccessat),
     DEFINE_SYSCALL(0x16, sys_pipe),
     DEFINE_SYSCALL(0x17, sys_select),
     DEFINE_SYSCALL(0x18, sys_yield),

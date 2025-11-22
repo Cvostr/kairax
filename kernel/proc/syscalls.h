@@ -40,16 +40,12 @@ int sys_readdir(int fd, struct dirent* dirent);
 int sys_ioctl(int fd, uint64_t request, uint64_t arg);
 
 int sys_unlink(int dirfd, const char* path, int flags);
-
 int sys_rmdir(const char* path);
-
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags);
-
 int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags);
-
 int sys_symlinkat(const char *target, int newdirfd, const char *linkpath);
-
 ssize_t sys_readlinkat(int dirfd, const char* pathname, char* buf, size_t bufsize);
+int sys_faccessat(int dirfd, const char *pathname, int mode, int flags);
 
 int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev);
 

@@ -10,6 +10,7 @@ extern "C" {
 #define AT_FDCWD		    -2
 #define AT_SYMLINK_NOFOLLOW	0x100
 #define AT_EMPTY_PATH       0x1000
+#define AT_EACCESS          0x200
 
 #define O_RDONLY	     00
 #define O_WRONLY	     01
