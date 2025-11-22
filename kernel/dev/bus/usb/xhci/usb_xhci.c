@@ -428,6 +428,10 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 	// Включить прерывания на этом interrupter
 	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING | XHCI_IMAN_INTERRUPT_ENABLE;
 
+	int freq = 100;		// 100 в секунду
+	uint16_t imodi = 4000000 / freq;
+	interrupter->imod = imodi;
+
 	// Сбросить флаг прерывания (если было необработанное прерывание)
 	controller->op->usbsts |= XHCI_STS_EINTERRUPT;
 }
@@ -596,6 +600,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 
 	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
 	struct usb_device* usb_device = new_usb_device(&device_descriptor, device);
+	usb_device->state = USB_STATE_ATTACHED;
 	usb_device->slot_id = slot;
 	usb_device->send_request = xhci_drv_device_send_usb_request;
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;

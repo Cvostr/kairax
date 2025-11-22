@@ -5,7 +5,7 @@
 #include "device_drivers.h"
 
 int register_device(struct device* dev);
-void unregister_device(struct device* dev);
+void remove_device(struct device* dev);
 
 struct device* get_device(int index);
 

@@ -43,14 +43,45 @@ int register_device(struct device* dev)
     return 0;
 }
 
-void unregister_device(struct device* dev)
+void _remove_device(struct device* dev)
 {
-    // TODO: implement
-    acquire_spinlock(&devices_lock);
     list_remove(&devices_list, dev);
 
-    // TODO: Поиск по дочерним устройствам
+    if (dev->dev_state == DEVICE_STATE_INITIALIZED && dev->dev_driver) 
+    {
+        if (dev->dev_bus == DEVICE_BUS_USB)
+        {
+            struct usb_device_driver* drv = dev->dev_driver;
+            if (drv->ops->remove)
+            {
+                drv->ops->remove(dev);
+            }
+        }
+    }
 
+    // Поиск по дочерним устройствам
+    struct list_node* current_node = devices_list.head;
+    struct device* idev = NULL;
+
+    while (current_node != NULL) {
+        
+        idev = (struct device*) current_node->element;
+
+        if (idev->dev_parent == dev)
+        {
+            _remove_device(idev);
+        }
+        
+        // Переход на следующий элемент
+        current_node = current_node->next;
+    }
+}
+
+
+void remove_device(struct device* dev)
+{
+    acquire_spinlock(&devices_lock);
+    _remove_device(dev);
     release_spinlock(&devices_lock);
 }
 

@@ -96,11 +96,19 @@ struct usb_msg {
     void* private;
 };
 
+enum usb_device_state {
+    USB_STATE_ATTACHED,
+    USB_STATE_SUSPENDED,
+    USB_STATE_DISCONNECTED
+};
+
 // Описывает USB устройство в системе
 struct usb_device {
     struct usb_device_descriptor    descriptor;
     struct usb_config**             configs;
     void*                           controller_device_data;
+
+    enum usb_device_state           state;
 
     char* product;
 	char* manufacturer;

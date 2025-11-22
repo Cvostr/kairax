@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "kairax/stdio.h"
+#include "kairax/errors.h"
 
 extern struct pci_device_driver ehci_ctrl_driver;
 extern struct pci_device_driver xhci_ctrl_driver;
@@ -49,26 +50,36 @@ struct usb_msg *new_usb_msg()
 
 int usb_device_send_request(struct usb_device* device, struct usb_device_request* req, void* out, uint32_t length)
 {
+    if (device->state == USB_STATE_DISCONNECTED)
+        return -ENODEV;
     return device->send_request(device, req, out, length);
 }
 
 int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint* endpoint)
 {
+    if (device->state == USB_STATE_DISCONNECTED)
+        return -ENODEV;
     return device->configure_endpoint(device, endpoint);
 }
 
 int usb_device_bulk_msg(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length)
 {
+    if (device->state == USB_STATE_DISCONNECTED)
+        return -ENODEV;
 	return device->bulk_msg(device, endpoint, data, length);
 }
 
 int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint, struct usb_msg *msg)
 {
+    if (device->state == USB_STATE_DISCONNECTED)
+        return -ENODEV;
     return device->async_msg(device, endpoint, msg);
 }
 
 ssize_t usb_get_string(struct usb_device* device, int index, char* buffer, size_t buflen)
 {
+    if (device->state == USB_STATE_DISCONNECTED)
+        return -ENODEV;
     return device->get_string(device, index, buffer, buflen);
 }
 
