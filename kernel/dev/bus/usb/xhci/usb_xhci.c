@@ -290,7 +290,19 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 								uint8_t slot = device->slot_id;
 								controller->devices_by_slots[slot] = NULL;
 								controller->ports[port_id].bound_device = NULL;
-								unregister_device(device->composite_dev);
+
+								// Установить новое состояние - отключен
+								device->usb_device->state = USB_STATE_DISCONNECTED;
+
+								// Дождаться, пока завершатся все операции
+								while (device->pending_transfers.counter > 0)
+								{
+
+								}
+
+								struct device* composite_dev = device->composite_dev; 
+								remove_device(composite_dev);
+
 								xhci_controller_disable_slot(controller, slot);
 								xhci_free_device(device);
 							}
