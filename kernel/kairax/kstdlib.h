@@ -20,6 +20,8 @@ long int strtol(const char *nptr, char **endptr, int base);
 int atoi(const char *s);
 long atol(const char *s);
 
+char* lltoa(long long number, char* str, int base);
+
 int tolower(int c);
 
 #define MIN(a,b) (((a)<(b))?(a):(b))

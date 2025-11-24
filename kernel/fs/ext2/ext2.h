@@ -233,7 +233,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
 
 int ext2_chmod(struct inode * inode, uint32_t mode);
 
-int ext2_set_datetime(struct inode* inode, struct timespec* atime, struct timespec* mtime);
+int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const struct timespec* mtime);
 
 int ext2_truncate(struct inode* inode);
 

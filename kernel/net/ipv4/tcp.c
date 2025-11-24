@@ -793,7 +793,7 @@ void tcp4_fill_sockaddr_in(struct sockaddr_in* dst, struct tcp_packet* tcpp, str
 
 void tcp_ip4_listener_add(struct socket* listener, struct socket* client)
 {
-    struct tcp4_socket_data* listener_data = listener->data;
+    struct tcp4_socket_data* listener_data = (struct tcp4_socket_data*) listener->data;
 
     acquire_spinlock(&listener_data->children_lock);
     list_add(&listener_data->children, client);
@@ -804,7 +804,7 @@ void tcp_ip4_listener_add(struct socket* listener, struct socket* client)
 
 void tcp_ip4_listener_remove(struct socket *sock, struct socket* client)
 {
-    struct tcp4_socket_data* listener_data = sock->data;
+    struct tcp4_socket_data* listener_data = (struct tcp4_socket_data*) sock->data;
 
     // Удаляем сокет-клиент из списка
     acquire_spinlock(&listener_data->children_lock);

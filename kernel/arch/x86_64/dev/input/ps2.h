@@ -55,6 +55,8 @@ void init_ps2();
 uint8_t keycode_ps2_to_kairax(uint8_t keycode_ps2, uint8_t *pState);
 void ps2_device_setup(int portid, int type);
 
+int ps2_write_byte_and_wait(int portid, uint8_t data);
+
 // Клавиатура
 void ps2_kbd_irq_handler();
 void ps2_kbd_setup(int portid);

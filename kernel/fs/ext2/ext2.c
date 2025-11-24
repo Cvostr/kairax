@@ -1162,7 +1162,7 @@ int ext2_chmod(struct inode * inode, uint32_t mode)
     return 0;
 }
 
-int ext2_set_datetime(struct inode* inode, struct timespec* atime, struct timespec* mtime)
+int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const struct timespec* mtime)
 {
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
     ext2_inode_t* e2_inode = new_ext2_inode();

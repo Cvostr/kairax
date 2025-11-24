@@ -126,7 +126,7 @@ void ps2_mouse_irq_handler()
         ps2_mouse_buffer_pos = 0;
         // https://wiki.osdev.org/PS/2_Mouse
 
-        struct ps2_mouse* mouse_pack = ps2_mouse_buffer;
+        struct ps2_mouse* mouse_pack = (struct ps2_mouse*) ps2_mouse_buffer;
 
         uint8_t new_btn_state = mouse_pack->desc & 0b111;
         if (ps2_mouse_old_btn_state != new_btn_state)

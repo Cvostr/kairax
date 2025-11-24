@@ -255,12 +255,12 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
         case TIOCGWINSZ:
             // Получить размер окна
             VALIDATE_USER_POINTER_PROTECTION(process, arg, sizeof(struct winsize), PAGE_PROTECTION_WRITE_ENABLE)
-            memcpy(arg, &p_pty->winsz, sizeof(struct winsize));
+            memcpy((struct winsize*) arg, &p_pty->winsz, sizeof(struct winsize));
             break;
         case TIOCSWINSZ:
             // Обновить размер окна
             VALIDATE_USER_POINTER(process, arg, sizeof(struct winsize))
-            memcpy(&p_pty->winsz, arg, sizeof(struct winsize));
+            memcpy(&p_pty->winsz, (struct winsize*) arg, sizeof(struct winsize));
             sys_send_signal_pg(p_pty->foreground_pg, SIGWINCH);
             break;
         case TIOCNOTTY:

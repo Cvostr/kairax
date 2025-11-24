@@ -154,3 +154,28 @@ void seize_str(uint16_t* in, char* out)
 
     out[i] = '\0';
 }
+
+char* lltoa(long long number, char* str, int base)
+{
+	int count = 0;
+	int neg = 0;
+
+	if (number < 0) {
+		neg = 1; 
+		number *= -1;
+	}
+
+    do {
+      	int digit = number % base;
+      	str[count++] = (digit > 9) ? digit - 10 + 'A' : digit + '0';
+    } while ((number /= base) != 0);
+    
+	if (neg) {
+		str[count++] = '-';
+	}
+	
+    str[count] = '\0';
+	strrev(str);
+
+    return str;
+}

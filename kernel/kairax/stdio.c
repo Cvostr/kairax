@@ -84,6 +84,7 @@ int sprintf(char* buffer, size_t buffersz, const char* format, ...)
 int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max, void* arg, const char* format, va_list args)
 {
 	int written = 0;
+	char tempbuff[32];
  
 	while (*format != '\0') 
 	{
@@ -130,11 +131,11 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 			written += len;
 		} else if (*format == 'i') {
 			format++;
-			int64 integer = va_arg(args, long);
-			char* str = itoa(integer, 10);
+			int integer = va_arg(args, int);
+			char* str = lltoa(integer, tempbuff, 10);
 			size_t len = strlen(str);
 			if (maxrem < len) {
-				return -1;
+				return -1;	
 			}
 			if (!f(str, len, arg))
 				return -1;
@@ -142,7 +143,7 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 		} else if (*format == 'x') {
 			format++;
 			int64 integer = va_arg(args, long);
-			char* str = itoa(integer, 16);
+			char* str = lltoa(integer, tempbuff, 16);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				return -1;

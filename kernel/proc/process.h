@@ -34,7 +34,7 @@ typedef unsigned long long CLOEXEC_INT_TYPE;
 
 struct proc_sigact
 {
-    uintptr_t handler;
+    sighandler_t handler;
     int flags;  
     sigset_t sigmask;
 };
