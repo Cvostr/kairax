@@ -139,9 +139,9 @@ void bootshell_process_cmd(char* cmdline)
 
 #ifdef X86_64
         thread_frame_t* frame = (thread_frame_t*)thr->context;
-        printf("RDI = %s ", ulltoa(frame->rdi, 16));
-        printf("RSI = %s ", ulltoa(frame->rsi, 16));
-        printk("RIP = %s\n", ulltoa(frame->rip, 16));
+        printf("RDI = %p ", frame->rdi);
+        printf("RSI = %p ", frame->rsi);
+        printk("RIP = %p\n", frame->rip);
 
         uintptr_t* stack_ptr = (uintptr_t*)frame->rsp;
         int show_stack = 1;
@@ -152,7 +152,7 @@ void bootshell_process_cmd(char* cmdline)
             printf("\nSTACK TRACE: \n");
             for (int i = 0; i < 25; i ++) {
                 uintptr_t value = *(stack_ptr + i);
-                printf("%s ", ulltoa(value, 16));
+                printf("%p ", value);
             }
         }
         

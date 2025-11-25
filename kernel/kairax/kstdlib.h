@@ -12,15 +12,13 @@ void seize_str(uint16_t* in, char* out);
 void reverse(char *str);
 
 char* itoa(int64 number, int base);
-
-char* ulltoa(uint64_t number, int base);
+char* ulltoa(uint64_t number, char* str, int base);
+char* lltoa(long long number, char* str, int base);
 
 long int strtol(const char *nptr, char **endptr, int base);
 
 int atoi(const char *s);
 long atol(const char *s);
-
-char* lltoa(long long number, char* str, int base);
 
 int tolower(int c);
 

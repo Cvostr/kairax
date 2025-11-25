@@ -55,6 +55,7 @@ spinlock_t dump_lock = 0;
 
 void exception_handler(interrupt_frame_t* frame)
 {
+    char tempbuff[32];
     uint64_t cr2, cr3;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
     asm volatile ("mov %%cr3, %%rax\n mov %%rax, %0" : "=m" (cr3));
@@ -84,22 +85,14 @@ void exception_handler(interrupt_frame_t* frame)
 
     acquire_spinlock(&dump_lock);
 
-    printk("Exception occured 0x%s (%s) on CPU %i\n", 
-    itoa(frame->int_no, 16), exception_message[frame->int_no], cpu_get_id());
-    printk("ERR = %s\n", ulltoa(frame->error_code, 16));
-    printk("RAX = %s ", ulltoa(frame->rax, 16));
-    printk("RBX = %s ", ulltoa(frame->rbx, 16));
-    printk("RCX = %s\n", ulltoa(frame->rcx, 16));
-    printk("RIP = %s ", ulltoa(frame->rip, 16));
-    printk("RSP = %s ", ulltoa(frame->rsp, 16));
-    printk("RBP = %s\n", ulltoa(frame->rbp, 16));
-    printk("RDI = %s ", ulltoa(frame->rdi, 16));
-    printk("RSI = %s ", ulltoa(frame->rsi, 16));
-    printk("RDX = %s\n", ulltoa(frame->rdx, 16));
-    printk("CS = %s ", ulltoa(frame->cs, 16));
-    printk("SS = %s ", ulltoa(frame->ss, 16));
-    printk("CR2 = %s ", ulltoa(cr2, 16));
-    printk("CR3 = %s\n", ulltoa(cr3, 16));
+    printk("Exception occured 0x%x (%s) on CPU %i\n", 
+        frame->int_no, exception_message[frame->int_no], cpu_get_id());
+    printk("ERR = %s\n", ulltoa(frame->error_code, tempbuff, 16));
+    printk("RAX = %s RBX = %s RCX = %s\n", ulltoa(frame->rax, tempbuff, 16), ulltoa(frame->rbx, tempbuff, 16), ulltoa(frame->rcx, tempbuff, 16));
+    printk("RIP = %s RSP = %s RBP = %s\n", ulltoa(frame->rip, tempbuff, 16), ulltoa(frame->rsp, tempbuff, 16), ulltoa(frame->rbp, tempbuff, 16));
+    printk("RDI = %s RSI = %s RDX = %s\n", ulltoa(frame->rdi, tempbuff, 16), ulltoa(frame->rsi, tempbuff, 16), ulltoa(frame->rdx, tempbuff, 16));
+    printk("CS = %s SS = %s ", ulltoa(frame->cs, tempbuff, 16), ulltoa(frame->ss, tempbuff, 16));
+    printk("CR2 = %s CR3 = %s\n", ulltoa(cr2, tempbuff, 16), ulltoa(cr3, tempbuff, 16));
 
     uint8_t* ip = (uint8_t*) frame->rip;
     int show_instr = 1;
@@ -109,7 +102,7 @@ void exception_handler(interrupt_frame_t* frame)
     if (show_instr == 1) {
         printk("INSTR: ");
         for (int i = 0; i < 8; i ++) {
-            printk("%s ", ulltoa(*(ip++), 16));
+            printk("%s ", ulltoa(*(ip++), tempbuff, 16));
         }
     }
     
@@ -129,7 +122,7 @@ void exception_handler(interrupt_frame_t* frame)
         */
         for (int i = 0; i < 35; i ++) {
             uintptr_t value = *(stack_ptr + i);
-            printk("%s ", ulltoa(value, 16));
+            printk("%s ", ulltoa(value, tempbuff, 16));
         }
     }
     

@@ -217,7 +217,7 @@ int sock_packet_raw_close(struct socket* sock)
     scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
     // Освободить память
-    sock_raw4_drop_recv_buffer(sock_data);
+    sock_packet_raw_drop_recv_buffer(sock_data);
 }
 
 void sock_packet_raw_drop_recv_buffer(struct packet_raw_socket_data* sock_data)

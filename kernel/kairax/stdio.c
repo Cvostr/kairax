@@ -154,7 +154,7 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 		} else if (*format == 'u') {
 			format++;
 			size_t integer = va_arg(args, size_t);
-			char* str = ulltoa(integer, 10);
+			char* str = ulltoa(integer, tempbuff, 10);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				return -1;
@@ -166,7 +166,7 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 		} else if (*format == 'p') {
 			format++;
 			size_t integer = va_arg(args, uintptr_t);
-			char* str = ulltoa(integer, 16);
+			char* str = ulltoa(integer, tempbuff, 16);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				return -1;
