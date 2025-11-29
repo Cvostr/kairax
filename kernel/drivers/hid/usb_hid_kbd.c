@@ -277,38 +277,6 @@ struct usb_endpoint* usb_hid_find_ep(struct usb_interface* interface)
     return NULL;
 }
 
-/*
-int usb_hid_kbd_init_report_prot()
-{
-    struct usb_hid_descriptor* hid_descriptor = interface->hid_descriptor;
-
-    printk("HID keyboard. bcdHID %i, country %i descriptors %i\n", hid_descriptor->bcdHID, hid_descriptor->bCountryCode, hid_descriptor->bNumDescriptors);
-
-    uint16_t hid_descr_length = 0;
-    uint16_t report_descr_length = 0;
-    // Получить размеры дескрипторов
-    for (uint8_t i = 0; i < hid_descriptor->bNumDescriptors; i ++)
-    {
-        uint8_t descr_type = hid_descriptor->descriptors[i].bDescriptorType;
-        uint16_t descr_len = hid_descriptor->descriptors[i].wDescriptorLength;
-
-        switch (descr_type)
-        {
-        case HID_DESCRIPTOR_REPORT:
-            report_descr_length = descr_len;
-            break;
-        case HID_DESCRIPTOR_HID:
-            hid_descr_length = descr_len;
-            break;
-        default:
-            printk("HID: Unknown descriptor type %i\n", descr_type);
-            break;
-        }
-    }
-
-    printk("HID lengths: report %i, hid %i\n", report_descr_length, hid_descr_length);
-}*/
-
 int usb_hid_kbd_device_probe(struct device *dev) 
 {   
     struct usb_interface* interface = dev->usb_info.usb_interface;

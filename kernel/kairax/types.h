@@ -21,6 +21,7 @@ typedef int int32_t;
 typedef char int8;
 typedef char int8_t;
 typedef short int16;
+typedef short int16_t;
 typedef long long int64;
 typedef long long int64_t;
 
