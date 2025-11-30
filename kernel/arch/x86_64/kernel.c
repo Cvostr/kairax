@@ -37,6 +37,8 @@
 #include "proc/idle.h"
 #include "drivers/tty/tty.h"
 #include "drivers/char/random.h"
+#include "drivers/char/input/keyboard.h"
+#include "drivers/char/input/mouse.h"
 #include "net/net.h"
 #include "misc/kterm/kterm.h"
 #include "misc/kterm/vgaterm.h"

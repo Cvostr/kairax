@@ -4,9 +4,10 @@
 #include "string.h"
 #include "mem/kheap.h"
 
-#define HID_LOG_LOCAL_ITEMS
-#define HID_LOG_HEADER
-#define HID_LOG_IOF
+//#define HID_LOG_LOCAL_ITEMS
+//#define HID_LOG_HEADER
+//#define HID_LOG_IOF
+//#define HID_LOG_ITEMS
 
 int usb_hid_set_protocol(struct usb_device* device, struct usb_interface* interface, int protocol)
 {
@@ -182,6 +183,7 @@ void hid_add_report_item(enum hid_report_item_type type, uint32_t val, list_t *i
 
 			list_add(items, item);
 
+#ifdef HID_LOG_ITEMS
 			printk("USAGE PAGE %u USAGE ID %u REPORT ID %i REPORT_SZ %i COUNT %i LOGICAL (%i, %i) VAL %i\n", item->usage_page,
 				item->usage_id,
 				item->report_id,
@@ -190,6 +192,7 @@ void hid_add_report_item(enum hid_report_item_type type, uint32_t val, list_t *i
 				item->logical_minimum,
 				item->logical_maximum,
 				val);
+#endif
 		}
 	}
 	else
@@ -210,6 +213,7 @@ void hid_add_report_item(enum hid_report_item_type type, uint32_t val, list_t *i
 
 		list_add(items, item);
 
+#ifdef HID_LOG_ITEMS
 		printk("USAGE PAGE %u REPORT ID %i REPORT_SZ %i COUNT %i LOGICAL (%i, %i) VAL %i\n", 
 			item->usage_page,
 			item->report_id,
@@ -218,6 +222,7 @@ void hid_add_report_item(enum hid_report_item_type type, uint32_t val, list_t *i
 			item->logical_minimum,
 			item->logical_maximum,
 			val);
+#endif
 	}
 }
 
