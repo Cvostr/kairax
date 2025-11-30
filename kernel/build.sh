@@ -105,6 +105,7 @@ gcc $GCC_ARGS drivers/hid/usb_hid_mouse.c -o ./bin/usb_hid_mouse.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o
+gcc $GCC_ARGS fs/tmpfs/tmpfs.c -o ./bin/tmpfs.o
 gcc $GCC_ARGS fs/ext2/ext2.c -o ./bin/ext2.o
 gcc $GCC_ARGS fs/vfs/vfs.c -o ./bin/vfs.o
 gcc $GCC_ARGS fs/vfs/filesystems.c -o ./bin/filesystems.o
