@@ -108,6 +108,8 @@ void bootshell_process_cmd(char* cmdline)
 
         // Монтировать dev
         result = vfs_mount_fs("/dev", NULL, "devfs");
+        // Монтировать dev
+        result = vfs_mount_fs("/tmp", NULL, "tmpfs");
 
         // Сменить рабочую папку
         cd("/");
