@@ -65,5 +65,6 @@ struct dirent* tmpfs_file_readdir(struct file* dir, uint32_t index);
 ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 int tmpfs_unlink(struct inode* parent, struct dentry* dent);
+int tmpfs_rmdir(struct inode* parent, struct dentry* dentry);
 
 #endif

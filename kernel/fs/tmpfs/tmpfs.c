@@ -14,7 +14,8 @@ struct inode_operations tmpfs_file_inode_ops;
 struct inode_operations tmpfs_dir_inode_ops = {
     .mkfile = tmpfs_mkfile,
     .mkdir = tmpfs_mkdir,
-    .unlink = tmpfs_unlink
+    .unlink = tmpfs_unlink,
+    .rmdir = tmpfs_rmdir
 };
 
 struct super_operations tmpfs_sb_ops = {
@@ -430,18 +431,21 @@ int tmpfs_unlink(struct inode* parent, struct dentry* dent)
     struct tmpfs_dentry *tmpfs_dent = NULL;
     struct tmpfs_inode *inode = NULL;
 
+    // Получить родительскую Inode
     parent_inode = tmpfs_get_inode(inst, parent->inode);
     if (parent_inode == NULL) {
         rc = -ENOENT;
         goto exit;
     }
 
+    // Получить удаляемую dentry
     tmpfs_dent = tmpfs_get_dentry(parent_inode, dent->name);
     if (dent == NULL) {
         rc = -ENOENT;
         goto exit;
     }
 
+    // Получить удаляемую Inode
     inode = tmpfs_get_inode(inst, tmpfs_dent->inode);
     if (parent_inode == NULL) {
         rc = -ENOENT;
@@ -465,4 +469,72 @@ exit:
         tmpfs_free_inode(inode);
 
     return rc;
+}
+
+int tmpfs_rmdir(struct inode* parent, struct dentry* dentry)
+{
+    int rc = 0;
+
+    struct tmpfs_inode *parent_inode = NULL;
+    struct tmpfs_dentry *tmpfs_dent = NULL;
+    struct tmpfs_inode *inode = NULL;
+
+    struct tmpfs_instance *inst = (struct tmpfs_instance *) parent->sb->fs_info;
+
+    if (dentry->d_inode->hard_links > 2) {
+        rc = -ENOTEMPTY;
+        goto exit;
+    }
+
+    // Получить родительскую Inode
+    parent_inode = tmpfs_get_inode(inst, parent->inode);
+    if (parent_inode == NULL) {
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    // Получить удаляемую dentry
+    tmpfs_dent = tmpfs_get_dentry(parent_inode, dentry->name);
+    if (dentry == NULL) {
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    // Получить удаляемую Inode
+    inode = tmpfs_get_inode(inst, tmpfs_dent->inode);
+    if (parent_inode == NULL) {
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    // Проверить, что директория пуста
+    for (size_t j = 0; j < inode->dentries_allocated; j ++)
+    {
+        if (inode->dentries[j] != NULL)
+        {
+            rc = -ENOTEMPTY;
+            goto exit;
+        }
+    }
+
+    // Удалить dentry
+    tmpfs_inode_remove_dentry(parent_inode, tmpfs_dent);
+    // Уменьшить количество ссылок на выбранную inode
+    inode->hard_links = 0;
+    // Уменьшить количество ссылок на выбранную inode в VFS
+    dentry->d_inode->hard_links = 0;
+
+
+    parent_inode->hard_links--;
+    // Уменьшить количество ссылок на родительскую inode в VFS
+    parent->hard_links --;
+
+exit:
+    if (parent_inode)
+        tmpfs_free_inode(parent_inode);
+
+    if (inode)
+        tmpfs_free_inode(inode);
+
+    return 0;
 }
