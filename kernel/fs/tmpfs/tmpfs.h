@@ -30,7 +30,7 @@ struct tmpfs_inode {
 
 struct tmpfs_instance {
     size_t blocksize;
-    size_t inodes_num;
+    inocnt_t inodes_num;
 
     struct superblock  *vfs_sb;
     struct tmpfs_inode *root;
@@ -57,9 +57,11 @@ int tmpfs_unmount(struct superblock* sb);
 struct inode* tmpfs_read_node(struct superblock* sb, uint64_t ino_num);
 uint64_t tmpfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode, const char *name, int* type);
 void tmpfs_purge_inode(struct inode* inode);
+int tmpfs_statfs(struct superblock *sb, struct statfs* stat);
 
 int tmpfs_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 int tmpfs_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
+int tmpfs_mknod(struct inode* parent, const char* name, mode_t mode);
 struct dirent* tmpfs_file_readdir(struct file* dir, uint32_t index);
 
 ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t offset);

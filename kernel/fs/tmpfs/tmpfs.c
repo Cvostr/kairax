@@ -14,6 +14,7 @@ struct inode_operations tmpfs_file_inode_ops;
 struct inode_operations tmpfs_dir_inode_ops = {
     .mkfile = tmpfs_mkfile,
     .mkdir = tmpfs_mkdir,
+    .mknod = tmpfs_mknod,
     .unlink = tmpfs_unlink,
     .rmdir = tmpfs_rmdir
 };
@@ -21,7 +22,8 @@ struct inode_operations tmpfs_dir_inode_ops = {
 struct super_operations tmpfs_sb_ops = {
     .read_inode = tmpfs_read_node,
     .find_dentry = tmpfs_find_dentry,
-    .destroy_inode = tmpfs_purge_inode
+    .destroy_inode = tmpfs_purge_inode,
+    .stat = tmpfs_statfs
 };
 
 void tmpfs_init()
@@ -74,6 +76,7 @@ ino_t tmpfs_instance_add_inode(struct tmpfs_instance *inst, struct tmpfs_inode* 
 
     inst->inodes[index] = inode;
     atomic_inc(&inode->refs);
+    inst->inodes_num ++;
 
     return index;
 }
@@ -91,6 +94,7 @@ void tmpfs_instance_remove_inode(struct tmpfs_instance *inst, ino_t index)
     {
         tmpfs_free_inode(node);
         inst->inodes[index] = NULL;
+        inst->inodes_num --;
     }
 }
 
@@ -313,6 +317,21 @@ void tmpfs_purge_inode(struct inode* inode)
     tmpfs_instance_remove_inode(inst, inode->inode);
 }
 
+int tmpfs_statfs(struct superblock *sb, struct statfs* stat)
+{
+    struct tmpfs_instance *inst = (struct tmpfs_instance *) sb->fs_info;
+
+    stat->blocksize = inst->blocksize;
+
+    stat->blocks = INT_MAX;
+    stat->blocks_free = INT_MAX;
+
+    stat->inodes = INT_MAX;
+    stat->inodes_free = stat->inodes - inst->inodes_num;
+
+    return 0;
+}
+
 struct dirent* tmpfs_file_readdir(struct file* dir, uint32_t index)
 {
     struct dirent* result = NULL;
@@ -403,6 +422,70 @@ int tmpfs_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 
     // Создаем dentry
     struct tmpfs_dentry *dentry = tmpfs_make_dentry(ino_idx, dir_name, DT_DIR);
+
+    // Добавить dentry в директорию
+    tmpfs_inode_add_dentry(parent_inode, dentry);
+
+exit:
+    tmpfs_free_inode(parent_inode);
+    return rc;
+}
+
+int tmpfs_mknod(struct inode* parent, const char* name, mode_t mode)
+{
+    int dentry_type;
+    int rc = 0; 
+    struct tmpfs_instance *inst = (struct tmpfs_instance*) parent->sb->fs_info;
+
+    switch (mode & INODE_TYPE_MASK) 
+    {
+        case INODE_TYPE_FILE:
+            dentry_type = DT_REG;
+            break;
+        case INODE_FLAG_SYMLINK:
+            dentry_type = DT_LNK;
+            break;
+        case INODE_TYPE_DIRECTORY:
+            dentry_type = DT_DIR;
+            break;
+        case INODE_FLAG_CHARDEVICE:
+            dentry_type = DT_CHR;
+            break;
+        case INODE_FLAG_PIPE:
+            dentry_type = DT_FIFO;
+            break;
+        case INODE_FLAG_BLOCKDEVICE:
+            dentry_type = DT_BLK;
+            break;
+        case INODE_FLAG_SOCKET:
+            dentry_type = DT_SOCK;
+            break;
+        default:
+            return -EINVAL;
+    }
+
+    // Получить inode - родителя
+    struct tmpfs_inode *parent_inode = tmpfs_get_inode(inst, parent->inode);
+    if (parent_inode == NULL)
+        return -ENOENT;
+
+    if (tmpfs_get_dentry(parent_inode, name) != NULL) {
+        rc = -EEXIST;
+        goto exit;
+    }
+
+    struct tmpfs_inode *new_inode = kmalloc(sizeof(struct tmpfs_inode));
+    memset(new_inode, 0, sizeof(struct tmpfs_inode));
+    new_inode->uid = 0;
+    new_inode->gid = 0;
+    new_inode->mode = mode;
+    new_inode->hard_links = 1;
+
+    // Добавляем inode в список
+    ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);
+
+    // Создаем dentry
+    struct tmpfs_dentry *dentry = tmpfs_make_dentry(ino_idx, name, dentry_type);
 
     // Добавить dentry в директорию
     tmpfs_inode_add_dentry(parent_inode, dentry);

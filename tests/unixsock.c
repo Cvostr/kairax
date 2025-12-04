@@ -7,7 +7,7 @@
 #include <time.h>
 #include <sys/wait.h>
 
-#define SOCK_PATH "/testsock"
+#define SOCK_PATH "/tmp/testsock"
 
 int client();
 int server();
