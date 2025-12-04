@@ -19,6 +19,11 @@ struct tmpfs_inode {
     size_t      size;
     uint32_t    hard_links;
 
+    struct timespec ctime;
+    struct timespec atime;
+    struct timespec mtime;
+
+
     atomic_t    refs;
 
     // Для файловых inode

@@ -1,6 +1,8 @@
 #ifndef _INPUT_H
 #define _INPUT_H
 
+#include "stdint.h"
+
 #define MOUSE_EVENT_BUTTON_UP       1
 #define MOUSE_EVENT_BUTTON_DOWN     2
 #define MOUSE_EVENT_MOVE            3

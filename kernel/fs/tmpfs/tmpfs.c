@@ -108,9 +108,17 @@ struct inode* tmpfs_inode_to_vfs_inode(struct tmpfs_instance *inst, struct tmpfs
     result->size = inode->size;
     //result->blocks = inode->num_blocks;
     result->mode = inode->mode;
-    //result->access_time.tv_sec = inode->atime;
-    //result->create_time.tv_sec = inode->ctime;
-    //result->modify_time.tv_sec = inode->mtime;
+
+    // ctime
+    result->create_time.tv_sec = inode->ctime.tv_sec;
+    result->create_time.tv_nsec = inode->ctime.tv_nsec;
+    // atime
+    result->access_time.tv_sec = inode->atime.tv_sec;
+    result->access_time.tv_nsec = inode->atime.tv_nsec;
+    // mtime
+    result->modify_time.tv_sec = inode->mtime.tv_sec;
+    result->modify_time.tv_nsec = inode->mtime.tv_nsec;
+
     result->hard_links = inode->hard_links;
     result->device = (dev_t) inst;
 
@@ -381,6 +389,11 @@ int tmpfs_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     new_inode->mode = INODE_TYPE_FILE | (0xFFF & mode);
     new_inode->hard_links = 1;
 
+    // Установка времени
+    arch_get_timespec(&new_inode->ctime);
+    arch_get_timespec(&new_inode->atime);
+    arch_get_timespec(&new_inode->mtime);
+
     // Добавляем inode в список
     ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);
 
@@ -416,6 +429,11 @@ int tmpfs_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     new_inode->gid = 0;
     new_inode->mode = INODE_TYPE_DIRECTORY | (0xFFF & mode);
     new_inode->hard_links = 2;
+
+    // Установка времени
+    arch_get_timespec(&new_inode->ctime);
+    arch_get_timespec(&new_inode->atime);
+    arch_get_timespec(&new_inode->mtime);
 
     // Добавляем inode в список
     ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);
@@ -480,6 +498,11 @@ int tmpfs_mknod(struct inode* parent, const char* name, mode_t mode)
     new_inode->gid = 0;
     new_inode->mode = mode;
     new_inode->hard_links = 1;
+
+    // Установка времени
+    arch_get_timespec(&new_inode->ctime);
+    arch_get_timespec(&new_inode->atime);
+    arch_get_timespec(&new_inode->mtime);
 
     // Добавляем inode в список
     ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);

@@ -268,8 +268,10 @@ void bootshell_process_cmd(char* cmdline)
 
                 struct statfs sb_stat;
                 int rc = superblock_stat(sb, &sb_stat);
-                if (rc == 0)
+                if (rc == 0) {
                     printf_stdout("  Total blocks: %i, free: %i\n", sb_stat.blocks, sb_stat.blocks_free);
+                    printf_stdout("  Total Inodes: %i, free: %i\n", sb_stat.inodes, sb_stat.inodes_free);
+                }
 
                 kfree(abs_path_buffer);
             }
