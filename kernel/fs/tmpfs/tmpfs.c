@@ -250,9 +250,10 @@ struct inode* tmpfs_mount(drive_partition_t* drive, struct superblock* sb)
 
 void tmpfs_free_inode(struct tmpfs_inode* inode)
 {
+    size_t j;
     if (atomic_dec_and_test(&inode->refs))
     {
-        for (size_t j = 0; j < inode->dentries_allocated; j ++)
+        for (j = 0; j < inode->dentries_allocated; j ++)
         {
             struct tmpfs_dentry *dentry = inode->dentries[j];
             if (dentry != NULL)
@@ -261,7 +262,15 @@ void tmpfs_free_inode(struct tmpfs_inode* inode)
             }
         }
 
-        // TODO: освободить данные файла
+        //освободить данные файла
+        for (j = 0; j < inode->blocks_allocated; j ++)
+        {
+            uint8_t *block = inode->blocks[j];
+            if (block != NULL)
+            {
+                kfree(block);
+            }
+        }
 
         kfree(inode);
     }
@@ -559,7 +568,7 @@ ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t of
     while ((remain_bytes > 0))
     {
         uint64_t to_write_in_block = MIN(remain_bytes, inst->blocksize - block_offset);
-        printk("RD %i\n", to_write_in_block);
+        //printk("RD %i\n", to_write_in_block);
 
         uint8_t* blk = inode->blocks[current_block];
 
@@ -587,7 +596,7 @@ exit:
 #define INODE_BLOCKS_STEP   4
 ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
-    printk("tmpfs: WR (%i %i)\n", offset, count);
+    //printk("tmpfs: WR (%i %i)\n", offset, count);
     ssize_t rc = 0;
     struct tmpfs_inode *inode = NULL;
     struct tmpfs_instance *inst = (struct tmpfs_instance*) file->inode->sb->fs_info;
@@ -641,19 +650,22 @@ ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, lo
     while (remain_bytes > 0)
     {
         uint64_t to_write_in_block = MIN(remain_bytes, inst->blocksize - block_offset);
-        //printk("WR %i\n", to_write_in_block);
-
+        // получить блок
         uint8_t* blk = inode->blocks[current_block];
 
         if (blk == NULL)
         {
+            // блок не был выделен, выделить
             blk = kmalloc(inst->blocksize);
             if (blk == NULL) {
                 rc = -ENOMEM;
                 goto exit;
             }
             memset(blk, 0, inst->blocksize);
+            // добавить выделенный блок в таблицу
             inode->blocks[current_block] = blk;
+            // 
+            file->inode->blocks ++;
         }
 
         memcpy(blk + block_offset, buffer, to_write_in_block);
@@ -675,6 +687,7 @@ ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, lo
         file->inode->size = end_byte;
     }
 
+    // Увеличить смещение
     file->pos += rc;
 
 exit:
