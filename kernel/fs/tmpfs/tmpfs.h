@@ -27,7 +27,8 @@ struct tmpfs_inode {
     atomic_t    refs;
 
     // Для файловых inode
-    uint8_t             *bytes; 
+    size_t              blocks_allocated;
+    uint8_t             **blocks; 
     // Для директорий
     size_t dentries_allocated;
     struct tmpfs_dentry **dentries;

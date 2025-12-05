@@ -1,6 +1,7 @@
 #include "tmpfs.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "kstdlib.h"
 
 struct file_operations tmpfs_file_ops = {
     .read = tmpfs_file_read,
@@ -520,12 +521,165 @@ exit:
 
 ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
+    ssize_t rc = 0;
+    struct tmpfs_inode *inode = NULL;
+    struct tmpfs_instance *inst = (struct tmpfs_instance*) file->inode->sb->fs_info;
 
+    // Получить Inode
+    inode = tmpfs_get_inode(inst, file->inode->inode);
+    if (inode == NULL) {
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    //Защита от выхода за границы файла
+    if (offset > inode->size) {
+        rc = 0;
+        goto exit;
+    }
+
+    if ((offset + count) > inode->size)
+    {
+        count = inode->size - offset;
+    }
+
+    // Индекс первого блока
+    uint64_t block_index = offset / inst->blocksize;
+    // Индекс последнего блока
+    uint64_t end_block_index = (offset + count) / inst->blocksize;
+
+    // Начальное смещение в первом блоке
+    off_t block_offset = offset % inst->blocksize;
+    // Сколько байт осталось считать
+    size_t remain_bytes = count;
+
+    // индекс текущего блока
+    uint64_t current_block = block_index;
+
+    while ((remain_bytes > 0))
+    {
+        uint64_t to_write_in_block = MIN(remain_bytes, inst->blocksize - block_offset);
+        printk("RD %i\n", to_write_in_block);
+
+        uint8_t* blk = inode->blocks[current_block];
+
+        if (blk == NULL)
+            goto exit;
+
+        memcpy(buffer, &blk[block_offset], to_write_in_block);
+
+        buffer += to_write_in_block;
+        remain_bytes -= to_write_in_block;
+        block_offset = 0;
+        current_block ++;
+
+        // Увеличить возвращаемое значение на записанное кол-во байт в этом блоке
+        rc += to_write_in_block;
+    }
+
+    file->pos += rc;
+
+exit:
+    tmpfs_free_inode(inode);
+    return rc;
 }
 
+#define INODE_BLOCKS_STEP   4
 ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
+    printk("tmpfs: WR (%i %i)\n", offset, count);
+    ssize_t rc = 0;
+    struct tmpfs_inode *inode = NULL;
+    struct tmpfs_instance *inst = (struct tmpfs_instance*) file->inode->sb->fs_info;
 
+    // Получить Inode
+    inode = tmpfs_get_inode(inst, file->inode->inode);
+    if (inode == NULL) {
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    uint64_t end_byte = (offset + count);
+    // Индекс первого блока
+    uint64_t block_index = offset / inst->blocksize;
+    // Индекс последнего блока
+    uint64_t end_block_index = end_byte / inst->blocksize;
+    
+    // Начальное смещение в первом блоке
+    off_t block_offset = offset % inst->blocksize;
+    // Сколько байт осталось записать
+    size_t remain_bytes = count;
+    // индекс текущего блока
+    uint64_t current_block = block_index;
+
+    if ((end_block_index + 1) > inode->blocks_allocated)
+    {
+        size_t new_size = end_block_index + 1 + INODE_BLOCKS_STEP;
+        size_t new_size_bytes = new_size * sizeof(uint8_t*);
+
+        // Выделить память под массив на указатели с блоками
+        uint8_t **blocks = kmalloc(new_size_bytes);
+        if (blocks == NULL) {
+            rc = -ENOMEM;
+            goto exit;
+        }
+        memset(blocks, 0, new_size_bytes);
+        
+        if (inode->blocks)
+        {
+            // Копировать старый массив в новый
+            memcpy(blocks, inode->blocks, inode->blocks_allocated * sizeof(struct uint8_t*));
+            kfree(inode->blocks);
+        }
+
+        // Заменить массив
+        inode->blocks = blocks;
+
+        inode->blocks_allocated = new_size;
+    }
+
+    while (remain_bytes > 0)
+    {
+        uint64_t to_write_in_block = MIN(remain_bytes, inst->blocksize - block_offset);
+        //printk("WR %i\n", to_write_in_block);
+
+        uint8_t* blk = inode->blocks[current_block];
+
+        if (blk == NULL)
+        {
+            blk = kmalloc(inst->blocksize);
+            if (blk == NULL) {
+                rc = -ENOMEM;
+                goto exit;
+            }
+            memset(blk, 0, inst->blocksize);
+            inode->blocks[current_block] = blk;
+        }
+
+        memcpy(blk + block_offset, buffer, to_write_in_block);
+
+        buffer += to_write_in_block;
+
+        remain_bytes -= to_write_in_block;
+        block_offset = 0;
+        current_block ++;
+
+        // Увеличить возвращаемое значение на записанное кол-во байт в этом блоке
+        rc += to_write_in_block;
+    }
+
+    // обновить размер файла, если он стал больше
+    if (end_byte > inode->size)
+    {
+        inode->size = end_byte;
+        file->inode->size = end_byte;
+    }
+
+    file->pos += rc;
+
+exit:
+    tmpfs_free_inode(inode);
+    return rc;
 }
 
 int tmpfs_unlink(struct inode* parent, struct dentry* dent)
