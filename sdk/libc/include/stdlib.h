@@ -49,6 +49,10 @@ char *realpath(const char *path, char *resolved_path);
 void qsort(void *base, size_t n, size_t size, int (*compare)(const void *, const void *));
 void *bsearch(const void *key, const void *base, size_t n, size_t size, int (*compare)(const void *, const void *));
 
+int mkstemp(char *template);
+char* mkdtemp(char *template);
+char* mktemp(char *template);
+
 extern void exit(int status);
 void _Exit(int status);
 extern void abort();

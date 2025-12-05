@@ -13,6 +13,8 @@
 
 char buff[220];
 static struct termios old, current;
+char *template = "/tmp/sysnXXXXXX";
+char template_buf[100];
 
 void initTermios() 
 {
@@ -118,6 +120,32 @@ int main(int argc, char** argv, char** envp) {
         printf("%s\n", *envp);
         envp++;
     }
+    }
+
+
+    if (argc > 1 && strcmp(argv[1], "mktmp") == 0)
+    {
+        int i;
+        for (i = 0; i < 50; i ++)
+        {
+            strcpy(template_buf, template);
+            mkstemp(template_buf);
+            printf("%i: %s\n", i, template_buf);
+        }
+        for (i = 0; i < 50; i ++)
+        {
+            strcpy(template_buf, template);
+            mkdtemp(template_buf);
+            printf("%i: %s\n", i, template_buf);
+        }
+        for (i = 0; i < 25; i ++)
+        {
+            strcpy(template_buf, template);
+            mktemp(template_buf);
+            printf("%i: %s\n", i, template_buf);
+        }
+
+        return 0;
     }
 
     int fd1 = open("/mydir/blabla", O_RDONLY, 0);
