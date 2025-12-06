@@ -1087,7 +1087,7 @@ ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, lof
     return result;
 }
 
-int ext2_truncate(struct inode* inode)
+int ext2_truncate(struct inode* inode, size_t len)
 {
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
     ext2_inode_t* e2_inode = new_ext2_inode();

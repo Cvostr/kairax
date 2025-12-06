@@ -226,31 +226,24 @@ int ext2_statfs(struct superblock *sb, struct statfs*);
 int ext2_unlink(struct inode* parent, struct dentry* dent);
 
 int ext2_rmdir(struct inode*, struct dentry*);
-
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
-
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
+int ext2_mknod(struct inode* parent, const char* name, mode_t mode);
 
 int ext2_chmod(struct inode * inode, uint32_t mode);
-
 int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const struct timespec* mtime);
 
-int ext2_truncate(struct inode* inode);
+int ext2_truncate(struct inode* inode, size_t len);
 
 int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inode* newparent, const char* newname);
 
 struct dirent* ext2_file_readdir(struct file* dir, uint32_t index);
 
 ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
-
 ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 
 int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name);
-
-int ext2_mknod (struct inode* parent, const char* name, mode_t mode);
-
 int ext2_symlink(struct inode* parent, const char* name, const char* target);
-
 ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen);
 
 // -----------------------------------------------

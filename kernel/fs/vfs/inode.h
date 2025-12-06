@@ -15,7 +15,7 @@ struct inode_operations {
     int      (*chmod)(struct inode*, uint32_t);
     int      (*mkdir)(struct inode*, const char*, uint32_t);
     int      (*mkfile)(struct inode*, const char*, uint32_t);
-    int      (*truncate)(struct inode*);
+    int      (*truncate)(struct inode*, size_t);
     int      (*rename)(struct inode*, struct dentry*, struct inode*, const char*);
     int      (*link)(struct dentry*, struct inode*, const char*);
     int      (*unlink)(struct inode*, struct dentry*);
@@ -94,7 +94,7 @@ void inode_close(struct inode* node);
 int inode_stat(struct inode* node, struct stat* sstat);
 int inode_mkdir(struct inode* node, const char* name, uint32_t mode);
 int inode_mkfile(struct inode* node, const char* name, uint32_t mode);
-int inode_truncate(struct inode* inode);
+int inode_truncate(struct inode* inode, size_t len);
 int inode_unlink(struct inode* parent, struct dentry* child);
 int inode_linkat(struct dentry* src, struct inode* dst, const char* name);
 int inode_rmdir(struct inode* parent, struct dentry* child);

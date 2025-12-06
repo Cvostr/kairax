@@ -48,6 +48,8 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x3D, sys_wait),
     DEFINE_SYSCALL(0x3E, sys_send_signal),
     DEFINE_SYSCALL(0x48, sys_fcntl),
+    DEFINE_SYSCALL(0x4C, sys_truncate),
+    DEFINE_SYSCALL(0x4D, sys_ftruncate),
     DEFINE_SYSCALL(0x4E, sys_readdir),
     DEFINE_SYSCALL(0x4F, sys_get_working_dir),
     DEFINE_SYSCALL(0x50, sys_set_working_dir),

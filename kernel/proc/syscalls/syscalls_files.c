@@ -80,7 +80,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
 
     // TODO: может делать это после попытки добавить к процессу?
     if ((file->inode->mode & INODE_TYPE_FILE) && (flags & FILE_OPEN_FLAG_TRUNCATE) && file_allow_write(file)) {
-        inode_truncate(file->inode);
+        inode_truncate(file->inode, 0);
     }
 
     // Добавить файл к процессу
@@ -276,6 +276,71 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     // Закрыть файл
     file_close(file);
 
+    return rc;
+}
+
+int sys_truncate(const char *path, off_t length)
+{
+    int rc;
+    struct file* file = NULL;
+    struct process* process = cpu_get_current_thread()->process;
+    VALIDATE_USER_STRING(process, path)
+
+    if (length < 0)
+    {
+        return -EINVAL;
+    }
+
+    file = file_open(process->pwd, path, 0, 0);
+    if (file == NULL)
+    {
+        return -ENOENT;
+    }
+
+    // Проверим, что у пользователя есть права на запись
+    if (inode_check_perm(file->inode, process->euid, process->egid, S_IWUSR, S_IWGRP, S_IWOTH) == 0)
+    {
+        rc = -EACCES;
+        goto exit;
+    }
+
+    rc = inode_truncate(file->inode, length);
+
+exit:
+    file_close(file);
+    return rc;
+}
+
+int sys_ftruncate(int fd, off_t length)
+{
+    int rc;
+    struct file* file = NULL;
+    struct process* process = cpu_get_current_thread()->process;
+
+    if (length < 0)
+    {
+        return -EINVAL;
+    }
+
+    // Получим файл с увеличением счетчика ссылок
+    file = process_get_file_ex(process, fd, TRUE);
+    if (file == NULL)
+    {
+        return -ERROR_BAD_FD;
+    }
+
+    // Проверим, что файл открыт для записи. 
+    // что у пользователя есть права на запись не проверяем, так как это уже проверялось при открытии 
+    if (file_allow_write(file) == FALSE)
+    {
+        rc = -EACCES;
+        goto exit;
+    }
+
+    rc = inode_truncate(file->inode, length);
+
+exit:
+    file_close(file);
     return rc;
 }
 

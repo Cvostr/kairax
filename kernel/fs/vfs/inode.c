@@ -122,14 +122,20 @@ int inode_mkfile(struct inode* node, const char* name, uint32_t mode)
     return rc;
 }
 
-int inode_truncate(struct inode* inode)
+int inode_truncate(struct inode* inode, size_t len)
 {
+    // Проверим, что это не директория
+    if ((inode->mode & INODE_TYPE_MASK) == INODE_TYPE_DIRECTORY) 
+    {
+        return -ERROR_IS_DIRECTORY;
+    }
+
     acquire_spinlock(&inode->spinlock);
 
     int rc = -ERROR_INVALID_VALUE;
     if (inode->operations && inode->operations->truncate) 
     {
-        rc = inode->operations->truncate(inode);
+        rc = inode->operations->truncate(inode, len);
     }
 
     release_spinlock(&inode->spinlock);

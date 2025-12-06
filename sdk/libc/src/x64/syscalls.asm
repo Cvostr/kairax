@@ -63,6 +63,8 @@ DEFINE_SYSCALL syscall_process_exit, 0x3C
 DEFINE_SYSCALL syscall_wait,        0x3D
 DEFINE_SYSCALL syscall_kill,        0x3E
 DEFINE_SYSCALL syscall_fcntl,       0x48
+DEFINE_SYSCALL syscall_truncate,    0x4C
+DEFINE_SYSCALL syscall_ftruncate,   0x4D
 DEFINE_SYSCALL syscall_readdir,     0x4E
 DEFINE_SYSCALL syscall_rename,      0x52
 DEFINE_SYSCALL syscall_rmdir,       0x54

@@ -27,8 +27,10 @@ int sys_mkdir(int dirfd, const char* path, int mode);
 int sys_close_file(int fd);
 
 ssize_t sys_read_file(int fd, char* buffer, size_t size);
-
 ssize_t sys_write_file(int fd, const char* buffer, size_t size);
+
+int sys_truncate(const char *path, off_t length);
+int sys_ftruncate(int fd, off_t length);
 
 int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags);
 
@@ -58,7 +60,6 @@ int sys_fcntl(int fd, int cmd, unsigned long long arg);
 int sys_pipe(int* pipefd, int flags);
 
 int sys_get_working_dir(char* buffer, size_t size);
-
 int sys_set_working_dir(const char* buffer);
 
 pid_t sys_get_process_id();

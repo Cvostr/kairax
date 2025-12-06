@@ -43,6 +43,8 @@ extern int syscall_symlinkat(const char *target, int newdirfd, const char *linkp
 extern long long syscall_readlinkat(int dirfd, const char *pathname, char *buf, unsigned long long bufsize);
 extern int syscall_unlink(int fd, const char* path, int flags);
 extern unsigned int syscall_set_umask(unsigned int mask);
+extern int syscall_truncate(const char *path, long long length);
+extern int syscall_ftruncate(int fd, long long length);
 extern int syscall_mknodat(int fd, const char *path, unsigned long long mode, unsigned long long dev);
 extern int syscall_set_fdate(int fd, const char* path, const void *times, int flag);
 extern int syscall_rmdir(const char* path);

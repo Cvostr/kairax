@@ -45,6 +45,9 @@ pid_t getpgid(pid_t pid) __THROW;
 int setpgrp(void) __THROW;
 pid_t getpgrp(void) __THROW;
 
+int truncate(const char *path, off_t length) __THROW;
+int ftruncate(int fd, off_t length) __THROW;
+
 ssize_t read(int fd, char* buffer, size_t size);
 
 ssize_t write(int fd, const char* buffer, size_t size);

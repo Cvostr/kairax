@@ -101,6 +101,16 @@ pid_t getpgrp(void)
     return getpgid(0);
 }
 
+int truncate(const char *path, off_t length)
+{
+    __set_errno(syscall_truncate(path, length));
+}
+
+int ftruncate(int fd, off_t length)
+{
+    __set_errno(syscall_ftruncate(fd, length));
+}
+
 unsigned int sleep(unsigned int seconds)
 {
     int rc = syscall_sleep(seconds, 0);
