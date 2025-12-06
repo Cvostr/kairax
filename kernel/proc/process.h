@@ -54,6 +54,7 @@ struct process {
     // Процесс - родитель
     struct process*     parent;
     struct thread*      main_thread;
+    mode_t              umask;
     //
     uid_t               uid;
     uid_t               euid;

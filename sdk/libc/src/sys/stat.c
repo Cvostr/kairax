@@ -24,6 +24,11 @@ int mkdir(const char* dirpath, int mode)
     __set_errno(syscall_create_directory(AT_FDCWD, dirpath, mode));
 }
 
+mode_t umask(mode_t mask)
+{
+    __set_errno(syscall_set_umask(mask));
+}
+
 int chmod(const char* filepath, mode_t mode)
 {
     __set_errno(syscall_set_file_mode(AT_FDCWD, filepath, mode, 0));

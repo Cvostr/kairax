@@ -30,6 +30,8 @@ int main(int argc, char** argv)
     int old_links;
     ino_t file_inode;
 
+    umask(0);
+
     rc = stat(".", &file_stat);
     old_links = file_stat.st_nlink;
 

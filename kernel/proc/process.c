@@ -33,6 +33,8 @@ struct process*  create_new_process(struct process* parent)
 
     process->brk = 0x0;
 
+    process->umask = S_IWGRP | S_IWOTH;
+
     // Заполнить обработчики сигналов значениями по умолчанию
     size_t nsignals = sizeof(process->sigactions) / sizeof(struct proc_sigact);
     for (size_t i = 0; i < nsignals; i ++)

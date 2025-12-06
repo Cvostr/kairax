@@ -17,6 +17,16 @@
 #define ACCESS_ALL (X_OK | W_OK | R_OK)
 #define AT_EACCESS          0x200
 
+mode_t sys_umask(mode_t mask)
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    mode_t old_mask = process->umask;
+    process->umask = mask;
+
+    return old_mask;
+}
+
 int sys_open_file(int dirfd, const char* path, int flags, int mode)
 {
     int fd = -1;
@@ -35,7 +45,7 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
     }
 
     // Открыть файл в ядре
-    fd = file_open_ex(dir_dentry, path, flags, mode, &file);
+    fd = file_open_ex(dir_dentry, path, flags, mode & ~process->umask, &file);
 
     if (fd != 0) 
     {
@@ -136,7 +146,7 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     }
 
     // Создать папку
-    rc = inode_mkdir(dir_inode, filename, mode);
+    rc = inode_mkdir(dir_inode, filename, mode & ~process->umask);
     // Закрыть inode директории
     inode_close(dir_inode);
 

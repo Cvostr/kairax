@@ -39,6 +39,8 @@ int sys_readdir(int fd, struct dirent* dirent);
 
 int sys_ioctl(int fd, uint64_t request, uint64_t arg);
 
+mode_t sys_umask(mode_t mask);
+
 int sys_unlink(int dirfd, const char* path, int flags);
 int sys_rmdir(const char* path);
 int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, int flags);

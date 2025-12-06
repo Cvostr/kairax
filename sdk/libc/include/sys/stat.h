@@ -4,6 +4,8 @@
 #include "types.h"
 #include "time.h"
 
+__BEGIN_DECLS
+
 /* File types.  */
 #define	S_IFMT	    0170000	/* These bits determine file type.  */
 #define	S_IFDIR	    0040000	/* Directory.  */
@@ -68,11 +70,15 @@ int stat(const char* filepath, struct stat* st);
 int fstat(int fd, struct stat* st);
 int fstatat(int dirfd, const char* filepath, struct stat* st, int flags);
 
+mode_t umask(mode_t mask);
+
 int mkdir(const char* dirpath, int mode);
 
 int mknod(const char *path, mode_t mode, dev_t dev);
 int mknodat (int dirfd, const char *path, mode_t mode, dev_t dev);
 
 int utimensat(int fd, const char* path, const struct timespec times[2], int flag);
+
+__END_DECLS
 
 #endif
