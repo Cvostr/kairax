@@ -9,7 +9,8 @@
 #include "drivers/char/input/keyboard.h"
 #include "proc/tasklet.h"
 
-#define HID_BOOT_MAX_KEYS   6
+#define HID_FIRST_KEYCODE 4
+#define HID_MAX_KEYCODE 0xE8
 
 // Для зажигания светодиодов
 #define HID_NUM_LOCK    0b001
@@ -17,10 +18,6 @@
 #define HID_SCROLL_LOCK 0b100
 #define HID_COMPOSE     0b1000
 #define HID_KANA        0b10000
-
-short hid_kbd_modifiers[8] = {
-    KRXK_LCTRL, KRXK_LSHIFT, KRXK_LALT, KRXK_LSUPER, KRXK_RCTRL, KRXK_RSHIFT, KRXK_RALT, KRXK_RSUPER
-};
 
 short hid_kbd_bindings[256] = {
     [0x04] = KRXK_A,
@@ -106,24 +103,25 @@ short hid_kbd_bindings[256] = {
     [0x50] = KRXK_LEFT,
     [0x51] = KRXK_DOWN,
     [0x52] = KRXK_UP,
-    [0x53] = KRXK_NUMLOCK
+    [0x53] = KRXK_NUMLOCK,
+
+    [0xE0] = KRXK_LCTRL,
+    [0xE1] = KRXK_LSHIFT,
+    [0xE2] = KRXK_LALT,
+    [0xE3] = KRXK_LSUPER,
+    [0xE4] = KRXK_RCTRL,
+    [0xE5] = KRXK_RSHIFT,
+    [0xE6] = KRXK_RALT,
+    [0xE7] = KRXK_RSUPER,
 };
 
 struct usb_device_id usb_hid_kbd_ids[] = {
 	{   
-        .match_flags = USB_DEVICE_ID_MATCH_INT_CLASS | USB_DEVICE_ID_MATCH_INT_SUBCLASS | USB_DEVICE_ID_MATCH_INT_PROTOCOL,
+        .match_flags = USB_DEVICE_ID_MATCH_INT_CLASS | USB_DEVICE_ID_MATCH_INT_PROTOCOL,
         .bInterfaceClass = 3,
-        .bInterfaceSubclass = 1, // Supports Boot protocol
         .bInterfaceProtocol = 1 // Keyboard
     },
 	{0,}
-};
-
-struct hid_kbd_boot_int_report 
-{
-    uint8_t modifier_key_status;
-    uint8_t reserved;
-    uint8_t presses[HID_BOOT_MAX_KEYS];
 };
 
 struct usb_hid_kbd {
@@ -133,12 +131,14 @@ struct usb_hid_kbd {
     size_t                              report_buffer_pages;
     uintptr_t                           report_buffer_phys;
     struct hid_kbd_boot_int_report*     report_buffer;
+    
+    list_t  report_items;
 
-    struct tasklet event_handle_tasklet;
+    uint8_t keystat1[256];
+    uint8_t keystat2[256];
 
-    // Буфер для хранения предыдущего состояния
-    uint8_t                             old_state[HID_BOOT_MAX_KEYS];
-    uint8_t                             old_modifier_state;
+    uint8_t *current;
+    uint8_t *old;
 };
 
 int usb_hid_set_report(struct usb_device* device, struct usb_interface* interface, uint8_t report_type, uint8_t report_id, void* report, uint32_t report_length)
@@ -157,106 +157,55 @@ int usb_hid_set_report(struct usb_device* device, struct usb_interface* interfac
     return usb_device_send_request(device, &req, report, report_length);
 }
 
-void hid_kbd_process_input(struct usb_msg* msg)
+void kbd_hid_report_handler(void* private_data, uint16_t usage_page, uint16_t usage_id, int64_t val) 
+{
+    struct usb_hid_kbd* kbd = private_data;
+
+    if (usage_page != 0x07)
+        return;
+
+    uint8_t state = val > 0 ? 1 : 0;
+
+    if (usage_id >= 4 && usage_id < 256)
+		kbd->current[usage_id] = state;
+}
+
+void hid_kbd_event_callback(struct usb_msg* msg)
 {
     struct usb_hid_kbd* kbd = msg->private;
-    struct hid_kbd_boot_int_report* rep = kbd->report_buffer;
-    uint16_t i, j;
-    uint8_t mapped;
-    int found = FALSE;
 
     if (msg->status != 0)
     {
         printk("HID keyboard Error!!! (%i)\n", -msg->status);
     }
 
-    uint8_t current_presses[6];
-    memcpy(current_presses, rep->presses, HID_BOOT_MAX_KEYS);
-    uint8_t current_modifier = rep->modifier_key_status;
-    uint8_t old_modifier = kbd->old_modifier_state;
+    // Обработать отчет
+    hid_process_report(kbd, kbd->report_buffer, msg->transferred_length, &kbd->report_items, kbd_hid_report_handler);
 
-    kbd->old_modifier_state = current_modifier;
+    for (int i = HID_FIRST_KEYCODE; i < HID_MAX_KEYCODE; i ++)
+    {
+        uint8_t old = kbd->old[i];
+        uint8_t current = kbd->current[i];
 
-    // Ожидание прерывания
+        if (old == 1 && current == 0)
+        {
+            keyboard_add_event(hid_kbd_bindings[i], KRXK_RELEASED);
+        }
+        else if (old == 0 && current == 1)
+        {
+            keyboard_add_event(hid_kbd_bindings[i], KRXK_PRESSED);
+        }
+
+        kbd->old[i] = 0;
+    }
+
+    // поменяем массивы местами
+    char* tmp = kbd->current;
+    kbd->current = kbd->old;
+    kbd->old = tmp;
+
+    // Послать запрос на прерывание
     usb_send_async_msg(kbd->device, kbd->ep, msg);
-
-    for (i = 0; i < 8; i ++)
-    {
-        uint8_t new_mask = current_modifier & 1;
-        uint8_t old_mask = old_modifier & 1;
-
-        if (new_mask == 1 && old_mask == 0)
-        {
-            keyboard_add_event(hid_kbd_modifiers[i], KRXK_PRESSED);
-        }
-        if (new_mask == 0 && old_mask == 1)
-        {
-            keyboard_add_event(hid_kbd_modifiers[i], KRXK_RELEASED);
-        }
-
-        current_modifier >>= 1;
-        old_modifier >>= 1;
-    }
-
-    // Обработать нажатия
-    for (i = 0; i < HID_BOOT_MAX_KEYS; i ++)
-    {
-        uint8_t ek = current_presses[i];
-        if (ek == 0) continue;
-
-        found = FALSE;
-
-        for (j = 0; j < HID_BOOT_MAX_KEYS; j ++)
-        {
-            if (kbd->old_state[j] == ek)
-            {
-                // Кнопка уже была зажата в прошлом сообщении
-                found = TRUE;
-                break;
-            }
-        }
-
-        if (found == FALSE)
-        {
-            mapped = hid_kbd_bindings[ek];
-            keyboard_add_event(mapped, KRXK_PRESSED);
-        }
-    }
-
-    // Обработать отпускания клавиш
-    for (i = 0; i < HID_BOOT_MAX_KEYS; i ++)
-    {
-        uint8_t ek = kbd->old_state[i];
-        if (ek == 0) continue;
-
-        found = FALSE;
-        
-        for (j = 0; j < HID_BOOT_MAX_KEYS; j ++)
-        {
-            if (current_presses[j] == ek)
-            {
-                // Кнопка по прежнему зажата
-                found = TRUE;
-                break;
-            }
-        }
-
-        if (found == FALSE)
-        {
-            mapped = hid_kbd_bindings[ek];
-            keyboard_add_event(mapped, KRXK_RELEASED);
-        }
-    }
-
-    // Обновить буфер
-    memcpy(kbd->old_state, current_presses, HID_BOOT_MAX_KEYS);
-}
-
-void event_callback(struct usb_msg* msg)
-{
-    struct usb_hid_kbd* kbd = msg->private;
-    tasklet_schedule(&kbd->event_handle_tasklet);
-    //hid_kbd_process_input(msg);
 }
 
 struct usb_endpoint* usb_hid_find_ep(struct usb_interface* interface)
@@ -302,7 +251,7 @@ int usb_hid_kbd_device_probe(struct device *dev)
     printk("HID: interrupt ep max pack size %i\n", interrupt_in_ep->descriptor.wMaxPacketSize);
 
     // Пока используем Boot
-    int rc = usb_hid_set_protocol(device, interface, HID_PROTOCOL_BOOT);
+    int rc = usb_hid_set_protocol(device, interface, HID_PROTOCOL_REPORT);
     if (rc != 0)
     {
         printk("HID: SET_PROTOCOL failed (%i)\n", rc);
@@ -316,22 +265,51 @@ int usb_hid_kbd_device_probe(struct device *dev)
 		return -1;
 	}
 
-    // SET_IDLE
-    usb_hid_set_idle(device, interface);
-
-    // GET_REPORT
-    uint8_t report[8];
-    rc = usb_hid_get_report(device, interface, 0x01, 0, report, 8);
-    if (rc != 0)
-    {
-        printk("HID: GET_REPORT failed (%i)\n", rc);
-		return -1;
-    }
+    struct usb_hid_descriptor* hid_descriptor = interface->hid_descriptor;
 
     struct usb_hid_kbd* kbd = kmalloc(sizeof(struct usb_hid_kbd));
     memset(kbd, 0, sizeof(struct usb_hid_kbd));
     kbd->device = device;
     kbd->ep = interrupt_in_ep;
+    kbd->current = kbd->keystat1;
+    kbd->old = kbd->keystat2;
+
+    uint32_t report_descr_index = 0;
+    for (uint8_t i = 0; i < hid_descriptor->bNumDescriptors; i ++)
+    {
+        uint8_t descr_type = hid_descriptor->descriptors[i].bDescriptorType;
+        uint16_t descr_len = hid_descriptor->descriptors[i].wDescriptorLength;
+
+        printk("HID KBD: Descr %i len %i\n", descr_type, descr_len);
+
+        if (descr_type = HID_DESCRIPTOR_REPORT)
+        {
+            uint16_t wValue = (HID_DESCRIPTOR_REPORT << 8) | report_descr_index++;
+            uint8_t *report_buffer = kmalloc(descr_len);
+
+            struct usb_device_request req;
+            req.type = USB_DEVICE_REQ_TYPE_STANDART;
+            req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+            req.recipient = USB_DEVICE_REQ_RECIPIENT_INTERFACE;
+            req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
+            req.wValue = wValue;
+            req.wIndex = interface->descriptor.bInterfaceNumber;
+            req.wLength = descr_len;
+
+            // Получить report descriptor
+            rc = usb_device_send_request(device, &req, report_buffer, descr_len);
+            if (rc != 0)
+            {
+                printk("HID KBD: GET_DESCRIPTOR failed (%i)\n", rc);
+                return -1;
+            }
+
+            // Парсинг
+            hid_parse_report(report_buffer, descr_len, &kbd->report_items);
+            kfree(report_buffer);
+            break;
+        }
+    }
 
     // Выделить память под буфер report
     kbd->report_buffer_phys = (uintptr_t) pmm_alloc(max_packet_sz, &kbd->report_buffer_pages);
@@ -340,7 +318,7 @@ int usb_hid_kbd_device_probe(struct device *dev)
     struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
     msg->data = kbd->report_buffer_phys;
     msg->length = max_packet_sz;
-    msg->callback = event_callback;
+    msg->callback = hid_kbd_event_callback;
     msg->private = kbd;
 
     usb_send_async_msg(device, interrupt_in_ep, msg);
@@ -349,8 +327,6 @@ int usb_hid_kbd_device_probe(struct device *dev)
     uint8_t val = 0;
     rc = usb_hid_set_report(device, interface, 0x02, 0, &val, 1);
 
-    tasklet_init(&kbd->event_handle_tasklet, hid_kbd_process_input, msg);
-    
 	return 0;
 }
 
