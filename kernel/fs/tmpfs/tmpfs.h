@@ -74,5 +74,6 @@ ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t of
 ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 int tmpfs_unlink(struct inode* parent, struct dentry* dent);
 int tmpfs_rmdir(struct inode* parent, struct dentry* dentry);
+int tmpfs_truncate(struct inode* inode, size_t len);
 
 #endif

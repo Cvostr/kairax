@@ -11,7 +11,9 @@ struct file_operations tmpfs_dir_ops = {
     .readdir = tmpfs_file_readdir
 };
 
-struct inode_operations tmpfs_file_inode_ops;
+struct inode_operations tmpfs_file_inode_ops = {
+    .truncate = tmpfs_truncate
+};
 struct inode_operations tmpfs_dir_inode_ops = {
     .mkfile = tmpfs_mkfile,
     .mkdir = tmpfs_mkdir,
@@ -593,6 +595,32 @@ exit:
     return rc;
 }
 
+int tmpfs_inode_extend_blockstore(struct tmpfs_inode *inode, size_t new_block_count)
+{
+    size_t new_size_bytes = new_block_count * sizeof(uint8_t*);
+
+    // Выделить память под массив на указатели с блоками
+    uint8_t **blocks = kmalloc(new_size_bytes);
+    if (blocks == NULL) {
+        return -ENOMEM;
+    }
+    memset(blocks, 0, new_size_bytes);
+    
+    if (inode->blocks)
+    {
+        // Копировать старый массив в новый
+        memcpy(blocks, inode->blocks, inode->blocks_allocated * sizeof(struct uint8_t*));
+        kfree(inode->blocks);
+    }
+
+    // Заменить массив
+    inode->blocks = blocks;
+
+    inode->blocks_allocated = new_block_count;
+
+    return 0;
+}
+
 #define INODE_BLOCKS_STEP   4
 ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
 {
@@ -624,27 +652,12 @@ ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, lo
     if ((end_block_index + 1) > inode->blocks_allocated)
     {
         size_t new_size = end_block_index + 1 + INODE_BLOCKS_STEP;
-        size_t new_size_bytes = new_size * sizeof(uint8_t*);
-
-        // Выделить память под массив на указатели с блоками
-        uint8_t **blocks = kmalloc(new_size_bytes);
-        if (blocks == NULL) {
-            rc = -ENOMEM;
+        int extendrc = tmpfs_inode_extend_blockstore(inode, new_size);
+        if (extendrc != 0)
+        {
+            rc = extendrc;
             goto exit;
         }
-        memset(blocks, 0, new_size_bytes);
-        
-        if (inode->blocks)
-        {
-            // Копировать старый массив в новый
-            memcpy(blocks, inode->blocks, inode->blocks_allocated * sizeof(struct uint8_t*));
-            kfree(inode->blocks);
-        }
-
-        // Заменить массив
-        inode->blocks = blocks;
-
-        inode->blocks_allocated = new_size;
     }
 
     while (remain_bytes > 0)
@@ -810,4 +823,65 @@ exit:
         tmpfs_free_inode(inode);
 
     return 0;
+}
+
+int tmpfs_truncate(struct inode* inode, size_t len)
+{
+    int rc;
+    size_t block_i;
+    struct tmpfs_inode *tmpfs_inode = NULL;
+    struct tmpfs_instance *inst = (struct tmpfs_instance *) inode->sb->fs_info;
+    
+    size_t new_block_count = align(len, inst->blocksize) / inst->blocksize;
+
+    // Получить Inode
+    tmpfs_inode = tmpfs_get_inode(inst, inode->inode);
+    if (tmpfs_inode == NULL) {
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    // Расширить таблицу блоков, если необходимо
+    if (new_block_count > tmpfs_inode->blocks_allocated) 
+    {
+        tmpfs_inode_extend_blockstore(tmpfs_inode, new_block_count);
+    }
+
+    // Выделить блоки, если необходимо
+    for (block_i = 0; block_i < new_block_count; block_i ++)
+    {
+        if (tmpfs_inode->blocks[block_i] == NULL)
+        {
+            // блок не был выделен, выделить
+            char *blk = kmalloc(inst->blocksize);
+            if (blk == NULL) {
+                rc = -ENOMEM;
+                goto exit;
+            }
+            memset(blk, 0, inst->blocksize);
+            // добавить выделенный блок в таблицу
+            tmpfs_inode->blocks[block_i] = blk;
+        }
+    }
+
+    // Удалить блоки при уменьшении размера
+    if (new_block_count < inode->blocks)
+    {
+        for (block_i = new_block_count; block_i < inode->blocks; block_i ++)
+        {
+            kfree(tmpfs_inode->blocks[block_i]);
+            tmpfs_inode->blocks[block_i] = NULL;
+        }
+    }
+
+    // Установим новые данные
+    inode->blocks = new_block_count;
+    inode->size = len;
+    tmpfs_inode->size = len;
+
+exit:
+    if (tmpfs_inode)
+        tmpfs_free_inode(tmpfs_inode);
+
+    return rc;
 }
