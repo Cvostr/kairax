@@ -423,11 +423,23 @@ void hid_process_report(void* private_data, uint8_t *report, size_t len, list_t 
     {
         current = (struct hid_report_item*) current_node->element;
 
+		if (current->type != INPUT)
+			goto skip;
+
         for (uint32_t report_i = 0; report_i < current->report_count; report_i ++)
 		{
 			int64_t val;
 			int is_unsigned = current->logical_minimum >= 0;
 			uint16_t usage_base = current->usage_id > 0 ? current->usage_id : current->usage_minimum;
+
+			if ((current->value & HID_ITEM_FLAG_CONSTANT) == HID_ITEM_FLAG_CONSTANT)
+			{
+				// Константы никак не обрабатываем, просто пропускаем
+				bits_offset += current->report_size;
+				continue;
+			}
+
+			int is_array = (current->value & HID_ITEM_FLAG_VARIABLE) == 0;
 
 			if (is_unsigned)
 				val = hid_get_bits_unsigned(report, bits_offset, current->report_size);
@@ -440,6 +452,7 @@ void hid_process_report(void* private_data, uint8_t *report, size_t len, list_t 
 			bits_offset += current->report_size;
 		}
 
+skip:
         // Переход на следующий элемент
         current_node = current_node->next;
     }
