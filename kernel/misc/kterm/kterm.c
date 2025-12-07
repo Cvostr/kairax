@@ -358,6 +358,8 @@ char keyboard_get_key_ascii_normal(char keycode)
 		return '[';
 	case KRXK_RBRACE:
 		return ']';
+	case KRXK_BACK_TICK:
+		return '`';
       break;
     default:
         //if (keycode != 0)

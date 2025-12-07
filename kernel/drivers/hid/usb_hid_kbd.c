@@ -87,6 +87,8 @@ short hid_kbd_bindings[256] = {
 
     [0x33] = KRXK_SEMICOLON,
 
+    [0x35] = KRXK_BACK_TICK,
+
     [0x36] = KRXK_COMMA,
     [0x37] = KRXK_DOT,
     [0x38] = KRXK_SLASH,

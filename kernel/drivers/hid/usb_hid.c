@@ -439,15 +439,21 @@ void hid_process_report(void* private_data, uint8_t *report, size_t len, list_t 
 				continue;
 			}
 
-			int is_array = (current->value & HID_ITEM_FLAG_VARIABLE) == 0;
-
 			if (is_unsigned)
 				val = hid_get_bits_unsigned(report, bits_offset, current->report_size);
 			else
 				val = hid_get_bits_signed(report, bits_offset, current->report_size);
+
+			uint16_t usage = usage_base;
+			if ((current->value & HID_ITEM_FLAG_VARIABLE) == HID_ITEM_FLAG_VARIABLE)
+				// это переменная
+				usage += report_i;
+			else
+				// это массив
+				usage += val;
 			
 			// Вызов внешнего обработчика
-			handler(private_data, current->usage_page, usage_base + report_i, val);
+			handler(private_data, current->usage_page, usage, val);
 
 			bits_offset += current->report_size;
 		}
