@@ -62,6 +62,7 @@ size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size);
 int arch_vm_is_mapped(void* arch_table, uint64_t address);
 
 uint64_t arch_vm_get_physical_addr(void* arch_table, uint64_t addr);
+void* arch_phys_to_virtual_addr(uint64_t addr);
 
 // Расширить память текста ядра 
 uint64_t arch_expand_kernel_mem(uint64_t size);

@@ -10,6 +10,7 @@
 #define	PROT_EXEC	0x04
 
 #define MAP_ANONYMOUS	0x20
+#define MAP_SHARED	    0x01
 
 #define MAP_FAILED	((void *) -1)
 

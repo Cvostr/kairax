@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "kstdlib.h"
+#include "mem/pmm.h"
 
 struct file_operations tmpfs_file_ops = {
     .read = tmpfs_file_read,
@@ -270,7 +271,7 @@ void tmpfs_free_inode(struct tmpfs_inode* inode)
             uint8_t *block = inode->blocks[j];
             if (block != NULL)
             {
-                kfree(block);
+                pmm_free_page(block);
             }
         }
 
@@ -570,12 +571,16 @@ ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t of
     while ((remain_bytes > 0))
     {
         uint64_t to_write_in_block = MIN(remain_bytes, inst->blocksize - block_offset);
-        //printk("RD %i\n", to_write_in_block);
 
+        // Получение адреса блока
         uint8_t* blk = inode->blocks[current_block];
 
+        // Блока нет - заканчиваем чтение
         if (blk == NULL)
             goto exit;
+
+        // Поскольку адреса блоков физические - переведем их в виртуальные
+        blk = arch_phys_to_virtual_addr(blk);
 
         memcpy(buffer, &blk[block_offset], to_write_in_block);
 
@@ -669,17 +674,20 @@ ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, lo
         if (blk == NULL)
         {
             // блок не был выделен, выделить
-            blk = kmalloc(inst->blocksize);
+            blk = pmm_alloc_page();
             if (blk == NULL) {
                 rc = -ENOMEM;
                 goto exit;
             }
-            memset(blk, 0, inst->blocksize);
+            memset(arch_phys_to_virtual_addr(blk), 0, inst->blocksize);
             // добавить выделенный блок в таблицу
             inode->blocks[current_block] = blk;
             // 
             file->inode->blocks ++;
         }
+
+        // Поскольку адреса блоков физические - переведем их в виртуальные
+        blk = arch_phys_to_virtual_addr(blk);
 
         memcpy(blk + block_offset, buffer, to_write_in_block);
 
@@ -827,7 +835,7 @@ exit:
 
 int tmpfs_truncate(struct inode* inode, size_t len)
 {
-    int rc;
+    int rc = 0;
     size_t block_i;
     struct tmpfs_inode *tmpfs_inode = NULL;
     struct tmpfs_instance *inst = (struct tmpfs_instance *) inode->sb->fs_info;
@@ -853,12 +861,12 @@ int tmpfs_truncate(struct inode* inode, size_t len)
         if (tmpfs_inode->blocks[block_i] == NULL)
         {
             // блок не был выделен, выделить
-            char *blk = kmalloc(inst->blocksize);
+            char *blk = pmm_alloc_page();
             if (blk == NULL) {
                 rc = -ENOMEM;
                 goto exit;
             }
-            memset(blk, 0, inst->blocksize);
+            memset(arch_phys_to_virtual_addr(blk), 0, inst->blocksize);
             // добавить выделенный блок в таблицу
             tmpfs_inode->blocks[block_i] = blk;
         }
@@ -869,7 +877,7 @@ int tmpfs_truncate(struct inode* inode, size_t len)
     {
         for (block_i = new_block_count; block_i < inode->blocks; block_i ++)
         {
-            kfree(tmpfs_inode->blocks[block_i]);
+            pmm_free_page(tmpfs_inode->blocks[block_i]);
             tmpfs_inode->blocks[block_i] = NULL;
         }
     }

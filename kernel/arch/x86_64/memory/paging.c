@@ -52,6 +52,11 @@ int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot)
     return map_page_mem(arch_table, vaddr, physaddr, flags);
 }
 
+void* arch_phys_to_virtual_addr(uint64_t addr)
+{
+    return P2V(addr);
+}
+
 int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
 {
     //Вычисление индексов страниц
