@@ -32,6 +32,8 @@ void mmap_region_unref(struct mmap_range* region)
 
     if (atomic_dec_and_test(&region->refs)) 
     {
+        if (region->file)
+            file_close(region->file);
         kfree(region);
     }
 }

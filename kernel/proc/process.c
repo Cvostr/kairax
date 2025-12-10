@@ -99,6 +99,7 @@ void process_free_resources(struct process* process)
     for (i = 0; i < ranges; i ++) 
     {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
+        vm_table_unmap_region(process->vmemory_table, range->base, range->length);
         mmap_region_unref(range);
     }
 

@@ -2,6 +2,7 @@
 #define VM_AREA_H
 
 #include "kairax/atomic.h"
+#include "fs/vfs/file.h"
 
 #define MAP_SHARED	    0x01
 #define MAP_ANONYMOUS	0x20
@@ -12,6 +13,7 @@ struct mmap_range {
     uint64_t        length;
     int             protection;
     int             flags;
+    struct file     *file;
     
     atomic_t        refs;
 };

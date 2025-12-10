@@ -54,6 +54,9 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
     if (file != NULL) 
     {
+        file_acquire(file);
+        range->file = file;
+
         res = file->ops->mmap(file, range);
         if (res != 0) 
         {
