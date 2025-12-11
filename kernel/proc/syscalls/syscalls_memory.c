@@ -23,6 +23,14 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
         return (void*)-ERROR_INVALID_VALUE;
     }
 
+    // Надо проверить, что задан ровно один из флагов MAP_SHARED и MAP_PRIVATE
+    int shared_private_mask = (flags & (MAP_SHARED | MAP_PRIVATE));
+    if (shared_private_mask == (MAP_SHARED | MAP_PRIVATE) ||
+        shared_private_mask == 0) 
+    {
+        return -EINVAL;
+    }
+
     if ((flags & MAP_ANONYMOUS) == 0) 
     {
         file = process_get_file(process, fd);  

@@ -5,6 +5,7 @@
 #include "fs/vfs/file.h"
 
 #define MAP_SHARED	    0x01
+#define MAP_PRIVATE     0x02
 #define MAP_ANONYMOUS	0x20
 #define MAP_STACK	    0x20000
 

@@ -12,7 +12,10 @@ uint64_t            args_info[3];
 uint64_t            aux_vector[20];
 struct object_data* root;
 
+#define MAP_PRIVATE     0x02
 #define MAP_ANONYMOUS	0x20
+
+#define MMAP_DEFAULT_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
 
 #define DIRFD_IS_FD  0x1000
 #define FILE_OPEN_MODE_READ_ONLY    00000000
@@ -72,7 +75,7 @@ struct object_data* load_object_data_fd(int fd, int shared) {
     }
 
     // Выделить память под файл
-    char* file_buffer = syscall_map_memory(NULL, file_stat.st_size, PAGE_PROTECTION_WRITE_ENABLE, MAP_ANONYMOUS, -1, 0);
+    char* file_buffer = syscall_map_memory(NULL, file_stat.st_size, PAGE_PROTECTION_WRITE_ENABLE, MMAP_DEFAULT_FLAGS, -1, 0);
     assert(file_buffer != NULL);
     memset(file_buffer, 0, file_stat.st_size);
 
@@ -94,7 +97,7 @@ struct object_data* load_object_data(char* data, int shared) {
                                             NULL,
                                             sizeof(struct object_data),
                                             PAGE_PROTECTION_WRITE_ENABLE,
-                                            MAP_ANONYMOUS, -1, 0);
+                                            MMAP_DEFAULT_FLAGS, -1, 0);
 
     assert(obj_data != NULL);
 
@@ -126,7 +129,7 @@ struct object_data* load_object_data(char* data, int shared) {
             SO_BASE,
             obj_data->size,
             PAGE_PROTECTION_WRITE_ENABLE | PAGE_PROTECTION_EXEC_ENABLE,
-            MAP_ANONYMOUS, -1, 0);
+            MMAP_DEFAULT_FLAGS, -1, 0);
         assert(obj_data->base != NULL);
 
         // Расположить код в памяти
@@ -167,7 +170,7 @@ struct object_data* load_object_data(char* data, int shared) {
         if (strcmp(section_name, ".dynamic") == 0) {
 
             // Сохранить все данные секции
-            obj_data->dynamic_section = syscall_map_memory(NULL, sehentry->size, PAGE_PROTECTION_WRITE_ENABLE, MAP_ANONYMOUS, -1, 0);
+            obj_data->dynamic_section = syscall_map_memory(NULL, sehentry->size, PAGE_PROTECTION_WRITE_ENABLE, MMAP_DEFAULT_FLAGS, -1, 0);
             assert(obj_data->dynamic_section != NULL);
             memcpy(obj_data->dynamic_section, data + sehentry->offset, sehentry->size);
             obj_data->dynamic_sec_size = sehentry->size;
@@ -192,7 +195,7 @@ struct object_data* load_object_data(char* data, int shared) {
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                MAP_ANONYMOUS, -1, 0);
+                MMAP_DEFAULT_FLAGS, -1, 0);
 
             assert(obj_data->dynsym != NULL);
 
@@ -205,7 +208,7 @@ struct object_data* load_object_data(char* data, int shared) {
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                MAP_ANONYMOUS, -1, 0);
+                MMAP_DEFAULT_FLAGS, -1, 0);
 
             assert(obj_data->dynstr != NULL);
 
@@ -218,7 +221,7 @@ struct object_data* load_object_data(char* data, int shared) {
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                MAP_ANONYMOUS, -1, 0);
+                MMAP_DEFAULT_FLAGS, -1, 0);
 
             assert(obj_data->plt_rela != NULL);
                 
@@ -230,7 +233,7 @@ struct object_data* load_object_data(char* data, int shared) {
                 NULL,
                 sehentry->size,
                 PAGE_PROTECTION_WRITE_ENABLE,
-                MAP_ANONYMOUS, -1, 0);
+                MMAP_DEFAULT_FLAGS, -1, 0);
 
             assert(obj_data->rela != NULL);
 

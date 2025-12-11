@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 {
     printf("Test 1: File read to mmaped mem\n");
     int fd = open("/dev/zero", O_RDONLY, 0);
-    char* buff = mmap(NULL, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    char* buff = mmap(NULL, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (buff == NULL) {
         printf("Failed mmap(), error %i\n", errno);
         return 1;
@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 
     int testsize = 1024 * 1024;
     printf("Test 2: mmap and munmap\n");
-    buff = mmap(NULL, testsize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    buff = mmap(NULL, testsize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     rc = munmap(buff, testsize);
     if (rc == -1) {
         printf("Failed munmap(), error %i\n", errno);
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     }
 
     printf("Test 6: mmap() to kernel upper mem\n");
-    char* brc = mmap(addr, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    char* brc = mmap(addr, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (brc != MAP_FAILED) {
         printf("Successful mmap()\n");
         return 6;
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     }
 
     printf("Test 7: mmap() non anonimous with bad fd\n");
-    brc = mmap(NULL, MMAP_PORTION, PROT_READ | PROT_WRITE, 0, -1, 0);
+    brc = mmap(NULL, MMAP_PORTION, PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
     if (brc != MAP_FAILED) {
         printf("Successful mmap()\n");
         return 7;
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     }
 
     printf("Test 9: Read to unwritable memory\n");
-    brc = mmap(NULL, MMAP_PORTION, PROT_READ, MAP_ANONYMOUS, -1, 0);
+    brc = mmap(NULL, MMAP_PORTION, PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     printf("Allocated at %p\n", brc);
     rc = read(fd, brc, MMAP_PORTION);
     if (rc >= 0) {
@@ -95,10 +95,32 @@ int main(int argc, char** argv)
     }
 
     printf("Test 10: open() file with broken string\n");
-    char* badstr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    char* badstr = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     memset(badstr, 'a', 4096);
     sleep(1);
     int badfd = open(badstr, O_RDONLY, 0);
+
+    printf("Test 11: mmap() anon with no SHARED or PRIVATE\n");
+    char *badvaltest = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    if (badvaltest != MAP_FAILED) {
+        printf("Successful mmap()\n");
+        return 7;
+    }
+    if (errno != EINVAL) {
+        printf("Incorrect errno(), expected %i, got %i\n", EBADF, errno);
+        return 8;
+    }
+
+    printf("Test 12: mmap() anon with both SHARED and PRIVATE set\n");
+    badvaltest = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED | MAP_PRIVATE, -1, 0);
+    if (badvaltest != MAP_FAILED) {
+        printf("Successful mmap()\n");
+        return 7;
+    }
+    if (errno != EINVAL) {
+        printf("Incorrect errno(), expected %i, got %i\n", EBADF, errno);
+        return 8;
+    }
 
     return 0;
 }
