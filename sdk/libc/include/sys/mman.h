@@ -14,7 +14,7 @@
 
 #define MAP_FAILED	((void *) -1)
 
-void* mmap(void* addr, size_t length, int protection, int flags, int fd, int offset);
+void* mmap(void* addr, size_t length, int protection, int flags, int fd, off_t offset);
 int mprotect (void *addr, size_t length, int protection);
 int munmap(void* addr, size_t length);
 

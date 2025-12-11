@@ -13,6 +13,7 @@ struct mmap_range {
     uint64_t        length;
     int             protection;
     int             flags;
+    unsigned long   file_offset;
     struct file     *file;
     
     atomic_t        refs;

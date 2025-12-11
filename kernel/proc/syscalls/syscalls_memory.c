@@ -9,7 +9,7 @@
 #include "kstdlib.h"
 #include "string.h"
 
-void* sys_memory_map(void* address, uint64_t length, int protection, int flags, int fd, int offset)
+void* sys_memory_map(void* address, uint64_t length, int protection, int flags, int fd, off_t offset)
 {
     struct process* process = cpu_get_current_thread()->process;
     struct file* file = NULL;
@@ -56,6 +56,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     {
         file_acquire(file);
         range->file = file;
+        range->file_offset = offset;
 
         res = file->ops->mmap(file, range);
         if (res != 0) 
