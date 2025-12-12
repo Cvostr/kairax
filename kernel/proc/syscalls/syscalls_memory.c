@@ -44,7 +44,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
         if (file == NULL) {
             return (void*)-ERROR_BAD_FD;
-        }  
+        }
 
         // Проверим тип файла
         mode_t inode_type = file->inode->mode & INODE_TYPE_MASK;
@@ -72,7 +72,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
         }
 
         if (file->ops->mmap == NULL) {
-            return -1; // todo : уточнить
+            return -ENODEV;
         }
     }
 

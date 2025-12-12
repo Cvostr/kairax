@@ -5,7 +5,7 @@
 #include "stdio.h"
 #include "errno.h"
 
-#define SHM_NAME "/tmp/my_shared_memory"
+#define SHM_NAME "/my_shared_memory"
 #define SHM_SIZE 4096 // 4KB
 
 void _writer()
@@ -15,8 +15,8 @@ void _writer()
     const char *message = "Hello from shared memory!";
 
     // Create and open the shared memory object
-    //shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
-    shm_fd = open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+    shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+    printf("shm_fd = %i\n", shm_fd);
     if (shm_fd == -1) {
         perror("shm_open");
         exit(EXIT_FAILURE);
@@ -63,8 +63,7 @@ void reader()
     sleep(1);
 
     // Open the existing shared memory object
-    //shm_fd = shm_open(SHM_NAME, O_RDONLY, 0666);
-    shm_fd = open(SHM_NAME, O_RDONLY, 0666);
+    shm_fd = shm_open(SHM_NAME, O_RDONLY, 0666);
     if (shm_fd == -1) {
         perror("shm_open");
         exit(EXIT_FAILURE);
@@ -91,8 +90,7 @@ void reader()
 
     // Unlink the shared memory object (removes it from the system)
     // This is typically done by one of the processes when shared memory is no longer needed.
-    //shm_unlink(SHM_NAME); // Reader unlinks it in this example
-    unlink(SHM_NAME);
+    shm_unlink(SHM_NAME); // Reader unlinks it in this example
 
     return 0;
 }

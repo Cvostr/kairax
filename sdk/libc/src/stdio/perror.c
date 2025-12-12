@@ -23,6 +23,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EBUSY, "Device or resource busy"),
     DEFINE_ERROR(EEXIST, "File exists"),
     DEFINE_ERROR(EXDEV, "Cross-device link"),
+    DEFINE_ERROR(ENODEV, "No such device"),
     DEFINE_ERROR(ENOTDIR, "Not a directory"),
     DEFINE_ERROR(EISDIR, "Is a directory"),
     DEFINE_ERROR(EINVAL, "Invalid argument"),

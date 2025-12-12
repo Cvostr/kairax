@@ -897,7 +897,6 @@ exit:
 
 int tmpfs_mmap(struct file* file, struct mmap_range *area, uintptr_t offset, size_t size)
 {
-    //printk("tmpfs_mmap\n");
     struct tmpfs_inode *tmpfs_inode = NULL;
     struct tmpfs_instance *inst = (struct tmpfs_instance *) file->inode->sb->fs_info;
     

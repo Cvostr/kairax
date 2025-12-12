@@ -19,4 +19,7 @@ void* mmap(void* addr, size_t length, int protection, int flags, int fd, off_t o
 int mprotect (void *addr, size_t length, int protection);
 int munmap(void* addr, size_t length);
 
+int shm_open(const char *name, int oflag, mode_t mode);
+int shm_unlink(const char *name);
+
 #endif

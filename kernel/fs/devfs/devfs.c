@@ -59,6 +59,8 @@ void devfs_init()
     devfs_sb_ops.find_dentry = devfs_find_dentry;
 
     memset(&dev_inode_ops, 0, sizeof(struct inode_operations));
+
+    devfs_add_shm_dir();
 }
 
 struct devfs_device* new_devfs_device_struct()
@@ -146,6 +148,63 @@ int devfs_add_char_device(const char* name, struct file_operations* fops, void* 
     return 0;
 }
 
+int devfs_add_shm_dir()
+{
+    acquire_spinlock(&devfs_lock);
+
+    struct devfs_device* device = new_devfs_device_struct();
+
+    struct timespec current_time;
+    arch_get_timespec(&current_time);
+
+    // Создание inode
+    device->inode = new_vfs_inode();
+    device->inode->inode = inode_index++;                   
+    device->inode->mode = INODE_TYPE_DIRECTORY | DEVFS_INODE_DEFAULT_PERM;
+    device->inode->sb = devfs_root_inode->sb;
+    device->inode->create_time = current_time;
+    device->inode->access_time = current_time;
+    device->inode->modify_time = current_time;
+    device->inode->operations = &dev_inode_ops;
+    device->inode->hard_links = 1;
+    atomic_inc(&device->inode->reference_count);
+
+    // Создание dentry
+    device->dentry = new_dentry();
+    device->dentry->d_inode = device->inode;
+    atomic_inc(&device->inode->reference_count);
+    device->dentry->sb = devfs_root_inode->sb;
+    strcpy(device->dentry->name, "shm");
+    atomic_inc(&device->dentry->refs_count);
+    
+    // Добавление в список
+    list_add(devfs_devices, device);
+
+    release_spinlock(&devfs_lock);
+
+    return 0;
+}
+
+int devfs_inode_mode_todentry_type(mode_t inode_mode)
+{
+    int dirent_type;
+    mode_t inode_type = inode_mode & INODE_TYPE_MASK;
+    switch (inode_type)
+    {
+        case INODE_FLAG_CHARDEVICE:
+            dirent_type = DT_CHR;
+            break;
+        case INODE_TYPE_DIRECTORY:
+            dirent_type = DT_DIR;
+            break;
+        default:
+            dirent_type = DT_CHR;
+            break;
+    }
+
+    return dirent_type;
+}
+
 struct dirent* devfs_readdir(struct file* dir, uint32_t index)
 {
     struct inode* vfs_inode = dir->inode;
@@ -159,10 +218,12 @@ struct dirent* devfs_readdir(struct file* dir, uint32_t index)
 
     struct devfs_device* device = (struct devfs_device*)(list_get(devfs_devices, index));
 
+    int dirent_type = devfs_inode_mode_todentry_type(device->inode->mode);
+
     struct dirent* result = new_vfs_dirent();
     result->inode = device->inode->inode;
     result->offset = index;
-    result->type = DT_CHR;
+    result->type = dirent_type;
     strcpy(result->name, device->dentry->name);
 
     release_spinlock(&devfs_lock);
@@ -209,6 +270,7 @@ uint64 devfs_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
     struct devfs_device* dev = devfs_find_dev(name);
     if (dev != NULL) {
         inode = dev->inode->inode;
+        *type = devfs_inode_mode_todentry_type(dev->inode->mode);
     }
 
     return inode;
