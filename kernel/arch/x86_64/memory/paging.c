@@ -124,11 +124,11 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
     return PAGING_ERROR_ALREADY_MAPPED;
 }
 
-void arch_vm_unmap(void* arch_table, uint64_t vaddr)
+void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page)
 {
     uintptr_t phys = 0;
     int rc = unmap_page1(arch_table, vaddr, &phys);
-    if (rc == 0) {
+    if (rc == 0 && free_page == TRUE) {
         pmm_free_page(phys);
     }
 }
@@ -315,29 +315,28 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
     return 0;
 }
 
-int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_range* area, int cow)
+int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_range* area, int shared)
 {
+    // Сконвертируем флаги защиты ядра в флаги защиты x86-64
     uint64_t flags = x86_64_prot_2_flags(area->protection);
-
-    /*if (cow) {
-        // Для COW, только чтение, даже если право на запись было
-        flags &= PAGE_WRITABLE;
-    }
-
-    printk("COW %i ", cow);
-
-    for (uintptr_t address = area->base; address < area->base + area->length; address += PAGE_SIZE) 
-    {
-        physical_addr_t paddr = get_physical_address(src, address);
-        map_page_mem(dest, address, paddr, flags);
-    }*/
 
     for (uintptr_t address = area->base; address < align(area->base + area->length, PAGE_SIZE); address += PAGE_SIZE) 
     {
         physical_addr_t paddr = get_physical_address(src, address);
-        char* newp = pmm_alloc_page();
-        memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
-        map_page_mem(dest, address, newp, flags);
+
+        if (shared == TRUE)
+        {
+            // Если регион разделяемый, то маппим в новую таблицу этот же физический адрес, чтобы с ним же и взаимодействовать
+            map_page_mem(dest, address, paddr, flags);
+        }
+        else
+        {
+            // Если регион приватный, то выделяем копию памяти
+            // TODO: Сделать Copy On Write (без PAGE_WRITABLE)
+            char* newp = pmm_alloc_page();
+            memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
+            map_page_mem(dest, address, newp, flags);
+        }
     }
 
     return 0;

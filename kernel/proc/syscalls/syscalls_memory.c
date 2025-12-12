@@ -33,11 +33,43 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
     if ((flags & MAP_ANONYMOUS) == 0) 
     {
+        // offset должен быть выровнен
+        if ((offset % PAGE_SIZE) > 0)
+        {
+            return -EINVAL;
+        }
+
+        // Найдем файл по дескриптору
         file = process_get_file(process, fd);  
 
         if (file == NULL) {
             return (void*)-ERROR_BAD_FD;
         }  
+
+        // Проверим тип файла
+        mode_t inode_type = file->inode->mode & INODE_TYPE_MASK;
+        if (inode_type != INODE_TYPE_FILE &&
+            inode_type != INODE_FLAG_CHARDEVICE
+        ) 
+        {
+            return -EACCES;
+        }
+
+        // Файл должен быть доступен для чтения
+        if (file_allow_read(file) == FALSE)
+        {
+            return -EACCES;
+        }
+
+        // Если есть флаг SHARED и у запрашивается разрешение на запись в регион памяти,
+        // то файл должен быть открыт для записи
+        if (((flags & MAP_SHARED) == MAP_SHARED) && 
+            ((protection & PAGE_PROTECTION_WRITE_ENABLE) == PAGE_PROTECTION_WRITE_ENABLE) &&
+            file_allow_write(file) == FALSE
+        )
+        {
+            return -EACCES;
+        }
 
         if (file->ops->mmap == NULL) {
             return -1; // todo : уточнить
@@ -66,7 +98,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
         range->file = file;
         range->file_offset = offset;
 
-        res = file->ops->mmap(file, range);
+        res = file->ops->mmap(file, range, 0, length);
         if (res != 0) 
         {
             kfree(range);
@@ -104,8 +136,11 @@ int sys_memory_unmap(void* address, uint64_t length)
     // Удалить регион из списка
     list_remove(process->mmap_ranges, region);
 
+    // Является ли регион разделяемым?
+    int shared = (region->flags & MAP_SHARED) == MAP_SHARED;
+
     // Освободить память
-    vm_table_unmap_region(process->vmemory_table, address, length);
+    vm_table_unmap_region(process->vmemory_table, address, length, !shared);
 
     mmap_region_unref(region);
 

@@ -53,12 +53,12 @@ int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physica
     return rc;
 }
 
-void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length)
+void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int free_pages)
 {
     acquire_spinlock(&table->lock);
 
     for (uint64_t addr = virtual_addr; addr < virtual_addr + length; addr += PAGE_SIZE) {
-        arch_vm_unmap(table->arch_table, addr);
+        arch_vm_unmap(table->arch_table, addr, free_pages);
     }
 
     release_spinlock(&table->lock);
@@ -79,7 +79,7 @@ void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr)
 {
     acquire_spinlock(&table->lock);
 
-    arch_vm_unmap(table->arch_table, virtual_addr);
+    arch_vm_unmap(table->arch_table, virtual_addr, TRUE);
 
     release_spinlock(&table->lock);
 }

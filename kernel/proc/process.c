@@ -99,7 +99,8 @@ void process_free_resources(struct process* process)
     for (i = 0; i < ranges; i ++) 
     {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
-        vm_table_unmap_region(process->vmemory_table, range->base, range->length);
+        int is_shared = (range->flags & MAP_SHARED) == MAP_SHARED;
+        vm_table_unmap_region(process->vmemory_table, range->base, range->length, !is_shared);
         mmap_region_unref(range);
     }
 

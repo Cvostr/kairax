@@ -68,12 +68,13 @@ int tmpfs_statfs(struct superblock *sb, struct statfs* stat);
 int tmpfs_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 int tmpfs_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
 int tmpfs_mknod(struct inode* parent, const char* name, mode_t mode);
-struct dirent* tmpfs_file_readdir(struct file* dir, uint32_t index);
-
-ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
-ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 int tmpfs_unlink(struct inode* parent, struct dentry* dent);
 int tmpfs_rmdir(struct inode* parent, struct dentry* dentry);
 int tmpfs_truncate(struct inode* inode, size_t len);
+
+struct dirent* tmpfs_file_readdir(struct file* dir, uint32_t index);
+ssize_t tmpfs_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
+ssize_t tmpfs_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
+int tmpfs_mmap(struct file* file, struct mmap_range *area, uintptr_t page_start, size_t pages);
 
 #endif

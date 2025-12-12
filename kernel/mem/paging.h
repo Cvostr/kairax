@@ -29,7 +29,7 @@ int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physica
 
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr);
 
-void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length);
+void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int free_pages);
 
 void vm_table_protect_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int protection);
 
@@ -51,7 +51,7 @@ void arch_destroy_vm_table();
 
 int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot);
 
-void arch_vm_unmap(void* arch_table, uint64_t vaddr);
+void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page);
 
 void arch_vm_protect(void* arch_table, uint64_t vaddr, int protection);
 

@@ -188,8 +188,8 @@ void thread_clear_stack_tls(struct thread* thread)
     release_spinlock(&thread->process->mmap_lock);
 
     // Освободить память
-    vm_table_unmap_region(thread->process->vmemory_table, stack_region->base, stack_region->length);
-    vm_table_unmap_region(thread->process->vmemory_table, tls_region->base, tls_region->length);
+    vm_table_unmap_region(thread->process->vmemory_table, stack_region->base, stack_region->length, TRUE);
+    vm_table_unmap_region(thread->process->vmemory_table, tls_region->base, tls_region->length, TRUE);
     
     // Удалить объект структуры
     mmap_region_unref(stack_region);

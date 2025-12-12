@@ -35,6 +35,7 @@
 #define AT_SYMLINK_NOFOLLOW	0x100
 
 struct file;
+struct mmap_range;
 
 struct file_operations {
     loff_t (*llseek) (struct file* file, loff_t offset, int whence);
@@ -42,7 +43,7 @@ struct file_operations {
     ssize_t (*write) (struct file* file, const char* buffer, size_t count, loff_t offset);
     struct dirent* (*readdir)(struct file* file, uint32_t index);
     int (*ioctl)(struct file* file, uint64_t request, uint64_t arg);
-    int (*mmap)(struct file* file, struct mmap_range *area);
+    int (*mmap)(struct file* file, struct mmap_range *area, uintptr_t offset, size_t size);
     short (*poll) (struct file *, struct poll_ctl *);
 
     int (*open) (struct inode *inode, struct file *file);

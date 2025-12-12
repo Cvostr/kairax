@@ -224,12 +224,10 @@ next:
         // Является ли регион разделяемым?
         int shared = (range->flags & MAP_SHARED) == MAP_SHARED;
 
-        // Сносим все регионы, которые не являются разделяемыми
-        if (!shared) {
-            list_remove(process->mmap_ranges, range);
-            vm_table_unmap_region(process->vmemory_table, range->base, range->length);
-            mmap_region_unref(range);
-        }
+        // Сносим все регион
+        list_remove(process->mmap_ranges, range);
+        vm_table_unmap_region(process->vmemory_table, range->base, range->length, !shared);
+        mmap_region_unref(range);
 
         current_area_node = next;
     }

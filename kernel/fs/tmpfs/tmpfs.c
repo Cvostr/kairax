@@ -6,7 +6,8 @@
 
 struct file_operations tmpfs_file_ops = {
     .read = tmpfs_file_read,
-    .write = tmpfs_file_write
+    .write = tmpfs_file_write,
+    .mmap = tmpfs_mmap
 };
 struct file_operations tmpfs_dir_ops = {
     .readdir = tmpfs_file_readdir
@@ -892,4 +893,29 @@ exit:
         tmpfs_free_inode(tmpfs_inode);
 
     return rc;
+}
+
+int tmpfs_mmap(struct file* file, struct mmap_range *area, uintptr_t offset, size_t size)
+{
+    //printk("tmpfs_mmap\n");
+    struct tmpfs_inode *tmpfs_inode = NULL;
+    struct tmpfs_instance *inst = (struct tmpfs_instance *) file->inode->sb->fs_info;
+    
+    size_t aligned_offset = align_down(offset, PAGE_SIZE);
+    size_t first_block = align_down(offset, PAGE_SIZE) / PAGE_SIZE;
+    size_t blocks = align(size, PAGE_SIZE) / PAGE_SIZE;
+
+    tmpfs_inode = tmpfs_get_inode(inst,  file->inode->inode);
+    if (tmpfs_inode == NULL) {
+        return -ENOENT;
+    }
+
+    for (size_t i = first_block; i < blocks; i ++)
+    {
+        map_vm_region(area, tmpfs_inode->blocks[i], aligned_offset + i * PAGE_SIZE, PAGE_SIZE);
+    }
+
+    tmpfs_free_inode(tmpfs_inode);
+
+    return 0;
 }

@@ -73,7 +73,7 @@ pid_t sys_fork()
 
         page_table_mmap_fork(
             process->vmemory_table->arch_table, 
-            new_process->vmemory_table->arch_table, new_range, !is_shared);
+            new_process->vmemory_table->arch_table, new_range, is_shared);
 
         process_add_mmap_region(new_process, new_range);
     }
