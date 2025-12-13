@@ -221,12 +221,9 @@ next:
 
         struct mmap_range* range = (struct mmap_range*) current_area_node->element;
 
-        // Является ли регион разделяемым?
-        int shared = (range->flags & MAP_SHARED) == MAP_SHARED;
-
         // Сносим все регион
         list_remove(process->mmap_ranges, range);
-        vm_table_unmap_region(process->vmemory_table, range->base, range->length, !shared);
+        unmap_vm_region(process->vmemory_table, range);
         mmap_region_unref(range);
 
         current_area_node = next;

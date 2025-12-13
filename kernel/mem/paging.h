@@ -20,43 +20,31 @@ struct vm_table {
 };
 
 struct vm_table* new_vm_table();
-
 struct vm_table* clone_kernel_vm_table();
-
 void free_vm_table(struct vm_table* table);
 
 int vm_table_map(struct vm_table* table, uint64_t virtual_addr, uint64_t physical_addr, int protection);
-
 void vm_table_unmap(struct vm_table* table, uint64_t virtual_addr);
-
 void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int free_pages);
-
 void vm_table_protect_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int protection);
 
 void vm_memset(struct vm_table* table, uint64_t addr, int val, size_t size);
-
 void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size);
 
 int vm_is_mapped(struct vm_table* table, uint64_t address);
-
 uint64_t vm_get_physical_addr(struct vm_table* table, uint64_t addr);
 
 // Общие архитектурно зависимые функции
 
 void* arch_new_vm_table();
-
 void* arch_clone_kernel_vm_table();
-
 void arch_destroy_vm_table();
 
 int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot);
-
 void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page);
-
 void arch_vm_protect(void* arch_table, uint64_t vaddr, int protection);
 
 void arch_vm_memset(void* arch_table, uint64_t addr, int val, size_t size);
-
 size_t arch_vm_memcpy(void* arch_table, uint64_t dst, void* src, size_t size);
 
 int arch_vm_is_mapped(void* arch_table, uint64_t address);

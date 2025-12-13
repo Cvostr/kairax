@@ -73,3 +73,9 @@ int map_vm_region(struct mmap_range* region, uintptr_t phys_addr, uintptr_t offs
 
     return 0;
 }
+
+int unmap_vm_region(struct vm_table *table, struct mmap_range* region)
+{
+    int shared = (region->flags & MAP_SHARED) == MAP_SHARED;
+    vm_table_unmap_region(table, region->base, region->length, !shared);
+}

@@ -126,9 +126,12 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
 
 void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page)
 {
+    uint64_t flags = 0;
     uintptr_t phys = 0;
-    int rc = unmap_page1(arch_table, vaddr, &phys);
-    if (rc == 0 && free_page == TRUE) {
+    int rc = unmap_page1(arch_table, vaddr, &phys, &flags);
+    
+    if (rc == 0 && (free_page == TRUE || (free_page == 2 && ((flags & PAGE_WRITABLE) == PAGE_WRITABLE)))) 
+    {
         pmm_free_page(phys);
     }
 }
@@ -136,10 +139,10 @@ void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page)
 //Удалить виртуальную страницу
 int unmap_page(page_table_t* root, uintptr_t virtual_addr)
 {
-    return unmap_page1(root, virtual_addr, NULL);
+    return unmap_page1(root, virtual_addr, NULL, NULL);
 }
 
-int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr)
+int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr, uint64_t *flags)
 {
     uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
     uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
@@ -164,11 +167,17 @@ int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
     pt_table = P2V(pt_table);
-    if (!(pt_table->entries[level1_index] & PAGE_PRESENT)) {
+
+    table_entry_t pt_value = pt_table->entries[level1_index];
+
+    if (!(pt_value & PAGE_PRESENT)) {
         return ERR_NO_PAGE_PRESENT;
     } else {
         if (phys_addr) {
-            *phys_addr = (uintptr_t) GET_PAGE_FRAME(pt_table->entries[level1_index]);
+            *phys_addr = (uintptr_t) GET_PAGE_FRAME(pt_value);
+        }
+        if (flags) {
+            *flags = (uintptr_t) GET_PAGE_FLAGS(pt_value);
         }
         pt_table->entries[level1_index] = 0;
     }
@@ -331,15 +340,30 @@ int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_rang
         }
         else
         {
+            map_page_mem(dest, address, paddr, flags & (~PAGE_WRITABLE));
             // Если регион приватный, то выделяем копию памяти
             // TODO: Сделать Copy On Write (без PAGE_WRITABLE)
-            char* newp = pmm_alloc_page();
-            memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
-            map_page_mem(dest, address, newp, flags);
+            //char* newp = pmm_alloc_page();
+            //memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
+            //map_page_mem(dest, address, newp, flags);
         }
     }
 
     return 0;
+}
+
+void arch_dup_cow_page(void* arch_table, uint64_t virtual_addr, int protection)
+{
+    // Сконвертируем флаги защиты ядра в флаги защиты x86-64
+    uint64_t flags = x86_64_prot_2_flags(protection);
+    physical_addr_t paddr = get_physical_address(arch_table, virtual_addr);
+
+    char* newp = pmm_alloc_page();
+    memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
+
+    unmap_page(arch_table, virtual_addr);
+
+    map_page_mem(arch_table, virtual_addr, newp, flags);
 }
 
 void arch_vm_protect(void* arch_table, uint64_t vaddr, int protection)

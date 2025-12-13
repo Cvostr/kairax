@@ -50,7 +50,7 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
 //Удалить виртуальную страницу
 int unmap_page(page_table_t* root, uintptr_t virtual_addr);
 //Удалить виртуальную страницу
-int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr);
+int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr, uint64_t *flags);
 //Получить физический адрес из виртуального для указанной корневой таблицы
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
 

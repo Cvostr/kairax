@@ -28,5 +28,6 @@ void mmap_region_ref(struct mmap_range* region);
 void mmap_region_unref(struct mmap_range* region);
 
 int map_vm_region(struct mmap_range* region, uintptr_t phys_addr, uintptr_t offset, size_t size);
+int unmap_vm_region(struct vm_table *table, struct mmap_range* region);
 
 #endif

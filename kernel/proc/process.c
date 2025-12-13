@@ -99,8 +99,7 @@ void process_free_resources(struct process* process)
     for (i = 0; i < ranges; i ++) 
     {
         struct mmap_range* range = list_get(process->mmap_ranges, i);
-        int is_shared = (range->flags & MAP_SHARED) == MAP_SHARED;
-        vm_table_unmap_region(process->vmemory_table, range->base, range->length, !is_shared);
+        unmap_vm_region(process->vmemory_table, range);
         mmap_region_unref(range);
     }
 
@@ -268,6 +267,7 @@ int process_alloc_memory(struct process* process, uintptr_t start, uintptr_t siz
     range->base = start_aligned;
     range->length = end_addr - start_aligned;
     range->protection = flags;
+    range->flags = MAP_PRIVATE;
     process_add_mmap_region(process, range);
 
     // Добавить страницы в таблицу
@@ -301,7 +301,7 @@ struct mmap_range* process_alloc_stack_memory(struct process* process, size_t st
     range->base = mem_begin;
     range->length = stack_size;
     range->protection = PAGE_PROTECTION_USER | PAGE_PROTECTION_WRITE_ENABLE;
-    range->flags = MAP_STACK;
+    range->flags = MAP_STACK | MAP_PRIVATE;
     process_add_mmap_region(process, range);
 
     // Замапить верхнюю страницу, если необходимо
@@ -332,6 +332,7 @@ uintptr_t process_brk(struct process* process, uint64_t addr)
     range->base = process->brk;
     range->length = uaddr - process->brk;
     range->protection = protection;
+    range->flags = MAP_PRIVATE;
     process_add_mmap_region(process, range);
 
     //До тех пор, пока адрес конца памяти процесса меньше, выделяем страницы
