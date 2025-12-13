@@ -106,6 +106,8 @@ int setdomainname(const char *name, size_t len) __THROW;
 int access(const char *name, int mode) __THROW;
 int faccessat(int dirfd, const char *pathname, int mode, int flags) __THROW;
 
+void swab(const void *src, void *dest, ssize_t n) __THROW;
+
 __END_DECLS
 
 #endif

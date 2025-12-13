@@ -261,3 +261,18 @@ int faccessat(int dirfd, const char *pathname, int mode, int flags)
 {
     __set_errno(syscall_faccessat(dirfd, pathname, mode, flags));
 }
+
+void swab(const void *src, void *dest, ssize_t n)
+{
+    char *d = dest;
+    const char *s = src;
+
+    // Если n нечетное - то вычесть 1
+    n &= (~1);
+
+    for (ssize_t i = 0; i < n; i += 2)
+    {
+        d[i] = s[i + 1];
+        d[i + 1] = s[i];
+    }
+}
