@@ -129,9 +129,7 @@ void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page)
     uint64_t flags = 0;
     uintptr_t phys = 0;
     int rc = unmap_page1(arch_table, vaddr, &phys, &flags);
-    
-    if (rc == 0 && (free_page == TRUE || (free_page == 2 && ((flags & PAGE_WRITABLE) == PAGE_WRITABLE)))) 
-    {
+    if (rc == 0 && free_page == TRUE) {
         pmm_free_page(phys);
     }
 }
@@ -340,30 +338,15 @@ int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_rang
         }
         else
         {
-            map_page_mem(dest, address, paddr, flags & (~PAGE_WRITABLE));
             // Если регион приватный, то выделяем копию памяти
             // TODO: Сделать Copy On Write (без PAGE_WRITABLE)
-            //char* newp = pmm_alloc_page();
-            //memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
-            //map_page_mem(dest, address, newp, flags);
+            char* newp = pmm_alloc_page();
+            memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
+            map_page_mem(dest, address, newp, flags);
         }
     }
 
     return 0;
-}
-
-void arch_dup_cow_page(void* arch_table, uint64_t virtual_addr, int protection)
-{
-    // Сконвертируем флаги защиты ядра в флаги защиты x86-64
-    uint64_t flags = x86_64_prot_2_flags(protection);
-    physical_addr_t paddr = get_physical_address(arch_table, virtual_addr);
-
-    char* newp = pmm_alloc_page();
-    memcpy(P2V(newp), P2V(paddr), PAGE_SIZE);
-
-    unmap_page(arch_table, virtual_addr);
-
-    map_page_mem(arch_table, virtual_addr, newp, flags);
 }
 
 void arch_vm_protect(void* arch_table, uint64_t vaddr, int protection)
