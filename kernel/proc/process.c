@@ -632,11 +632,14 @@ exit:
 
 int process_handle_page_fault(struct process* process, uint64_t address)
 {
+    // по умолчанию считаем, что все успешно
+    int rc = 1;
     if (try_acquire_spinlock(&process->mmap_lock)) {
     
         struct mmap_range* range = process_get_region_by_addr(process, address);
         if (range == NULL) {
-            return 0;
+            rc = 0;
+            goto exit_unlock;
         }
 
         // Выровнять таблицу вниз
@@ -644,23 +647,35 @@ int process_handle_page_fault(struct process* process, uint64_t address)
 
         if ((range->flags & MAP_STACK) == MAP_STACK && aligned_address == range->base) {
             // Защитная страница стека, чтобы вызвать SIGSEGV при переполнении 
-            return 0;
+            rc = 0;
+            goto exit_unlock;
         }
 
-        // Выделить страницу
-        char* paddr = pmm_alloc_page();
-        // Предварительное зануление
-        memset(P2V(paddr), 0, PAGE_SIZE);
-        // замаппить
-        int rc = vm_table_map(process->vmemory_table, aligned_address, paddr, range->protection);
+        struct file *mapped_file = range->file;
+        if (mapped_file != NULL)
+        {
+            uint64_t region_offset = address - range->base;
+            uint64_t file_offset = align_down(region_offset + range->file_offset, PAGE_SIZE);
+            mapped_file->ops->mmap(mapped_file, range, file_offset, PAGE_SIZE);
+        }
+        else
+        {
+            // Выделить страницу
+            char* paddr = pmm_alloc_page();
+            // Предварительное зануление
+            memset(P2V(paddr), 0, PAGE_SIZE);
+            // замаппить
+            vm_table_map(process->vmemory_table, aligned_address, paddr, range->protection);
+        }
 
+exit_unlock:
         release_spinlock(&process->mmap_lock);
-        return 1;
+        return rc;
     }
 
     printk("Locked in process_handle_page_fault(%p)\n", address);
     // Дождемся разблокировки  
-    return 1;
+    return rc;
 }
 
 void process_set_cloexec(struct process* process, int fd, int value)

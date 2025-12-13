@@ -97,13 +97,6 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
         file_acquire(file);
         range->file = file;
         range->file_offset = offset;
-
-        res = file->ops->mmap(file, range, 0, length);
-        if (res != 0) 
-        {
-            kfree(range);
-            return (void*) res;
-        }
     }
 
     process_add_mmap_region(process, range);
