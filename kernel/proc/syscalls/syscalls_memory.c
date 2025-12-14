@@ -133,7 +133,9 @@ int sys_memory_unmap(void* address, uint64_t length)
     int shared = (region->flags & MAP_SHARED) == MAP_SHARED;
 
     // Освободить память
-    vm_table_unmap_region(process->vmemory_table, address, length, !shared);
+    // пока что освобождаем полностью
+    // TODO: исправить
+    unmap_vm_region(process->vmemory_table, region);
 
     mmap_region_unref(region);
 

@@ -66,16 +66,8 @@ FILE *fopen(const char *restrict filename, const char *restrict mode)
     return NULL;
 }
 
-FILE *fdopen(int fd, const char* restrict mode)
+FILE *__fdopen(int fd, int uflags)
 {
-    int uflags = compute_flags(mode);
-
-    if (fd < 0) 
-    { 
-        errno = EBADF;
-        return NULL; 
-    }
-
     FILE* fil = malloc(sizeof(struct IO_FILE));
     if (fil == NULL) 
     {
@@ -114,4 +106,17 @@ FILE *fdopen(int fd, const char* restrict mode)
     __fflush_atexit();
 
     return fil;
+}
+
+FILE *fdopen(int fd, const char* restrict mode)
+{
+    int uflags = compute_flags(mode);
+
+    if (fd < 0) 
+    { 
+        errno = EBADF;
+        return NULL; 
+    }
+
+    return __fdopen(fd, uflags);
 }

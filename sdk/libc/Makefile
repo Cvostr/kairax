@@ -30,6 +30,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/get.o \
 				obj/stdio/fgets.o \
 				obj/stdio/perror.o \
+				obj/stdio/tmpfile.o \
 				obj/stdlib/bsdmalloc.o \
 				obj/stdlib/stdlib.o \
 				obj/stdlib/abs.o \
