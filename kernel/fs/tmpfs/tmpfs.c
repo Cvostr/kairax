@@ -276,6 +276,11 @@ void tmpfs_free_inode(struct tmpfs_inode* inode)
             }
         }
 
+        if (inode->dentries)
+            kfree(inode->dentries);
+        if (inode->blocks)
+            kfree(inode->blocks);
+
         kfree(inode);
     }
 }
