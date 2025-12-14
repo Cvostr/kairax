@@ -41,6 +41,14 @@ int fputc_unlocked(int c, FILE *stream)
         return EOF;
     }
 
+    if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT)
+    {
+        // До этого производилось чтение, надо сбросить буфер
+        fflush_unlocked(stream);
+        // и перейти в режим записи
+        stream->_flags &= (~FSTREAM_INPUT);
+    }
+
     if (stream->_buf_pos >= stream->_buf_len - 1) {
         // Буфер полон - сбрасываем
         if(fflush_unlocked(stream) != 0) {

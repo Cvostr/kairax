@@ -46,7 +46,15 @@ int fflush_unlocked(FILE *stream)
     }
 
     if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT) {
-        // todo : implement
+        // для начала, если считаны не все данные из буфера,
+        // надо сдвинуть позицию в системном дескрипторе на уровень прочитанных данных
+        int delta = stream->_buf_pos - stream->_buf_size;
+        if (delta != 0)
+            lseek(stream->_fileno, delta, SEEK_CUR);
+
+        // сбросим счетчики
+        stream->_buf_pos = 0;
+        stream->_buf_size = 0;
     } else if (stream->_buf_pos > 0) {
         res = write(stream->_fileno, stream->_buffer, stream->_buf_pos);
         if (res == -1 || res != stream->_buf_pos) {

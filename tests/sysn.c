@@ -13,7 +13,7 @@
 
 char buff[220];
 static struct termios old, current;
-char *template = "/tmp/sysnXXXXXX";
+char template[] = "/tmp/sysnXXXXXX";
 char template_buf[100];
 
 void initTermios() 
@@ -122,6 +122,23 @@ int main(int argc, char** argv, char** envp) {
     }
     }
 
+    if (argc > 1 && strcmp(argv[1], "tmpfile") == 0)
+    {
+        char buff[40];
+        FILE* tmpf = tmpfile();
+        if (tmpf == NULL)
+        {
+            printf("tmpf is NULL\n");
+            return 1;
+        }
+        fwrite(template, 1, sizeof(template), tmpf);
+        printf("ftell %i\n", ftell(tmpf));
+        fseek(tmpf, 0, SEEK_SET);
+        printf("ftell %i\n", ftell(tmpf));
+        ssize_t readed = fread(buff, 1, 40, tmpf);
+        printf("readed back %i bytes %s ferror() %i feof() %i\n", readed, buff, ferror(tmpf), feof(tmpf));
+        return 0;
+    }
 
     if (argc > 1 && strcmp(argv[1], "mktmp") == 0)
     {

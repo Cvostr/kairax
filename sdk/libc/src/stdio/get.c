@@ -15,6 +15,14 @@ int fgetc(FILE *f)
         return EOF;
     }
 
+    if ((f->_flags & FSTREAM_INPUT) == 0)
+    {
+        // До этого производилась запись, надо сбросить буфер
+        fflush_unlocked(f);
+        // И перейти в режим чтения
+        f->_flags |= FSTREAM_INPUT;
+    }
+
     if (f->_buf_pos >= f->_buf_size) {
         ssize_t rd = read(f->_fileno, f->_buffer, f->_buf_len);
 
