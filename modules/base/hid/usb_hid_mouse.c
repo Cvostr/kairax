@@ -1,11 +1,11 @@
 #include "dev/device_man.h"
 #include "hid.h"
 #include "kairax/stdio.h"
-#include "mem/kheap.h"
-#include "mem/pmm.h"
 #include "mem/iomem.h"
-#include "string.h"
+#include "kairax/string.h"
 #include "drivers/char/input/mouse.h"
+
+#include "functions.h"
 
 struct usb_device_id usb_hid_mouse_ids[] = {
 	{   
@@ -110,30 +110,17 @@ int usb_hid_mouse_device_probe(struct device *dev)
     size_t max_packet_sz = 0;
 
     // Поиск необходимого эндпоинта
-    for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
-	{
-		struct usb_endpoint* ep = &interface->endpoints[i];
-
-		// Нам интересны только Bulk
-		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_INTERRUPT)
-			continue;
-
-		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
-		{
-			// IN
-			interrupt_in_ep = ep;
-            max_packet_sz = ep->descriptor.wMaxPacketSize & 0x07FF;
-            printk("HID Mouse: interrupt ep max pack size %i\n", ep->descriptor.wMaxPacketSize);
-            break;
-		}
-	}
-
+    interrupt_in_ep = usb_hid_find_ep(interface);
     // Не найдены необходимые endpoints
 	if (interrupt_in_ep == NULL)
 	{
-        printk("HID Mouse: No IN Interrupt endpoint\n");
+        printk("HID: No IN Interrupt endpoint\n");
 		return -1;
 	}
+
+    // Размер пакета
+    max_packet_sz = interrupt_in_ep->descriptor.wMaxPacketSize & 0x07FF;
+    printk("HID: interrupt ep max pack size %i\n", interrupt_in_ep->descriptor.wMaxPacketSize);
 
     // Пока используем Boot
     int rc = usb_hid_set_protocol(device, interface, HID_PROTOCOL_REPORT);
@@ -161,7 +148,7 @@ int usb_hid_mouse_device_probe(struct device *dev)
 
         printk("HID Mouse: Descr %i len %i\n", descr_type, descr_len);
 
-        if (descr_type = HID_DESCRIPTOR_REPORT)
+        if (descr_type == HID_DESCRIPTOR_REPORT)
         {
             uint16_t wValue = (HID_DESCRIPTOR_REPORT << 8) | report_descr_index++;
             uint8_t *report_buffer = kmalloc(descr_len);
@@ -232,7 +219,7 @@ struct usb_device_driver usb_hid_mouse_driver = {
 	.ops = &usb_hid_mouse_ops
 };
 
-void usb_hid_mouse_init()
+void usb_hid_mouse_init(void)
 {
 	register_usb_device_driver(&usb_hid_mouse_driver);
 }

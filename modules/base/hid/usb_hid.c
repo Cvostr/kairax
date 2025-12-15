@@ -1,13 +1,30 @@
 #include "hid.h"
-#include "kstdlib.h"
-#include "list/list.h"
-#include "string.h"
-#include "mem/kheap.h"
+#include "kairax/kstdlib.h"
+#include "kairax/list/list.h"
+#include "kairax/string.h"
+#include "module.h"
+#include "functions.h"
 
 //#define HID_LOG_LOCAL_ITEMS
 //#define HID_LOG_HEADER
 //#define HID_LOG_IOF
 //#define HID_LOG_ITEMS
+
+int usb_hid_init(void)
+{
+	usb_hid_mouse_init();
+	usb_hid_kbd_init();
+
+    return 0;
+}
+
+void usb_hid_exit(void)
+{
+    // TODO deregister fs
+}
+
+DEFINE_MODULE("usb_hid", usb_hid_init, usb_hid_exit)
+
 
 int usb_hid_set_protocol(struct usb_device* device, struct usb_interface* interface, int protocol)
 {
@@ -51,6 +68,26 @@ int usb_hid_get_report(struct usb_device* device, struct usb_interface* interfac
 	req.wLength = report_length;
 
     return usb_device_send_request(device, &req, report, report_length);
+}
+
+struct usb_endpoint* usb_hid_find_ep(struct usb_interface* interface)
+{
+    for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
+	{
+		struct usb_endpoint* ep = &interface->endpoints[i];
+
+		// Нам интересны только Interrupt
+		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_INTERRUPT)
+			continue;
+
+        // и только IN
+		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
+		{
+			return ep;
+		}
+	}
+
+    return NULL;
 }
 
 void hid_report_read(uint8_t *report, size_t pos, uint8_t bSize, hid_value_t *val)

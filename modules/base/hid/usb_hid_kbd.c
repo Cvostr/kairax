@@ -1,13 +1,13 @@
 #include "dev/device_man.h"
 #include "hid.h"
 #include "kairax/stdio.h"
-#include "mem/kheap.h"
-#include "mem/pmm.h"
 #include "mem/iomem.h"
 #include "kairax/keycodes.h"
 #include "kairax/string.h"
 #include "drivers/char/input/keyboard.h"
 #include "proc/tasklet.h"
+
+#include "functions.h"
 
 #define HID_FIRST_KEYCODE 4
 #define HID_MAX_KEYCODE 0xE8
@@ -208,26 +208,6 @@ void hid_kbd_event_callback(struct usb_msg* msg)
     usb_send_async_msg(kbd->device, kbd->ep, msg);
 }
 
-struct usb_endpoint* usb_hid_find_ep(struct usb_interface* interface)
-{
-    for (uint8_t i = 0; i < interface->descriptor.bNumEndpoints; i ++)
-	{
-		struct usb_endpoint* ep = &interface->endpoints[i];
-
-		// Нам интересны только Interrupt
-		if ((ep->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK) != USB_ENDPOINT_ATTR_TT_INTERRUPT)
-			continue;
-
-        // и только IN
-		if ((ep->descriptor.bEndpointAddress & USB_ENDPOINT_ADDR_DIRECTION_IN) == USB_ENDPOINT_ADDR_DIRECTION_IN)
-		{
-			return ep;
-		}
-	}
-
-    return NULL;
-}
-
 int usb_hid_kbd_device_probe(struct device *dev) 
 {   
     struct usb_interface* interface = dev->usb_info.usb_interface;
@@ -282,7 +262,7 @@ int usb_hid_kbd_device_probe(struct device *dev)
 
         printk("HID KBD: Descr %i len %i\n", descr_type, descr_len);
 
-        if (descr_type = HID_DESCRIPTOR_REPORT)
+        if (descr_type == HID_DESCRIPTOR_REPORT)
         {
             uint16_t wValue = (HID_DESCRIPTOR_REPORT << 8) | report_descr_index++;
             uint8_t *report_buffer = kmalloc(descr_len);
@@ -347,7 +327,7 @@ struct usb_device_driver usb_hid_kbd_storage_driver = {
 	.ops = &usb_hid_kbd_ops
 };
 
-void usb_hid_kbd_init()
+void usb_hid_kbd_init(void)
 {
 	register_usb_device_driver(&usb_hid_kbd_storage_driver);
 }

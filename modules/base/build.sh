@@ -11,3 +11,7 @@ cd ..
 cd fat
 make
 cd ..
+
+cd hid
+make
+cd ..

@@ -99,9 +99,6 @@ gcc $GCC_ARGS drivers/char/zero.c -o ./bin/zero.o
 gcc $GCC_ARGS drivers/char/null.c -o ./bin/null.o
 gcc $GCC_ARGS drivers/char/input/keyboard.c -o ./bin/keyboard.o
 gcc $GCC_ARGS drivers/char/input/mouse.c -o ./bin/mouse.o
-gcc $GCC_ARGS drivers/hid/usb_hid.c -o ./bin/usb_hid.o
-gcc $GCC_ARGS drivers/hid/usb_hid_kbd.c -o ./bin/usb_hid_kbd.o
-gcc $GCC_ARGS drivers/hid/usb_hid_mouse.c -o ./bin/usb_hid_mouse.o
 
 #generic fs
 gcc $GCC_ARGS fs/devfs/devfs.c -o ./bin/devfs.o

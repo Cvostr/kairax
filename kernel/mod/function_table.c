@@ -19,6 +19,8 @@
 #include "proc/tasklet.h"
 #include "kairax/kstdlib.h"
 #include "dev/device_man.h"
+#include "drivers/char/input/keyboard.h"
+#include "drivers/char/input/mouse.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -76,6 +78,8 @@ struct kernel_function functions[] = {
     KFUNCTION(device_set_data),
     KFUNCTION(register_device),
     KFUNCTION(new_drive_device_info),
+    KFUNCTION(keyboard_add_event),
+    KFUNCTION(mouse_add_event),
     // usb
     KFUNCTION(new_usb_msg),
     KFUNCTION(usb_device_send_request),
@@ -104,7 +108,12 @@ struct kernel_function functions[] = {
     KFUNCTION(strrchr),
     KFUNCTION(align),
     KFUNCTION(tolower),
-    KFUNCTION(itoa)
+    KFUNCTION(itoa),
+    // kairax list
+    KFUNCTION(list_size),
+    KFUNCTION(list_dequeue),
+    KFUNCTION(list_add),
+    KFUNCTION(list_pop)
 };
 
 void* kfunctions_get_by_name(const char* name)

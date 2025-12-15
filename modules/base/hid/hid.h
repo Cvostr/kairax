@@ -83,6 +83,8 @@ struct hid_report_item {
     uint32_t value;
 };
 
+struct usb_endpoint* usb_hid_find_ep(struct usb_interface* interface);
+
 void hid_report_read(uint8_t *report, size_t pos, uint8_t bSize, hid_value_t *val);
 int32_t hid_get_signed_value(hid_value_t *val);
 uint16_t hid_report_read16u(uint8_t *report, size_t pos, uint8_t bSize);
@@ -96,5 +98,13 @@ int usb_hid_set_protocol(struct usb_device* device, struct usb_interface* interf
 
 typedef void (*hid_data_handle_routine) (void* private_data, uint16_t usage_page, uint16_t usage_id, int64_t val);
 void hid_process_report(void* private_data, uint8_t *report, size_t len, list_t *items, hid_data_handle_routine handler);
+
+uint32_t hid_get_bits_unsigned(uint8_t *report, size_t offset, size_t size);
+int32_t hid_get_bits_signed(uint8_t *report, size_t offset, size_t size);
+
+void usb_hid_exit(void);
+int usb_hid_init(void);
+void usb_hid_mouse_init(void);
+void usb_hid_kbd_init(void);
 
 #endif
