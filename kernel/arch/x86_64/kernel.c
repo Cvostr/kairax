@@ -190,8 +190,8 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	pmm_free_pages(multiboot_struct_ptr, align(mb2_info_sz, PAGE_SIZE) / PAGE_SIZE);
 
 	usb_mass_init();
-	usb_hid_kbd_init();
-	usb_hid_mouse_init();
+	//usb_hid_kbd_init();
+	//usb_hid_mouse_init();
 
 	vga_init_dev();
 	random_init();
