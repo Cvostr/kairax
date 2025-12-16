@@ -280,7 +280,7 @@ exit:
     return rc;
 }
 
-uint32_t ext2_read_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer)
+int ext2_read_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer)
 {
     //Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
@@ -318,6 +318,7 @@ int ext2_unmount(struct superblock* sb)
 
 struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
 {
+    int rc;
     ext2_instance_t* instance = kmalloc(sizeof(ext2_instance_t));
     memset(instance, 0, sizeof(ext2_instance_t));
 
@@ -327,7 +328,14 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     instance->superblock = (ext2_superblock_t*)kmalloc(sizeof(ext2_superblock_t));
     instance->block_size = EXT2_SUPERBLOCK_SIZE;
     // Считать суперблок
-    ext2_partition_read_block_virt(instance, 1, 1, instance->superblock);
+    rc = ext2_partition_read_block_virt(instance, 1, 1, instance->superblock);
+    if (rc != 0)
+    {
+        printk("ext2: Error reading superblock\n");
+        kfree(instance->superblock);
+        kfree(instance);
+        return NULL;
+    }
     
     // Проверить магическую константу ext2
     if (instance->superblock->ext2_magic != EXT2_MAGIC) {
@@ -379,19 +387,19 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     return result;
 }
 
-void ext2_write_bgds(ext2_instance_t* inst)
+int ext2_write_bgds(ext2_instance_t* inst)
 {
-    ext2_partition_write_block_virt( inst, 
+    return ext2_partition_write_block_virt( inst, 
                                 inst->bgd_start_block,
                                 inst->bgds_blocks,
                                 inst->bgds);
 }
 
-void ext2_rewrite_superblock(ext2_instance_t* inst)
+int ext2_rewrite_superblock(ext2_instance_t* inst)
 {
     uint64_t    start_lba = 1024 / 512;
     uint64_t    lba_count = EXT2_SUPERBLOCK_SIZE / 512;
-    partition_write(inst->partition, start_lba, lba_count, inst->superblock);
+    return partition_write(inst->partition, start_lba, lba_count, inst->superblock);
 }
 
 uint32_t ext2_alloc_inode(ext2_instance_t* inst)
@@ -760,6 +768,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 
 ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf)
 {
+    ssize_t result = 0;
     //Защита от выхода за границы файла
     off_t end_offset = (inode->size >= offset + size) ? (offset + size) : (inode->size);
     //Номер начального блока ноды
@@ -777,14 +786,19 @@ ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t of
     for (off_t block_i = start_inode_block; block_i <= end_inode_block; block_i ++) {
         off_t left_offset = (block_i == start_inode_block) ? start_block_offset : 0;
         off_t right_offset = (block_i == end_inode_block) ? (end_size - 1) : (inst->block_size - 1);
-        ext2_read_inode_block_virt(inst, inode, block_i, temp_buffer);
+        if ((result = ext2_read_inode_block_virt(inst, inode, block_i, temp_buffer)) != 0)
+            goto exit;
 
         memcpy(buf + current_offset, temp_buffer + left_offset, (right_offset - left_offset + 1));
         current_offset += (right_offset - left_offset + 1);
     }
 
+    // размер считанных данных
+    result = end_offset - offset;
+
+exit:
     kfree(temp_buffer);
-    return end_offset - offset;
+    return result;
 }
 
 size_t ext2_inode_get_size(ext2_instance_t* inst, ext2_inode_t* inode)
@@ -1061,7 +1075,9 @@ ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t off
     ext2_inode(inst, e2_inode, inode->inode);
     
     ssize_t result = read_inode_filedata(inst, e2_inode, offset, count, buffer);
-    file->pos += result;
+    
+    if (result >= 0)
+        file->pos += result;
 
     kfree(e2_inode);
     

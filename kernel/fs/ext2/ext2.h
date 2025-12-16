@@ -154,6 +154,8 @@ uint32_t ext2_read_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint3
 
 uint32_t ext2_write_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer);
 
+int ext2_read_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer);
+
 // Добавление блока с номером abs_block к ноде
 int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_index, uint32_t abs_block, uint32_t inode_block);
 
@@ -170,10 +172,10 @@ ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t of
 ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, off_t offset, size_t size, const char * buf);
 
 // Перезаписать на диск таблицу блоков
-void ext2_write_bgds(ext2_instance_t* inst);
+int ext2_write_bgds(ext2_instance_t* inst);
 
 // Перезаписать на диск суперблок
-void ext2_rewrite_superblock(ext2_instance_t* inst);
+int ext2_rewrite_superblock(ext2_instance_t* inst);
 
 // Получение inode по номеру
 void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
