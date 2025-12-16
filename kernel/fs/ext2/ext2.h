@@ -178,13 +178,13 @@ int ext2_write_bgds(ext2_instance_t* inst);
 int ext2_rewrite_superblock(ext2_instance_t* inst);
 
 // Получение inode по номеру
-void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
+int ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
 // Запись метаданных inode
 int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index);
 
 // Создание новой inode на диске
-uint32_t ext2_alloc_inode(ext2_instance_t* inst);
+int ext2_alloc_inode(ext2_instance_t* inst, uint32_t *inode_num);
 
 // Выделение нового блока на диске
 uint64_t ext2_alloc_block(ext2_instance_t* inst);

@@ -402,9 +402,10 @@ int ext2_rewrite_superblock(ext2_instance_t* inst)
     return partition_write(inst->partition, start_lba, lba_count, inst->superblock);
 }
 
-uint32_t ext2_alloc_inode(ext2_instance_t* inst)
+int ext2_alloc_inode(ext2_instance_t* inst, uint32_t *inode_num)
 {
-    uint32_t result = 0;
+    int rc = 0;
+    int created = FALSE;
     uint32_t* bitmap_buffer = (uint32_t*)kmalloc(inst->block_size);
     // Найти свободный номер inode в битовой карте
     for (uint32_t bgd_i = 0; bgd_i < inst->total_groups; bgd_i++) {
@@ -415,7 +416,9 @@ uint32_t ext2_alloc_inode(ext2_instance_t* inst)
         // номер блока битмапы, в котором есть свободный номер inode
         uint32_t bitmap_block_index = inst->bgds[bgd_i].inode_bitmap;
         // считываем этот блок
-        ext2_partition_read_block_virt(inst, bitmap_block_index, 1, bitmap_buffer);
+        rc = ext2_partition_read_block_virt(inst, bitmap_block_index, 1, bitmap_buffer);
+        if (rc != 0)
+            goto exit;
 
         for (uint32_t j = 0; j < inst->block_size / 4; j ++) {
             uint32_t bitmap = bitmap_buffer[j];
@@ -427,7 +430,9 @@ uint32_t ext2_alloc_inode(ext2_instance_t* inst)
                     // Найден номер свободной inode
                     bitmap_buffer[j] |= (1U << bit_i);
                     // Запишем обновленную битмапу с занятым битом
-                    ext2_partition_write_block_virt(inst, bitmap_block_index, 1, bitmap_buffer);
+                    rc = ext2_partition_write_block_virt(inst, bitmap_block_index, 1, bitmap_buffer);
+                    if (rc != 0)
+                        goto exit;
                     // Уменьшим количество свободных inode в выбранном BGD
                     inst->bgds[bgd_i].free_inodes --;
                     // Запишем изменения на диск
@@ -436,7 +441,10 @@ uint32_t ext2_alloc_inode(ext2_instance_t* inst)
                     inst->superblock->free_inodes--;
                     ext2_rewrite_superblock(inst);
 
-                    result = bgd_i * inst->superblock->inodes_per_group + j * 32 + bit_i + 1;
+                    // Сохраняем номер новой inode
+                    *inode_num = bgd_i * inst->superblock->inodes_per_group + j * 32 + bit_i + 1;
+                    created = TRUE;
+                    rc = 0;
 
                     goto exit;
                 }
@@ -444,10 +452,13 @@ uint32_t ext2_alloc_inode(ext2_instance_t* inst)
         }
     }
 
+    if (created == FALSE)
+        rc = -ERROR_NO_SPACE;
+
 exit:
     kfree(bitmap_buffer);
 
-    return result;
+    return rc;
 }
 
 void ext2_purge_inode(struct inode* inode)
@@ -897,8 +908,9 @@ exit:
     return size;
 }
 
-void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
+int ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 {
+    int rc = 0;
     node_index--;
     //Группа, к которой принадлежит инода с указанным индексом
     uint32_t inode_group = node_index / inst->superblock->inodes_per_group;
@@ -912,10 +924,20 @@ void ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 
     // Считать данные inode
     char* buffer = kmalloc(inst->block_size);
-    ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer);
+    if (buffer)
+        return -ENOMEM;
+ 
+    // читаем блок
+    if ((rc = ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer)) != 0)
+        goto exit;
+
+    // копируем считанную inode из буфера в ответ
     memcpy(inode, buffer + offset_in_block * inst->superblock->inode_size, sizeof(ext2_inode_t));
-    //Освободить временный буфер
+    
+exit:
+    // Освободить временный буфер
     kfree(buffer);
+    return rc;
 }
 
 int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
@@ -933,6 +955,9 @@ int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32
 
     // Считать целый блок
     char* buffer = kmalloc(inst->block_size);
+    if (buffer)
+        return -ENOMEM;
+
     ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer);
     // Заменить в нем область байт данной inode
     memcpy(buffer + offset_in_block * inst->superblock->inode_size, inode, sizeof(ext2_inode_t));
@@ -1068,19 +1093,22 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
 
 ssize_t ext2_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
+    ssize_t result = 0;
     struct inode* inode = file->inode;
     
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
     ext2_inode_t*    e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, inode->inode);
+    if ((result = ext2_inode(inst, e2_inode, inode->inode)) != 0)
+        goto exit;
     
-    ssize_t result = read_inode_filedata(inst, e2_inode, offset, count, buffer);
+    // считать
+    result = read_inode_filedata(inst, e2_inode, offset, count, buffer);
     
     if (result >= 0)
         file->pos += result;
 
+exit:
     kfree(e2_inode);
-    
     return result;
 }
 
@@ -1344,6 +1372,7 @@ exit:
 
 int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 {
+    int rc;
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
     
     if (ext2_find_dentry(parent->sb, parent, dir_name, NULL) != WRONG_INODE_INDEX) {
@@ -1351,10 +1380,10 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     }
 
     // Создать inode на диске
-    uint32_t inode_num = ext2_alloc_inode(inst);
-    if (inode_num == 0) {
-        return -ERROR_NO_SPACE;
-    }
+    uint32_t inode_num = 0;
+    if ((rc = ext2_alloc_inode(inst, &inode_num)) != 0)
+        return rc;
+
     // Прочитать inode
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
@@ -1431,6 +1460,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 {
+    int rc;
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
     if (ext2_find_dentry(parent->sb, parent, file_name, NULL) != WRONG_INODE_INDEX) {
@@ -1438,10 +1468,10 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     }
 
     // Создать inode на диске
-    uint32_t inode_num = ext2_alloc_inode(inst);
-    if (inode_num == 0) {
-        return -ERROR_NO_SPACE;
-    }
+    uint32_t inode_num = 0;
+    if ((rc = ext2_alloc_inode(inst, &inode_num)) != 0)
+        return rc;
+
     // Прочитать inode
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
@@ -1480,6 +1510,7 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
 int ext2_mknod (struct inode* parent, const char* name, mode_t mode)
 {
+    int rc;
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
     if (ext2_find_dentry(parent->sb, parent, name, NULL) != WRONG_INODE_INDEX) {
@@ -1487,10 +1518,10 @@ int ext2_mknod (struct inode* parent, const char* name, mode_t mode)
     }
 
     // Создать inode на диске
-    uint32_t inode_num = ext2_alloc_inode(inst);
-    if (inode_num == 0) {
-        return -ERROR_NO_SPACE;
-    }
+    uint32_t inode_num = 0;
+    if ((rc = ext2_alloc_inode(inst, &inode_num)) != 0)
+        return rc;
+
     // Прочитать inode
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
@@ -1530,6 +1561,7 @@ int ext2_mknod (struct inode* parent, const char* name, mode_t mode)
 
 int ext2_symlink(struct inode* parent, const char* name, const char* target)
 {
+    int rc;
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
     if (ext2_find_dentry(parent->sb, parent, name, NULL) != WRONG_INODE_INDEX) {
@@ -1539,10 +1571,10 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
     size_t target_len = strlen(target);
 
     // Создать inode на диске
-    uint32_t inode_num = ext2_alloc_inode(inst);
-    if (inode_num == 0) {
-        return -ERROR_NO_SPACE;
-    }
+    uint32_t inode_num = 0;
+    if ((rc = ext2_alloc_inode(inst, &inode_num)) != 0)
+        return rc;
+        
     // Прочитать inode
     ext2_inode_t *inode = new_ext2_inode();
     ext2_inode(inst, inode, inode_num);
@@ -1610,6 +1642,7 @@ ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
         read_inode_filedata(inst, symlink_inode, 0, readable, pathbuf);
     }
 
+exit:
     kfree(symlink_inode);
     return readable;
 }
