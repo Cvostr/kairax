@@ -310,6 +310,22 @@ void usb_scsi_fill_cmd_read10(char *cmd, uint32_t sector, uint16_t sectors)
 	cmd[8] = (uint8_t) ((sectors) & 0xFF);
 }
 
+void usb_scsi_fill_cmd_write10(char *cmd, uint32_t sector, uint16_t sectors)
+{
+	cmd[0] = SCSI_WRITE_10;
+	// reserved
+	cmd[1] = 0;
+	// lba
+	cmd[2] = (uint8_t) ((sector >> 24) & 0xFF);
+	cmd[3] = (uint8_t) ((sector >> 16) & 0xFF);
+	cmd[4] = (uint8_t) ((sector >> 8) & 0xFF);
+	cmd[5] = (uint8_t) ((sector) & 0xFF);
+	// counter
+	cmd[6] = 0;
+	cmd[7] = (uint8_t) ((sectors >> 8) & 0xFF);
+	cmd[8] = (uint8_t) ((sectors) & 0xFF);
+}
+
 int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out)
 {
 	size_t max_pckt_sz = dev->in_ep->descriptor.wMaxPacketSize;
@@ -357,6 +373,55 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 
 	return 0;
 }
+
+int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, const char* out)
+{
+	size_t max_pckt_sz = dev->out_ep->descriptor.wMaxPacketSize;
+	int rc = 0;
+
+	// Сколько блоков можем считать за один пакет
+	uint32_t blocks_per_packet = max_pckt_sz / dev->blocksize;
+	// Сколько байт можем считать за один пакет
+	// Вычисляем, потому что значение wMaxPacketSize может быть не кратно dev->blocksize
+	uint32_t bytes_per_packet = blocks_per_packet * dev->blocksize;
+
+	struct command_block_wrapper cbw;
+	cbw.signature = CBW_SIGNATURE;
+	cbw.tag = 0;
+    cbw.flags = CBW_TO_DEVICE;
+    cbw.command_len = 10;
+	cbw.lun = dev->lun_id;
+
+	// Сколько осталось блоков LBA
+	uint32_t remaining_blocks = count;
+
+	for (uint32_t i = 0; remaining_blocks > 0; i ++)
+	{
+		// Сколько блоков будем читать
+		uint32_t blocks_for_write = MIN(remaining_blocks, blocks_per_packet);
+		// Сколько байт будем читать?
+		uint32_t bytes_for_write = blocks_for_write * dev->blocksize;
+
+		cbw.length = bytes_for_write;
+
+		// Формирование команды
+		usb_scsi_fill_cmd_write10(cbw.data, sector, blocks_for_write);
+
+		// Выполним команду
+		rc = usb_mass_exec_cmd(dev, &cbw, TRUE, out + i * bytes_per_packet, bytes_for_write);
+		if (rc != 0)
+		{
+			return -EIO;
+		}
+
+		sector += blocks_for_write;
+		// Вычесть считанные сектора из количества оставшихся
+		remaining_blocks -= blocks_for_write;
+	}
+
+	return 0;
+}
+
 
 int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result)
 {
@@ -439,7 +504,7 @@ int usb_mass_device_read_lba(struct device *device, uint64_t start, uint64_t cou
 
 int usb_mass_device_write_lba(struct device *device, uint64_t start, uint64_t count, char *buf)
 {
-	return -1;
+	return usb_mass_write(device->dev_data, start, (uint32_t) count, buf);
 }
 
 void usb_mass_find_endpoints(struct usb_interface* interface, struct usb_endpoint** builk_in, struct usb_endpoint** builk_out)
