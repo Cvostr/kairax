@@ -924,7 +924,7 @@ int ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 
     // Считать данные inode
     char* buffer = kmalloc(inst->block_size);
-    if (buffer)
+    if (buffer == NULL)
         return -ENOMEM;
  
     // читаем блок
@@ -955,7 +955,7 @@ int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32
 
     // Считать целый блок
     char* buffer = kmalloc(inst->block_size);
-    if (buffer)
+    if (buffer == NULL)
         return -ENOMEM;
 
     ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer);

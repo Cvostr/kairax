@@ -208,17 +208,16 @@ int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_
 	return rc;
 }
 
-int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_wrapper* cbw, int is_output, void* out, uint32_t len)
+
+int usb_mass_exec_cmd_mem(struct usb_mass_storage_device* dev,
+						struct command_block_wrapper* cbw,
+						int is_output,
+						void* out,
+						uint32_t len,
+						uintptr_t tmp_data_buffer_phys,
+						uintptr_t tmp_data_buffer)
 {
 	int rc = 0;
-	size_t reqd_pages = 0;
-	// Сосчитать необходимую память
-	size_t reqd_bytes = CBW_SIZE;
-	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
-	reqd_bytes = MAX(reqd_bytes, len);
-	// Выделить временную память с запретом кэширования
-	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
-    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
 
 	// Сначала скопируем CBW туда
 	memcpy(tmp_data_buffer, cbw, CBW_SIZE);
@@ -288,6 +287,25 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 	}
 
 cleanup_exit:
+
+	return rc;
+}
+
+int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_wrapper* cbw, int is_output, void* out, uint32_t len)
+{
+	int rc = 0;
+	size_t reqd_pages = 0;
+	// Сосчитать необходимую память
+	size_t reqd_bytes = CBW_SIZE;
+	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
+	reqd_bytes = MAX(reqd_bytes, len);
+	// Выделить временную память с запретом кэширования
+	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
+    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
+
+	// Выполнить запрос
+	rc = usb_mass_exec_cmd_mem(dev, cbw, is_output, out, len, tmp_data_buffer_phys, tmp_data_buffer);
+
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
     pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
 
@@ -337,12 +355,23 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	// Вычисляем, потому что значение wMaxPacketSize может быть не кратно dev->blocksize
 	uint32_t bytes_per_packet = blocks_per_packet * dev->blocksize;
 
+	// Начальный заголовок CBW
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
 	cbw.tag = 0;
     cbw.flags = CBW_TO_HOST;
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
+
+	// выделяем память
+	size_t reqd_pages = 0;
+	// Сосчитать необходимую память
+	size_t reqd_bytes = CBW_SIZE;
+	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
+	reqd_bytes = MAX(reqd_bytes, bytes_per_packet);
+	// Выделить временную память с запретом кэширования
+	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
+    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
 
 	// Сколько осталось блоков LBA
 	uint32_t remaining_blocks = count;
@@ -360,10 +389,11 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 		usb_scsi_fill_cmd_read10(cbw.data, sector, blocks_for_read);
 
 		// Выполним команду
-		rc = usb_mass_exec_cmd(dev, &cbw, FALSE, out + i * bytes_per_packet, bytes_for_read);
+		rc = usb_mass_exec_cmd_mem(dev, &cbw, FALSE, out + i * bytes_per_packet, bytes_for_read, tmp_data_buffer_phys, tmp_data_buffer);
 		if (rc != 0)
 		{
-			return -EIO;
+			rc = -EIO;
+			goto exit;
 		}
 
 		sector += blocks_for_read;
@@ -371,7 +401,11 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 		remaining_blocks -= blocks_for_read;
 	}
 
-	return 0;
+exit:
+	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
+    pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
+
+	return rc;
 }
 
 int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, const char* out)
@@ -392,6 +426,16 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
 
+	// выделяем память
+	size_t reqd_pages = 0;
+	// Сосчитать необходимую память
+	size_t reqd_bytes = CBW_SIZE;
+	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
+	reqd_bytes = MAX(reqd_bytes, bytes_per_packet);
+	// Выделить временную память с запретом кэширования
+	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
+    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
+
 	// Сколько осталось блоков LBA
 	uint32_t remaining_blocks = count;
 
@@ -408,10 +452,11 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 		usb_scsi_fill_cmd_write10(cbw.data, sector, blocks_for_write);
 
 		// Выполним команду
-		rc = usb_mass_exec_cmd(dev, &cbw, TRUE, out + i * bytes_per_packet, bytes_for_write);
+		rc = usb_mass_exec_cmd_mem(dev, &cbw, TRUE, out + i * bytes_per_packet, bytes_for_write, tmp_data_buffer_phys, tmp_data_buffer);
 		if (rc != 0)
 		{
-			return -EIO;
+			rc = -EIO;
+			goto exit;
 		}
 
 		sector += blocks_for_write;
@@ -419,7 +464,11 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 		remaining_blocks -= blocks_for_write;
 	}
 
-	return 0;
+exit:
+	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
+    pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
+
+	return rc;
 }
 
 
