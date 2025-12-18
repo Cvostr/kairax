@@ -10,8 +10,8 @@ extern int syscall_fcntl(int fd, int cmd, void* arg);
 extern int syscall_readdir(int fd, void* buffer);
 extern int syscall_faccessat(int dirfd, const char *pathname, int mode, int flags);
 
-extern long long syscall_fork(void);
-extern long long syscall_vfork(void);
+extern int syscall_fork(void);
+extern int syscall_vfork(void);
 extern int syscall_execve(const char *filename, char *const argv [], char *const envp[]); 
 
 extern int syscall_dup(int oldfd);
@@ -25,8 +25,8 @@ extern unsigned int syscall_getgid(void);
 extern unsigned int syscall_getegid(void);
 extern int syscall_setuid(unsigned int uid);
 extern int syscall_setgid(unsigned int gid);
-extern int syscall_setpgid(long long pid, long long pgid);
-extern long long syscall_getpgid(long long pid);
+extern int syscall_setpgid(int pid, int pgid);
+extern long long syscall_getpgid(int pid);
 extern long syscall_thread_get_id();
 extern int syscall_sleep(long long sec, long long nsec);
 extern int syscall_pause();
