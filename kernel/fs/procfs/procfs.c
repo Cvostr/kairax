@@ -226,7 +226,7 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
         char *endptr;
         pid_t pid = strtol(name, &endptr, 10);
         
-        if (endptr == name) 
+        if ((endptr == name) || *endptr != '\0') 
         {
             // это не число
         }
