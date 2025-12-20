@@ -4,8 +4,6 @@
 #include "sync/spinlock.h"
 #include "kairax/stdio.h"
 
-#define MAX_PROCESSES 3000
-
 struct process* processes[MAX_PROCESSES];
 spinlock_t process_lock = 0;
 
@@ -58,6 +56,11 @@ void get_process_count(size_t *processes_n, size_t *threads)
 
 struct process* process_get_by_id(pid_t id)
 {
+    if (id >= MAX_PROCESSES)
+    {
+        return NULL;
+    }
+
     return processes[id];
 }
 

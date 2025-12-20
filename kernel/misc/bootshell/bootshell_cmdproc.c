@@ -114,6 +114,8 @@ void bootshell_process_cmd(char* cmdline)
         result = vfs_mount_fs("/dev/shm", NULL, "tmpfs");
         // Монтировать /run
         result = vfs_mount_fs("/run", NULL, "tmpfs");
+        // Монтировать /proc
+        result = vfs_mount_fs("/proc", NULL, "procfs");
 
         // Сменить рабочую папку
         cd("/");
