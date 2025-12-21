@@ -55,6 +55,13 @@ int usb_device_send_request(struct usb_device* device, struct usb_device_request
     return device->send_request(device, req, out, length);
 }
 
+int usb_device_send_async_request(struct usb_device* device, struct usb_msg *msg)
+{
+    if (device->state == USB_STATE_DISCONNECTED)
+        return -ENODEV;
+    return device->send_async_request(device, msg);
+}
+
 int usb_device_configure_endpoint(struct usb_device* device, struct usb_endpoint* endpoint)
 {
     if (device->state == USB_STATE_DISCONNECTED)

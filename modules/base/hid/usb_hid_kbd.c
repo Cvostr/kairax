@@ -19,7 +19,7 @@
 #define HID_COMPOSE     0b1000
 #define HID_KANA        0b10000
 
-short hid_kbd_bindings[256] = {
+uint8_t hid_kbd_bindings[256] = {
     [0x04] = KRXK_A,
     [0x05] = KRXK_B,
     [0x06] = KRXK_C,
@@ -127,10 +127,18 @@ struct usb_device_id usb_hid_kbd_ids[] = {
 struct usb_hid_kbd {
     struct usb_device* device;
     struct usb_endpoint* ep;
+    struct usb_interface* interface;
 
-    size_t                              report_buffer_pages;
-    uintptr_t                           report_buffer_phys;
-    struct hid_kbd_boot_int_report*     report_buffer;
+    // для приема отчета
+    size_t       report_buffer_pages;
+    uintptr_t    report_buffer_phys;
+    uint8_t*     report_buffer;
+
+    // для управления LED
+    uint8_t*       led_ctrl;
+    uintptr_t      led_ctrl_phys;
+    struct usb_msg led_msg;
+    int            upd_led;
     
     list_t  report_items;
 
@@ -140,6 +148,11 @@ struct usb_hid_kbd {
     uint8_t *current;
     uint8_t *old;
 };
+
+void usb_hid_handle_led_key(struct usb_hid_kbd* kbd, uint8_t key);
+void usb_hid_kbd_upd_led(struct usb_hid_kbd* kbd);
+void hid_kbd_event_callback(struct usb_msg* msg);
+void kbd_hid_report_handler(void* private_data, uint16_t usage_page, uint16_t usage_id, int64_t val);
 
 int usb_hid_set_report(struct usb_device* device, struct usb_interface* interface, uint8_t report_type, uint8_t report_id, void* report, uint32_t report_length)
 {
@@ -186,26 +199,75 @@ void hid_kbd_event_callback(struct usb_msg* msg)
     {
         uint8_t old = kbd->old[i];
         uint8_t current = kbd->current[i];
+        uint8_t mapped = hid_kbd_bindings[i];
 
         if (old == 1 && current == 0)
         {
-            keyboard_add_event(hid_kbd_bindings[i], KRXK_RELEASED);
+            keyboard_add_event(mapped, KRXK_RELEASED);
         }
         else if (old == 0 && current == 1)
         {
-            keyboard_add_event(hid_kbd_bindings[i], KRXK_PRESSED);
+            usb_hid_handle_led_key(kbd, mapped);
+            keyboard_add_event(mapped, KRXK_PRESSED);
         }
 
         kbd->old[i] = 0;
     }
 
     // поменяем массивы местами
-    char* tmp = kbd->current;
+    uint8_t* tmp = kbd->current;
     kbd->current = kbd->old;
     kbd->old = tmp;
 
+    if (kbd->upd_led)
+    {
+        usb_hid_kbd_upd_led(kbd);
+        kbd->upd_led = FALSE;
+    }
+
     // Послать запрос на прерывание
     usb_send_async_msg(kbd->device, kbd->ep, msg);
+}
+
+void usb_hid_handle_led_key(struct usb_hid_kbd* kbd, uint8_t key)
+{
+    switch (key)
+    {
+        case KRXK_CAPS:
+            *kbd->led_ctrl ^= HID_CAPS_LOCK;
+            break;
+        case KRXK_NUMLOCK:
+            *kbd->led_ctrl ^= HID_NUM_LOCK;
+            break;
+        case KRXK_SCRLOCK:
+            *kbd->led_ctrl ^= HID_SCROLL_LOCK;
+            break;
+        default:
+            return;
+    }
+
+    kbd->upd_led = 1;
+}
+
+void usb_hid_kbd_upd_led(struct usb_hid_kbd* kbd)
+{
+    uint16_t value = (((uint16_t) 0x02) << 8) | 0;
+
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_CLASS;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_INTERFACE;
+	req.bRequest = HID_SET_REPORT;
+	req.wValue = value;
+	req.wIndex = kbd->interface->descriptor.bInterfaceNumber;
+	req.wLength = 1;
+
+    struct usb_msg *msg = &kbd->led_msg;
+    msg->data = (void*) kbd->led_ctrl_phys;
+    msg->length = 1;
+    msg->control_msg = &req;
+
+    usb_device_send_async_request(kbd->device, msg);
 }
 
 int usb_hid_kbd_device_probe(struct device *dev) 
@@ -250,6 +312,7 @@ int usb_hid_kbd_device_probe(struct device *dev)
     struct usb_hid_kbd* kbd = kmalloc(sizeof(struct usb_hid_kbd));
     memset(kbd, 0, sizeof(struct usb_hid_kbd));
     kbd->device = device;
+    kbd->interface = interface;
     kbd->ep = interrupt_in_ep;
     kbd->current = kbd->keystat1;
     kbd->old = kbd->keystat2;
@@ -293,19 +356,29 @@ int usb_hid_kbd_device_probe(struct device *dev)
 
     // Выделить память под буфер report
     kbd->report_buffer_phys = (uintptr_t) pmm_alloc(max_packet_sz, &kbd->report_buffer_pages);
-    kbd->report_buffer = map_io_region(kbd->report_buffer_phys, kbd->report_buffer_pages * PAGE_SIZE);
+    kbd->report_buffer = (uint8_t*) map_io_region(kbd->report_buffer_phys, kbd->report_buffer_pages * PAGE_SIZE);
 
+    // создаем объект usb_msg для получения отчетов в прерываниях
     struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
-    msg->data = kbd->report_buffer_phys;
+    msg->data = (void*) kbd->report_buffer_phys;
     msg->length = max_packet_sz;
     msg->callback = hid_kbd_event_callback;
     msg->private = kbd;
 
+    // ожидание первого прерывания
     usb_send_async_msg(device, interrupt_in_ep, msg);
 
-    // Сбросим LED индикаторы клавиатуры
-    uint8_t val = 0;
-    rc = usb_hid_set_report(device, interface, 0x02, 0, &val, 1);
+    // занулим msg для управления LED клавиатуры на всякий случай
+    memset(&kbd->led_msg, 0, sizeof(struct usb_msg));
+
+    // Вычислим адреса для управления LED
+    // Используем память, выделенную под отчеты + размер пакета эндпоинта прерываний
+    kbd->led_ctrl = kbd->report_buffer + max_packet_sz;
+    kbd->led_ctrl_phys = kbd->report_buffer_phys + max_packet_sz;
+
+    // Сначала выключаем все LED
+    *kbd->led_ctrl = 0; 
+    usb_hid_kbd_upd_led(kbd);
 
 	return 0;
 }

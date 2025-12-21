@@ -83,6 +83,7 @@ struct kernel_function functions[] = {
     // usb
     KFUNCTION(new_usb_msg),
     KFUNCTION(usb_device_send_request),
+    KFUNCTION(usb_device_send_async_request),
     KFUNCTION(register_usb_device_driver),
     KFUNCTION(usb_get_string),
     KFUNCTION(usb_device_configure_endpoint),

@@ -611,6 +611,7 @@ int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_
 int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint* endpoint);
 // функции для указателей
 int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length);
+int xhci_drv_device_send_usb_async_request(struct usb_device* dev, struct usb_msg *msg);
 int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint);
 int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length);
 int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg);

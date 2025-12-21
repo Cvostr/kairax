@@ -118,6 +118,7 @@ struct usb_device {
     uint16_t lang_id;
 
     int (*send_request) (struct usb_device*, struct usb_device_request*, void*, uint32_t);
+    int (*send_async_request) (struct usb_device*, struct usb_msg*);
     int (*configure_endpoint) (struct usb_device*, struct usb_endpoint*);
     int (*bulk_msg) (struct usb_device*, struct usb_endpoint*, void*, uint32_t);
     int (*async_msg) (struct usb_device*, struct usb_endpoint*, struct usb_msg*);
@@ -138,6 +139,11 @@ struct usb_msg *new_usb_msg();
 /// @param length длина выходных данных
 /// @return 0 - при успехе
 int usb_device_send_request(struct usb_device* device, struct usb_device_request* req, void* out, uint32_t length);
+/// @brief послать запрос к usb устройству на default control endpoint асинхронно
+/// @param device объект устройства
+/// @param msg объект асинхронного сообщения
+/// @return всегда 0
+int usb_device_send_async_request(struct usb_device* device, struct usb_msg *msg);
 /// @brief сконфигурировать эндпоинт для работы с ним
 /// @param device объект устройства
 /// @param endpoint объект эндпоинта

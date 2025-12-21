@@ -516,6 +516,11 @@ int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_r
     return xhci_device_send_usb_request(dev->controller_device_data, req, out, length);
 }
 
+int xhci_drv_device_send_usb_async_request(struct usb_device* dev, struct usb_msg *msg)
+{
+    return xhci_device_msg_control_async(dev->controller_device_data, msg);
+}
+
 int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint)
 {
     return xhci_device_configure_endpoint(dev->controller_device_data, endpoint);
