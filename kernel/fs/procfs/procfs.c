@@ -20,9 +20,10 @@ struct super_operations procfs_sb_ops = {
 };
 
 struct procfs_procdir_dentry {
-    char                   *name;
+    char                    *name;
     int                     dentry_type;
-    struct file_operations *fops;
+    struct inode_operations *iops;
+    struct file_operations  *fops;
     mode_t                  inode_mode;
 };
 
@@ -35,6 +36,9 @@ struct file_operations status_fops = {
 struct file_operations maps_fops = {
     .read = procfs_maps_read
 };
+struct inode_operations cwd_iops = {
+    .readlink = procfs_cwd_readlink
+};
 
 #define ALL_READ (S_IRGRP | S_IRUSR | S_IROTH)
 #define PROCDIR_INODEMODE   (0555 | INODE_TYPE_DIRECTORY)
@@ -42,7 +46,8 @@ struct file_operations maps_fops = {
 static const struct procfs_procdir_dentry procfs_dentries[] = {
     {.name = "cmdline", .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &cmdline_fops},
     {.name = "status",  .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &status_fops},
-    {.name = "maps",    .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &maps_fops}
+    {.name = "maps",    .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &maps_fops},
+    {.name = "cwd",     .dentry_type = DT_LNK,  .inode_mode = ALL_READ | INODE_FLAG_SYMLINK, .iops = &cwd_iops}
 };
 #define NPROCDENTRIES (sizeof(procfs_dentries) / sizeof(struct procfs_procdir_dentry)) 
 
@@ -128,6 +133,7 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
             result->size = 0;
             result->mode = procfs_dentry->inode_mode;
             // ее операции
+            result->operations = procfs_dentry->iops;
             result->file_ops = procfs_dentry->fops;
         }
     }

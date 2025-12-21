@@ -23,5 +23,6 @@ struct inode* procfs_read_node(struct superblock* sb, ino_t ino_num);
 ssize_t procfs_status_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t procfs_cmdline_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t procfs_maps_read(struct file* file, char* buffer, size_t count, loff_t offset);
+ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen);
 
 #endif

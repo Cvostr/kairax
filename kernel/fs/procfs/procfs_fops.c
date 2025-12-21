@@ -5,6 +5,7 @@
 #include "string.h"
 #include "proc/process.h"
 #include "mem/vm_area.h"
+#include "mem/kheap.h"
 
 size_t procfs_read_string(const char *str, size_t len, char *buffer, size_t count, loff_t offset)
 {
@@ -152,4 +153,38 @@ exit:
     file->pos += readed;
 
     return readed;
+}
+
+ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
+{
+    ino_t inode_num = inode->inode;
+    pid_t pid = 0;
+    int fileid = 0;
+    procfs_decodeino(inode_num, &pid, &fileid);
+
+    struct process *proc = process_get_by_id(pid);
+    if (proc == NULL || proc->type != OBJECT_TYPE_PROCESS)
+        return -ENOENT;
+
+    ssize_t result = 0;
+    size_t required_size = 0;
+
+    acquire_spinlock(&proc->pwd_lock);
+    if (proc->pwd) 
+    {    
+        // Вычисляем необходимый размер буфера
+        vfs_dentry_get_absolute_path(proc->pwd, &required_size, NULL);
+        
+        char *tmpbuf = kmalloc(required_size + 1);
+
+        // Записываем путь в буфер
+        vfs_dentry_get_absolute_path(proc->pwd, NULL, tmpbuf);
+
+        result = procfs_read_string(tmpbuf, required_size, pathbuf, pathbuflen, 0);
+
+        kfree(tmpbuf);
+    }
+    release_spinlock(&proc->pwd_lock);
+
+    return result;
 }
