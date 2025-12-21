@@ -142,8 +142,8 @@ int printf_generic(int (*f) (const char* str, size_t len, void* arg), size_t max
 			written += len;
 		} else if (*format == 'x') {
 			format++;
-			int64 integer = va_arg(args, long);
-			char* str = lltoa(integer, tempbuff, 16);
+			int64 integer = va_arg(args, unsigned long);
+			char* str = ulltoa(integer, tempbuff, 16);
 			size_t len = strlen(str);
 			if (maxrem < len) {
 				return -1;

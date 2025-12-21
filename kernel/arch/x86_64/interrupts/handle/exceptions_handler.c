@@ -55,7 +55,6 @@ spinlock_t dump_lock = 0;
 
 void exception_handler(interrupt_frame_t* frame)
 {
-    char tempbuff[32];
     uint64_t cr2, cr3;
     asm volatile ("mov %%cr2, %%rax\n mov %%rax, %0" : "=m" (cr2));
     asm volatile ("mov %%cr3, %%rax\n mov %%rax, %0" : "=m" (cr3));
@@ -87,12 +86,12 @@ void exception_handler(interrupt_frame_t* frame)
 
     printk("Exception occured 0x%x (%s) on CPU %i\n", 
         frame->int_no, exception_message[frame->int_no], cpu_get_id());
-    printk("ERR = %s\n", ulltoa(frame->error_code, tempbuff, 16));
-    printk("RAX = %s RBX = %s RCX = %s\n", ulltoa(frame->rax, tempbuff, 16), ulltoa(frame->rbx, tempbuff, 16), ulltoa(frame->rcx, tempbuff, 16));
-    printk("RIP = %s RSP = %s RBP = %s\n", ulltoa(frame->rip, tempbuff, 16), ulltoa(frame->rsp, tempbuff, 16), ulltoa(frame->rbp, tempbuff, 16));
-    printk("RDI = %s RSI = %s RDX = %s\n", ulltoa(frame->rdi, tempbuff, 16), ulltoa(frame->rsi, tempbuff, 16), ulltoa(frame->rdx, tempbuff, 16));
-    printk("CS = %s SS = %s ", ulltoa(frame->cs, tempbuff, 16), ulltoa(frame->ss, tempbuff, 16));
-    printk("CR2 = %s CR3 = %s\n", ulltoa(cr2, tempbuff, 16), ulltoa(cr3, tempbuff, 16));
+    printk("ERR = %x\n", frame->error_code);
+    printk("RAX = %x RBX = %x RCX = %x\n", frame->rax, frame->rbx, frame->rcx);
+    printk("RIP = %x RSP = %x RBP = %x\n", frame->rip, frame->rsp, frame->rbp);
+    printk("RDI = %x RSI = %x RDX = %x\n", frame->rdi, frame->rsi, frame->rdx);
+    printk("CS = %x SS = %x ", frame->cs, frame->ss);
+    printk("CR2 = %x CR3 = %x\n", cr2, cr3);
 
     uint8_t* ip = (uint8_t*) frame->rip;
     int show_instr = 1;
@@ -102,7 +101,7 @@ void exception_handler(interrupt_frame_t* frame)
     if (show_instr == 1) {
         printk("INSTR: ");
         for (int i = 0; i < 8; i ++) {
-            printk("%s ", ulltoa(*(ip++), tempbuff, 16));
+            printk("%x ", *(ip++));
         }
     }
     
@@ -122,7 +121,7 @@ void exception_handler(interrupt_frame_t* frame)
         */
         for (int i = 0; i < 35; i ++) {
             uintptr_t value = *(stack_ptr + i);
-            printk("%s ", ulltoa(value, tempbuff, 16));
+            printk("%x ", value);
         }
     }
     
