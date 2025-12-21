@@ -50,6 +50,7 @@ struct process {
     int                 code;
     // Название
     char                name[PROCESS_NAME_MAX_LEN];
+    atomic_t            refs;
     pid_t               process_group;
     // Процесс - родитель
     struct process*     parent;
@@ -115,9 +116,13 @@ int process_get_relative_direntry1(struct process* process, int dirfd, const cha
 
 int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file);
 
+// получить объект процесса - потомка по pid
+// с увеличением счетчика ссылок
 struct process* process_get_child_by_id(struct process* process, pid_t id);
 struct thread* process_get_thread_by_id(struct process* process, pid_t id);
 
+// получить объект первого встретившегося зомби-процесса
+// с увеличением счетчика ссылок
 struct process* process_get_first_zombie(struct process* process);
 
 void  process_remove_child(struct process* process, struct process* child);
@@ -126,6 +131,8 @@ void  process_remove_thread(struct process* process, struct thread* thread);
 void process_free_resources(struct process* process);
 
 void exit_process(int code);
+
+void process_acquire(struct process* process);
 void free_process(struct process* process);
 
 // Установить адрес конца памяти процесса

@@ -51,8 +51,14 @@ struct process*  create_new_process(struct process* parent)
 
     process->mmap_ranges = create_list();
 
-    if (parent) {
+    if (parent) 
+    {
+        // добавляем к родителю
+        // сначала установим группу родителя
         process->process_group = parent->process_group;
+        // затем увеличим счетчик ссылок нового процесса
+        process_acquire(process);
+        // добавим процесс в список потомков родителя
         acquire_spinlock(&parent->children_lock);
         process->parent = parent;
         list_add(parent->children, process);
@@ -67,28 +73,50 @@ void process_set_name(struct process* process, const char* name)
     strncpy(process->name, name, PROCESS_NAME_MAX_LEN - 1);
 }
 
+void process_acquire(struct process* process)
+{
+    if (process->type == OBJECT_TYPE_PROCESS) {
+        atomic_inc(&process->refs);
+    }
+}
+
 void free_process(struct process* process)
 {
-    // Данную функцию можно вызывать только для процессов - зомби
-    if (process->state != STATE_ZOMBIE)
+    if (process == NULL)
         return;
 
-    // Удалить информацию о потоках и освободить страницу с стеком ядра
-    for (size_t i = 0; i < list_size(process->threads); i ++) {
-        struct thread* thread = list_get(process->threads, i);
-
-        while (thread->state != STATE_ZOMBIE);
-
-        process_remove_from_list(thread);
-        // Уничтожить объект потока
-        thread_destroy(thread);
+    if (process->type != OBJECT_TYPE_PROCESS)
+    {
+        return;
     }
 
-    // Освободить память под список потоков
-    free_list(process->threads);
+    if (atomic_dec_and_test(&process->refs))
+    {
+        // Данную функцию можно вызывать только для процессов - зомби
+        if (process->state != STATE_ZOMBIE)
+        {
+            printk("free_process: this function called with status %i\n", process->state);
+            return;
+        }
 
-    // Освободить структуру
-    kfree(process);
+        // Удалить информацию о потоках и освободить страницу с стеком ядра
+        for (size_t i = 0; i < list_size(process->threads); i ++) 
+        {
+            struct thread* thread = list_get(process->threads, i);
+
+            while (thread->state != STATE_ZOMBIE);
+
+            process_remove_from_list(thread);
+            // Уничтожить объект потока
+            thread_destroy(thread);
+        }
+
+        // Освободить память под список потоков
+        free_list(process->threads);
+
+        // Освободить структуру
+        kfree(process);
+    }
 }
 
 void process_free_resources(struct process* process)
@@ -353,6 +381,7 @@ struct process* process_get_child_by_id(struct process* process, pid_t id)
         struct process* child = list_get(process->children, i);
         if (child->pid == id) {
             result = child;
+            process_acquire(child);
             goto exit;
         }
     }
@@ -389,6 +418,7 @@ struct process* process_get_first_zombie(struct process* process)
         struct process* child = list_get(process->children, i);
         if (child->state == STATE_ZOMBIE) {
             result = child;
+            process_acquire(child);
             goto exit;
         }
     }
@@ -403,6 +433,8 @@ void  process_remove_child(struct process* process, struct process* child)
     acquire_spinlock(&process->children_lock);
     list_remove(process->children, child);
     release_spinlock(&process->children_lock);
+    // уменьшение счетчика ссылок и возможное уничтожение
+    free_process(child);
 }
 
 void  process_remove_thread(struct process* process, struct thread* thread)

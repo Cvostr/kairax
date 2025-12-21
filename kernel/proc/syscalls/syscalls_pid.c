@@ -37,6 +37,7 @@ int sys_setpgid(pid_t pid, pid_t pgid)
     else if (pid == 0) 
     {
         proc = cpu_get_current_thread()->process;
+        process_acquire(proc);
     }
     else
     {
@@ -54,6 +55,8 @@ int sys_setpgid(pid_t pid, pid_t pgid)
 
     proc->process_group = pgid;
 
+    free_process(proc);
+
     return 0;
 }
 
@@ -68,6 +71,7 @@ pid_t sys_getpgid(pid_t pid)
     else if (pid == 0) 
     {
         proc = cpu_get_current_thread()->process;
+        process_acquire(proc);
     }
     else
     {
@@ -77,6 +81,8 @@ pid_t sys_getpgid(pid_t pid)
             return -ESRCH;
         }
     }
+
+    free_process(proc);
 
     return proc->process_group;
 }

@@ -17,32 +17,50 @@ size_t procfs_read_string(const char *str, size_t len, char *buffer, size_t coun
 // для cmdline
 ssize_t procfs_cmdline_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
+    size_t readed = 0;
     ino_t inode_num = file->inode->inode;
     pid_t pid = 0;
     int fileid = 0;
     procfs_decodeino(inode_num, &pid, &fileid);
 
+    // пробуем найти процесс по PID с увеличением счетчика ссылок
     struct process *proc = process_get_by_id(pid);
-    if (proc == NULL || proc->type != OBJECT_TYPE_PROCESS)
+    if (proc == NULL)
         return -ENOENT;
-
-    size_t readed = procfs_read_string(proc->name, strlen(proc->name), buffer, count, offset);
-    file->pos += readed;
     
+    if (proc->type != OBJECT_TYPE_PROCESS)
+    {
+        readed = -EINVAL;
+        goto exit;
+    }
+
+    readed = procfs_read_string(proc->name, strlen(proc->name), buffer, count, offset);
+    file->pos += readed;
+
+exit:
+    free_process(proc);
     return readed;
 }
 
 // для status
 ssize_t procfs_status_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
+    size_t readed = 0;
     ino_t inode_num = file->inode->inode;
     pid_t pid = 0;
     int fileid = 0;
     procfs_decodeino(inode_num, &pid, &fileid);
 
+    // пробуем найти процесс по PID с увеличением счетчика ссылок
     struct process *proc = process_get_by_id(pid);
-    if (proc == NULL || proc->type != OBJECT_TYPE_PROCESS)
+    if (proc == NULL)
         return -ENOENT;
+    
+    if (proc->type != OBJECT_TYPE_PROCESS)
+    {
+        readed = -EINVAL;
+        goto exit;
+    }
 
     pid_t ppid = 0;
     if (proc->parent)
@@ -64,9 +82,11 @@ ssize_t procfs_status_read(struct file* file, char* buffer, size_t count, loff_t
         thread_count
     );
 
-    size_t readed = procfs_read_string(statbuffer, written, buffer, count, offset);
+    readed = procfs_read_string(statbuffer, written, buffer, count, offset);
     file->pos += readed;
     
+exit:
+    free_process(proc);
     return readed;
 }
 
@@ -92,21 +112,32 @@ int procfs_fill_mapping_str(struct mmap_range *region, char *out, size_t len)
 
 ssize_t procfs_maps_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
+    ssize_t readed = 0;
     ino_t inode_num = file->inode->inode;
     pid_t pid = 0;
     int fileid = 0;
     procfs_decodeino(inode_num, &pid, &fileid);
 
+    // пробуем найти процесс по PID с увеличением счетчика ссылок
     struct process *proc = process_get_by_id(pid);
-    if (proc == NULL || proc->type != OBJECT_TYPE_PROCESS)
+    if (proc == NULL)
         return -ENOENT;
+    
+    if (proc->type != OBJECT_TYPE_PROCESS)
+    {
+        readed = -EINVAL;
+        goto exit;
+    }
 
     // временный буфер для строки мапинга
     char mapbuffer[200];
 
+    if (proc->mmap_ranges == NULL)
+        goto exit;
+
     size_t mmaps_total = list_size(proc->mmap_ranges);
     if (mmaps_total == 0)
-        return 0;
+        goto exit;
 
     size_t map_i = 0;
     // Счетчик того, сколько осталось байт до offset
@@ -126,9 +157,6 @@ ssize_t procfs_maps_read(struct file* file, char* buffer, size_t count, loff_t o
         remain_from_last = curlen - decrement;
         offset_from_last = decrement;
     }
-
-    ssize_t readed = 0;
-    //printk("offset %i count %i remain_from_last %i\n", offset, count, remain_from_last);
 
     // Если остался несчитанный с того раза кусок строки - надо считать 
     if (remain_from_last > 0)
@@ -151,23 +179,28 @@ ssize_t procfs_maps_read(struct file* file, char* buffer, size_t count, loff_t o
 
 exit:
     file->pos += readed;
-
+    free_process(proc);
     return readed;
 }
 
 ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
 {
+    ssize_t result = 0;
+    size_t required_size = 0;
     ino_t inode_num = inode->inode;
     pid_t pid = 0;
     int fileid = 0;
     procfs_decodeino(inode_num, &pid, &fileid);
 
     struct process *proc = process_get_by_id(pid);
-    if (proc == NULL || proc->type != OBJECT_TYPE_PROCESS)
+    if (proc == NULL)
         return -ENOENT;
-
-    ssize_t result = 0;
-    size_t required_size = 0;
+    
+    if (proc->type != OBJECT_TYPE_PROCESS)
+    {
+        result = -EINVAL;
+        goto exit;
+    }
 
     acquire_spinlock(&proc->pwd_lock);
     if (proc->pwd) 
@@ -186,5 +219,7 @@ ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbufle
     }
     release_spinlock(&proc->pwd_lock);
 
+exit:
+    free_process(proc);
     return result;
 }

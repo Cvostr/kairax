@@ -27,6 +27,7 @@ pid_t sys_wait(pid_t id, int* status, int options)
         // pid указан, ищем процесс
         for (;;) {
 
+            // получим процесс по PID c увеличением счетчика ссылок
             child = process_get_child_by_id(process, id);
 
             if (!child) {
@@ -45,11 +46,14 @@ pid_t sys_wait(pid_t id, int* status, int options)
             }
             else if ((options & WNOHANG) == WNOHANG)
             {
+                free_process(child);
                 result = 0;
                 goto exit;
             }
 
             release_spinlock(&process->wait_lock);
+            
+            free_process(child);
             
             if (scheduler_sleep_on(&process->wait_blocker) == 1)
             {
@@ -70,12 +74,15 @@ pid_t sys_wait(pid_t id, int* status, int options)
             }
             else if ((options & WNOHANG) == WNOHANG)
             {
+                free_process(child);
                 result = 0;
                 goto exit;
             }
 
             release_spinlock(&process->wait_lock);
             
+            free_process(child);
+
             if (scheduler_sleep_on(&process->wait_blocker) == 1)
             {
                 return -EINTR;

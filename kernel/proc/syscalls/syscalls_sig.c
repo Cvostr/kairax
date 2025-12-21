@@ -56,9 +56,11 @@ int sys_send_signal(pid_t pid, int signal)
     }
 
     if (target == NULL) {
+        free_process(proc);
         return -ESRCH;
     }
 
+    free_process(proc);
     return thread_send_signal(target, signal);
 }
 

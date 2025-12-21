@@ -78,6 +78,8 @@ void procfs_decodeino(ino_t inode_num, pid_t *pid, int *fileid)
 struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
 {
     struct inode* result = NULL;
+    struct process *proc = NULL;
+
     if (inode == PROCFS_ROOTINODE)
     {
         // это корневая директория
@@ -96,9 +98,9 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
         pid_t pid = 0;
         int fileid = 0;
         procfs_decodeino(inode, &pid, &fileid);
-        //printk("procfs: procfs_makeinode: pid %i fileid %i\n", pid, fileid);
 
-        struct process *proc = process_get_by_id(pid);
+        // пробуем найти процесс по PID с увеличением счетчика ссылок
+        proc = process_get_by_id(pid);
         if (proc == NULL)
             return NULL;
 
@@ -120,7 +122,7 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
             // это файл внутри директории процесса
             fileid --;
             if (fileid >= NPROCDENTRIES)
-                return NULL;
+                goto exit;
 
             struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[fileid];
 
@@ -138,6 +140,9 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
         }
     }
 
+exit:
+    if (proc)
+        free_process(proc);
     return result;
 }
 
@@ -169,15 +174,21 @@ struct dirent* procfs_root_file_readdir(struct file* dir, uint32_t index)
     // надо пропустить index процессов
     while (cur < index)
     {
+        // пробуем найти процесс по PID с увеличением счетчика ссылок
         proc = process_get_by_id(pid ++);
 
         if ((proc != NULL) && (proc->type == OBJECT_TYPE_PROCESS))
             cur++;
+
+        // сразу же уменьшаем ссылки
+        free_process(proc);
     }
 
+    // теперь ищем первый встречный процесс
     proc = process_get_by_id(pid);
     while ((proc == NULL || proc->type != OBJECT_TYPE_PROCESS) && pid < MAX_PROCESSES) 
     {
+        free_process(proc);
         proc = process_get_by_id(++pid);
     }
 
@@ -192,6 +203,7 @@ struct dirent* procfs_root_file_readdir(struct file* dir, uint32_t index)
     result->type = DT_DIR;
     lltoa(pid, result->name, 10);
 
+    free_process(proc);
     return result;
 }
 
@@ -209,7 +221,7 @@ struct dirent* procfs_process_file_readdir(struct file* dir, uint32_t index)
         return NULL;
 
     if (index >= NPROCDENTRIES)
-        return NULL;
+        goto exit;
 
     struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[index];
     
@@ -218,6 +230,8 @@ struct dirent* procfs_process_file_readdir(struct file* dir, uint32_t index)
     result->type = procfs_dentry->dentry_type;
     strcpy(result->name, procfs_dentry->name);
 
+exit:
+    free_process(proc);
     return result;
 }
 
@@ -239,13 +253,17 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
         else
         {
             // если это число, то, это скорее всего директория с процессом
-            // пробуем получить процесс
+            // пробуем получить процесс с увеличением счетчика ссылок
             struct process *proc = process_get_by_id(pid);
             // процесс должен существовать и не быть потоком
             if (proc == NULL || proc->type != OBJECT_TYPE_PROCESS)
+            {
+                free_process(proc);
                 return WRONG_INODE_INDEX;
+            }
 
             *type = DT_DIR;
+            free_process(proc);
             return procfs_makeino(pid, 0);
         }
     }

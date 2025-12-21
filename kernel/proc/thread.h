@@ -24,6 +24,7 @@ struct thread {
     int                 code;
     // Имя потока
     char                name[PROCESS_NAME_MAX_LEN];
+    atomic_t            refs;
     // Адрес вершины стека пользователя
     void*               stack_ptr;
     struct mmap_range*  stack_mapping;
