@@ -20,9 +20,13 @@ struct dirent* procfs_process_file_readdir(struct file* dir, uint32_t index);
 uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode, const char *name, int* type);
 struct inode* procfs_read_node(struct superblock* sb, ino_t ino_num);
 
+// для процесса
 ssize_t procfs_status_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t procfs_cmdline_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t procfs_maps_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen);
+
+// для файлов корня
+ssize_t procfs_mounts_read(struct file* file, char* buffer, size_t count, loff_t offset);
 
 #endif

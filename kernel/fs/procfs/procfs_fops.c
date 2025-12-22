@@ -149,7 +149,7 @@ ssize_t procfs_maps_read(struct file* file, char* buffer, size_t count, loff_t o
     {
         struct mmap_range *region = list_get(proc->mmap_ranges, map_i ++);
         if (region == NULL)
-            return 0;
+            goto exit;
         int curlen = procfs_fill_mapping_str(region, mapbuffer, sizeof(mapbuffer));
         size_t decrement = MIN(curlen, cntr); 
         cntr -= decrement;
@@ -222,4 +222,75 @@ ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbufle
 exit:
     free_process(proc);
     return result;
+}
+
+int procfs_fill_mount_str(struct superblock* sb, char *out, size_t len)
+{
+    size_t reqd_size = 0;
+    char* abs_path_buffer = NULL;
+    vfs_dentry_get_absolute_path(sb->root_dir, &reqd_size, NULL);
+    abs_path_buffer = kmalloc(reqd_size + 1);
+    memset(abs_path_buffer, 0, reqd_size + 1);
+    vfs_dentry_get_absolute_path(sb->root_dir, NULL, abs_path_buffer);
+
+    int res = sprintf(out, len, "%s %s %s\n", 
+        sb->partition ? sb->partition->name : "none",
+        abs_path_buffer,
+        sb->filesystem->name
+    );
+
+    kfree(abs_path_buffer);
+
+    return res;
+}
+
+ssize_t procfs_mounts_read(struct file* file, char* buffer, size_t count, loff_t offset)
+{
+    size_t mount_i = 0;
+    ssize_t readed = 0;
+    struct superblock* sb = NULL;
+    // временный буфер для строки
+    char mapbuffer[300];
+
+    // Счетчик того, сколько осталось байт до offset
+    size_t cntr = offset;
+    // Сколько надо считать из mapbuffer
+    size_t remain_from_last = 0;
+    size_t offset_from_last = 0;
+    while (cntr > 0)
+    {
+        sb = vfs_get_mounted_sb(mount_i ++);
+        if (sb == NULL)
+            return 0;
+
+        int curlen = procfs_fill_mount_str(sb, mapbuffer, sizeof(mapbuffer));
+        size_t decrement = MIN(curlen, cntr); 
+        cntr -= decrement;
+
+        remain_from_last = curlen - decrement;
+        offset_from_last = decrement;
+    }
+
+    // Если остался несчитанный с того раза кусок строки - надо считать 
+    if (remain_from_last > 0)
+    {
+        readed += procfs_read_string(mapbuffer + offset_from_last, remain_from_last, buffer, count, 0);
+    }
+
+    while (readed < count)
+    {
+        sb = vfs_get_mounted_sb(mount_i ++);
+        if (sb == NULL)
+            goto exit;
+
+        // сформировать строку - описание
+        int curlen = procfs_fill_mount_str(sb, mapbuffer, sizeof(mapbuffer));
+
+        // записать строку
+        readed += procfs_read_string(mapbuffer, curlen, buffer + readed, count - readed, 0);
+    }
+
+exit:
+    file->pos += readed;
+    return readed;
 }

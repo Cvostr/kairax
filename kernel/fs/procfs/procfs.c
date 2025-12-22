@@ -51,6 +51,14 @@ static const struct procfs_procdir_dentry procfs_dentries[] = {
 };
 #define NPROCDENTRIES (sizeof(procfs_dentries) / sizeof(struct procfs_procdir_dentry)) 
 
+struct file_operations mounts_fops = {
+    .read = procfs_mounts_read
+};
+static const struct procfs_procdir_dentry procfs_root_dentries[] = {
+    {.name = "mounts", .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &mounts_fops}
+};
+#define NROOTENTRIES (sizeof(procfs_root_dentries) / sizeof(struct procfs_procdir_dentry)) 
+
 void procfs_init()
 {
     filesystem_t* procfs = new_filesystem();
@@ -93,6 +101,21 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
         // ее операции
         result->file_ops = &procfs_root_dir_ops;
     } 
+    else if (inode > PROCFS_ROOTINODE && inode <= PROCFS_ROOTINODE + NROOTENTRIES)
+    {
+        // это файл в корневой директории
+        struct procfs_procdir_dentry *procfs_dentry = &procfs_root_dentries[inode - PROCFS_ROOTINODE - 1];
+        result = new_vfs_inode();
+        result->inode = inode;
+        result->sb = sb;
+        result->uid = 0;
+        result->gid = 0;
+        result->size = 0;
+        result->mode = procfs_dentry->inode_mode;
+        // ее операции
+        result->operations = procfs_dentry->iops;
+        result->file_ops = procfs_dentry->fops;
+    }
     else 
     {
         pid_t pid = 0;
@@ -170,6 +193,29 @@ struct dirent* procfs_root_file_readdir(struct file* dir, uint32_t index)
     uint32_t cur = 0;
     struct process* proc = NULL;
 
+    size_t processes_total, threads_total;
+    get_process_count(&processes_total, &threads_total);
+
+    if (index >= processes_total)
+    {
+        // индекс больше числа процессов
+        // значит это могут быть дополнительные файлы в корневой директории
+        size_t file_idx = index - processes_total;
+
+        if (file_idx < NROOTENTRIES)
+        {
+            struct procfs_procdir_dentry *dentry = &procfs_root_dentries[file_idx];
+
+            result = new_vfs_dirent();
+            result->inode = PROCFS_ROOTINODE + 1 + file_idx;
+            result->type = dentry->dentry_type;
+            strcpy(result->name, dentry->name);
+            return result;
+        }
+
+        return NULL;
+    }
+
     // Пропустим сначала все процессы по смещению
     // надо пропустить index процессов
     while (cur < index)
@@ -238,6 +284,7 @@ exit:
 uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode, const char *name, int* type)
 {
     //printk("procfs: find dentry %s\n", name);
+    int i;
     ino_t parent_inode_num = vfs_parent_inode->inode;
 
     if (parent_inode_num == PROCFS_ROOTINODE)
@@ -248,7 +295,16 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
         
         if ((endptr == name) || *endptr != '\0') 
         {
-            // это не число
+            // это не число, вероятно это один из корневых файлов
+            for (i = 0; i < NROOTENTRIES; i ++)
+            {
+                struct procfs_procdir_dentry *procfs_dentry = &procfs_root_dentries[i];
+                if (strcmp(name, procfs_dentry->name) == 0)
+                {
+                    *type = procfs_dentry->dentry_type;
+                    return PROCFS_ROOTINODE + 1 + i;
+                }
+            }
         }
         else
         {
@@ -276,7 +332,7 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
 
         if (pid >= 0 && fileid == 0)     
         {
-            for (int i = 0; i < NPROCDENTRIES; i ++)
+            for (i = 0; i < NPROCDENTRIES; i ++)
             {
                 struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[i];
                 if (strcmp(name, procfs_dentry->name) == 0)
