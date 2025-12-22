@@ -69,7 +69,7 @@ int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, addr, addrlen);
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -85,6 +85,8 @@ int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     rc = socket_bind(sock, addr, addrlen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -93,7 +95,7 @@ int sys_listen(int sockfd, int backlog)
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -109,6 +111,8 @@ int sys_listen(int sockfd, int backlog)
     rc = socket_listen(sock, backlog);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -117,7 +121,7 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -139,6 +143,8 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     }
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -148,7 +154,7 @@ int sys_setsockopt(int sockfd, int level, int optname, const void *optval, sockl
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, optval, optlen);
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -164,6 +170,8 @@ int sys_setsockopt(int sockfd, int level, int optname, const void *optval, sockl
     rc = socket_setsockopt(sock, level, optname, optval, optlen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -173,7 +181,7 @@ int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER(process, addr, addrlen);
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -189,6 +197,8 @@ int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     rc = socket_connect(sock, addr, addrlen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -197,7 +207,7 @@ int sys_shutdown(int sockfd, int how)
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -213,6 +223,8 @@ int sys_shutdown(int sockfd, int how)
     rc = socket_shutdown(sock, how);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -220,7 +232,7 @@ int sys_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -236,6 +248,8 @@ int sys_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     rc = socket_getpeername(sock, addr, addrlen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -243,7 +257,7 @@ int sys_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -259,6 +273,8 @@ int sys_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen)
     rc = socket_getsockname(sock, name, namelen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -272,7 +288,7 @@ int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
         VALIDATE_USER_POINTER(process, to, tolen);
     }
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -288,6 +304,8 @@ int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
     rc = socket_sendto(sock, msg, len, flags, to, tolen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
 
@@ -309,7 +327,7 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
         VALIDATE_USER_POINTER(process, from, sizeof(struct sockaddr));
     }
 
-    struct file* file = process_get_file(process, sockfd);
+    struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -331,5 +349,7 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
     rc = socket_recvfrom(sock, buf, len, flags, from, addrlen);
 
 exit:
+    if (file)
+        file_close(file);
     return rc;
 }
