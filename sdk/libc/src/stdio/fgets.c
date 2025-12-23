@@ -22,7 +22,12 @@ char *fgets_unlocked(char *s, int size, FILE *stream)
     {
         c = fgetc(stream);
 
-        if (c == EOF) {
+        if (c == EOF) 
+        {
+            if (i == 0) {
+                return NULL;
+            }
+
             break;
         }
 

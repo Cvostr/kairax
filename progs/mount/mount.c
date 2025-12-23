@@ -2,6 +2,31 @@
 #include "errno.h"
 #include "sys/mount.h"
 #include "string.h"
+#include "err.h"
+
+#define MOUNT_STRLEN 512
+const static char MOUNTS_PATH[] = "/proc/mounts";
+
+int print_mounts()
+{
+    char strbuffer[MOUNT_STRLEN];
+    FILE *fmounts = fopen(MOUNTS_PATH, "r");
+    if (fmounts == NULL)
+    {
+        err(1, "Error opening %s", MOUNTS_PATH);
+    }
+    
+
+    char *lptr;
+    while ((lptr = fgets(strbuffer, MOUNT_STRLEN, fmounts)) != NULL) 
+    {
+        printf(lptr);
+    }
+    
+    fclose(fmounts);
+
+    return 0;    
+}
 
 int main(int argc, char** argv) {
 
@@ -9,6 +34,11 @@ int main(int argc, char** argv) {
     char* dst = NULL;
     char* fstype = NULL;
     int rdonly = 0;
+
+    if (argc == 1)
+    {
+        return print_mounts();
+    }
 
     for (int i = 1; i < argc; i ++)
     {
