@@ -141,6 +141,9 @@ next_modifier:
                             sch = fn->getch(fn->data);
                             spos++;
                         }
+                        // терминируем строку
+                        *dstr = '\0';
+                        dstr++;
                         break;
                     case 'c':
                         // Пропускаем пробелы входной строки

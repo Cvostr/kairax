@@ -1785,6 +1785,7 @@ int ext2_statfs(struct superblock *sb, struct statfs* stat)
 {
     ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
 
+    stat->fstype = EXT2_MAGIC;
     stat->blocksize = inst->block_size;
 
     stat->blocks = inst->superblock->total_blocks;

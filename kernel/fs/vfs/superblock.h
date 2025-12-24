@@ -25,6 +25,7 @@ struct superblock {
 
 struct statfs {
 
+    uint64_t  fstype;
     blksize_t blocksize;
     
     blkcnt_t blocks;

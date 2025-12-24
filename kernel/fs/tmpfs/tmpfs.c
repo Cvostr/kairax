@@ -348,6 +348,7 @@ int tmpfs_statfs(struct superblock *sb, struct statfs* stat)
 {
     struct tmpfs_instance *inst = (struct tmpfs_instance *) sb->fs_info;
 
+    stat->fstype = 0x01021994;
     stat->blocksize = inst->blocksize;
 
     stat->blocks = INT_MAX;

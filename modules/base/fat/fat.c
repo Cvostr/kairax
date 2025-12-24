@@ -947,6 +947,7 @@ int fat_statfs(struct superblock *sb, struct statfs* stat)
 {
     struct fat_instance* inst = (struct fat_instance*) sb->fs_info;
 
+    stat->fstype = 0x4d44;
     stat->blocksize = inst->bpb->bytes_per_sector;
 
     stat->blocks = inst->sectors_count;
