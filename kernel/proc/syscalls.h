@@ -141,6 +141,10 @@ int sys_setdomainname(const char *name, size_t len);
 int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout);
 
+struct statfs;
+int sys_statfs(const char *path, struct statfs *buf);
+int sys_fstatfs(int fd, struct statfs *buf);
+
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
 

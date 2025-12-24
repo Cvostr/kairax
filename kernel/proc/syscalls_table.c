@@ -75,6 +75,8 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x7E, sys_sigprocmask),
     DEFINE_SYSCALL(0x7F, sys_sigpending),
     DEFINE_SYSCALL(0x85, sys_mknodat),
+    DEFINE_SYSCALL(0x89, sys_statfs),
+    DEFINE_SYSCALL(0x8A, sys_fstatfs),
     DEFINE_SYSCALL(0xA4, sys_set_time_epoch),
     DEFINE_SYSCALL(0xA5, sys_mount),
     DEFINE_SYSCALL(0xA6, sys_unmount),

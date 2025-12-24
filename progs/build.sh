@@ -133,3 +133,7 @@ cd ..
 cd realpath
 make
 cd ..
+
+cd df
+make
+cd ..

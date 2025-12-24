@@ -51,6 +51,8 @@ extern int syscall_rmdir(const char* path);
 extern int syscall_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newpath);
 extern int syscall_mount(const char* device, const char* mount_dir, const char* fs, unsigned long flags);
 extern int syscall_unmount(const char *mount_dir, int flags);
+extern int syscall_statfs(const char *path, void *buf);
+extern int syscall_fstatfs(int fd, void *buf);
 extern int syscall_create_directory(int dirfd, const char* pathname, int mode);
 extern void* syscall_map_memory(void* address, unsigned long long length, int protection, int flags, int fd, long long offset);
 extern int syscall_protect_memory(void* address, unsigned long long length, int protection);

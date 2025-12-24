@@ -17,6 +17,7 @@ typedef unsigned long 		dev_t;
 
 typedef unsigned long int 	blkcnt_t;
 typedef unsigned long int 	blksize_t;  
+typedef unsigned long int   inocnt_t;
 
 typedef signed long 		suseconds_t;
 typedef signed long 		useconds_t;

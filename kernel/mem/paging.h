@@ -2,7 +2,7 @@
 #define _PAGING_H
 
 #include "sync/spinlock.h"
-#include "atomic.h"
+#include "kairax/atomic.h"
 
 #define PAGE_PROTECTION_READ_ENABLE     0x01
 #define PAGE_PROTECTION_WRITE_ENABLE    0x02

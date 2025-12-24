@@ -85,6 +85,8 @@ DEFINE_SYSCALL syscall_getpgid,     0x79
 DEFINE_SYSCALL syscall_sigprocmask, 0x7E
 DEFINE_SYSCALL syscall_sigpending,  0x7F
 DEFINE_SYSCALL syscall_mknodat,     0x85
+DEFINE_SYSCALL syscall_statfs,      0x89
+DEFINE_SYSCALL syscall_fstatfs,     0x8A
 DEFINE_SYSCALL syscall_sethostname, 0xAA
 DEFINE_SYSCALL syscall_setdomainname, 0xAB
 DEFINE_SYSCALL syscall_mount,       0xA5
