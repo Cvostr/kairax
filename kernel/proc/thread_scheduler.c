@@ -200,11 +200,6 @@ void scheduler_remove_thread(struct thread* thread)
     ENABLE_INTS
 }
 
-void scheduler_sleep(void* handle, spinlock_t* lock)
-{
-    printk("Deprecated!\n");
-}
-
 int scheduler_sleep1()
 {
     struct sched_wq* wq = cpu_get_wq();
@@ -254,11 +249,6 @@ void scheduler_wakeup1(struct thread* thread)
         scheduler_unblock(thread);
         ENABLE_INTS
     }
-}
-
-int scheduler_wakeup(void* handle, int max)
-{
-    printk("Deprecated!\n");
 }
 
 void scheduler_unblock(struct thread* thread)

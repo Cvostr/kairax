@@ -41,13 +41,8 @@ struct thread* scheduler_get_next_runnable_thread();
 
 void scheduler_yield(int save_context);
 
-void scheduler_sleep(void* handle, spinlock_t* lock);
-
-int scheduler_wakeup(void* handle, int max);
 void scheduler_wakeup1(struct thread* thread);
-
 void scheduler_unblock(struct thread* thread);
-
 
 // Получить порядковый номер наиболее свободного процессора
 uint32_t scheduler_get_less_loaded();

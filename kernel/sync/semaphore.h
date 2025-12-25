@@ -18,7 +18,8 @@ struct semaphore {
 struct semaphore* new_semaphore(int max);
 struct semaphore* new_mutex();
 void free_semaphore(struct semaphore* sem);
-void semaphore_acquire(struct semaphore* sem);
+void semaphore_init(struct semaphore* sem, int max);
+int semaphore_acquire(struct semaphore* sem);
 void semaphore_release(struct semaphore* sem);
 
 #endif

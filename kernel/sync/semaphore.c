@@ -21,21 +21,27 @@ struct semaphore* new_mutex()
 void free_semaphore(struct semaphore* sem)
 {
     while (sem->current > 0) {
-        // Должны дождаться, пока все не отпустят семафор
-        scheduler_sleep(sem, NULL);
+
     }
     acquire_spinlock(&sem->lock);
     kfree(sem);
 }
 
-void semaphore_acquire(struct semaphore* sem)
+void semaphore_init(struct semaphore* sem, int max)
 {
+    memset(sem, 0, sizeof(struct semaphore));
+    sem->max = max;
+}
+
+int semaphore_acquire(struct semaphore* sem)
+{
+    struct thread  *current;
     acquire_spinlock(&sem->lock);
 
     if (sem->current < sem->max) {
         sem->current ++;
     } else {
-        struct thread* current = cpu_get_current_thread();
+        current = cpu_get_current_thread();
 
         if (sem->first == NULL) {
             sem->first = current;
@@ -46,30 +52,32 @@ void semaphore_acquire(struct semaphore* sem)
         sem->last = current;
 
         // Блокируемся и выходим
-        scheduler_sleep(NULL, &sem->lock);
+        release_spinlock(&sem->lock);
+        return scheduler_sleep1();
     }
 
     release_spinlock(&sem->lock);
+    return 0;
 }
 
 void semaphore_release(struct semaphore* sem)
 {
     acquire_spinlock(&sem->lock);
 
-    if (sem->first) {
-        // Первый заблокированный поток
-        struct thread* first_thread = sem->first;
+    // Первый заблокированный поток
+    struct thread* first_thread = sem->first;
+
+    if (first_thread) 
+    {
         sem->first = first_thread->next; 
         first_thread->next = NULL;
+
+        release_spinlock(&sem->lock);
         // Разблокировка потока
-        scheduler_unblock(first_thread);
+        scheduler_wakeup1(first_thread);
+        return;
     } else {
         sem->current --;
-
-        // Если все освободили семафор - пробуждаем потоки
-        if (sem->current == 0) {
-            scheduler_wakeup(sem, INT_MAX);
-        }
     }
 
     release_spinlock(&sem->lock);
