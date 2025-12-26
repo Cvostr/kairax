@@ -28,6 +28,11 @@ struct module* mstor_get_module_with_name(const char* name)
     return NULL;
 }
 
+struct module* mstor_get_module(int index)
+{
+    return list_get(&kernel_modules, index);
+}
+
 struct module* mstor_new_module(uint64_t size, const char* name)
 {
     struct module* mod = kmalloc(sizeof(struct module));

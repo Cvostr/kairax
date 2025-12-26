@@ -54,8 +54,12 @@ static const struct procfs_procdir_dentry procfs_dentries[] = {
 struct file_operations mounts_fops = {
     .read = procfs_mounts_read
 };
+struct file_operations modules_fops = {
+    .read = procfs_modules_read
+};
 static const struct procfs_procdir_dentry procfs_root_dentries[] = {
-    {.name = "mounts", .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &mounts_fops}
+    {.name = "mounts", .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &mounts_fops},
+    {.name = "modules", .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &modules_fops}
 };
 #define NROOTENTRIES (sizeof(procfs_root_dentries) / sizeof(struct procfs_procdir_dentry)) 
 

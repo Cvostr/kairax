@@ -17,11 +17,11 @@ struct module {
 };
 
 struct module* mstor_new_module(uint64_t size, const char* name);
-
 void free_module(struct module* module);
 
 int mstor_register_module(struct module* module);
-
 int mstor_destroy_module(const char* module_name);
+
+struct module* mstor_get_module(int index);
 
 #endif

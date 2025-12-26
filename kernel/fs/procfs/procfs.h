@@ -28,5 +28,6 @@ ssize_t procfs_cwd_readlink(struct inode* inode, char* pathbuf, size_t pathbufle
 
 // для файлов корня
 ssize_t procfs_mounts_read(struct file* file, char* buffer, size_t count, loff_t offset);
+ssize_t procfs_modules_read(struct file* file, char* buffer, size_t count, loff_t offset);
 
 #endif
