@@ -200,6 +200,29 @@ void scheduler_remove_thread(struct thread* thread)
     ENABLE_INTS
 }
 
+int scheduler_prepare_sleep(struct thread* thr)
+{
+    struct sched_wq* wq = cpu_get_wq();
+
+    // Изменяем состояние - блокируемся
+    thr->state = STATE_INTERRUPTIBLE_SLEEP;
+
+    // удалить из очереди текущего ЦП
+    wq_remove_thread(wq, thr);
+}
+
+int scheduler_get_wake_reason(struct thread* thr)
+{
+    int wake_rsn = thr->wake_reason; 
+    if (wake_rsn != WAKE_NORMAL)
+    {
+        thr->wake_reason = WAKE_NORMAL;
+        return wake_rsn;
+    }
+
+    return 0;
+}
+
 int scheduler_sleep1()
 {
     struct sched_wq* wq = cpu_get_wq();

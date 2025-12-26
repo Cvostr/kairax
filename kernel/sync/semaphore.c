@@ -20,9 +20,10 @@ struct semaphore* new_mutex()
 
 void free_semaphore(struct semaphore* sem)
 {
-    while (sem->current > 0) {
+    while (sem->current.counter > 0) {
 
     }
+
     acquire_spinlock(&sem->lock);
     kfree(sem);
 }
@@ -36,13 +37,25 @@ void semaphore_init(struct semaphore* sem, int max)
 int semaphore_acquire(struct semaphore* sem)
 {
     struct thread  *current;
-    acquire_spinlock(&sem->lock);
 
-    if (sem->current < sem->max) {
-        sem->current ++;
-    } else {
+    if (atomic_inc_and_get(&sem->current) > sem->max) 
+    {
+        // Так как семафором владеют больше потоков, чем можно
+        // То засыпаем
         current = cpu_get_current_thread();
 
+        // Сначала блокируем спинлок, потому что будем изменять внутреннее состояние семафора
+        acquire_spinlock(&sem->lock);
+
+        // Выключаем прерывания, так как дальнейшие действия надо выполнить атомарно
+        disable_interrupts();
+
+        // Исключает поток из рабочей очереди тякущего CPU
+        // И ставит статус "блокирован"
+        scheduler_prepare_sleep(current);
+
+        // Добавление потока в очередь блокированных
+        // Делаем это именно сейчас, потому что semaphore_release() ожидает, что потоки в очереди уже блокированы
         if (sem->first == NULL) {
             sem->first = current;
         } else {
@@ -51,34 +64,37 @@ int semaphore_acquire(struct semaphore* sem)
 
         sem->last = current;
 
-        // Блокируемся и выходим
+        // Снимаем спин и засыпаем
         release_spinlock(&sem->lock);
-        return scheduler_sleep1();
+        scheduler_yield(TRUE);
+
+        return scheduler_get_wake_reason(current);
     }
 
-    release_spinlock(&sem->lock);
     return 0;
 }
 
 void semaphore_release(struct semaphore* sem)
 {
-    acquire_spinlock(&sem->lock);
-
     // Первый заблокированный поток
-    struct thread* first_thread = sem->first;
+    struct thread* first_thread = NULL;
 
-    if (first_thread) 
+    if (__sync_sub_and_fetch(&sem->current.counter, 1) >= sem->max)
     {
-        sem->first = first_thread->next; 
-        first_thread->next = NULL;
+        while (first_thread == NULL)
+        {
+            // Извлекаем первый блокированный поток
+            acquire_spinlock(&sem->lock);
+            first_thread = sem->first;
+            if (first_thread) 
+            {
+                sem->first = first_thread->next; 
+                first_thread->next = NULL;
+            }
+            release_spinlock(&sem->lock);
+        }
 
-        release_spinlock(&sem->lock);
         // Разблокировка потока
         scheduler_wakeup1(first_thread);
-        return;
-    } else {
-        sem->current --;
     }
-
-    release_spinlock(&sem->lock);
 }

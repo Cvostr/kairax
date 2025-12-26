@@ -41,11 +41,18 @@ struct thread* scheduler_get_next_runnable_thread();
 
 void scheduler_yield(int save_context);
 
+// Подготавливает поток ко сну
+// Используется в случаях, когда необходимо зарегистрировать поток перед сном
+// Например в семафоре
+int scheduler_prepare_sleep(struct thread* thr);
+int scheduler_sleep1();
 void scheduler_wakeup1(struct thread* thread);
 void scheduler_unblock(struct thread* thread);
 
 // Получить порядковый номер наиболее свободного процессора
 uint32_t scheduler_get_less_loaded();
+
+int scheduler_get_wake_reason(struct thread* thr);
 
 void cpu_put_thread(uint32_t icpu, struct thread* thread);
 

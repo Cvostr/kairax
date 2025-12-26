@@ -10,7 +10,7 @@ struct thread;
 struct semaphore {
     spinlock_t      lock;
     int             max;
-    int             current;
+    atomic_t        current;
     struct thread*  first;
     struct thread*  last;
 };
