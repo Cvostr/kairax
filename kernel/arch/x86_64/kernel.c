@@ -5,6 +5,7 @@
 #include "interrupts/pic.h"
 #include "interrupts/handle/handler.h"
 #include "dev/input/ps2.h"
+#include "dev/serial/serial.h"
 #include "dev/bus/pci/pci.h"
 
 #include "dev/bus/usb/xhci/usb_xhci.h"
@@ -26,6 +27,7 @@
 #include "fs/vfs/vfs.h"
 #include "fs/ext2/ext2.h"
 #include "fs/devfs/devfs.h"
+#include "fs/tmpfs/tmpfs.h"
 #include "fs/procfs/procfs.h"
 
 #include "misc/bootshell/bootshell.h"

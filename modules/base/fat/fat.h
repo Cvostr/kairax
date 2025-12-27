@@ -163,11 +163,15 @@ struct fat_instance {
 
 #define FAT_DIRENTRY_GET_CLUSTER(x) ((((uint32_t) x.first_cluster_hi) << 16) | x.first_cluster_lo)
 
-int fat_init();
+int fat_init(void);
 void fat_exit(void);
 
+time_t fat_date_to_epoch(struct fat_date* date, struct fat_time* time);
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
 int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer);
+
+void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname);
+void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn);
 
 // Функции для получения номера следующего кластера в цепочке
 int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer, uint32_t* last_sector, uint32_t *next_cluster);

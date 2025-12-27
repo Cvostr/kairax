@@ -121,7 +121,7 @@ ssize_t mouse_file_read (struct file* file, char* buffer, size_t count, loff_t o
 
 int mouse_file_close(struct inode *inode, struct file *file)
 {
-    struct mouse_buffer* keybuffer = (struct keyboard_buffer*) file->private_data;
+    struct mouse_buffer* keybuffer = (struct mouse_buffer*) file->private_data;
     mouse_buffer_destroy(keybuffer);
     return 0;
 }

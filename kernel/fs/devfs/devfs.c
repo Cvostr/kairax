@@ -23,6 +23,7 @@ uint64_t inode_index = DEVFS_ROOT_INODE;
 spinlock_t  devfs_lock;
 
 void arch_get_timespec(struct timespec *ts);
+int devfs_add_shm_dir();
 
 void devfs_init()
 {

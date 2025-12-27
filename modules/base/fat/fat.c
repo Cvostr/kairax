@@ -22,7 +22,7 @@ struct inode_operations fat_dir_inode_ops;
 
 #define KFREE_SAFE(x) if (x) {kfree(x);}
 
-int fat_init()
+int fat_init(void)
 {
     filesystem_t* fatfs = new_filesystem();
     fatfs->name = "fat";
@@ -564,9 +564,7 @@ int fat_read_directory_cluster( struct fat_instance* inst,
 
 void fat_nseize_str(uint16_t* in, size_t len, char* out)
 {
-    size_t i = 0;
-
-    for (i; i < len; i ++)
+    for (size_t i = 0; i < len; i ++)
     {
         uint16_t val = in[i];
         out[i] = (char) val;

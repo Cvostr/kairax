@@ -108,7 +108,7 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
     else if (inode > PROCFS_ROOTINODE && inode <= PROCFS_ROOTINODE + NROOTENTRIES)
     {
         // это файл в корневой директории
-        struct procfs_procdir_dentry *procfs_dentry = &procfs_root_dentries[inode - PROCFS_ROOTINODE - 1];
+        const struct procfs_procdir_dentry *procfs_dentry = &procfs_root_dentries[inode - PROCFS_ROOTINODE - 1];
         result = new_vfs_inode();
         result->inode = inode;
         result->sb = sb;
@@ -151,7 +151,7 @@ struct inode* procfs_makeinode(struct superblock* sb, ino_t inode)
             if (fileid >= NPROCDENTRIES)
                 goto exit;
 
-            struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[fileid];
+            const struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[fileid];
 
             // это директория процесса
             result = new_vfs_inode();
@@ -208,7 +208,7 @@ struct dirent* procfs_root_file_readdir(struct file* dir, uint32_t index)
 
         if (file_idx < NROOTENTRIES)
         {
-            struct procfs_procdir_dentry *dentry = &procfs_root_dentries[file_idx];
+            const struct procfs_procdir_dentry *dentry = &procfs_root_dentries[file_idx];
 
             result = new_vfs_dirent();
             result->inode = PROCFS_ROOTINODE + 1 + file_idx;
@@ -273,7 +273,7 @@ struct dirent* procfs_process_file_readdir(struct file* dir, uint32_t index)
     if (index >= NPROCDENTRIES)
         goto exit;
 
-    struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[index];
+    const struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[index];
     
     result = new_vfs_dirent();
     result->inode = procfs_makeino(pid, index + 1); // прибавляем 1, так как 0 отдан под саму inode процесса
@@ -302,7 +302,7 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
             // это не число, вероятно это один из корневых файлов
             for (i = 0; i < NROOTENTRIES; i ++)
             {
-                struct procfs_procdir_dentry *procfs_dentry = &procfs_root_dentries[i];
+                const struct procfs_procdir_dentry *procfs_dentry = &procfs_root_dentries[i];
                 if (strcmp(name, procfs_dentry->name) == 0)
                 {
                     *type = procfs_dentry->dentry_type;
@@ -338,7 +338,7 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
         {
             for (i = 0; i < NPROCDENTRIES; i ++)
             {
-                struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[i];
+                const struct procfs_procdir_dentry *procfs_dentry = &procfs_dentries[i];
                 if (strcmp(name, procfs_dentry->name) == 0)
                 {
                     *type = procfs_dentry->dentry_type;
