@@ -680,6 +680,7 @@ int usb_mass_device_probe(struct device *dev)
 
 		// Собрать структуру диска
 		struct drive_device_info* drive_info = new_drive_device_info();
+		drive_info->flags = DRIVE_REMOVABLE;
 		drive_info->sectors = blocks;
 		drive_info->block_size = usb_mass->blocksize;
 		drive_info->nbytes = blocks * usb_mass->blocksize;

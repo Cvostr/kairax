@@ -3,6 +3,7 @@
 #include "kairax/list/list.h"
 #include "kairax/string.h"
 #include "kairax/errors.h"
+#include "kairax/stdio.h"
 
 list_t nic_list = {0,};
 spinlock_t nic_lock = 0;
@@ -54,17 +55,14 @@ struct nic* get_nic_by_name(const char* name)
 
 int register_nic(struct nic* nic, const char* name_prefix)
 {
-    // TODO: двузначные значения постфиксов
-    char postfix[] = {0, 0};
     int i = 0;
     char namebuf[NIC_NAME_LEN];
 
     acquire_spinlock(&nic_lock);
     
-    for (int i = 0; i < 9; i ++) {
-        strcpy(namebuf, name_prefix);
-        postfix[0] = i + 0x30;
-        strcat(namebuf, postfix);
+    for (;;) 
+    {
+        sprintf(namebuf, sizeof(namebuf), "%s%i", name_prefix, i++);
 
         struct nic* n = get_nic_by_name_unlocked(namebuf);
         if (n != NULL) {

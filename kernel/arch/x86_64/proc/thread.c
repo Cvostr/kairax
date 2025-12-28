@@ -4,6 +4,8 @@
 #include "string.h"
 #include "memory/mem_layout.h"
 #include "cpu/gdt.h"
+#include "cpu/cpu_x64.h"
+#include "cpu/msr.h"
 #include "x64_context.h"
 #include "kstdlib.h"
 #include "proc/elf_process_loader.h"
@@ -11,6 +13,8 @@
 struct x64_uthread {
     struct x64_uthread* this;
 };
+
+void thread_create_tls(struct thread* thread);
 
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg)
 {

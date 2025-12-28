@@ -11,6 +11,9 @@ void procfs_init();
 struct inode* procfs_mount(drive_partition_t* drive, struct superblock* sb);
 int procfs_unmount(struct superblock* sb);
 
+ino_t procfs_makeino(pid_t pid, int file);
+void procfs_decodeino(ino_t inode_num, pid_t *pid, int *fileid);
+
 // Функция для чтения корневой директории.
 // Выводит все директории процессов
 struct dirent* procfs_root_file_readdir(struct file* dir, uint32_t index);

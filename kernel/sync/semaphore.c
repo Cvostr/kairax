@@ -3,7 +3,8 @@
 #include "string.h"
 #include "proc/thread.h"
 #include "proc/thread_scheduler.h"
-#include "cpu/cpu_local_x64.h"
+#include "kairax/intctl.h"
+#include "cpu/cpu_local.h"
 
 struct semaphore* new_semaphore(int max)
 {

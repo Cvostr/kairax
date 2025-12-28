@@ -3,10 +3,13 @@
 
 #include "kairax/types.h"
 
+#define DRIVE_REMOVABLE  0x4
+
 struct drive_device_info {
 
     char            blockdev_name[12];  //Имя устройства в системе
     char            serial[35];         //Серийный номер устройства
+    int             flags;
     uint8_t         uses_lba48;         //Используется ли LBA
     uint64_t        sectors;            //Количество секторов
     uint64_t        nbytes;             //Вместимость в байтах  
