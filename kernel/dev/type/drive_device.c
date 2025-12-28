@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "kairax/list/list.h"
+#include "kairax/stdio.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
 list_t drive_list = {0,};
@@ -80,7 +81,7 @@ int register_drive(struct drive_device_info* drive)
     for (;;) 
     {
         sprintf(namebuf, sizeof(namebuf), "%s%i", drive->blockdev_name, i++);
-        
+
         found = get_drive_by_blockname_unlocked(namebuf);
 
         if (found != NULL) {

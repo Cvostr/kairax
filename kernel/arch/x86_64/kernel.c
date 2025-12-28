@@ -187,21 +187,20 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	serial_init();
 	keyboard_init();
 	mouse_init();
+	random_init();
+	zero_init();
+	null_init();
+	net_init();
 
 	// Загружаем все необходимые модули multiboot2								
 	mb2_load_modules(P2V(multiboot_struct_ptr));
 	// Освобождаем регион с данными multiboot2
 	pmm_free_pages(multiboot_struct_ptr, align(mb2_info_sz, PAGE_SIZE) / PAGE_SIZE);
 
-	usb_mass_init();
+	//usb_mass_init();
 
 	vga_init_dev();
-	random_init();
-	zero_init();
-	null_init();
 	init_ps2();
-
-	net_init();
 	
 	register_interrupt_handler(INTERRUPT_VEC_RES, cpu_reschedule_ipi, 0);
 	register_interrupt_handler(INTERRUPT_VEC_HLT, x64_full_halt, 0);

@@ -21,6 +21,7 @@
 #include "dev/device_man.h"
 #include "drivers/char/input/keyboard.h"
 #include "drivers/char/input/mouse.h"
+#include "dev/type/drive_device.h"
 
 #define KFUNCTION(x) {.name = #x, .func_ptr = x}
 
@@ -96,6 +97,7 @@ struct kernel_function functions[] = {
     KFUNCTION(new_vfs_inode),
     KFUNCTION(new_vfs_dirent),
     // partition
+    KFUNCTION(register_drive),
     KFUNCTION(partition_read),
     // kairax std
     KFUNCTION(memset),
@@ -105,6 +107,7 @@ struct kernel_function functions[] = {
     KFUNCTION(strcmp),
     KFUNCTION(strlen),
     KFUNCTION(strcat),
+    KFUNCTION(strncat),
     KFUNCTION(strchr),
     KFUNCTION(strrchr),
     KFUNCTION(align),
