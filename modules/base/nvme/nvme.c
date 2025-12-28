@@ -349,6 +349,8 @@ int nvme_ctlr_device_probe(struct device *dev)
 		drive_dev->dev_data = ns;
 		drive_dev->drive_info = drive_info;
 
+		drive_info->dev = drive_dev;
+
 		register_device(drive_dev);
 	}
 

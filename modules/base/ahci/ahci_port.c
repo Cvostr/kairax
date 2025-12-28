@@ -284,6 +284,8 @@ int ahci_port_handle_error(ahci_port_t *port, uint32_t is)
 	{
 		printk("Port Connect Change\n");
 	}
+
+	return 0;
 }
 
 int ahci_port_interrupt(ahci_port_t *port)

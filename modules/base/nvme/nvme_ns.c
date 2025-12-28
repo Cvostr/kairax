@@ -30,7 +30,7 @@ struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32
 
 int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count, unsigned char* out)
 {
-    struct queue* queue = nvme_ctrlr_acquire_queue(ns->controller);
+    struct nvme_queue *queue = nvme_ctrlr_acquire_queue(ns->controller);
 
     acquire_spinlock(&ns->lock);
 
@@ -61,7 +61,7 @@ int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count,
 
 int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count, const unsigned char* in)
 {
-    struct queue* queue = nvme_ctrlr_acquire_queue(ns->controller);
+    struct nvme_queue *queue = nvme_ctrlr_acquire_queue(ns->controller);
 
     acquire_spinlock(&ns->lock);
 

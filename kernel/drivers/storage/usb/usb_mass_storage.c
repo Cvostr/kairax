@@ -684,11 +684,9 @@ int usb_mass_device_probe(struct device *dev)
 		drive_info->sectors = blocks;
 		drive_info->block_size = usb_mass->blocksize;
 		drive_info->nbytes = blocks * usb_mass->blocksize;
-
 		drive_info->read = usb_mass_device_read_lba;
 		drive_info->write = usb_mass_device_write_lba;
-		// TEMP
-		strcpy(drive_info->blockdev_name, "usb0");
+		strncpy(drive_info->blockdev_name, "usbX", BLOCKDEV_NAMELEN);
 
 		struct device* lun_dev = new_device();
 		lun_dev->dev_type = DEVICE_TYPE_DRIVE;
@@ -700,8 +698,9 @@ int usb_mass_device_probe(struct device *dev)
 
 		register_device(lun_dev);
 
-		// TODO: move??
-		add_partitions_from_device(lun_dev);
+		drive_info->dev = lun_dev;
+
+		register_drive(drive_info);
 	}
 
 	return 0;

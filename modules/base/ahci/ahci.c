@@ -248,6 +248,7 @@ int ahci_device_probe(struct device *dev)
 			drive_info->block_size = 512;
 			drive_info->nbytes = drive_info->sectors * drive_info->block_size;
 			drive_info->uses_lba48 = cmd_sets & (1 << 26);
+			drive_info->dev = drive_dev;
 			drive_info->write = ahci_write_lba;
 			drive_info->read = ahci_read_lba;
 			ahci_form_disk_name(drive_info->blockdev_name, 0, i);

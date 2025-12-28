@@ -5,7 +5,7 @@
 
 typedef struct PACKED {
     char                    name[15];       //Имя устройства в системе  
-    struct device*          device;
+    struct drive_device_info *drive;
     uint32_t                index;
 
     uint64_t                start_lba;
@@ -16,6 +16,7 @@ typedef struct PACKED {
 drive_partition_t* new_drive_partition_header();
 
 int add_partitions_from_device(struct device* device);
+int add_partitions_from_drive(struct drive_device_info* drive);
 
 void add_partition_header(drive_partition_t* partition_header);
 //Количество разделов, подключенных в данный момент

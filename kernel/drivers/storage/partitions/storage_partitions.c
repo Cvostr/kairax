@@ -21,6 +21,11 @@ drive_partition_t* new_drive_partition_header()
 
 int add_partitions_from_device(struct device* device)
 {
+    return add_partitions_from_drive(device->drive_info);
+}
+
+int add_partitions_from_drive(struct drive_device_info* drive)
+{
     char* first_sector = kmalloc(512);
     memset(first_sector, 0, 512);
     char* second_sector = kmalloc(512);
@@ -28,17 +33,17 @@ int add_partitions_from_device(struct device* device)
 
     int rc;
 
-    rc = drive_device_read(device, 0, 1, first_sector);
+    rc = drive_device_read(drive, 0, 1, first_sector);
     if (rc != 0)
     {
-        printk("Error reading sector 0 of drive %s\n", device->dev_name);
+        printk("Error reading sector 0 of drive %s\n", drive->blockdev_name);
         return rc;
     }
 
-    rc = drive_device_read(device, 1, 1, second_sector);
+    rc = drive_device_read(drive, 1, 1, second_sector);
     if (rc != 0)
     {
-        printk("Error reading sector 1 of drive %s\n", device->dev_name);
+        printk("Error reading sector 1 of drive %s\n", drive->blockdev_name);
         return rc;
     }
 
@@ -50,7 +55,7 @@ int add_partitions_from_device(struct device* device)
 
     if (has_gpt_sign == FALSE && has_mbr_sign == FALSE)
     {
-        printk("Disk %s does not have partition table\n", device->dev_name);
+        printk("Disk %s does not have partition table\n", drive->blockdev_name);
         return 0;
     }
 
@@ -66,12 +71,12 @@ int add_partitions_from_device(struct device* device)
             }
 
             drive_partition_t* partition = new_drive_partition_header();
-            partition->device = device;
+            partition->drive = drive;
             partition->index = i;
             partition->start_lba = mbr_partition->lba_start;
             partition->sectors = mbr_partition->lba_sectors;
 
-            strcpy(partition->name, device->drive_info->blockdev_name);
+            strcpy(partition->name, drive->blockdev_name);
 			strcat(partition->name, "p");
 			strcat(partition->name, itoa(i, 10));
 
@@ -91,10 +96,10 @@ int add_partitions_from_device(struct device* device)
             char* gpt_entry_buffer = kmalloc(GPT_BLOCK_SIZE);
             memset(gpt_entry_buffer, 0, GPT_BLOCK_SIZE);
             
-            rc = drive_device_read(device, current_lba, 1, gpt_entry_buffer);
+            rc = drive_device_read(drive, current_lba, 1, gpt_entry_buffer);
             if (rc != 0)
             {
-                printk("Error reading sector %i of drive %s\n", current_lba, device->dev_name);
+                printk("Error reading sector %i of drive %s\n", current_lba, drive->blockdev_name);
                 return rc;
             }
 
@@ -109,13 +114,13 @@ int add_partitions_from_device(struct device* device)
 
                 //Формирование структуры, описывающей раздел
                 drive_partition_t* partition = new_drive_partition_header();
-                partition->device = device;
+                partition->drive = drive;
                 partition->index = found_partitions;
                 partition->start_lba = entry->start_lba;
                 partition->sectors = (entry->end_lba - entry->start_lba) + 1;
 
                 //Формирование имени раздела
-                strcpy(partition->name, device->drive_info->blockdev_name);
+                strcpy(partition->name, drive->blockdev_name);
                 strcat(partition->name, "p");
                 strcat(partition->name, itoa(found_partitions, 10));
 
@@ -167,10 +172,10 @@ drive_partition_t* get_partition_with_name(const char* name)
 
 int partition_read(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer)
 {
-    return drive_device_read(partition->device, lba_start + partition->start_lba, count, buffer);
+    return drive_device_read(partition->drive, lba_start + partition->start_lba, count, buffer);
 }
 
 int partition_write(drive_partition_t* partition, uint64_t lba_start, uint64_t count, char* buffer)
 {
-    return drive_device_write(partition->device, lba_start + partition->start_lba, count, buffer);
+    return drive_device_write(partition->drive, lba_start + partition->start_lba, count, buffer);
 }

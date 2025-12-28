@@ -154,7 +154,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     instance->vfs_sb = sb;
     instance->partition = drive;
 
-    uint64_t bsize = drive->device->drive_info->block_size;
+    uint64_t bsize = drive->drive->block_size;
     if (bsize < 512)
     {
         printk("FAT: Disk block size (%i) is lower than minimum required 512!\n");
