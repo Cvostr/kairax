@@ -15,7 +15,8 @@ char dimensions[] = {
     'B',
     'k',
     'M',
-    'G'
+    'G',
+    'T'
 };
 #define NDIMENSIONS (sizeof(dimensions) / sizeof(char))
 
@@ -134,7 +135,7 @@ int main(int argc, char** argv)
             used_val = convert_dimension(used, POWER, &used_dimension);
             free_val = convert_dimension(free, POWER, &free_dimension);
 
-            printf("%s  %f%c %f%c %f%c  %i%%  %s\n", 
+            printf("%s  %.1f%c %.1f%c %.1f%c  %i%%  %s\n", 
                 device, 
                 totalsz_val, totalsz_dimension, 
                 used_val, used_dimension,

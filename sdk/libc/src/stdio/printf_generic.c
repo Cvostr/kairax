@@ -59,7 +59,8 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list args)
     long long llvalue;
     int pad_left = 0;
     int width = 0;
-    int length_limited = 0;
+    int precision_flag = 0;
+    int precision;
     char pad_char = ' ';
     int capitalize = 0;
 
@@ -80,7 +81,8 @@ int printf_generic(struct arg_printf* fn, const char *format, va_list args)
             width = 0;
             pad_char = ' ';
             capitalize = 0;
-            length_limited = 0;
+            precision_flag = 0;
+            precision = 0;
 
 printf_nextchar:
             switch (ch = *(format++)) {
@@ -92,9 +94,9 @@ printf_nextchar:
                     break;
                 case 's':
                     str = va_arg(args, char*);
-                    if (length_limited == 1)
+                    if (precision_flag == 1)
                     {
-                        len = __MIN(strlen(str), width);
+                        len = __MIN(strlen(str), precision);
                         fn->put(fn->data, str, len);
                         written += len;
                         break;
@@ -111,11 +113,14 @@ printf_nextchar:
                 case '.':
                     // todo : добавить точность
                     pad_char = '0';
-                    // Флаг того, что устанавливается максимальная длина
-                    length_limited = 1;
+                    // Флаг того, что устанавливается точность/максимальная длина
+                    precision_flag = 1;
                     goto printf_nextchar;
                 case '*':
-                    width = va_arg(args, int);
+                    if (precision_flag == 0)
+                        width = va_arg(args, int);
+                    else
+                        precision = va_arg(args, int);
                     goto printf_nextchar;
                 case '0':
                 case '1':
@@ -127,10 +132,17 @@ printf_nextchar:
                 case '7':
                 case '8':
                 case '9':
-                    if (width == 0 && ch == '0') {
-                        pad_char = '0';
-                    } else {
-                        width = width * 10 + (ch - '0');
+                    if (precision_flag == 0)
+                    {
+                        if (width == 0 && ch == '0') {
+                            pad_char = '0';
+                        } else {
+                            width = width * 10 + (ch - '0');
+                        }
+                    }
+                    else
+                    {
+                        precision = precision * 10 + (ch - '0');
                     }
                     goto printf_nextchar;
 
@@ -174,6 +186,9 @@ printf_numeric:
                         ltoa(llvalue, buf, base);
                     }
 
+                    if (precision_flag == 1)
+                        width = precision;
+
                     // Записать
                     written += write_padded(fn, pad_left, buf, pad_char, width);
                     break;
@@ -182,8 +197,10 @@ printf_numeric:
                 case 'f':
                 case 'F':
                 case 'g':
+                    if (precision_flag == 0)
+                        precision = 6;
                     dval = va_arg(args, double);
-                    __dtostr(dval, buf, sizeof(buf), width, 6, capitalize ? 0x02 : 0);
+                    __dtostr(dval, buf, sizeof(buf), width, precision, capitalize ? 0x02 : 0);
                     fn->put(fn->data, buf, strlen(buf));
                     written += strlen(buf);
 
