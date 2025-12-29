@@ -1,4 +1,3 @@
-#include "usb_mass_storage.h"
 #include "dev/device_man.h"
 #include "module.h"
 #include "functions.h"
@@ -88,6 +87,9 @@ struct read_capacity_result
 	uint32_t block_length;
 } PACKED;
 
+#define CBW_SIGNATURE  	0x43425355
+#define CSW_SIGNATURE	0x53425355
+
 #define SCSI_TEST_UNIT_READY	0x00
 #define SCSI_INQUIRY			0x12
 #define SCSI_READ_CAPACITY      0x25
@@ -133,6 +135,16 @@ struct usb_device_id usb_mass_ids[] = {
     },
 	{0,}
 };
+
+int usb_mass_device_reset(struct usb_device* device, struct usb_interface* interface);
+int usb_mass_device_get_max_lun(struct usb_device* device, struct usb_interface* interface, uint8_t* max_lun);
+int usb_mass_device_clear_feature(struct usb_device* device, struct usb_endpoint* ep);
+int usb_mass_reset_recovery(struct usb_mass_storage_device* dev);
+int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length);
+
+int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result);
+int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev);
+int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks, uint32_t* block_size);
 
 int usb_mass_device_reset(struct usb_device* device, struct usb_interface* interface)
 {

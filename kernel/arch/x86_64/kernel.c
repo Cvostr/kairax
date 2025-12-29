@@ -197,8 +197,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	// Освобождаем регион с данными multiboot2
 	pmm_free_pages(multiboot_struct_ptr, align(mb2_info_sz, PAGE_SIZE) / PAGE_SIZE);
 
-	//usb_mass_init();
-
 	vga_init_dev();
 	init_ps2();
 	

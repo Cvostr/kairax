@@ -88,7 +88,6 @@ gcc $GCC_ARGS dev/type/audio_endpoint.c -o ./bin/audio_endpoint.o
 gcc $GCC_ARGS dev/type/drive_device.c -o ./bin/drive_device.o
 
 #generic drivers
-#gcc $GCC_ARGS drivers/storage/usb/usb_mass_storage.c -o ./bin/usb_mass_storage.o
 gcc $GCC_ARGS drivers/storage/partitions/storage_partitions.c -o ./bin/storage_partitions.o
 gcc $GCC_ARGS drivers/storage/partitions/formats/gpt.c -o ./bin/gpt.o
 gcc $GCC_ARGS drivers/video/video.c -o ./bin/video.o
