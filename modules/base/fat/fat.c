@@ -251,7 +251,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         instance->eoc_value = FAT32_EOC;
         // Чтение структуры FSINFO32
         instance->fsinfo32 = kmalloc(bsize);
-        if (partition_read(drive, 0, 1, instance->fsinfo32) != 0)
+        if (partition_read(drive, bpb->ext_32.filesystem_info, 1, instance->fsinfo32) != 0)
         {
             printk("FAT: Error reading FSINFO32!\n");
             fat_free_instance(instance);
@@ -264,14 +264,20 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
             fat_free_instance(instance);
             return NULL;
         }
+
+        instance->free_clusters = instance->fsinfo32->last_free_cluster_count;
     }
 
-    // Вычислить свободные кластера
-    if (fat_calc_free_clusters(instance, &instance->free_clusters))
+    // Считать блоки имеет смысла только для FAT12 и 16. у FAT32 это уже записано в FSINFO
+    if (instance->fs_type == FS_FAT16 || instance->fs_type == FS_FAT12)
     {
-        printk("Error calculating free clusters!\n");
-        fat_free_instance(instance);
-        return NULL;
+        // Вычислить свободные кластера
+        if (fat_calc_free_clusters(instance, &instance->free_clusters))
+        {
+            printk("Error calculating free clusters!\n");
+            fat_free_instance(instance);
+            return NULL;
+        }
     }
 
 #ifdef FAT_MOUNT_LOG
