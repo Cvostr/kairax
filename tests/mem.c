@@ -122,5 +122,24 @@ int main(int argc, char** argv)
         return 8;
     }
 
+    printf("Test 13: execve() with bad arg ptr\n");
+    char* args[3];
+    args[0] = "ls.a";
+    args[1] = 0xFFFFFFFF10000000;
+    args[2] = NULL;
+    rc = execve("/bin/ls", args, NULL);
+    if (rc == 0) {
+        printf("Successful execve, but it should not be\n");
+        return 5;
+    }
+
+    printf("Test 14: execve() with bad env ptr\n");
+    rc = execve("/bin/ls", NULL, args);
+    if (rc == 0) {
+        printf("Successful execve, but it should not be\n");
+        return 5;
+    }
+
+
     return 0;
 }

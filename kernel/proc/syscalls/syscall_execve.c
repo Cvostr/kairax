@@ -62,11 +62,14 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         return -ENOMEM;
     }
 
-    if (argv != NULL) {
+    if (argv != NULL) 
+    {
         VALIDATE_USER_POINTER(process, &argv[argc], sizeof(char*))
-        while (argv[argc] != NULL) {
-            argc++;
+        while (argv[argc] != NULL) 
+        {
+            VALIDATE_USER_STRING(process, argv[argc])
             summary_size += strlen(argv[argc]) + 1;
+            argc++;
         }
         if (argc > PROCESS_MAX_ARGS) {
             // Слишком много аргументов, выйти с ошибкой
@@ -82,9 +85,12 @@ int sys_execve(const char *filepath, char *const argv [], char *const envp[])
         goto error;
     }
 
-    if (envp != NULL) {
+    if (envp != NULL) 
+    {
         VALIDATE_USER_POINTER(process, &envp[envc], sizeof(char*))
-        while (envp[envc] != NULL) {
+        while (envp[envc] != NULL) 
+        {
+            VALIDATE_USER_STRING(process, envp[envc])
             envc++;
         }
     }
