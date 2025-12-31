@@ -427,6 +427,25 @@ int xhci_controller_init_scratchpad(struct xhci_controller* controller)
 	return 0;
 }
 
+void xhci_controller_handle_events(struct xhci_controller* controller)
+{
+	struct xhci_interrupter* interrupter = &controller->runtime->interrupters[0];
+
+	struct xhci_trb event;
+	while (xhci_event_ring_deque(controller->event_ring, &event) == 1)
+	{
+		xhci_controller_process_event(controller, &event);
+	}
+	
+	// Страница 193
+	// It is recommended that software process as many Events as possible before writing the ERDP. 
+	// This approach not only minimizes the number of MMIO writes, but is particularly important if the Event Ring is full. 
+	// If an Event Ring Full condition exists, writing the ERDP after processing individual Events may cause no work to progress because the Event Ring becomes filled with Event Ring Full Events.
+	// Ideally, software writes the ERDP after processing all Events on an Event Ring. 
+	// Practically, software should maximize the number of Events processed before writing the ERDP, e.g. processing a minimum of 4 Events before each ERDP write.
+	xhci_interrupter_upd_erdp(interrupter, controller->event_ring);
+}
+
 int xhci_controller_init_interrupts(struct xhci_controller* controller, struct xhci_event_ring* event_ring)
 {
 	struct xhci_interrupter* interrupter = &controller->runtime->interrupters[0];
@@ -1076,8 +1095,17 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 	volatile uint32_t usbsts = data->op->usbsts;
 
 	// Очистить флаг прерывания в статусе
+	// Software that uses EINT shall clear it prior to clearing any IP flags.
+	// A race condition may occur if software clears the IP flags then clears the EINT flag, and between the operations another IP ‘0’ to '1' transition occurs.
+	// In this case the new IP transition shall be lost.
 	data->op->usbsts = usbsts;
 	
+	if ((usbsts & XHCI_STS_EINTERRUPT) == XHCI_STS_EINTERRUPT)
+	{
+		//tasklet_schedule(&data->events_handle_tasklet);
+		xhci_controller_handle_events(data);
+	}
+
 	if ((usbsts & XHCI_STS_HALT) == XHCI_STS_HALT)
 	{
 		printk("XHCI: Host Controller Halted\n");
@@ -1091,18 +1119,6 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 	if ((usbsts & XHCI_STS_HCE) == XHCI_STS_HCE)
 	{
 		printk("XHCI: Host Controller Error\n");
-	}
-
-	if ((usbsts & XHCI_STS_EINTERRUPT) == XHCI_STS_EINTERRUPT)
-	{
-		//printk("XHCI: Event Interrupt\n");
-		struct xhci_trb event;
-		while (xhci_event_ring_deque(data->event_ring, &event) == 1)
-		{
-			xhci_controller_process_event(data, &event);
-		}
-		// ??? может это надо делать внутри цикла ???
-		xhci_interrupter_upd_erdp(interrupter, data->event_ring);
 	}
 
 	// IMAN - acknowledge (если необходимо)

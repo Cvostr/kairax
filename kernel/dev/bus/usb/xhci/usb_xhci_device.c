@@ -163,7 +163,6 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         uint32_t status_code = event->transfer_event.completion_code;
 
         compl = &ep_ring->compl[cmd_trb_index];
-        memcpy(&compl->trb, event, sizeof(struct xhci_trb));
         // Выполнить callback, если указан
         struct usb_msg* msg = compl->msg;
         if (msg)

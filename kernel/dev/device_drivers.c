@@ -15,6 +15,8 @@ int register_pci_device_driver(struct pci_device_driver* driver)
 int register_usb_device_driver(struct usb_device_driver* driver)
 {
     list_add(&usb_dev_drivers, driver);
+
+    probe_devices();
 }
 
 int is_pci_id_term(struct pci_device_id* pci_dev_id) 

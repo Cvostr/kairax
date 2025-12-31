@@ -473,7 +473,6 @@ void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_
 
 struct xhci_transfer_ring_completion
 {
-	struct xhci_trb 	trb;
 	struct usb_msg* 	msg;
 };
 struct xhci_transfer_ring
