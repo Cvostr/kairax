@@ -127,8 +127,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 		reg++;
 	} */
 
-	//printf("LOADER : %s\n", kboot_info->bootloader_string);
-	//printf("CMDLINE : %s\n", P2V(kboot_info->command_line));
+	printf("Bootloader: %s\n", P2V(kboot_info->bootloader_string));
 
 	int rc = 0;
 
@@ -192,6 +191,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	null_init();
 	net_init();
 
+	procfs_init_kernel_cmdline(P2V(kboot_info->command_line));
 	// Загружаем все необходимые модули multiboot2								
 	mb2_load_modules(P2V(multiboot_struct_ptr));
 	// Освобождаем регион с данными multiboot2

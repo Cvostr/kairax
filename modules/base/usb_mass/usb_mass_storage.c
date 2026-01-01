@@ -551,7 +551,8 @@ int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev)
 		rc = usb_mass_exec_cmd(dev, &cbw, FALSE, NULL, 0);
 	}
 
-	kfree(sense);
+	if (sense)
+		kfree(sense);
 
 	return rc;
 }

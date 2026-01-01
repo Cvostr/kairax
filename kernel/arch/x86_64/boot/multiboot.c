@@ -32,10 +32,10 @@ int parse_mb2_tags(taglist_t *tags, size_t* total_size)
         switch(tag->type)
         {
         case MBOOT2_BOOTLOADER:
-            strcpy(kernel_boot_info.bootloader_string, (char*) tag->data);
+            kernel_boot_info.bootloader_string = (char*) tag->data;
             break;
         case MBOOT2_COMMANDLINE:
-            strcpy(kernel_boot_info.command_line, (char*) tag->data);
+            kernel_boot_info.command_line = (char*) tag->data;
             break;
         case MBOOT2_MODULE:
             module_t* mod = tag->data;

@@ -355,3 +355,19 @@ exit:
     file->pos += readed;
     return readed;
 }
+
+char *__procfs_kernel_cmdline = NULL;
+void procfs_init_kernel_cmdline(const char *str)
+{
+    __procfs_kernel_cmdline = kmalloc(strlen(str) + 1);
+    strcpy(__procfs_kernel_cmdline, str);
+}
+ssize_t procfs_kernel_cmdline_read(struct file* file, char* buffer, size_t count, loff_t offset)
+{
+    if (__procfs_kernel_cmdline == NULL)
+        return 0;
+        
+    ssize_t readed = procfs_read_string(__procfs_kernel_cmdline, strlen(__procfs_kernel_cmdline), buffer, count, offset);
+    file->pos += readed;
+    return readed;
+}

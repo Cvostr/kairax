@@ -33,9 +33,6 @@ typedef struct PACKED {
   char name[];
 } module_t ;
 
-
-#define BOOTLOADER_STRING_MAX_LEN 64
-#define BOOTLOADER_ARGS_MAX_LEN   256  
 #define RSDP_DATA_MAX_SIZE        200
 
 typedef struct  PACKED {
@@ -49,8 +46,8 @@ typedef struct  PACKED {
 } framebuffer_info_t;
 
 typedef struct {
-    char bootloader_string[BOOTLOADER_STRING_MAX_LEN];
-    char command_line[BOOTLOADER_ARGS_MAX_LEN];
+    char *bootloader_string;
+    char *command_line;
     uint32_t load_base_addr;
 
     size_t mmap_size;
