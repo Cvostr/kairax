@@ -32,6 +32,9 @@
 #define USB_DEVICE_REQ_GET_INTERFACE		10
 #define USB_DEVICE_REQ_SET_INTERFACE		11
 #define USB_DEVICE_REQ_SYNC_FRAME			12
+
+#define USB_ENDPOINT_HALT                   0x00
+
 struct usb_device_request {
     
     uint8_t recipient           : 5;

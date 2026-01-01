@@ -136,6 +136,9 @@ struct usb_device_id usb_mass_ids[] = {
 	{0,}
 };
 
+int usb_mass_init(void);
+void usb_mass_deinit(void);
+
 int usb_mass_device_reset(struct usb_device* device, struct usb_interface* interface);
 int usb_mass_device_get_max_lun(struct usb_device* device, struct usb_interface* interface, uint8_t* max_lun);
 int usb_mass_device_clear_feature(struct usb_device* device, struct usb_endpoint* ep);
@@ -181,7 +184,7 @@ int usb_mass_device_clear_feature(struct usb_device* device, struct usb_endpoint
 	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
 	req.recipient = USB_DEVICE_REQ_RECIPIENT_ENDPOINT;
 	req.bRequest = USB_DEVICE_REQ_CLEAR_FEATURE;
-	req.wValue = 0;
+	req.wValue = USB_ENDPOINT_HALT;
 	// Разметка полей идентична
 	req.wIndex = ep->descriptor.bEndpointAddress;
 	req.wLength = 0;
@@ -203,7 +206,7 @@ int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_
 	int rc = usb_device_bulk_msg(device, endpoint, data, length);
 	if (rc == -EPIPE)
 	{
-		printk("USB Mass: STALL\n");
+		printk("USB Mass: STALL on endpoint %x\n", endpoint->descriptor.bEndpointAddress);
 		// STALL - штатная ситуация. Надо отресетить эндпоинт
 		rc = usb_mass_device_clear_feature(device, endpoint);
 		if (rc != 0)
@@ -283,11 +286,11 @@ int usb_mass_exec_cmd_mem(struct usb_mass_storage_device* dev,
 
 	switch (csw->status)
 	{
-		case 0x0:
-		case 0x1:
+		case CSW_SUCCESS:
+		case CSW_FAILED:
 			rc = 0;
 			break;
-		case 0x2:
+		case CSW_PHASE_ERROR:
 			usb_mass_reset_recovery(dev);
 			rc = -1;
 			break;
@@ -597,6 +600,13 @@ int usb_mass_device_probe(struct device *dev)
     //printk("USB mass storage %x %x\n", interface->descriptor.bInterfaceClass, interface->descriptor.bInterfaceProtocol);
 
     int rc;
+
+	rc = usb_set_interface(device, interface->descriptor.bInterfaceNumber, interface->descriptor.bAlternateSetting);
+	if (rc != 0)
+	{
+		printk("USB: SET_INTERFACE failed (%i)\n", rc);
+		return -1;
+	}
 
 	rc = usb_mass_device_reset(device, interface);
 	if (rc != 0)
