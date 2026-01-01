@@ -104,6 +104,20 @@ int usb_set_interface(struct usb_device* device, int interfaceNumber, int altset
     return usb_device_send_request(device, &req, NULL, 0);
 }
 
+int usb_clear_endpoint_halt(struct usb_device* device, struct usb_endpoint* ep)
+{
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_ENDPOINT;
+	req.bRequest = USB_DEVICE_REQ_CLEAR_FEATURE;
+	req.wValue = USB_ENDPOINT_HALT;
+	req.wIndex = ep->descriptor.bEndpointAddress;
+	req.wLength = 0;
+
+    return usb_device_send_request(device, &req, NULL, 0);
+}
+
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor)
 {
     struct usb_config* result = kmalloc(sizeof(struct usb_config));

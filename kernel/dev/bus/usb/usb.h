@@ -178,6 +178,11 @@ ssize_t usb_get_string(struct usb_device* device, int index, char* buffer, size_
 /// @param altsetting номер bAlternateSetting
 /// @return 0 - при успехе
 int usb_set_interface(struct usb_device* device, int interfaceNumber, int altsetting);
+/// @brief Очищает флаг halt/stall для endpoint 
+/// @param device объект устройства
+/// @param ep объект endpoint
+/// @return 0 - при успехе
+int usb_clear_endpoint_halt(struct usb_device* device, struct usb_endpoint* ep);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);

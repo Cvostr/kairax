@@ -91,6 +91,7 @@ struct kernel_function functions[] = {
     KFUNCTION(usb_send_async_msg),
     KFUNCTION(usb_device_bulk_msg),
     KFUNCTION(usb_set_interface),
+    KFUNCTION(usb_clear_endpoint_halt),
     // filesystems
     KFUNCTION(new_filesystem),
     KFUNCTION(filesystem_register),

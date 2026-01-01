@@ -141,7 +141,6 @@ void usb_mass_deinit(void);
 
 int usb_mass_device_reset(struct usb_device* device, struct usb_interface* interface);
 int usb_mass_device_get_max_lun(struct usb_device* device, struct usb_interface* interface, uint8_t* max_lun);
-int usb_mass_device_clear_feature(struct usb_device* device, struct usb_endpoint* ep);
 int usb_mass_reset_recovery(struct usb_mass_storage_device* dev);
 int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length);
 
@@ -177,26 +176,11 @@ int usb_mass_device_get_max_lun(struct usb_device* device, struct usb_interface*
     return usb_device_send_request(device, &lun_req, max_lun, 1);
 }
 
-int usb_mass_device_clear_feature(struct usb_device* device, struct usb_endpoint* ep)
-{
-	struct usb_device_request req;
-	req.type = USB_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
-	req.recipient = USB_DEVICE_REQ_RECIPIENT_ENDPOINT;
-	req.bRequest = USB_DEVICE_REQ_CLEAR_FEATURE;
-	req.wValue = USB_ENDPOINT_HALT;
-	// Разметка полей идентична
-	req.wIndex = ep->descriptor.bEndpointAddress;
-	req.wLength = 0;
-
-    return usb_device_send_request(device, &req, NULL, 0);
-}
-
 int usb_mass_reset_recovery(struct usb_mass_storage_device* dev)
 {
 	usb_mass_device_reset(dev->usb_dev, dev->usb_iface);
-	usb_mass_device_clear_feature(dev->usb_dev, dev->in_ep);
-	usb_mass_device_clear_feature(dev->usb_dev, dev->out_ep);
+	usb_clear_endpoint_halt(dev->usb_dev, dev->in_ep);
+	usb_clear_endpoint_halt(dev->usb_dev, dev->out_ep);
 
 	return 0;
 }
@@ -208,7 +192,7 @@ int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_
 	{
 		printk("USB Mass: STALL on endpoint %x\n", endpoint->descriptor.bEndpointAddress);
 		// STALL - штатная ситуация. Надо отресетить эндпоинт
-		rc = usb_mass_device_clear_feature(device, endpoint);
+		rc = usb_clear_endpoint_halt(device, endpoint);
 		if (rc != 0)
 		{
 			printk("USB Mass: Error resetting endpoint %i\n", rc);
@@ -652,8 +636,8 @@ int usb_mass_device_probe(struct device *dev)
 		return -1;
 	}
 
-	rc = usb_mass_device_clear_feature(device, builk_in);
-	rc = usb_mass_device_clear_feature(device, builk_out);
+	rc = usb_clear_endpoint_halt(device, builk_in);
+	rc = usb_clear_endpoint_halt(device, builk_out);
 
 	for (uint8_t lun_i = 0; lun_i < max_lun + 1; lun_i ++)
 	{
