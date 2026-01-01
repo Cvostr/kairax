@@ -91,6 +91,7 @@ struct read_capacity_result
 #define CSW_SIGNATURE	0x53425355
 
 #define SCSI_TEST_UNIT_READY	0x00
+#define SCSI_REQUEST_SENSE_6	0x03
 #define SCSI_INQUIRY			0x12
 #define SCSI_READ_CAPACITY      0x25
 #define SCSI_READ_10 			0x28
@@ -99,6 +100,7 @@ struct read_capacity_result
 #define SCSI_WRITE_12			0xAA
 #define SCSI_READ_16			0x88
 #define SCSI_WRITE_16			0x8A
+#define SCSI_MODE_SENSE_6		0x1A
 
 #define CBW_TO_DEVICE	0x00
 #define CBW_TO_HOST		0x80
@@ -111,6 +113,7 @@ struct read_capacity_result
 #define USB_REQ_LUN_INFO 	0xFE
 
 #define CBW_SIZE 			sizeof(struct command_block_wrapper)
+#define REQ_SENSE_SIZE		252
 
 struct usb_mass_storage_device {
 
@@ -121,6 +124,7 @@ struct usb_mass_storage_device {
 	struct usb_endpoint* out_ep;
 
 	uint32_t blocksize;
+	atomic_t cbw_tag;
 
 	uint8_t peripheral_device_type : 5;
 	uint8_t peripheral_qualifier   : 3;
@@ -147,6 +151,7 @@ int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_
 int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result);
 int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev);
 int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks, uint32_t* block_size);
+int usb_mass_request_sense6(struct usb_mass_storage_device* dev, void* result);
 
 int usb_mass_device_reset(struct usb_device* device, struct usb_interface* interface)
 {
@@ -204,7 +209,6 @@ int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_
 
 	return rc;
 }
-
 
 int usb_mass_exec_cmd_mem(struct usb_mass_storage_device* dev,
 						struct command_block_wrapper* cbw,
@@ -271,8 +275,10 @@ int usb_mass_exec_cmd_mem(struct usb_mass_storage_device* dev,
 	switch (csw->status)
 	{
 		case CSW_SUCCESS:
-		case CSW_FAILED:
 			rc = 0;
+			break;
+		case CSW_FAILED:
+			rc = CSW_FAILED;
 			break;
 		case CSW_PHASE_ERROR:
 			usb_mass_reset_recovery(dev);
@@ -355,7 +361,7 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	// Начальный заголовок CBW
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
-	cbw.tag = 0;
+	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
     cbw.flags = CBW_TO_HOST;
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
@@ -419,7 +425,7 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
-	cbw.tag = 0;
+	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
     cbw.flags = CBW_TO_DEVICE;
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
@@ -475,7 +481,7 @@ int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_r
 	struct command_block_wrapper cbw;
 	memset(&cbw, 0, sizeof(struct command_block_wrapper));
 	cbw.signature = CBW_SIGNATURE;
-	cbw.tag = 0;
+	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
     cbw.length = sizeof(struct inquiry_block_result);
     cbw.flags = CBW_TO_HOST;
     cbw.command_len = 6;
@@ -491,12 +497,33 @@ int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_r
 	return usb_mass_exec_cmd(dev, &cbw, FALSE, inq_result, sizeof(struct inquiry_block_result));
 }
 
+int usb_mass_request_sense6(struct usb_mass_storage_device* dev, void* result)
+{
+	struct command_block_wrapper cbw;
+	memset(&cbw, 0, sizeof(struct command_block_wrapper));
+	cbw.signature = CBW_SIGNATURE;
+	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
+    cbw.length = REQ_SENSE_SIZE;
+    cbw.flags = CBW_TO_HOST;
+    cbw.command_len = 6;
+	cbw.lun = dev->lun_id;
+
+    cbw.data[0] = SCSI_REQUEST_SENSE_6;
+    cbw.data[1] = 0;
+    cbw.data[2] = 0;
+    cbw.data[3] = 0;
+    cbw.data[4] = REQ_SENSE_SIZE;
+    cbw.data[5] = 0;
+
+	return usb_mass_exec_cmd(dev, &cbw, FALSE, result, REQ_SENSE_SIZE);
+}
+
 int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev)
 {
 	struct command_block_wrapper cbw;
 	memset(&cbw, 0, sizeof(struct command_block_wrapper));
 	cbw.signature = CBW_SIGNATURE;
-	cbw.tag = 0;
+	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
     cbw.length = 0;
     cbw.flags = CBW_TO_HOST;
     cbw.command_len = 6;
@@ -509,7 +536,24 @@ int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev)
     cbw.data[4] = 0;
     cbw.data[5] = 0;
 
-	return usb_mass_exec_cmd(dev, &cbw, FALSE, NULL, 0);
+	char *sense = NULL;
+	int rc = usb_mass_exec_cmd(dev, &cbw, FALSE, NULL, 0);
+
+	while (rc == CSW_FAILED)
+	{
+		// Надо узнать причину ошибки, но сначала выделим память
+		if (sense == NULL)
+			sense = kmalloc(REQ_SENSE_SIZE);
+		// Узнать причину ошибки
+		usb_mass_request_sense6(dev, sense);
+		printk("USB Mass: TEST_UNIT respond 1. Trying again\n");
+		// Пробуем еще раз и так пока не проснется
+		rc = usb_mass_exec_cmd(dev, &cbw, FALSE, NULL, 0);
+	}
+
+	kfree(sense);
+
+	return rc;
 }
 
 int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks, uint32_t* block_size)
@@ -517,7 +561,7 @@ int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks,
 	struct command_block_wrapper cbw;
 	memset(&cbw, 0, sizeof(struct command_block_wrapper));
 	cbw.signature = CBW_SIGNATURE;
-	cbw.tag = 0;
+	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
     cbw.length = sizeof(struct read_capacity_result);
     cbw.flags = CBW_TO_HOST;
     cbw.command_len = 10;
@@ -639,6 +683,7 @@ int usb_mass_device_probe(struct device *dev)
 	rc = usb_clear_endpoint_halt(device, builk_in);
 	rc = usb_clear_endpoint_halt(device, builk_out);
 
+	struct inquiry_block_result *inq_result = kmalloc(sizeof(struct inquiry_block_result));
 	for (uint8_t lun_i = 0; lun_i < max_lun + 1; lun_i ++)
 	{
 		struct usb_mass_storage_device* usb_mass = kmalloc(sizeof(struct usb_mass_storage_device));
@@ -647,18 +692,18 @@ int usb_mass_device_probe(struct device *dev)
 		usb_mass->lun_id = lun_i;
 		usb_mass->usb_dev = device;
 		usb_mass->usb_iface = interface;
+		usb_mass->cbw_tag.counter = 0x60996ea7;
 
 		// Сначала запросим информацию
-		struct inquiry_block_result inq_result;
-		rc = usb_mass_inquiry(usb_mass, &inq_result);
+		rc = usb_mass_inquiry(usb_mass, inq_result);
 		if (rc != 0)
 		{
 			kfree(usb_mass);
 			printk("USB Mass: inqury error with code %i\n", rc);
 			continue;
 		}
-		usb_mass->peripheral_device_type = inq_result.peripheral_device_type;
-		usb_mass->peripheral_qualifier = inq_result.peripheral_qualifier;
+		usb_mass->peripheral_device_type = inq_result->peripheral_device_type;
+		usb_mass->peripheral_qualifier = inq_result->peripheral_qualifier;
 /*		
 		printk("INQUIRY result: %s, %s, DT %i, Q %i\n", inq_result.t10_vendor_identification, inq_result.product_identification,
 			usb_mass->peripheral_device_type, usb_mass->peripheral_qualifier);
@@ -698,8 +743,8 @@ int usb_mass_device_probe(struct device *dev)
 		device_set_parent(lun_dev, dev);
 		device_set_data(lun_dev, usb_mass);
 		lun_dev->drive_info = drive_info;
-		strncpy(lun_dev->dev_name, inq_result.t10_vendor_identification, 8);
-		strncat(lun_dev->dev_name, inq_result.product_identification, sizeof(inq_result.product_identification));
+		strncpy(lun_dev->dev_name, inq_result->t10_vendor_identification, sizeof(lun_dev->dev_name));
+		strncat(lun_dev->dev_name, inq_result->product_identification, sizeof(lun_dev->dev_name));
 
 		register_device(lun_dev);
 
@@ -707,6 +752,8 @@ int usb_mass_device_probe(struct device *dev)
 
 		register_drive(drive_info);
 	}
+
+	kfree(inq_result);
 
 	return 0;
 }
