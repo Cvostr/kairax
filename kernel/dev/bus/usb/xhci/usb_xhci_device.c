@@ -185,15 +185,18 @@ int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* 
         printk("XHCI: Transfer completed on slot %i on endpoint %i trb index %i with code %i\n", event->transfer_event.slot_id, endpoint_id, cmd_trb_index, status_code);
 #endif
         compl = &ep_ring->compl[cmd_trb_index];
-        // Выполнить callback, если указан
+        // Обработка usb_msg
         struct usb_msg* msg = compl->msg;
+        usb_msg_callback_t msg_callback;
         if (msg)
         {   
+            msg_callback = msg->callback;
             // в trb_transfer_length записано количество НЕпереданных байт
             msg->transferred_length = msg->length - event->transfer_event.trb_transfer_length; 
-            msg->status = xhci_map_completion_code(status_code);
-            if (msg->callback)
-                msg->callback(msg);
+            __atomic_store_n(&msg->status, xhci_map_completion_code(status_code), __ATOMIC_SEQ_CST);
+            // Выполнить callback, если указан
+            if (msg_callback)
+                msg_callback(msg);
             compl->msg = NULL;
         }
     }

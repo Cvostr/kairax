@@ -99,6 +99,8 @@ struct usb_msg {
     void* private;
 };
 
+typedef void (*usb_msg_callback_t) (struct usb_msg*);
+
 enum usb_device_state {
     USB_STATE_ATTACHED,
     USB_STATE_SUSPENDED,

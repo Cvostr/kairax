@@ -381,7 +381,6 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 
 	for (uint32_t i = 0; remaining_blocks > 0; i ++)
 	{
-		//printk("Round %i\n", i);
 		// Сколько блоков будем читать
 		uint32_t blocks_for_read = MIN(remaining_blocks, blocks_per_packet);
 		// Сколько байт будем читать?
