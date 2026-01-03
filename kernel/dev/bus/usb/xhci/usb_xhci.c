@@ -490,7 +490,10 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 #ifdef XHCI_LOG_CMD_COMPLETION
 			printk("XHCI: command (%i) completed on slot (%i)!\n", cmd_trb_index, event->cmd_completion.slot_id);
 #endif
-			memcpy(&controller->cmdring->completions[cmd_trb_index], event, sizeof(struct xhci_trb));
+			struct xhci_trb *dest = &controller->cmdring->completions[cmd_trb_index];
+			dest->raw.control = event->raw.control;
+			dest->raw.parameter = event->raw.parameter;
+			dest->raw.status = event->raw.status;
 
 			break;
 		case XHCI_TRB_TRANSFER_EVENT:
