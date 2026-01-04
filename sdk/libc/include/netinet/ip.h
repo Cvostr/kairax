@@ -10,6 +10,9 @@ __BEGIN_DECLS
 #define MAXTTL		255
 #define IPDEFTTL	64
 
+#define	IP_DF 0x4000			/* Don't Fragment */
+#define	IP_MF 0x2000			/* More Fragments */
+
 struct ip {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     unsigned int ip_hl : 4;		/* header length */

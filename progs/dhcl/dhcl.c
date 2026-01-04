@@ -60,14 +60,24 @@ struct packet_sockaddr_in {
 #define DHCP_OPT_SUBNET_MASK    1
 #define DHCP_OPT_ROUTER         3
 #define DHCP_OPT_HOSTNAME       12
+#define DHCP_OPT_DOMAIN_NAME    15
 #define DHCP_OPT_REQUESTED_IP   50
 #define DHCP_OPT_LEASE_TIME     51
 #define DHCP_OPT_MESSAGE_TYPE   53
+#define DHCP_OPT_PARAM_REQUEST_LIST 55
+#define DHCP_OPT_VENDOR_CLASS_ID    60
+#define DHCP_OPT_VENDOR_CLIENT_ID   61
 
 #define DHCP_DISCOVER       1
 #define DHCP_OFFER          2
 #define DHCP_REQUEST        3
 #define DHCP_ACK            5
+
+#define DHCP_FLAGS_BROADCAST    0x8000
+#define DHCP_FLAGS_UNICAST      0x0000
+
+static char VENDOR_CLASS_ID[] = "KAIRAX";
+static char DHCP_MAGIC[] = {99, 130, 83, 99};
 
 uint16_t udp4_calc_checksum(uint32_t src, uint32_t dest, struct udphdr* header, const unsigned char* payload, size_t payload_size)
 {
@@ -175,12 +185,22 @@ char* dhcp_put_opt_val(char* opt_ptr, char opt, char value, int* msg_len)
     return dhcp_put_opt(opt_ptr, opt, 1, &value, msg_len);
 }
 
+uint32_t make_transaction_id()
+{
+    return  (rand() & 0xFF) << 24 | 
+            (rand() & 0xFF) << 16 | 
+            (rand() & 0xFF) << 8 | 
+            (rand() & 0xFF);
+}
+
 void make_headers(char* packet, struct dhcpmessage* dhcpmsg, size_t dhcp_hdr_len, char* mac);
-struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, int dhcp_msg_id);
+struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, uint32_t dhcp_msg_id);
 
 int main(int argc, char** argv) 
 {
     srand(time(NULL));
+
+    int DHCP_flags = DHCP_FLAGS_BROADCAST;
 
     if (argc < 2)
     {
@@ -240,9 +260,13 @@ int main(int argc, char** argv)
     struct udphdr* udp_header = NULL;
     struct dhcpmessage* dhcp_header = NULL;
 
+    uint8_t param_req_list[] = {DHCP_OPT_SUBNET_MASK, DHCP_OPT_ROUTER, DHCP_OPT_DOMAIN_NAME, DHCP_OPT_LEASE_TIME};
+    uint8_t client_id[7] = { DHCP_HTYPE_ETHERNET, 
+        ninfo.mac[0], ninfo.mac[1], ninfo.mac[2], ninfo.mac[3], ninfo.mac[4], ninfo.mac[5]};
+
     // Заполнение DHCP Discover
     struct dhcpmessage* dhcpmsg = malloc(512);
-    int msgID = rand();
+    uint32_t msgID = make_transaction_id();
     int dhcp_msg_len = sizeof(struct dhcpmessage);
     bzero(dhcpmsg, 512);
     dhcpmsg->op = DHCP_BOOTREQUEST;
@@ -251,22 +275,26 @@ int main(int argc, char** argv)
     dhcpmsg->hops = 0;
     dhcpmsg->xid = htonl(msgID);
     dhcpmsg->secs = htons(0);
-    dhcpmsg->flags = htons(0x8000);
+    dhcpmsg->flags = htons(DHCP_flags);
     // Копирование MAC в запрос
     memcpy(dhcpmsg->chaddr, &ninfo.mac, 6);
     // Magic
-    dhcpmsg->magic[0] = 99;
-    dhcpmsg->magic[1] = 130;
-    dhcpmsg->magic[2] = 83;
-    dhcpmsg->magic[3] = 99;
+    memcpy(dhcpmsg->magic, DHCP_MAGIC, 4);
     // Опции
     char* nextopt = dhcpmsg->opt;
+    // Добавить тип запроса
     nextopt = dhcp_put_opt_val(nextopt, DHCP_OPT_MESSAGE_TYPE, DHCP_DISCOVER, &dhcp_msg_len);
     // добавить hostname
     if (hostname_rc == 0 && strlen(hostname) > 0)
     {
         nextopt = dhcp_put_opt(nextopt, DHCP_OPT_HOSTNAME, strlen(hostname), hostname, &dhcp_msg_len);
     }
+    // Добавить VDI
+    nextopt = dhcp_put_opt(nextopt, DHCP_OPT_VENDOR_CLASS_ID, strlen(VENDOR_CLASS_ID), VENDOR_CLASS_ID, &dhcp_msg_len);
+    // Добавить Client ID
+    nextopt = dhcp_put_opt(nextopt, DHCP_OPT_VENDOR_CLIENT_ID, sizeof(client_id), client_id, &dhcp_msg_len);
+    // Добавить список требуемых параметров в ответе
+    nextopt = dhcp_put_opt(nextopt, DHCP_OPT_PARAM_REQUEST_LIST, sizeof(param_req_list), param_req_list, &dhcp_msg_len);
     // На конец DHCP сообщения надо добавить 0xFF
     *nextopt = 0xFF;
     dhcp_msg_len += 1;
@@ -314,6 +342,10 @@ int main(int argc, char** argv)
     nextopt = dhcp_put_opt_val(nextopt, DHCP_OPT_MESSAGE_TYPE, DHCP_REQUEST, &dhcp_msg_len);
     // Желаемый IP
     nextopt = dhcp_put_opt(nextopt, DHCP_OPT_REQUESTED_IP, 4, &offered_addr.s_addr, &dhcp_msg_len);
+    // Добавить VDI
+    nextopt = dhcp_put_opt(nextopt, DHCP_OPT_VENDOR_CLASS_ID, strlen(VENDOR_CLASS_ID), VENDOR_CLASS_ID, &dhcp_msg_len);
+    // Добавить Client ID
+    nextopt = dhcp_put_opt(nextopt, DHCP_OPT_VENDOR_CLIENT_ID, sizeof(client_id), client_id, &dhcp_msg_len);
     // добавить hostname
     if (hostname_rc == 0 && strlen(hostname) > 0)
     {
@@ -424,7 +456,6 @@ void make_headers(char* packet, struct dhcpmessage* dhcpmsg, size_t dhcp_hdr_len
     ip_header->ip_len = htons(dhcp_hdr_len + sizeof(struct udphdr) + sizeof(struct ip));
     ip_header->ip_sum = 0;
 	ip_header->ip_sum = htons(ipv4_calculate_checksum(ip_header, sizeof(struct ip)));
-
     
     // Заполнение ethernet заголовка
     eth_header->ether_type = htons(ETHERTYPE_IP);
@@ -432,7 +463,7 @@ void make_headers(char* packet, struct dhcpmessage* dhcpmsg, size_t dhcp_hdr_len
     memset(eth_header->ether_dhost, 0xFF, ETHER_ADDR_LEN);
 }
 
-struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, int dhcp_msg_id)
+struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, uint32_t dhcp_msg_id)
 {
     // Указатели на все заголовки
     struct ether_header* eth_header = NULL;
@@ -442,11 +473,12 @@ struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, int
 
     struct packet_sockaddr_in recv_addr;
     socklen_t rservlen = sizeof(recv_addr);
+    ssize_t received;
 
     while (1)
     {
         // прием пакета
-        if (recvfrom(sock, buffer, buflen, 0, (struct sockaddr*)&recv_addr, &rservlen) < 0)
+        if ((received = recvfrom(sock, buffer, buflen, 0, (struct sockaddr*)&recv_addr, &rservlen)) < 0)
         {
             perror("Error receiving DHCP response");
             return NULL;
@@ -471,6 +503,11 @@ struct dhcpmessage* wait_for_response(int sock, char* buffer, size_t buflen, int
         if (ntohs(udp_header->dest) != DHCP_CLIENT_PORT) 
         {
 			continue;
+        }
+
+        if (memcmp(dhcp_header->magic, DHCP_MAGIC, 4) != 0)
+        {
+            continue;
         }
 
         if (ntohl(dhcp_header->xid) != dhcp_msg_id)
