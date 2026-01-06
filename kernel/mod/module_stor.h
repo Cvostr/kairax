@@ -23,5 +23,6 @@ int mstor_register_module(struct module* module);
 int mstor_destroy_module(const char* module_name);
 
 struct module* mstor_get_module(int index);
+struct module *mstor_get_module_by_addr(uintptr_t addr);
 
 #endif

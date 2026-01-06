@@ -13,8 +13,8 @@ struct module* mstor_get_module_with_name(const char* name)
     struct list_node* current_node = kernel_modules.head;
     struct module* mod = NULL;
 
-    for (size_t i = 0; i < kernel_modules.size; i++) {
-        
+    while (current_node != NULL) 
+    {    
         mod = (struct module*) current_node->element;
 
         if (strcmp(mod->name, name) == 0) {
@@ -31,6 +31,24 @@ struct module* mstor_get_module_with_name(const char* name)
 struct module* mstor_get_module(int index)
 {
     return list_get(&kernel_modules, index);
+}
+
+struct module *mstor_get_module_by_addr(uintptr_t addr)
+{
+    struct list_node* current_node = kernel_modules.head;
+    struct module* mod = NULL;
+
+    while (current_node != NULL) 
+    {    
+        mod = (struct module*) current_node->element;
+
+        if ((addr >= mod->offset) && (addr < mod->offset + mod->size)) {
+            return mod;
+        }
+        
+        // Переход на следующий элемент
+        current_node = current_node->next;
+    }
 }
 
 struct module* mstor_new_module(uint64_t size, const char* name)

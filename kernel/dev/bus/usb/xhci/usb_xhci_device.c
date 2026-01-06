@@ -213,7 +213,7 @@ int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descri
 	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
 	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
 	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
-	req.wValue = (XHCI_DESCRIPTOR_TYPE_DEVICE << 8);
+	req.wValue = (USB_DESCRIPTOR_TYPE_DEVICE << 8);
 	req.wIndex = 0;
 	req.wLength = length;
 
@@ -229,7 +229,7 @@ int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct u
 	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
 	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
 	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
-	req.wValue = (XHCI_DESCRIPTOR_TYPE_STRING << 8);
+	req.wValue = (USB_DESCRIPTOR_TYPE_STRING << 8);
 	req.wIndex = 0;
 	req.wLength = sizeof(struct usb_descriptor_header);
 
@@ -259,7 +259,7 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
 	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
 	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
 	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
-	req.wValue = (XHCI_DESCRIPTOR_TYPE_STRING << 8) | index;
+	req.wValue = (USB_DESCRIPTOR_TYPE_STRING << 8) | index;
 	req.wIndex = language_id;
 	req.wLength = sizeof(struct usb_descriptor_header);
 
@@ -289,7 +289,7 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
 	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
 	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
 	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
-	req.wValue = (XHCI_DESCRIPTOR_TYPE_CONFIGURATION << 8) | configuration;
+	req.wValue = (USB_DESCRIPTOR_TYPE_CONFIGURATION << 8) | configuration;
 	req.wIndex = 0;
 	req.wLength = sizeof(struct usb_descriptor_header);
     

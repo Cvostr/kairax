@@ -59,6 +59,8 @@ int usb_device_send_async_request(struct usb_device* device, struct usb_msg *msg
 {
     if (device->state == USB_STATE_DISCONNECTED)
         return -ENODEV;
+    if (msg->status == -EINPROGRESS)
+        return -ERROR_BUSY;
     return device->send_async_request(device, msg);
 }
 
@@ -80,6 +82,8 @@ int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint,
 {
     if (device->state == USB_STATE_DISCONNECTED)
         return -ENODEV;
+    if (msg->status == -EINPROGRESS)
+        return -ERROR_BUSY;
     return device->async_msg(device, endpoint, msg);
 }
 

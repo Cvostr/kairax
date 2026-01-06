@@ -10,6 +10,9 @@
 #define USB_LANGID_FRENCH       0x040C
 #define USB_LANGID_SPANISH      0x080A
 
+#define USB_DESCRIPTOR_TYPE_DEVICE			            1
+#define USB_DESCRIPTOR_TYPE_CONFIGURATION	            2
+#define USB_DESCRIPTOR_TYPE_STRING			            3
 #define USB_DESCRIPTOR_INTERFACE                        0x04
 #define USB_DESCRIPTOR_ENDPOINT                         0x05
 #define USB_DESCRIPTOR_INTERFACE_POWER                  0x08
