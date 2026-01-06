@@ -323,20 +323,6 @@ int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t co
     return 0;
 }
 
-int xhci_device_set_configuration(struct xhci_device* dev, uint8_t configuration)
-{
-    struct usb_device_request req;
-	req.type = USB_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
-	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = USB_DEVICE_REQ_SET_CONFIGURATION;
-	req.wValue = configuration;
-	req.wIndex = 0;
-	req.wLength = 0; // Данный вид запроса не имеет выходных данных
-
-    return xhci_device_send_usb_request(dev, &req, NULL, 0);
-}
-
 int xhci_device_get_strings_lang_id(struct xhci_device *xhci_device, uint16_t *lang_id)
 {
     int rc = 0;
@@ -409,7 +395,7 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 	}
 
 	// Включаем конфигурацию
-	rc = xhci_device_set_configuration(device, config_descriptor->bConfigurationValue);
+	rc = usb_device_set_configuration(device->usb_device, config_descriptor->bConfigurationValue);
 	if (rc != 0) 
 	{
 		printk("XHCI: device configuration descriptor setting (%i) error (%i)!\n", configuration_idx, rc);	

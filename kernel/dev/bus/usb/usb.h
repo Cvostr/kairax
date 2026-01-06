@@ -186,6 +186,8 @@ int usb_set_interface(struct usb_device* device, int interfaceNumber, int altset
 /// @return 0 - при успехе
 int usb_clear_endpoint_halt(struct usb_device* device, struct usb_endpoint* ep);
 
+int usb_device_set_configuration(struct usb_device* device, int configuration);
+
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);
 void free_usb_config(struct usb_config* config);

@@ -136,6 +136,20 @@ struct usb_config* new_usb_config(struct usb_configuration_descriptor* descripto
     return result;
 }
 
+int usb_device_set_configuration(struct usb_device* device, int configuration)
+{
+    struct usb_device_request req;
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_HOST_TO_DEVICE;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_SET_CONFIGURATION;
+	req.wValue = configuration;
+	req.wIndex = 0;
+	req.wLength = 0; // Данный вид запроса не имеет выходных данных
+
+    return usb_device_send_request(device, &req, NULL, 0);
+}
+
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface)
 {
     if (config->interfaces_num >= config->descriptor.bNumInterfaces)
