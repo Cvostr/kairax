@@ -268,6 +268,8 @@ struct ehci_device
 #define QH_LINK_TERMINATE(qh) (qh->link_ptr.terminate = 1)
 #define TD_LINK_TERMINATE(td) {td->next.terminate = 1; td->alt_next.terminate = 1;}
 
+int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_pool);
+
 struct ehci_qh *ehci_alloc_qh(struct ehci_controller *ehc);
 void ehci_free_qh(struct ehci_controller *ehc, struct ehci_qh *qh);
 
@@ -277,6 +279,11 @@ void ehci_free_td(struct ehci_controller *ehc, struct ehci_td *td);
 void ehci_qh_link_qh(struct ehci_qh *qh_parent, struct ehci_qh *qh);
 void ehci_qh_link_td(struct ehci_qh *qh, struct ehci_td *td);
 void ehci_td_link_td(struct ehci_td *td_parent, struct ehci_td *td);
+
+// Используется для добавления QH в список на исполнение контроллеру
+void ehci_enqueue_qh(struct ehci_controller* hci, struct ehci_qh *qh);
+// Используется для удаления отработавшего QH
+void ehci_dequeue_qh(struct ehci_controller* hci, struct ehci_qh *qh);
 
 uint8_t ehci_read8(struct ehci_controller* cntrl, off_t offset);
 uint16_t ehci_read16(struct ehci_controller* cntrl, off_t offset);

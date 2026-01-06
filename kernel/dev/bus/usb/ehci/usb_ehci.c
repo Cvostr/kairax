@@ -13,6 +13,12 @@
 #include "proc/process.h"
 #include "proc/thread.h"
 
+int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_pool)
+{
+	// TODO: сделать POOL
+	return 0;
+}
+
 struct ehci_qh *ehci_alloc_qh(struct ehci_controller *ehc)
 {
 	// TODO: сделать POOL
@@ -101,6 +107,18 @@ void ehci_td_link_td(struct ehci_td *td_parent, struct ehci_td *td)
 	uintptr_t td_phys = vmm_get_physical_address(td);
 	td_parent->next.terminate = 0;
 	td_parent->next.lp = td_phys >> 5;
+}
+
+void ehci_enqueue_qh(struct ehci_controller* hci, struct ehci_qh *qh)
+{
+	// TODO: улучшить
+	ehci_qh_link_qh(hci->async_tail, qh);
+	hci->async_tail = qh;
+}
+
+void ehci_dequeue_qh(struct ehci_controller* hci, struct ehci_qh *qh)
+{
+	// TODO: улучшить
 }
 
 void ehci_td_set_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
@@ -298,7 +316,8 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	setup = ehci_alloc_td(hci);
 	if (setup == NULL)
 	{
-		// TODO: impl
+		rc = -ENOMEM;
+		goto exit;
 	}
 
 	// настраиваем setup
@@ -316,7 +335,8 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 		data = ehci_alloc_td(hci);
 		if (data == NULL)
 		{
-			// TODO: impl
+			rc = -ENOMEM;
+			goto exit;
 		}
 
 		data_toggle ^= 1;
@@ -336,7 +356,8 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	status = ehci_alloc_td(hci);
 	if (status == NULL)
 	{
-		// TODO: impl
+		rc = -ENOMEM;
+		goto exit;
 	}
 
 	status->token.pid_code = 
@@ -354,9 +375,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 
 	//printk("EHCI: SETUP %p (halt %i) %i %i %i %i\n", vmm_get_physical_address(setup), setup->token.status.halted, setup->token.status.missed, setup->token.status.babble, setup->token.status.transaction_error, setup->token.status.data_buffer_error);
 			
-	// TODO: 
-	ehci_qh_link_qh(hci->async_tail, qh);
-	hci->async_tail = qh;
+	ehci_enqueue_qh(hci, qh);
 
 	hpet_sleep(10);
 
@@ -385,6 +404,10 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 		hpet_sleep(1);
 	}
 
+	ehci_dequeue_qh(hci, qh);
+
+exit:
+
 	// TODO: очистить все
 	return rc;
 }
@@ -392,14 +415,14 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 int ehci_init_device(struct ehci_controller* hci, int portnum)
 {
 	int rc;
-	struct ehci_device *dev = kmalloc(sizeof(struct ehci_device));
-	dev->hci = hci;
-	dev->port_id = portnum;
-	dev->speed = EHCI_EP_SPEED_HIGH_SPEED;
+	struct ehci_device *ehci_dev = kmalloc(sizeof(struct ehci_device));
+	ehci_dev->hci = hci;
+	ehci_dev->port_id = portnum;
+	ehci_dev->speed = EHCI_EP_SPEED_HIGH_SPEED;
 	// Для первых двух запросов используем 0
-	dev->address = 0;
+	ehci_dev->address = 0;
 	// До того, как мы получили дескриптор устройства, считаем, что 64
-	dev->controlEpMaxPacketSize = 64;
+	ehci_dev->controlEpMaxPacketSize = 64;
 
 	struct usb_device_descriptor device_descriptor;
 	memset(&device_descriptor, 0, sizeof(struct usb_device_descriptor));
@@ -413,7 +436,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	req.wIndex = 0;
 	req.wLength = 8;
 
-    rc = ehci_control(dev, &req, &device_descriptor, 8);
+    rc = ehci_control(ehci_dev, &req, &device_descriptor, 8);
 	if (rc != 0)
 	{
 		printk("EHCI: Error requesting device descriptor 1 (%i)\n", rc);
@@ -424,7 +447,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	printk("Length 0x%x\n", device_descriptor.header.bLength);
 	printk("MaxEpSize 0x%x\n", device_descriptor.bMaxPacketSize0);
 
-	dev->controlEpMaxPacketSize = device_descriptor.bMaxPacketSize0;
+	ehci_dev->controlEpMaxPacketSize = device_descriptor.bMaxPacketSize0;
 
 	// Этап установки адреса для устройства
 	// Снчала получим следующий адрес
@@ -439,7 +462,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	set_addr_req.wValue = dev_addr;
 	set_addr_req.wIndex = 0;
 	set_addr_req.wLength = 0;
-	rc = ehci_control(dev, &set_addr_req, NULL, 0);
+	rc = ehci_control(ehci_dev, &set_addr_req, NULL, 0);
 	if (rc != 0)
 	{
 		printk("EHCI: Error during SET_ADDRESS\n");
@@ -447,12 +470,12 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	}
 
 	// Сохраняем новый адрес
-	dev->address = dev_addr;
+	ehci_dev->address = dev_addr;
 
 	// теперь можем полностью считать Device Descriptor
 	// будем использовать уже имеющуюся структуру, подправив только размер ответа
 	req.wLength = device_descriptor.header.bLength;
-    rc = ehci_control(dev, &req, &device_descriptor, device_descriptor.header.bLength);
+    rc = ehci_control(ehci_dev, &req, &device_descriptor, device_descriptor.header.bLength);
 	if (rc != 0)
 	{
 		printk("EHCI: Error requesting device descriptor 2\n");
@@ -464,6 +487,17 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	printk("idVendor 0x%x\n", device_descriptor.idVendor);
 	printk("idProduct 0x%x\n", device_descriptor.idProduct);
 	printk("bNumConfigurations %i\n", device_descriptor.bNumConfigurations);
+
+	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
+	struct usb_device* usb_device = new_usb_device(&device_descriptor, ehci_dev);
+	usb_device->state = USB_STATE_ATTACHED;
+	//usb_device->slot_id = slot;
+	/*usb_device->send_request = xhci_drv_device_send_usb_request;
+	usb_device->send_async_request = xhci_drv_device_send_usb_async_request;
+	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
+	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
+	usb_device->async_msg = xhci_drv_send_async_msg;
+	usb_device->get_string = xhci_get_string;*/
 }
 
 void ehci_check_ports(struct ehci_controller* hci)
@@ -613,6 +647,13 @@ int ehci_device_probe(struct device *dev)
 	uint8_t ppc = hcsparams & EHCI_HCSPARAMS_PPC;
 	uint8_t N_CC = (hcsparams >> 12) & 0b1111;
 	printk("EHCI: HCSPARAMS 0x%x. NPORTS %i, PPC %i, N_CC %i\n", hcsparams, cntrl->nports, ppc, N_CC);
+
+	rc = ehci_allocate_pool(cntrl, 256, 256);
+	if (rc != 0)
+	{
+		printk("EHCI: Failed to allocate QH and TD pool\n");
+		return -1;
+	}
 
 	// Выделить память под frame list
 	size_t frame_list_sz = PAGE_SIZE / sizeof(struct ehci_flp);
