@@ -140,6 +140,9 @@ struct ehci_td
 
     uint32_t ext_buffer_ptr[5];
 
+    // Внутреннее состояние для драйвера
+    int acquired;
+
 } PACKED;
 
 // Queue Head
@@ -235,6 +238,7 @@ struct ehci_qh
     // Внутреннее состояние для драйвера
     struct ehci_qh *prev_ptr;
     struct ehci_qh *next_ptr;
+    int acquired;
 
 } PACKED;
 
@@ -256,12 +260,19 @@ struct ehci_controller
 
     uint8_t device_address_counter;
 
+    // Frame List
     void* frame_list_phys;
     struct ehci_flp* frame_list;
 
+    // QH, TD Pools
+    size_t qh_pool_size;
+    size_t td_pool_size;
+    // Намеренно обезличен указатель, потому что выравнивание контроллера
+    uintptr_t qh_pool;
+    uintptr_t td_pool;
+
     // TEMP
     struct ehci_qh* async_head;
-    struct ehci_qh* async_tail;
 };
 
 struct ehci_device

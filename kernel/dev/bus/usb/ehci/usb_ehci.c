@@ -12,60 +12,101 @@
 #include "io.h"
 #include "proc/process.h"
 #include "proc/thread.h"
+#include "kairax/kstdlib.h"
 
 int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_pool)
 {
-	// TODO: сделать POOL
+	size_t QH_SIZE = align(sizeof(struct ehci_qh), 32);
+	size_t TD_SIZE = align(sizeof(struct ehci_td), 32);
+
+	size_t QH_buffersz = QH_SIZE * qh_pool;
+	size_t TD_buffersz = TD_SIZE * td_pool;
+
+	printk("EHCI: QH size %i TD size %i\n", QH_SIZE, TD_SIZE);
+
+	size_t qh_pages;
+	void *qh_pool_phys = pmm_alloc(QH_buffersz, &qh_pages);
+	// Адрес должен быть выделен и быть не больше 4Гб
+	if (qh_pool_phys == NULL || qh_pool_phys > UINT32_MAX)
+	{
+		printk("EHCI: QH pool allocation error!\n");
+		return -ENOMEM;
+	}
+
+	size_t td_pages;
+	void *td_pool_phys = pmm_alloc(QH_buffersz, &td_pages);
+	// Адрес должен быть выделен и быть не больше 4Гб
+	if (td_pool_phys == NULL || td_pool_phys > UINT32_MAX)
+	{
+		printk("EHCI: TD pool allocation error!\n");
+		pmm_free_pages(qh_pool_phys, qh_pages);
+		return -ENOMEM;
+	}
+
+	// Замаппим и занулим память для QH
+	ehc->qh_pool = map_io_region(qh_pool_phys, qh_pages * PAGE_SIZE);
+	memset(ehc->qh_pool, 0, qh_pages * PAGE_SIZE);
+
+	// Замаппим и занулим память для TD
+	ehc->td_pool = map_io_region(td_pool_phys, td_pages * PAGE_SIZE);
+	memset(ehc->td_pool, 0, td_pages * PAGE_SIZE);
+
+	ehc->qh_pool_size = qh_pool;
+	ehc->td_pool_size = td_pool;
+
 	return 0;
 }
 
 struct ehci_qh *ehci_alloc_qh(struct ehci_controller *ehc)
 {
-	// TODO: сделать POOL
-	void *frame_list_phys = pmm_alloc(PAGE_SIZE, NULL);
-	if (frame_list_phys == NULL || frame_list_phys > UINT32_MAX)
+	size_t QH_SIZE = align(sizeof(struct ehci_qh), 32);
+
+	struct ehci_qh *result = NULL;
+	struct ehci_qh *current = NULL;
+
+	for (size_t i = 0; i < ehc->qh_pool_size; i ++)
 	{
-		printk("EHCI: QH allocation error\n");
-		return NULL;
+		current = ehc->qh_pool + QH_SIZE * i;
+		if (current->acquired == FALSE)
+		{
+			current->acquired = TRUE;
+			result = current;
+			break;
+		}
 	}
 
-	struct ehci_qh *qh = map_io_region(frame_list_phys, PAGE_SIZE);
-	memset(qh, 0, PAGE_SIZE);
-
-	return qh;
+	return result;
 }
 
 void ehci_free_qh(struct ehci_controller *ehc, struct ehci_qh *qh)
 {
-	// TODO: сделать POOL
-	void* phys_page = vmm_get_physical_address(qh);
-	pmm_free_page(phys_page);
-	unmap_io_region(qh, PAGE_SIZE);
+	qh->acquired = FALSE;
 }
 
 struct ehci_td *ehci_alloc_td(struct ehci_controller *ehc)
 {
-	// TODO: сделать POOL
-	void *frame_list_phys = pmm_alloc(PAGE_SIZE, NULL);
-	if (frame_list_phys == NULL || frame_list_phys > UINT32_MAX)
-	{
-		printk("EHCI: TD allocation error\n");
-		return NULL;
-	}
+	size_t TD_SIZE = align(sizeof(struct ehci_td), 32);
 
-	struct ehci_td *td = map_io_region(frame_list_phys, PAGE_SIZE);
-	memset(td, 0, PAGE_SIZE);
-	TD_LINK_TERMINATE(td);
+	struct ehci_td *result = NULL;
+	struct ehci_td *current = NULL;
+
+	for (size_t i = 0; i < ehc->td_pool_size; i ++)
+	{
+		current = ehc->td_pool + TD_SIZE * i;
+		if (current->acquired == FALSE)
+		{
+			current->acquired = TRUE;
+			result = current;
+			break;
+		}
+	}
 	
-	return td;
+	return result;
 }
 
 void ehci_free_td(struct ehci_controller *ehc, struct ehci_td *td)
 {
-	// TODO: сделать POOL
-	void* phys_page = vmm_get_physical_address(td);
-	pmm_free_page(phys_page);
-	unmap_io_region(td, PAGE_SIZE);
+	td->acquired = FALSE;
 }
 
 uint8_t ehci_next_device_address(struct ehci_controller *ehc)
@@ -560,6 +601,23 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 		// Сохранить
 		usb_device->configs[i] = conf;
 
+		// Добавляем интерфейсы как устройства
+		for (uint8_t iface_i = 0; iface_i < conf->descriptor.bNumInterfaces; iface_i ++)
+		{
+			struct usb_interface* iface = conf->interfaces[iface_i];
+
+			/*struct device* usb_dev = new_device();
+			device_set_name(usb_dev, usb_device->product);
+			usb_dev->dev_type = DEVICE_TYPE_USB_INTERFACE;
+			usb_dev->dev_bus = DEVICE_BUS_USB;
+			device_set_data(usb_dev, ehci_dev);
+			usb_dev->usb_info.usb_device = usb_device;
+			usb_dev->usb_info.usb_interface = iface;*/
+			//device_set_parent(usb_dev, composite_dev);
+
+			//register_device(usb_dev);
+		}
+
 		// Удаляем больше не нужный дескриптор
     	kfree(config_descriptor);    
 	}
@@ -593,6 +651,10 @@ void ehci_check_ports(struct ehci_controller* hci)
 		// Тут мы можем еще до выполнения RESET понять, не является ли устройство Low Speed и сразу отдать компаньону
 		uint32_t LS = (portsc >> 10) & 0b11;
 		printk("EHCI: Device in port %i new connect status %i. LS %i\n", port_i, is_connected, LS);
+
+		// Если порт пустой, то дальше можно не продолжать
+		if (is_connected == FALSE)
+			continue;
 
 		if (LS == EHCI_PORTSC_LINE_STATUS_K)
 		{
@@ -758,7 +820,6 @@ int ehci_device_probe(struct device *dev)
 	async_qh->next_ptr = async_qh;
 
 	cntrl->async_head = async_qh;
-	cntrl->async_tail = async_qh;
 
 	// отобрать у BIOS
 	if (eecp >= 0x40)
