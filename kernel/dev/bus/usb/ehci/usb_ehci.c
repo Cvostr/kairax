@@ -31,9 +31,6 @@ struct ehci_qh *ehci_alloc_qh(struct ehci_controller *ehc)
 
 	struct ehci_qh *qh = map_io_region(frame_list_phys, PAGE_SIZE);
 	memset(qh, 0, PAGE_SIZE);
-	qh->token.status.active = 1;
-
-//	printk("QH %p %p\n", vmm_get_physical_address(qh), frame_list_phys);
 
 	return qh;
 }
@@ -128,7 +125,7 @@ void ehci_td_set_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
 	td->buffer_ptr_list[0] = (uint32_t)(ptr);
 	if (has64)
 		td->ext_buffer_ptr[0] = (uint32_t) (ptr >> 32);
-/*
+
 	// надо выровнять, потому что остальные указатели в TD это не поддерживают
 	// В данном случае выравнивание вниз, потому что потом в цикле размер страницы все равно прибавим
 	ptr &= (~0xFFF);
@@ -141,7 +138,6 @@ void ehci_td_set_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
 		if (has64)
 			td->ext_buffer_ptr[i] = (uint32_t) (ptr >> 32);
 	}
-	*/
 }
 
 // Операции с регистрами
@@ -309,10 +305,6 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	//qh->ep_cap.port = device->port_id;
 	//qh->ep_cap.hub_addr = 0; // TODO: Hubs
 
-	//uintptr_t  tmp_data_buffer_phys = (uintptr_t) pmm_alloc(sizeof(struct usb_device_request), NULL);
-    //struct usb_device_request *request_copy = map_io_region(tmp_data_buffer_phys, PAGE_SIZE);
-	//memcpy(request_copy, request, sizeof(struct usb_device_request));
-
 	setup = ehci_alloc_td(hci);
 	if (setup == NULL)
 	{
@@ -394,9 +386,11 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 			break;
 		}
 
+		//printk("CURRENT %p NEXT %p TERM %i\n", qh->current_ptr.ptr, qh->next.lp, qh->next.terminate);
+
 		if (qh->token.status.active == 0)
 		{
-			printk("EHCI: Success\n");
+			//printk("EHCI: Success\n");
 			rc = 0;
 			break;
 		}
@@ -410,6 +404,11 @@ exit:
 
 	// TODO: очистить все
 	return rc;
+}
+
+int ehci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length)
+{
+    return ehci_control(dev->controller_device_data, req, out, length);
 }
 
 int ehci_init_device(struct ehci_controller* hci, int portnum)
@@ -492,12 +491,36 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	struct usb_device* usb_device = new_usb_device(&device_descriptor, ehci_dev);
 	usb_device->state = USB_STATE_ATTACHED;
 	//usb_device->slot_id = slot;
-	/*usb_device->send_request = xhci_drv_device_send_usb_request;
-	usb_device->send_async_request = xhci_drv_device_send_usb_async_request;
+	usb_device->send_request = ehci_drv_device_send_usb_request;
+	/*usb_device->send_async_request = xhci_drv_device_send_usb_async_request;
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
 	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
 	usb_device->async_msg = xhci_drv_send_async_msg;
 	usb_device->get_string = xhci_get_string;*/
+
+	// Обработка всех конфигураций
+	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
+	{
+		struct usb_configuration_descriptor* config_descriptor = NULL;
+		// Считать конфигурацию по номеру
+		int rc = usb_device_get_configuration_descriptor(usb_device, i, &config_descriptor);
+		if (rc != 0) 
+		{
+			printk("EHCI: device configuration descriptor (%i) request error (%i)!\n", i, rc);	
+			kfree(config_descriptor);
+			return -1;
+		}
+
+		// TODO: SET CONFIGURATION
+
+		struct usb_config *conf = usb_parse_configuration_descriptor(config_descriptor);
+
+		// Сохранить
+		usb_device->configs[i] = conf;
+
+		// Удаляем больше не нужный дескриптор
+    	kfree(config_descriptor);    
+	}
 }
 
 void ehci_check_ports(struct ehci_controller* hci)

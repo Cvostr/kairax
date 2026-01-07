@@ -595,7 +595,6 @@ int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_requ
 int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length);
 int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct usb_string_language_descriptor* descr);
 int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr);
-int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor** descr);
 uint8_t xhci_ep_get_absolute_id(struct usb_endpoint_descriptor* descr);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx, struct usb_config** config);

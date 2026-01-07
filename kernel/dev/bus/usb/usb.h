@@ -185,8 +185,14 @@ int usb_set_interface(struct usb_device* device, int interfaceNumber, int altset
 /// @param ep объект endpoint
 /// @return 0 - при успехе
 int usb_clear_endpoint_halt(struct usb_device* device, struct usb_endpoint* ep);
-
+/// @brief Устанавливает активную конфигурацию для устройства
+/// @param device объект устройства
+/// @param configuration номер конфигурации
+/// @return 0 - при успехе
 int usb_device_set_configuration(struct usb_device* device, int configuration);
+
+int usb_device_get_configuration_descriptor(struct usb_device* device, uint8_t configuration, struct usb_configuration_descriptor** descr);
+struct usb_config* usb_parse_configuration_descriptor(struct usb_configuration_descriptor* config_descriptor);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);

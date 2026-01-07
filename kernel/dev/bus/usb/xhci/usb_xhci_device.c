@@ -282,47 +282,6 @@ int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language
     return 0;
 }
 
-int xhci_device_get_configuration_descriptor(struct xhci_device* dev, uint8_t configuration, struct usb_configuration_descriptor** descr)
-{
-    struct usb_device_request req;
-	req.type = USB_DEVICE_REQ_TYPE_STANDART;
-	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
-	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
-	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
-	req.wValue = (USB_DESCRIPTOR_TYPE_CONFIGURATION << 8) | configuration;
-	req.wIndex = 0;
-	req.wLength = sizeof(struct usb_descriptor_header);
-    
-    // Временный объект
-    struct usb_configuration_descriptor temp_descriptor;
-
-    // Считываем только заголовок, чтобы узнать реальный размер дескриптора
-    int rc = xhci_device_send_usb_request(dev, &req, &temp_descriptor, req.wLength);
-    if (rc != 0)
-    {
-        return rc;
-    }
-
-    // Считываем дескриптор без данных чтобы узнать его реальный размер
-    req.wLength = temp_descriptor.header.bLength;
-    rc = xhci_device_send_usb_request(dev, &req, &temp_descriptor, req.wLength);
-    if (rc != 0)
-    {
-        return rc;
-    }
-
-    // Считываем дескриптор со всеми данными
-    *descr = kmalloc(temp_descriptor.wTotalLength);
-    req.wLength = temp_descriptor.wTotalLength;
-    rc = xhci_device_send_usb_request(dev, &req, *descr, req.wLength);
-    if (rc != 0)
-    {
-        return rc;
-    }
-
-    return 0;
-}
-
 int xhci_device_get_strings_lang_id(struct xhci_device *xhci_device, uint16_t *lang_id)
 {
     int rc = 0;
@@ -386,7 +345,7 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 {
     struct usb_configuration_descriptor* config_descriptor = NULL;
     // Считать конфигурацию по номеру
-	int rc = xhci_device_get_configuration_descriptor(device, configuration_idx, &config_descriptor);
+	int rc = usb_device_get_configuration_descriptor(device->usb_device, configuration_idx, &config_descriptor);
 	if (rc != 0) 
 	{
 		printk("XHCI: device configuration descriptor (%i) request error (%i)!\n", configuration_idx, rc);	
@@ -404,95 +363,10 @@ int xhci_device_process_configuration(struct xhci_device* device, uint8_t config
 	}
 
     // Создаем струтуру конфигурации
-    struct usb_config* usb_conf = new_usb_config(config_descriptor);
+    struct usb_config* usb_conf = usb_parse_configuration_descriptor(config_descriptor);
     *config = usb_conf;
 
     printk("XHCI: Device configuration %i with %i interfaces\n", configuration_idx, config_descriptor->bNumInterfaces);
-
-	// Парсим конфигурацию
-	uint8_t* conf_buffer = config_descriptor->data;
-	size_t offset = 0;
-	size_t len = config_descriptor->wTotalLength - config_descriptor->header.bLength;
-
-    // Указатель на текущий обрабатываемый интерфейс
-    struct usb_interface* current_interface = NULL;
-    // Количество прочитанных эндпоинтов у текущего интерфейса
-    size_t processed_endpoints = 0;
-    // Указатель на текущий обрабатываемый эндпоинт
-    struct usb_endpoint* current_endpoint = NULL;
-
-	while (offset < len)
-	{
-        // Заголовок
-		struct usb_descriptor_header* config_header = (struct usb_descriptor_header*) &(conf_buffer[offset]);
-
-		switch (config_header->bDescriptorType)
-		{
-			case USB_DESCRIPTOR_INTERFACE:
-				struct usb_interface_descriptor* iface_descr = (struct usb_interface_descriptor*) config_header; 
-                printk("XHCI: interface class %i subcl %i prot %i with %i endpoints\n", iface_descr->bInterfaceClass, iface_descr->bInterfaceSubClass, iface_descr->bInterfaceProtocol, iface_descr->bNumEndpoints);
-
-                // Создать общий объект интерфейса
-                current_interface = new_usb_interface(iface_descr);
-                current_interface->parent_config = usb_conf;
-
-                // Сбросить счетчик эндпоинтов 
-                processed_endpoints = 0;
-                current_endpoint = NULL;
-
-                // Добавить в массив структуры конфигурации
-                usb_config_put_interface(usb_conf, current_interface);
-                break;
-			case USB_DESCRIPTOR_ENDPOINT:
-                if (current_interface != NULL)
-                {
-                    // Скопировать информацию об endpoint
-                    struct usb_endpoint* endpoint = &current_interface->endpoints[processed_endpoints++];
-                    memcpy(&endpoint->descriptor, config_header, sizeof(struct usb_endpoint_descriptor));
-                    current_endpoint = endpoint;
-                } 
-                else 
-                {
-                    printk("XHCI: No interface descriptor before this endpoint descriptor");
-                }
-				break;
-            case USB_DESCRIPTOR_SUPERSPEED_ENDPOINT_COMPANION:
-                // Записать дескриптор
-                if (current_endpoint != NULL)
-                {
-                    memcpy(&current_endpoint->ss_companion, config_header, sizeof(struct usb_ss_ep_companion_descriptor));
-                    current_endpoint->ss_companion_present = 1;
-                }
-                else
-                {
-                    printk("XHCI: No endpoint descriptor before this super speed companion descriptor");
-                }
-                break;
-            case USB_DESCRIPTOR_SUPERSPEEDPLUS_ISO_ENDPOINT_COMPANION:
-                printk("XHCI: USB_DESCRIPTOR_SUPERSPEEDPLUS_ISO_ENDPOINT_COMPANION\n");
-                // Записать дескриптор
-                if (current_endpoint != NULL)
-                {
-                    memcpy(&current_endpoint->ssp_isoc_companion, config_header, sizeof(struct usb_ssp_isoc_ep_companion_descriptor));
-                    current_endpoint->ssp_isoc_companion_present = 1;
-                }
-                break;
-			case USB_DESCRIPTOR_HID:
-                current_interface->hid_descriptor = kmalloc(config_header->bLength);
-                memcpy(current_interface->hid_descriptor, config_header, config_header->bLength);
-				break;
-			default:
-				printk("XHCI: unknown device config %i\n", config_header->bDescriptorType);
-                // Неизвестный тип - сохраняем в отдельный массив
-                if (current_interface != NULL)
-                {
-                    usb_interface_add_descriptor(current_interface, config_header);
-                }
-                break;
-		}
-
-		offset += config_header->bLength;
-	}
 
     // Удаляем больше не нужный дескриптор
     kfree(config_descriptor);    
