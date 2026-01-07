@@ -593,8 +593,6 @@ void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_
 int xhci_device_update_actual_max_packet_size(struct xhci_device* dev, uint32_t max_packet_size);
 int xhci_device_send_usb_request(struct xhci_device* dev, struct usb_device_request* req, void* out, uint32_t length);
 int xhci_device_get_descriptor(struct xhci_device* dev, struct usb_device_descriptor* descr, uint32_t length);
-int xhci_device_get_string_language_descriptor(struct xhci_device* dev, struct usb_string_language_descriptor* descr);
-int xhci_device_get_string_descriptor(struct xhci_device* dev, uint16_t language_id, uint8_t index, struct usb_string_descriptor* descr);
 uint8_t xhci_ep_get_absolute_id(struct usb_endpoint_descriptor* descr);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx, struct usb_config** config);

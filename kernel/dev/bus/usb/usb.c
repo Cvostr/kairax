@@ -3,6 +3,7 @@
 #include "string.h"
 #include "kairax/stdio.h"
 #include "kairax/errors.h"
+#include "kairax/kstdlib.h"
 
 extern struct pci_device_driver ehci_ctrl_driver;
 extern struct pci_device_driver xhci_ctrl_driver;
@@ -185,6 +186,42 @@ int usb_device_get_configuration_descriptor(struct usb_device* device, uint8_t c
     *descr = kmalloc(temp_descriptor.wTotalLength);
     req.wLength = temp_descriptor.wTotalLength;
     rc = usb_device_send_request(device, &req, *descr, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return 0;
+}
+
+int usb_get_string_descriptor(struct usb_device* device, uint8_t index, uint16_t language_id, struct usb_string_descriptor *out, size_t len)
+{
+    int rc;
+    struct usb_device_request req;
+    struct usb_descriptor_header header;
+    
+    // заполним начальный запрос
+	req.type = USB_DEVICE_REQ_TYPE_STANDART;
+	req.transfer_direction = USB_DEVICE_REQ_DIRECTION_DEVICE_TO_HOST;
+	req.recipient = USB_DEVICE_REQ_RECIPIENT_DEVICE;
+	req.bRequest = USB_DEVICE_REQ_GET_DESCRIPTOR;
+	req.wValue = (USB_DESCRIPTOR_TYPE_STRING << 8) | index;
+	req.wIndex = language_id;
+	req.wLength = sizeof(struct usb_descriptor_header);
+
+    // Считываем только заголовок, чтобы узнать реальный размер дескриптора
+    rc = usb_device_send_request(device, &req, &header, req.wLength);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    // Размер считываемых данных
+    size_t read_length = MIN(header.bLength, len);
+
+    req.wLength = read_length;
+    // Считываем дескриптор
+    rc = usb_device_send_request(device, &req, out, read_length);
     if (rc != 0)
     {
         return rc;

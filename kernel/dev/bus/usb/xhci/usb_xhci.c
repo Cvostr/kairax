@@ -642,6 +642,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
 	usb_device->async_msg = xhci_drv_send_async_msg;
 	usb_device->get_string = xhci_get_string;
+	device->usb_device = usb_device;
 	
 	// Получение информации о коде языка
 	rc = xhci_device_get_strings_lang_id(device, &usb_device->lang_id);
@@ -668,7 +669,6 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	composite_dev->usb_info.usb_device = usb_device;
 	device_set_parent(composite_dev, controller->controller_dev);
 	
-	device->usb_device = usb_device;
 	device->composite_dev = composite_dev;
 
 	struct usb_config* usb_conf = NULL;

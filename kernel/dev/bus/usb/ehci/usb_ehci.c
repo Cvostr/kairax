@@ -414,6 +414,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 		last = data;
 	}
 
+	// Настраиваем Status
 	status = ehci_alloc_td(hci);
 	if (status == NULL)
 	{
@@ -434,8 +435,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	// Инициализировать QH с SETUP TD
 	ehci_qh_link_td(qh, setup);
 
-	//printk("EHCI: SETUP %p (halt %i) %i %i %i %i\n", vmm_get_physical_address(setup), setup->token.status.halted, setup->token.status.missed, setup->token.status.babble, setup->token.status.transaction_error, setup->token.status.data_buffer_error);
-			
+	// Отправить QH на выполнение
 	ehci_enqueue_qh(hci, qh);
 
 	hpet_sleep(10);
@@ -454,9 +454,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 			rc = -EIO;
 			break;
 		}
-
-		//printk("CURRENT %p NEXT %p TERM %i\n", qh->current_ptr.ptr, qh->next.lp, qh->next.terminate);
-
+		
 		int completed = qh->next.terminate == 1;
 
 		if (qh->token.status.active == 0 && completed)
@@ -574,6 +572,14 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	usb_device->async_msg = xhci_drv_send_async_msg;
 	usb_device->get_string = xhci_get_string;*/
 
+	// Создать объект композитного устройства
+	struct device* composite_dev = new_device();
+	//device_set_name(composite_dev, usb_device->product);
+	composite_dev->dev_type = DEVICE_TYPE_USB_COMPOSITE;
+	composite_dev->dev_bus = DEVICE_BUS_USB;
+	composite_dev->usb_info.usb_device = usb_device;
+	device_set_parent(composite_dev, hci->controller_dev);
+
 	// Обработка всех конфигураций
 	for (uint8_t i = 0; i < device_descriptor.bNumConfigurations; i ++)
 	{
@@ -606,14 +612,14 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 		{
 			struct usb_interface* iface = conf->interfaces[iface_i];
 
-			/*struct device* usb_dev = new_device();
-			device_set_name(usb_dev, usb_device->product);
+			struct device* usb_dev = new_device();
+			//device_set_name(usb_dev, usb_device->product);
 			usb_dev->dev_type = DEVICE_TYPE_USB_INTERFACE;
 			usb_dev->dev_bus = DEVICE_BUS_USB;
 			device_set_data(usb_dev, ehci_dev);
 			usb_dev->usb_info.usb_device = usb_device;
-			usb_dev->usb_info.usb_interface = iface;*/
-			//device_set_parent(usb_dev, composite_dev);
+			usb_dev->usb_info.usb_interface = iface;
+			device_set_parent(usb_dev, composite_dev);
 
 			//register_device(usb_dev);
 		}

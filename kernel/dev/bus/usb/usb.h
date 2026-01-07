@@ -191,6 +191,7 @@ int usb_clear_endpoint_halt(struct usb_device* device, struct usb_endpoint* ep);
 /// @return 0 - при успехе
 int usb_device_set_configuration(struct usb_device* device, int configuration);
 
+int usb_get_string_descriptor(struct usb_device* device, uint8_t index, uint16_t language_id, struct usb_string_descriptor *out, size_t len);
 int usb_device_get_configuration_descriptor(struct usb_device* device, uint8_t configuration, struct usb_configuration_descriptor** descr);
 struct usb_config* usb_parse_configuration_descriptor(struct usb_configuration_descriptor* config_descriptor);
 
