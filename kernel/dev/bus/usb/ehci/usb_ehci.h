@@ -147,13 +147,17 @@ struct ehci_td
 struct ehci_qh 
 {
     // Queue Head Horizontal Link Pointer
-    struct 
-    {
-        uint32_t terminate : 1;
-        uint32_t type : 2;
-        uint32_t zero : 2;
-        uint32_t lp : 27;
-    } link_ptr;
+    union {
+        struct {
+            uint32_t terminate : 1;
+            uint32_t type : 2;
+            uint32_t zero : 2;
+            uint32_t lp : 27;
+        } PACKED;
+
+        volatile uint32_t raw;
+    } PACKED link_ptr;
+
 
     // Endpoint Characteristics
     struct 
@@ -227,6 +231,10 @@ struct ehci_qh
     } buffer_ptr_list[5];
 
     uint32_t extended_buffer_ptr[5];
+
+    // Внутреннее состояние для драйвера
+    struct ehci_qh *prev_ptr;
+    struct ehci_qh *next_ptr;
 
 } PACKED;
 

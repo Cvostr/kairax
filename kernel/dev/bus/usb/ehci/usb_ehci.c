@@ -80,12 +80,17 @@ uint8_t ehci_next_device_address(struct ehci_controller *ehc)
 	return ehc->device_address_counter;
 }
 
+// EHCI Revision 1.0
+// 4.8.1
 void ehci_qh_link_qh(struct ehci_qh *qh_parent, struct ehci_qh *qh)
 {
-	qh->link_ptr.type = qh_parent->link_ptr.type;
-	qh->link_ptr.lp = qh_parent->link_ptr.lp;
-	qh->link_ptr.terminate = qh_parent->link_ptr.terminate;
-
+	// Сначала нам надо установить для вставляемой QH адрес следующей QH
+	// Он будет равен QHLINK от qh_parent
+	qh->link_ptr.raw = qh_parent->link_ptr.raw;
+	// Заполним указатели на следующий QH и предыдущий
+	qh->prev_ptr = qh_parent;
+	qh->next_ptr = qh_parent->next_ptr;
+	// Установим новый QHLP для qh_parent
 	uintptr_t qh_phys = vmm_get_physical_address(qh);
 	qh_parent->link_ptr.type = EHCI_TYPE_QH;
 	qh_parent->link_ptr.lp = qh_phys >> 5;
@@ -109,13 +114,36 @@ void ehci_td_link_td(struct ehci_td *td_parent, struct ehci_td *td)
 void ehci_enqueue_qh(struct ehci_controller* hci, struct ehci_qh *qh)
 {
 	// TODO: улучшить
-	ehci_qh_link_qh(hci->async_tail, qh);
-	hci->async_tail = qh;
+	ehci_qh_link_qh(hci->async_head, qh);
+	//hci->async_tail = qh;
 }
 
+// EHCI Revision 1.0
+// 4.8.2
 void ehci_dequeue_qh(struct ehci_controller* hci, struct ehci_qh *qh)
 {
 	// TODO: улучшить
+	struct ehci_qh *prev = qh->prev_ptr;
+	struct ehci_qh *next = qh->next_ptr;
+
+	prev->link_ptr.raw = qh->link_ptr.raw;
+
+	// Уведомим устройство о том, что что то удалили из очереди 
+	uint32_t usbcmd = ehci_op_read32(hci, EHCI_REG_OP_USBCMD);
+	ehci_op_write32(hci, EHCI_REG_OP_USBCMD, usbcmd | EHCI_USBCMD_INT_ON_AAB);
+
+	// надо бы дождаться USBSTS.Interrupt on Async Advance
+	// TODO: сделать через прерывание
+	uint32_t usbsts;
+	while (((usbsts = ehci_op_read32(hci, EHCI_REG_OP_USBSTS)) & EHCI_USBSTS_INT_ON_ASYNC_ADV) == 0)
+	{
+		
+	}
+
+	ehci_op_write32(hci, EHCI_REG_OP_USBSTS, usbsts);
+
+
+	//hpet_sleep(1);
 }
 
 void ehci_td_set_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
@@ -388,7 +416,9 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 
 		//printk("CURRENT %p NEXT %p TERM %i\n", qh->current_ptr.ptr, qh->next.lp, qh->next.terminate);
 
-		if (qh->token.status.active == 0)
+		int completed = qh->next.terminate == 1;
+
+		if (qh->token.status.active == 0 && completed)
 		{
 			//printk("EHCI: Success\n");
 			rc = 0;
@@ -401,8 +431,13 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	ehci_dequeue_qh(hci, qh);
 
 exit:
-
-	// TODO: очистить все
+	if (setup)
+		ehci_free_td(hci, setup);
+	if (data)
+		ehci_free_td(hci, data);
+	if (status)
+		ehci_free_td(hci, status);
+	ehci_free_qh(hci, qh);
 	return rc;
 }
 
@@ -503,7 +538,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	{
 		struct usb_configuration_descriptor* config_descriptor = NULL;
 		// Считать конфигурацию по номеру
-		int rc = usb_device_get_configuration_descriptor(usb_device, i, &config_descriptor);
+		rc = usb_device_get_configuration_descriptor(usb_device, i, &config_descriptor);
 		if (rc != 0) 
 		{
 			printk("EHCI: device configuration descriptor (%i) request error (%i)!\n", i, rc);	
@@ -511,7 +546,14 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 			return -1;
 		}
 
-		// TODO: SET CONFIGURATION
+		// Включаем конфигурацию
+		rc = usb_device_set_configuration(usb_device, config_descriptor->bConfigurationValue);
+		if (rc != 0) 
+		{
+			printk("EHCI: device configuration descriptor setting (%i) error (%i)!\n", i, rc);	
+			kfree(config_descriptor);
+			return -1;
+		}
 
 		struct usb_config *conf = usb_parse_configuration_descriptor(config_descriptor);
 
@@ -584,7 +626,7 @@ void ehci_irq_handler(void* regs, struct ehci_controller* dev)
 
 	if ((usbsts & EHCI_USBSTS_USBINT) == EHCI_USBSTS_USBINT)
 	{
-		printk("EHCI: USBINT\n");
+		//printk("EHCI: USBINT\n");
 	}
 
 	if ((usbsts & EHCI_USBSTS_PORT_CHANGE_DETECT) == EHCI_USBSTS_PORT_CHANGE_DETECT)
@@ -713,6 +755,7 @@ int ehci_device_probe(struct device *dev)
 	async_qh->link_ptr.terminate = 1;
 	async_qh->next.terminate = 1;
 	async_qh->ep_ch.h = 1;
+	async_qh->next_ptr = async_qh;
 
 	cntrl->async_head = async_qh;
 	cntrl->async_tail = async_qh;
