@@ -92,9 +92,31 @@ int usb_send_async_msg(struct usb_device* device, struct usb_endpoint* endpoint,
 
 ssize_t usb_get_string(struct usb_device* device, int index, char* buffer, size_t buflen)
 {
+    ssize_t rc;
+    uint16_t lang_id = device->lang_id;
+    struct usb_string_descriptor str_descr;
+
     if (device->state == USB_STATE_DISCONNECTED)
         return -ENODEV;
-    return device->get_string(device, index, buffer, buflen);
+
+    // Зануляем дескриптор
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+
+    // считывание строки
+    rc = usb_get_string_descriptor(device, index, lang_id, &str_descr, sizeof(struct usb_string_descriptor));
+    if (rc != 0) 
+    {
+        return rc;
+    }
+
+    // Получить длину для копирования
+    size_t string_len = str_descr.header.bLength - sizeof(struct usb_descriptor_header);
+    ssize_t avail_len = MIN(buflen, string_len);
+
+    // Копирование строки в выходной буфер
+    memcpy(buffer, str_descr.unicode_string, avail_len);
+
+    return avail_len;
 }
 
 int usb_set_interface(struct usb_device* device, int interfaceNumber, int altsetting)

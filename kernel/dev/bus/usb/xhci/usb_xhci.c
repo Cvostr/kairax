@@ -641,7 +641,6 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
 	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
 	usb_device->async_msg = xhci_drv_send_async_msg;
-	usb_device->get_string = xhci_get_string;
 	device->usb_device = usb_device;
 	
 	// Получение информации о коде языка

@@ -569,8 +569,18 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	/*usb_device->send_async_request = xhci_drv_device_send_usb_async_request;
 	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
 	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
-	usb_device->async_msg = xhci_drv_send_async_msg;
-	usb_device->get_string = xhci_get_string;*/
+	usb_device->async_msg = xhci_drv_send_async_msg;*/
+
+	struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
+    rc = usb_get_string_descriptor(usb_device, 0, 0, lang_descriptor, sizeof(struct usb_string_language_descriptor));
+	if (rc != 0) 
+	{
+        printk("EHCI: device string language descriptor request error (%i)!\n", rc);	
+		return -1;
+	}
+
+	usb_device->lang_id = lang_descriptor->lang_ids[0];
+    kfree(lang_descriptor);
 
 	// Создать объект композитного устройства
 	struct device* composite_dev = new_device();

@@ -349,29 +349,6 @@ int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoin
     return xhci_device_msg_async(dev->controller_device_data, endpoint, msg);
 }
 
-ssize_t xhci_get_string(struct usb_device* device, int index, char* buffer, size_t buflen)
-{
-    int rc;
-    uint16_t lang_id = device->lang_id;
-    struct usb_string_descriptor str_descr;
-
-    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
-    // считывание строки
-    rc = usb_get_string_descriptor(device, index, lang_id, &str_descr, sizeof(struct usb_string_descriptor));
-    if (rc != 0) 
-    {
-        return -rc;
-    }
-
-    // Получить длину для копирования
-    size_t string_len = str_descr.header.bLength - sizeof(struct usb_descriptor_header);
-    ssize_t avail_len = MIN(buflen, string_len);
-
-    memcpy(buffer, str_descr.unicode_string, avail_len);
-
-    return avail_len;
-}
-
 int xhci_device_msg_control_async(struct xhci_device* dev, struct usb_msg *msg)
 {
     uint32_t length = msg->length;

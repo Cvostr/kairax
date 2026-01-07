@@ -605,7 +605,6 @@ int xhci_drv_device_send_usb_async_request(struct usb_device* dev, struct usb_ms
 int xhci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint);
 int xhci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length);
 int xhci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg);
-ssize_t xhci_get_string(struct usb_device* device, int index, char* buffer, size_t buflen);
 
 /// @brief 
 /// @param controller указатель на объект контроллера xhci
