@@ -22,7 +22,7 @@ int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_po
 	size_t QH_buffersz = QH_SIZE * qh_pool;
 	size_t TD_buffersz = TD_SIZE * td_pool;
 
-	printk("EHCI: QH size %i TD size %i\n", QH_SIZE, TD_SIZE);
+	//printk("EHCI: QH size %i TD size %i\n", QH_SIZE, TD_SIZE);
 
 	size_t qh_pages;
 	void *qh_pool_phys = pmm_alloc(QH_buffersz, &qh_pages);
@@ -182,9 +182,6 @@ void ehci_dequeue_qh(struct ehci_controller* hci, struct ehci_qh *qh)
 	}
 
 	ehci_op_write32(hci, EHCI_REG_OP_USBSTS, usbsts);
-
-
-	//hpet_sleep(1);
 }
 
 void ehci_td_set_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
@@ -438,7 +435,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	// Отправить QH на выполнение
 	ehci_enqueue_qh(hci, qh);
 
-	hpet_sleep(10);
+	//hpet_sleep(10);
 
 	rc = -ETIMEDOUT;
 	int timeout = 1000;
@@ -459,7 +456,6 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 
 		if (qh->token.status.active == 0 && completed)
 		{
-			//printk("EHCI: Success\n");
 			rc = 0;
 			break;
 		}
@@ -483,6 +479,104 @@ exit:
 int ehci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length)
 {
     return ehci_control(dev->controller_device_data, req, out, length);
+}
+
+int ehci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoint, void* data, uint32_t length)
+{
+	int rc = 0;
+	struct ehci_device *hci_device = dev->controller_device_data;
+	struct ehci_controller *hci = hci_device->hci;
+	uint8_t data_toggle = 0;
+	struct ehci_td *td_data = NULL;
+
+	if (data == NULL && length == 0)
+	{
+		return -1;
+	}
+
+	struct ehci_qh *qh = ehci_alloc_qh(hci);
+
+	if (qh == NULL)
+		return -ENOMEM;
+
+	// Bulk Endpoint
+	qh->ep_ch.endpt = endpoint->descriptor.bEndpointAddress & 0xF;
+	qh->ep_ch.device_address = hci_device->address;
+	qh->ep_ch.eps = hci_device->speed;
+	qh->ep_ch.max_pkt_length = endpoint->descriptor.wMaxPacketSize;
+	qh->ep_ch.dtc = 1;
+	qh->ep_ch.rl = 5;
+	QH_LINK_TERMINATE(qh);
+
+	//qh->ep_cap.port = device->port_id;
+	//qh->ep_cap.hub_addr = 0; // TODO: Hubs
+
+
+	td_data = ehci_alloc_td(hci);
+	if (td_data == NULL)
+	{
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	data_toggle ^= 1;
+
+	int pid_code = ((endpoint->descriptor.bEndpointAddress & 0x80) == 0x80) ? EHCI_PID_CODE_IN : EHCI_PID_CODE_OUT;
+
+	td_data->token.pid_code = pid_code;
+	td_data->token.err_count = 3;
+	td_data->token.status.active = 1;
+	td_data->token.total_len = length;
+	td_data->token.data_toggle = data_toggle;
+	ehci_td_set_databuffers(td_data, data, hci->mode64);
+	TD_LINK_TERMINATE(td_data)
+
+	// Инициализировать QH с SETUP TD
+	ehci_qh_link_td(qh, td_data);
+
+	// Отправить QH на выполнение
+	ehci_enqueue_qh(hci, qh);
+
+	rc = -ETIMEDOUT;
+	int timeout = 1000;
+	while ((timeout --) > 0)
+	{
+		if (qh->token.status.halted == 1)
+		{
+			printk("EHCI: Halted %i %i %i %i\n" , qh->token.status.missed, qh->token.status.babble, qh->token.status.transaction_error, qh->token.status.data_buffer_error);
+			if (data)
+				printk("EHCI: DATA (halt %i) %i %i %i %i\n", td_data->token.status.halted, td_data->token.status.missed, td_data->token.status.babble, td_data->token.status.transaction_error, td_data->token.status.data_buffer_error);
+			rc = -EIO;
+			break;
+		}
+		
+		int completed = qh->next.terminate == 1;
+
+		if (qh->token.status.active == 0 && completed)
+		{
+			rc = 0;
+			break;
+		}
+
+		hpet_sleep(1);
+	}
+
+	ehci_dequeue_qh(hci, qh);
+
+exit:
+	ehci_free_td(hci, td_data);
+	ehci_free_qh(hci, qh);
+	return rc;
+}
+
+int ehci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg)
+{
+	return -ENODEV;
+}
+
+int ehci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint)
+{
+	return 0;
 }
 
 int ehci_init_device(struct ehci_controller* hci, int portnum)
@@ -515,11 +609,11 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 		printk("EHCI: Error requesting device descriptor 1 (%i)\n", rc);
 		return rc;
 	}
-
+/*
 	printk("Type 0x%x\n", device_descriptor.header.bDescriptorType);
 	printk("Length 0x%x\n", device_descriptor.header.bLength);
 	printk("MaxEpSize 0x%x\n", device_descriptor.bMaxPacketSize0);
-
+*/
 	ehci_dev->controlEpMaxPacketSize = device_descriptor.bMaxPacketSize0;
 
 	// Этап установки адреса для устройства
@@ -555,10 +649,8 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 		return rc;
 	}
 
-	printk("bDeviceClass 0x%x\n", device_descriptor.bDeviceClass);
-	printk("bDeviceSubclass 0x%x\n", device_descriptor.bDeviceSubClass);
-	printk("idVendor 0x%x\n", device_descriptor.idVendor);
-	printk("idProduct 0x%x\n", device_descriptor.idProduct);
+	printk("bDeviceClass 0x%x, bDeviceSubclass 0x%x\n", device_descriptor.bDeviceClass, device_descriptor.bDeviceSubClass);
+	printk("idVendor 0x%x, idProduct 0x%x\n", device_descriptor.idVendor, device_descriptor.idProduct);
 	printk("bNumConfigurations %i\n", device_descriptor.bNumConfigurations);
 
 	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
@@ -566,10 +658,11 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	usb_device->state = USB_STATE_ATTACHED;
 	//usb_device->slot_id = slot;
 	usb_device->send_request = ehci_drv_device_send_usb_request;
-	/*usb_device->send_async_request = xhci_drv_device_send_usb_async_request;
-	usb_device->configure_endpoint = xhci_drv_device_configure_endpoint;
-	usb_device->bulk_msg = xhci_drv_device_bulk_msg;
-	usb_device->async_msg = xhci_drv_send_async_msg;*/
+	usb_device->bulk_msg = ehci_drv_device_bulk_msg;
+	usb_device->async_msg = ehci_drv_send_async_msg;
+	usb_device->configure_endpoint = ehci_drv_device_configure_endpoint;
+	/*
+	usb_device->send_async_request = xhci_drv_device_send_usb_async_request;*/
 
 	struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
     rc = usb_get_string_descriptor(usb_device, 0, 0, lang_descriptor, sizeof(struct usb_string_language_descriptor));
@@ -631,7 +724,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 			usb_dev->usb_info.usb_interface = iface;
 			device_set_parent(usb_dev, composite_dev);
 
-			//register_device(usb_dev);
+			register_device(usb_dev);
 		}
 
 		// Удаляем больше не нужный дескриптор
