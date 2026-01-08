@@ -184,6 +184,31 @@ void ehci_dequeue_qh(struct ehci_controller* hci, struct ehci_qh *qh)
 	ehci_op_write32(hci, EHCI_REG_OP_USBSTS, usbsts);
 }
 
+void ehci_td_set_virtual_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
+{
+	uintptr_t ptr = addr;
+	uintptr_t page = vmm_get_physical_address(ptr);
+
+	// Первую страницу записываем со смещением, потому что оно там поддерживается
+	td->buffer_ptr_list[0] = (uint32_t)(page);
+	if (has64)
+		td->ext_buffer_ptr[0] = (uint32_t) (page >> 32);
+
+	// надо выровнять, потому что остальные указатели в TD это не поддерживают
+	// В данном случае выравнивание вниз, потому что потом в цикле размер страницы все равно прибавим
+	ptr &= (~0xFFF);
+
+	for (int i = 1; i < 4; i ++)
+	{
+		ptr += 0x1000;
+		page = vmm_get_physical_address(ptr);
+	
+		td->buffer_ptr_list[i] = (uint32_t)(page);
+		if (has64)
+			td->ext_buffer_ptr[i] = (uint32_t) (page >> 32);
+	}
+}
+
 void ehci_td_set_databuffers(struct ehci_td *td, uintptr_t addr, int has64)
 {
 	uintptr_t ptr = addr;
@@ -405,7 +430,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 		data->token.status.active = 1;
 		data->token.total_len = length;
 		data->token.data_toggle = data_toggle;
-		ehci_td_set_databuffers(data, vmm_get_physical_address(buffer), hci->mode64);
+		ehci_td_set_virtual_databuffers(data, buffer, hci->mode64);
 
 		ehci_td_link_td(setup, data);
 		last = data;
@@ -434,8 +459,6 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 
 	// Отправить QH на выполнение
 	ehci_enqueue_qh(hci, qh);
-
-	//hpet_sleep(10);
 
 	rc = -ETIMEDOUT;
 	int timeout = 1000;
@@ -664,16 +687,22 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	/*
 	usb_device->send_async_request = xhci_drv_device_send_usb_async_request;*/
 
-	struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
-    rc = usb_get_string_descriptor(usb_device, 0, 0, lang_descriptor, sizeof(struct usb_string_language_descriptor));
-	if (rc != 0) 
+	// Смотрим, что в iManufacturer, iProduct, iSerialNumber
+	// Если все три значения равны 0, то считаем, что устройство вообще не поддерживает String Descriptors
+	// И мы не будем даже запрашивать код языка, чтобы не ловить ошибки
+	if (device_descriptor.iManufacturer != 0 && device_descriptor.iProduct != 0 && device_descriptor.iSerialNumber != 0)
 	{
-        printk("EHCI: device string language descriptor request error (%i)!\n", rc);	
-		return -1;
-	}
+		struct usb_string_language_descriptor* lang_descriptor = kmalloc(sizeof(struct usb_string_language_descriptor));
+		rc = usb_get_string_descriptor(usb_device, 0, 0, lang_descriptor, sizeof(struct usb_string_language_descriptor));
+		if (rc != 0) 
+		{
+			printk("EHCI: device string language descriptor request error (%i)!\n", rc);	
+			return -1;
+		}
 
-	usb_device->lang_id = lang_descriptor->lang_ids[0];
-    kfree(lang_descriptor);
+		usb_device->lang_id = lang_descriptor->lang_ids[0];
+    	kfree(lang_descriptor);
+	}
 
 	// Создать объект композитного устройства
 	struct device* composite_dev = new_device();
