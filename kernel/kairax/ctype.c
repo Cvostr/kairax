@@ -2,7 +2,7 @@
 
 int isalpha(int character)
 {
-    return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'B');
+    return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
 }
 
 int isdigit(int character)

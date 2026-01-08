@@ -51,6 +51,8 @@ gcc $GCC_ARGS $x64_SRC/dev/serial/serial.c -o ./bin/serial.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_dsdt.c -o ./bin/acpi_dsdt.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi.c -o ./bin/acpi.o
 gcc $GCC_ARGS $x64_SRC/dev/acpi/acpi_madt.c -o ./bin/acpi_madt.o
+gcc $GCC_ARGS $x64_SRC/dev/acpi/aml.c -o ./bin/aml.o
+gcc $GCC_ARGS $x64_SRC/dev/acpi/aml_ops.c -o ./bin/aml_ops.o
 gcc $GCC_ARGS $x64_SRC/dev/pci.c -o ./bin/pci_x64.o
 
 gcc $GCC_ARGS $x64_SRC/proc/thread.c -o ./bin/thread_x64.o
