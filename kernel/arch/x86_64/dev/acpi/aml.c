@@ -24,15 +24,14 @@ uint8_t aml_ctx_peek_byte(struct aml_ctx *ctx)
     return ctx->aml_data[ctx->current_pos];
 }
 
-uint8_t *aml_ctx_copy_bytes(struct aml_ctx *ctx, size_t len)
+int aml_ctx_copy_bytes(struct aml_ctx *ctx, uint8_t *out, size_t len)
 {
     if (aml_ctx_get_remain_size(ctx) < len)
-        return NULL;
+        return -ENOSPC;
 
-    uint8_t *res = kmalloc(len);
-    memcpy(res, ctx->aml_data + ctx->current_pos, len);
+    memcpy(out, ctx->aml_data + ctx->current_pos, len);
     ctx->current_pos += len;
-    return res;
+    return 0;
 }
 
 struct aml_node *aml_make_node(enum aml_node_type type)
@@ -90,6 +89,24 @@ uint32_t aml_read_pkg_len(struct aml_ctx *ctx)
     return pkg_len;
 }
 
+uint8_t *aml_ctx_dup_from_pkg(struct aml_ctx *ctx, size_t *len)
+{
+    uint32_t orig = ctx->current_pos;
+
+    uint32_t pkg_len = aml_read_pkg_len(ctx);
+    *len = pkg_len - (ctx->current_pos - orig);
+
+    uint8_t *res = kmalloc(*len); 
+    int rc = aml_ctx_copy_bytes(ctx, res, *len);
+    if (rc != 0)
+    {
+        kfree(res);
+        return NULL;
+    }
+
+    return res;
+}
+
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 {
     int string_base = 0;
@@ -133,6 +150,7 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
     // выделяем память - размер заголовка + сегменты по 4 байта
     struct aml_name_string *res = kmalloc(sizeof(struct aml_name_string) + segments * 4);
     res->base = string_base;
+    res->segments_num = segments;
 
     for (int i = 0; i < segments; i ++)
     {
@@ -160,9 +178,11 @@ int aml_parse(char *data, uint32_t len)
     parse_ctx.aml_len = len;
     parse_ctx.current_pos = 0;
 
+    struct aml_node *node;
+
     while (parse_ctx.current_pos < parse_ctx.aml_len)
     {
-        rc = aml_parse_next_node(&parse_ctx);
+        rc = aml_parse_next_node(&parse_ctx, &node);
         if (rc != 0)
             return rc;
     }
@@ -172,7 +192,7 @@ int aml_parse(char *data, uint32_t len)
 
 void aml_op_alias(struct aml_ctx *ctx);
 
-struct aml_node* aml_parse_next_node(struct aml_ctx *ctx)
+int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
 {
     struct aml_node *node = NULL;
     uint8_t opcode = aml_ctx_get_byte(ctx);
@@ -198,6 +218,10 @@ struct aml_node* aml_parse_next_node(struct aml_ctx *ctx)
     {
         switch (opcode)
         {
+        case AML_OP_ZERO:
+            node = aml_make_node(INTEGER);
+            node->int_value = 0;
+            break;
         case AML_OP_ONE:
             node = aml_make_node(INTEGER);
             node->int_value = 1;
@@ -206,22 +230,32 @@ struct aml_node* aml_parse_next_node(struct aml_ctx *ctx)
             aml_op_alias(ctx);
             break;
         case AML_OP_NAME:
+            aml_op_name(ctx);
             break;
         case AML_OP_SCOPE:
-            aml_op_scope(ctx);
+            int rc = aml_op_scope(ctx);
+            if (rc != NULL)
+                return rc;
+            break;
+        case AML_OP_METHOD:
+            aml_op_method(ctx);
             break;
         case AML_OP_BYTE_PREFIX:
             node = aml_make_node(INTEGER);
             node->int_value = aml_ctx_get_byte(ctx);
             break;
         case AML_OP_WORD_PREFIX:
-            node = aml_make_node(INTEGER);
-            node->int_value = aml_ctx_get_byte(ctx);
-            node->int_value <<= 8;
-            node->int_value |= aml_ctx_get_byte(ctx);
+            node = aml_op_word(ctx);
+            break;
+        case AML_OP_DWORD_PREFIX:
+            node = aml_op_dword(ctx);
             break;
         case AML_OP_NOOP:
             //printk("ACPI: NOOP\n");
+            break;
+        case AML_OP_ONES:
+            node = aml_make_node(INTEGER);
+            node->int_value = UINT64_MAX;
             break;
         
         default:
@@ -230,5 +264,7 @@ struct aml_node* aml_parse_next_node(struct aml_ctx *ctx)
         }
     }
 
-    return node;
+    *node_out = node;
+
+    return 0;
 }
