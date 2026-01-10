@@ -110,6 +110,19 @@ uint8_t *aml_ctx_dup_from_pkg(struct aml_ctx *ctx, size_t *len)
     return res;
 }
 
+uint32_t aml_ctx_addr_from_pkg(struct aml_ctx *ctx, uint8_t **begin_addr)
+{
+    uint32_t orig = ctx->current_pos;
+
+    uint32_t pkg_len = aml_read_pkg_len(ctx);
+    uint32_t data_len = pkg_len - (ctx->current_pos - orig);
+
+    *begin_addr = ctx->aml_data + ctx->current_pos;
+    ctx->current_pos += data_len;
+
+    return data_len;
+}
+
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 {
     int string_base = 0;
@@ -238,6 +251,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             int rc = aml_op_scope(ctx);
             if (rc != NULL)
                 return rc;
+            break;
+        case AML_OP_BUFFER:
+            node = aml_op_buffer(ctx);
             break;
         case AML_OP_PACKAGE:
             node = aml_op_package(ctx);

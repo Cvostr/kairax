@@ -1,5 +1,6 @@
 #include "aml.h"
 #include "kairax/stdio.h"
+#include "mem/kheap.h"
 
 void aml_op_alias(struct aml_ctx *ctx)
 {
@@ -39,6 +40,7 @@ int aml_op_scope(struct aml_ctx *ctx)
 
 void aml_op_region_op(struct aml_ctx *ctx)
 {
+    int rc;
     struct aml_name_string *region_name = aml_read_name_string(ctx);
 
     uint8_t region_space = aml_ctx_get_byte(ctx);
@@ -46,10 +48,32 @@ void aml_op_region_op(struct aml_ctx *ctx)
 
     struct aml_node *region_offset_node, *region_len_node;
     
-    aml_parse_next_node(ctx, &region_offset_node);
-    //printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset_node->int_value);
+    rc = aml_parse_next_node(ctx, &region_offset_node);
+    if (rc != 0)
+    {
+        printk("ACPI: OpRegionOp: Error reading RegionOffset node (%i)\n", rc);
+        return;
+    }
+
+    if (region_offset_node->type != INTEGER)
+    {
+        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", region_offset_node->type);
+        return;
+    }
     
-    aml_parse_next_node(ctx, &region_len_node);
+    rc = aml_parse_next_node(ctx, &region_len_node);
+    if (rc != 0)
+    {
+        printk("ACPI: OpRegionOp: Error reading RegionLen node (%i)\n", rc);
+    }
+
+    if (region_len_node->type != INTEGER)
+    {
+        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", region_len_node->type);
+        return;
+    }
+
+    //printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset_node->int_value);
     //printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len_node->int_value);
 }
 
@@ -163,7 +187,18 @@ void aml_op_name(struct aml_ctx *ctx)
     printk("OPNAME '%s'\n", name->segments->seg_s);
 
     struct aml_node *value;
-    aml_parse_next_node(ctx, &value);
+    int rc = aml_parse_next_node(ctx, &value);
+    if (rc != 0)
+    {
+        printk("ACPI: NameOp: Error reading next node (%i)\n", rc);
+        return;
+    }
+
+    if (value == NULL)
+    {
+        printk("ACPI: NameOp: next node is NULL\n");
+        return NULL;
+    }
 
     // TODO: make node?
     // может просто добавлять ноду value с именем name
@@ -173,7 +208,10 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
 {
     int rc;
     size_t len;
-    uint8_t *pkg_buf = aml_ctx_dup_from_pkg(ctx, &len);
+    uint8_t *pkg_buf = NULL;
+
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &pkg_buf);
 
     struct aml_ctx pkg_ctx;
     pkg_ctx.aml_data = pkg_buf;
@@ -182,7 +220,7 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
 
     uint8_t num_elements = aml_ctx_get_byte(&pkg_ctx);
 
-    printk("OP PACKAGE len %i num_elements %i\n", len, num_elements);
+    //printk("OP PACKAGE len %i num_elements %i\n", len, num_elements);
 
     struct aml_node *node = aml_make_node(PACKAGE);
     node->package.num_elements = num_elements;
@@ -191,6 +229,7 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
 
     for (int i = 0; i < num_elements; i ++)
     {
+        // TODO: строки и ссылки??
         rc = aml_parse_next_node(&pkg_ctx, &value);
         if (rc != 0)
         {
@@ -201,9 +240,47 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
         // TODO: сохранить элемент
     }
 
-    kfree(pkg_buf);
-
     return node;
+}
+
+struct aml_node *aml_op_buffer(struct aml_ctx *ctx)
+{
+    int rc;
+    size_t len;
+    struct aml_node *result = NULL;
+    uint8_t *buffer_buf = NULL;
+    
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    struct aml_ctx pkg_ctx;
+    pkg_ctx.aml_data = buffer_buf;
+    pkg_ctx.aml_len = len;
+    pkg_ctx.current_pos = 0;
+
+    struct aml_node *buffer_size_node;
+    rc = aml_parse_next_node(&pkg_ctx, &buffer_size_node);
+    if (rc != 0)
+    {
+        printk("ACPI: BufferOp: Error reading BufferSize node (%i)\n", rc);
+        return NULL;
+    }
+
+    if (buffer_size_node->type != INTEGER)
+    {
+        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", buffer_size_node->type);
+        return NULL;
+    }
+
+    //printk("OP BUFFER len %i\n", buffer_size_node->int_value);
+
+    // Формируем node для ответа
+    result = aml_make_node(BUFFER);
+    result->buffer.len = buffer_size_node->int_value;
+    result->buffer.buffer = kmalloc(result->buffer.len);
+    aml_ctx_copy_bytes(&pkg_ctx, result->buffer.buffer, result->buffer.len);
+
+    return result;
 }
 
 struct aml_node *aml_op_word(struct aml_ctx *ctx)
