@@ -37,6 +37,9 @@ int aml_ctx_copy_bytes(struct aml_ctx *ctx, uint8_t *out, size_t len)
 struct aml_node *aml_make_node(enum aml_node_type type)
 {
     struct aml_node *node = kmalloc(sizeof(struct aml_node));
+    if (node == NULL)
+        return NULL;
+    memset(node, 0, sizeof(struct aml_node));
     node->type = type;
     return node;
 }
@@ -163,7 +166,6 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
                 return -EINVAL;
             }
             res->segments[i].seg_s[j] = v;
-            //printk("%c", v);
         }
     }
 
@@ -190,8 +192,6 @@ int aml_parse(char *data, uint32_t len)
     return 0;
 }
 
-void aml_op_alias(struct aml_ctx *ctx);
-
 int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
 {
     struct aml_node *node = NULL;
@@ -208,7 +208,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             case AML_EXT_OP_FIELD:
                 aml_op_field(ctx);
                 break;
-            
+            case AML_EXT_OP_INDEX_FIELD:
+                aml_op_index_field(ctx);
+                break;
             default:
                 printk("ACPI: Unknown ext opcode %x\n", opcode);
                 return -EINVAL;
@@ -236,6 +238,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             int rc = aml_op_scope(ctx);
             if (rc != NULL)
                 return rc;
+            break;
+        case AML_OP_PACKAGE:
+            node = aml_op_package(ctx);
             break;
         case AML_OP_METHOD:
             aml_op_method(ctx);

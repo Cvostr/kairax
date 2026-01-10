@@ -11,6 +11,7 @@
 #define AML_OP_WORD_PREFIX  0x0B
 #define AML_OP_DWORD_PREFIX 0x0C
 #define AML_OP_SCOPE        0x10
+#define AML_OP_PACKAGE      0x12
 #define AML_OP_METHOD       0x14
 #define AML_OP_NOOP         0x80
 #define AML_OP_ONES         0xFF
@@ -18,6 +19,8 @@
 #define AML_EXT_OP_PREFIX       0x5B
 #define AML_EXT_OP_REGION_OP    0x80
 #define AML_EXT_OP_FIELD        0x81     
+
+#define AML_EXT_OP_INDEX_FIELD  0x86
 
 struct aml_ctx {
     uint8_t *aml_data;
@@ -37,12 +40,14 @@ struct aml_name_string {
 enum aml_node_type {
     NONE,
     INTEGER,
-    METHOD
+    METHOD,
+    PACKAGE
 };
 
 struct aml_node {
 
     enum aml_node_type type;
+    char name[4];
 
     union {
         uint64_t int_value;
@@ -59,8 +64,13 @@ struct aml_node {
             uint8_t sync_level;
             // todo: term list
         } method;
-    };
 
+        struct
+        {
+            size_t num_elements;
+            // todo: element list
+        } package;
+    };
 };
 
 int aml_parse(char *data, uint32_t len);
@@ -82,9 +92,11 @@ void aml_op_alias(struct aml_ctx *ctx);
 int aml_op_scope(struct aml_ctx *ctx);
 void aml_op_region_op(struct aml_ctx *ctx);
 void aml_parse_field_list(struct aml_ctx *ctx);
+void aml_op_index_field(struct aml_ctx *ctx);
 void aml_op_method(struct aml_ctx *ctx);
 void aml_op_name(struct aml_ctx *ctx);
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);
+struct aml_node *aml_op_package(struct aml_ctx *ctx);
 
 #endif
