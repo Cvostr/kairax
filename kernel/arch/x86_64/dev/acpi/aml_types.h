@@ -18,7 +18,8 @@ enum aml_node_type {
     INTEGER,
     METHOD,
     PACKAGE,
-    BUFFER
+    BUFFER,
+    OP_REGION
 };
 
 struct aml_node {
@@ -50,6 +51,12 @@ struct aml_node {
             size_t len;
             uint8_t *buffer;
         } buffer;
+
+        struct {
+            uint8_t space;
+            uint64_t offset;
+            uint64_t len;
+        } op_region;
     };
 };
 

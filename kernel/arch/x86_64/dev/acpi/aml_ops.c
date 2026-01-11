@@ -53,48 +53,74 @@ int aml_op_scope(struct aml_ctx *ctx)
     return 0;
 }
 
-void aml_op_region_op(struct aml_ctx *ctx)
+int aml_op_region_op(struct aml_ctx *ctx)
 {
     int rc;
-    struct aml_name_string *region_name = aml_read_name_string(ctx);
+    struct aml_node *region_offset_node = NULL, *region_len_node = NULL;
+    struct aml_name_string *region_name = NULL;
 
+    // Считаем название региона
+    region_name = aml_read_name_string(ctx);
+    // Вид памяти, в которой располагается регион
     uint8_t region_space = aml_ctx_get_byte(ctx);
+        
     //printk("OP REGION OP name %s reg space 0x%x\n", region_name->segments->seg_s, region_space);
 
-    struct aml_node *region_offset_node, *region_len_node;
-    
     rc = aml_parse_next_node(ctx, &region_offset_node);
     if (rc != 0)
     {
         printk("ACPI: OpRegionOp: Error reading RegionOffset node (%i)\n", rc);
-        return;
+        goto exit;
     }
 
     if (region_offset_node->type != INTEGER)
     {
         printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", region_offset_node->type);
-        return;
+        rc = -EINVAL;
+        goto exit;
     }
     
     rc = aml_parse_next_node(ctx, &region_len_node);
     if (rc != 0)
     {
         printk("ACPI: OpRegionOp: Error reading RegionLen node (%i)\n", rc);
+        goto exit;
     }
 
     if (region_len_node->type != INTEGER)
     {
         printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", region_len_node->type);
-        return;
+        rc = -EINVAL;
+        goto exit;
+    }
+
+    struct aml_node *region_node = aml_make_node(OP_REGION);
+    region_node->op_region.space = region_space;
+    region_node->op_region.offset = region_offset_node->int_value;
+    region_node->op_region.len = region_len_node->int_value;
+
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, region_name, region_node);
+    if (rc != 0)
+    {
+        printk("ACPI: OpRegionOp: Error adding node to namespace (%i)\n", rc);
+        goto exit;
     }
 
     //printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset_node->int_value);
     //printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len_node->int_value);
+
+exit:
+    kfree(region_len_node);
+    kfree(region_offset_node);
+    kfree(region_name);
+    return 0;
 }
 
-void aml_parse_field_list(struct aml_ctx *ctx)
+// 19.6.47 Field (Declare Field Objects)
+int aml_parse_field_list(struct aml_ctx *ctx)
 {
     uint8_t cur; 
+    uint64_t offset_bits;
     
     while (ctx->current_pos < ctx->aml_len)
     {
@@ -103,33 +129,43 @@ void aml_parse_field_list(struct aml_ctx *ctx)
         {
             case 0:
                 aml_ctx_get_byte(ctx);
-                uint8_t access_type = aml_ctx_get_byte(ctx);
-                uint8_t access_attrib = aml_ctx_get_byte(ctx);
-                printk("\treserved field access_type %i access_attrib %i\n", access_type, access_attrib);
+                uint32_t offset = aml_read_pkg_len(ctx);
+                printk("\tReserved field. Offset %x (%i)\n", offset, offset);
+                offset_bits += offset;
                 break;
             case 1:
-                printk("\taccess field\n");
+                aml_ctx_get_byte(ctx);
+                uint8_t access_type = aml_ctx_get_byte(ctx);
+                uint8_t access_attrib = aml_ctx_get_byte(ctx);
+                printk("\taccess field. access_type %i access_attrib %i\n");
                 break;
             case 2:
-                printk("\tconnect field\n");
+                printk("\tConnect field. Not implemented\n");
+                return -ENOSYS;
                 break;
             case 3:
-                printk("\textended access field\n");
+                printk("\tExtended access field. Not implemented\n");
+                return -ENOSYS;
                 break;
             default:
                 char seg[5];
                 seg[4] = 0;
                 aml_ctx_copy_bytes(ctx, seg, 4);
                 uint32_t len = aml_read_pkg_len(ctx);
-                printk("\tnamed field %s len %i\n", seg, len);
+                printk("\tNamed field %s len %i\n", seg, len);
+                offset += len;
                 break;
         }
     }
+
+    return 0;
 }
 
 // 20.2. AML Grammar Definition (998)
-void aml_op_field(struct aml_ctx *ctx)
+int aml_op_field(struct aml_ctx *ctx)
 {
+    int res = 0;
+    struct aml_name_string *opregion_name = NULL;
     // Сделаем копию пакета
     size_t len;
     uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
@@ -139,15 +175,38 @@ void aml_op_field(struct aml_ctx *ctx)
     field_ctx.aml_data = nested;
     field_ctx.aml_len = len;
     field_ctx.current_pos = 0;
+    field_ctx.scope = ctx->scope;
 
-    struct aml_name_string *opregion_name = aml_read_name_string(&field_ctx);
+    // Получим Operation Region по имени из namespace
+    opregion_name = aml_read_name_string(&field_ctx);
+
+    // Попробуем получить объект по считанному имени
+    struct ns_node *opregion_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, opregion_name);
+    if (opregion_node == NULL || opregion_node->object == NULL)
+    {
+        printk("ACPI: FieldOp: Unable to find node in namespace\n");
+        res = -ENOENT;
+        goto exit;
+    }
+    // Проверим тип
+    if (opregion_node->object->type != OP_REGION)
+    {
+        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", opregion_node->object->type);
+        res = -EINVAL;
+        goto exit;
+    }
+
     uint8_t field_flags = aml_ctx_get_byte(&field_ctx);
 
     printk("FIELD OP pkg_len %i name '%s' flags %x\n", len, opregion_name->segments->seg_s, field_flags);
 
-    aml_parse_field_list(&field_ctx);
+    // Выполним разбор структуры полей
+    res = aml_parse_field_list(&field_ctx);
 
-    kfree(nested);
+exit:
+    KFREE_SAFE(nested);
+    KFREE_SAFE(opregion_name);
+    return res;
 }
 
 void aml_op_index_field(struct aml_ctx *ctx)
@@ -208,7 +267,7 @@ int aml_op_name(struct aml_ctx *ctx)
     int rc = aml_parse_next_node(ctx, &value);
     if (rc != 0)
     {
-        printk("ACPI: NameOp: Error reading next node (%i)\n", rc);
+        printk("ACPI: NameOp: (%i): Error reading next node (%i)\n", rc);
         return rc;
     }
 

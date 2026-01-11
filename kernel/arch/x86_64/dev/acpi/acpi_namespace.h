@@ -10,7 +10,7 @@ struct ns_node_intrusive_list {
 
 struct ns_node {
     char name[4];
-    void *object;
+    struct aml_node *object;
 
     struct ns_node *parent;
     struct ns_node *prev;
