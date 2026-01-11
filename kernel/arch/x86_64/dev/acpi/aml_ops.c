@@ -1,17 +1,22 @@
 #include "aml.h"
 #include "kairax/stdio.h"
+#include "kairax/string.h"
 #include "mem/kheap.h"
 
-void aml_op_alias(struct aml_ctx *ctx)
+int aml_op_alias(struct aml_ctx *ctx)
 {
-    printk("ALIAS");
+    printk("ALIAS not SUPPORTED!!!\n");
+    return -ENOTSUP;
 }
 
 int aml_op_scope(struct aml_ctx *ctx)
 {
     int rc;
     size_t len;
-    uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
+    uint8_t *nested = NULL;
+
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &nested);
 
     struct aml_ctx parse_ctx;
     parse_ctx.aml_data = nested;
@@ -25,8 +30,7 @@ int aml_op_scope(struct aml_ctx *ctx)
     struct ns_node *scope_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, ns_name);
     if (scope_node == NULL)
     {
-        printk("ACPI: ScopeOp: Unable to find node in namespace\n");
-        kfree(nested);
+        printk("ACPI: ScopeOp: Unable to find scope node (%s) in namespace\n", aml_debug_namestring(ns_name));
         return -ENOENT;
     }
 
@@ -43,12 +47,9 @@ int aml_op_scope(struct aml_ctx *ctx)
         if (rc != 0)
         {
             printk("ACPI: ScopeOp: Error parsing next node (%i)\n", rc);
-            kfree(nested);
             return rc;
         }
     }
-
-    kfree(nested);
 
     return 0;
 }
@@ -110,9 +111,9 @@ int aml_op_region_op(struct aml_ctx *ctx)
     //printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len_node->int_value);
 
 exit:
-    kfree(region_len_node);
-    kfree(region_offset_node);
-    kfree(region_name);
+    KFREE_SAFE(region_len_node);
+    KFREE_SAFE(region_offset_node);
+    KFREE_SAFE(region_name);
     return 0;
 }
 
@@ -184,7 +185,7 @@ int aml_op_field(struct aml_ctx *ctx)
     struct ns_node *opregion_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, opregion_name);
     if (opregion_node == NULL || opregion_node->object == NULL)
     {
-        printk("ACPI: FieldOp: Unable to find node in namespace\n");
+        printk("ACPI: FieldOp: Unable to find node %s in namespace\n", opregion_name->segments->seg_s);
         res = -ENOENT;
         goto exit;
     }
@@ -267,7 +268,7 @@ int aml_op_name(struct aml_ctx *ctx)
     int rc = aml_parse_next_node(ctx, &value);
     if (rc != 0)
     {
-        printk("ACPI: NameOp: (%i): Error reading next node (%i)\n", rc);
+        printk("ACPI: NameOp: Error reading next node (%i)\n", rc);
         return rc;
     }
 
@@ -365,6 +366,50 @@ struct aml_node *aml_op_buffer(struct aml_ctx *ctx)
     return result;
 }
 
+int aml_op_device(struct aml_ctx *ctx)
+{
+    int rc = 0;
+    size_t len;
+    uint8_t *buffer_buf = NULL;
+    
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    struct aml_ctx dev_ctx;
+    dev_ctx.aml_data = buffer_buf;
+    dev_ctx.aml_len = len;
+    dev_ctx.current_pos = 0;
+
+    struct aml_name_string *device_name = aml_read_name_string(&dev_ctx);
+
+    printk("DEVICE OP %s\n", device_name->segments->seg_s);
+
+    struct aml_node *device_node = aml_make_node(DEVICE);
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, device_name, device_node);
+    if (rc != 0)
+    {
+        printk("ACPI: DeviceOp: Error adding node to namespace (%i)\n", rc);
+        return rc;
+    }
+
+    struct ns_node *device_ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, device_name);
+    dev_ctx.scope = device_ns_node; 
+
+    // Парсим внтренности устройства
+    struct aml_node *node;
+    while (aml_ctx_get_remain_size(&dev_ctx) > 0)
+    {
+        rc = aml_parse_next_node(&dev_ctx, &node);
+        if (rc != 0)
+        {
+            printk("ACPI: DeviceOp: Error parsing next node (%i)\n", rc);
+            return rc;
+        }
+    }
+
+    return rc;
+}
+
 struct aml_node *aml_op_word(struct aml_ctx *ctx)
 {
     uint32_t tmp;
@@ -386,5 +431,22 @@ struct aml_node *aml_op_dword(struct aml_ctx *ctx)
     node->int_value |= tmp << 16;
     tmp = aml_ctx_get_byte(ctx);
     node->int_value |= tmp << 24;
+    return node;
+}
+
+struct aml_node *aml_op_string(struct aml_ctx *ctx)
+{
+    // Вычисляем текущий указатель
+    char *curptr = ctx->aml_data + ctx->current_pos;
+    size_t str_length = strlen(curptr);
+
+    // Формируем новую Node
+    struct aml_node *node = aml_make_node(STRING);
+    node->string.str = kmalloc(str_length + 1);
+    strcpy(node->string.str, curptr);
+
+    // не забываем сдвинуть курсор в контексте
+    ctx->current_pos += (str_length + 1);
+
     return node;
 }

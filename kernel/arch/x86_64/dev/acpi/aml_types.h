@@ -19,6 +19,8 @@ enum aml_node_type {
     METHOD,
     PACKAGE,
     BUFFER,
+    STRING,
+    DEVICE,
     OP_REGION
 };
 
@@ -27,6 +29,10 @@ struct aml_node {
 
     union {
         uint64_t int_value;
+
+        struct {
+            char *str;
+        } string;
 
         struct {
             uint8_t region_space;
@@ -57,6 +63,11 @@ struct aml_node {
             uint64_t offset;
             uint64_t len;
         } op_region;
+
+        struct {
+            uint64_t offset;
+            uint32_t len;
+        } field;
     };
 };
 

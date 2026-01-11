@@ -11,6 +11,7 @@
 #define AML_OP_BYTE_PREFIX  0x0A
 #define AML_OP_WORD_PREFIX  0x0B
 #define AML_OP_DWORD_PREFIX 0x0C
+#define AML_OP_STRING_PREFIX    0x0D
 #define AML_OP_SCOPE        0x10
 #define AML_OP_BUFFER       0x11
 #define AML_OP_PACKAGE      0x12
@@ -21,6 +22,7 @@
 #define AML_EXT_OP_PREFIX       0x5B
 #define AML_EXT_OP_REGION_OP    0x80
 #define AML_EXT_OP_FIELD        0x81     
+#define AML_EXT_OP_DEVICE       0x82
 
 #define AML_EXT_OP_INDEX_FIELD  0x86
 
@@ -30,6 +32,8 @@ struct aml_ctx {
     uint32_t current_pos;
     struct ns_node *scope;
 };
+
+char *aml_debug_namestring(struct aml_name_string *name);
 
 int aml_parse(char *data, uint32_t len);
 int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out);
@@ -47,7 +51,7 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx);
 struct aml_node *aml_make_node(enum aml_node_type);
 
 // OP handlers
-void aml_op_alias(struct aml_ctx *ctx);
+int aml_op_alias(struct aml_ctx *ctx);
 int aml_op_scope(struct aml_ctx *ctx);
 int aml_op_region_op(struct aml_ctx *ctx);
 int aml_parse_field_list(struct aml_ctx *ctx);
@@ -55,8 +59,10 @@ int aml_op_field(struct aml_ctx *ctx);
 void aml_op_index_field(struct aml_ctx *ctx);
 void aml_op_method(struct aml_ctx *ctx);
 int aml_op_name(struct aml_ctx *ctx);
+int aml_op_device(struct aml_ctx *ctx);
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);
+struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
 

@@ -188,6 +188,11 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
     return res;
 }
 
+char *aml_debug_namestring(struct aml_name_string *name)
+{
+    return name->segments > 0 ? name->segments->seg_s : "empty";
+}
+
 int aml_parse(char *data, uint32_t len)
 {
     int rc;
@@ -226,6 +231,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             case AML_EXT_OP_FIELD:
                 rc = aml_op_field(ctx);
                 break;
+            case AML_EXT_OP_DEVICE:
+                rc = aml_op_device(ctx);
+                break;
             case AML_EXT_OP_INDEX_FIELD:
                 aml_op_index_field(ctx);
                 break;
@@ -247,7 +255,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             node->int_value = 1;
             break;
         case AML_OP_ALIAS:
-            aml_op_alias(ctx);
+            rc = aml_op_alias(ctx);
             break;
         case AML_OP_NAME:
             rc = aml_op_name(ctx);
@@ -273,6 +281,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             break;
         case AML_OP_DWORD_PREFIX:
             node = aml_op_dword(ctx);
+            break;
+        case AML_OP_STRING_PREFIX:
+            node = aml_op_string(ctx);
             break;
         case AML_OP_NOOP:
             //printk("ACPI: NOOP\n");
