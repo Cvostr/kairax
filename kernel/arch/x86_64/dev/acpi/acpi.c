@@ -7,6 +7,7 @@
 #include "dev/hpet/hpet.h"
 #include "interrupts/ioapic.h"
 #include "dev/interrupts.h"
+#include "acpi_namespace.h"
 
 #define to_acpi_header(x)  (acpi_header_t*)(uintptr_t)(x)
 
@@ -100,6 +101,9 @@ int acpi_read_rsdp(uint8_t *p)
     
     memcpy(acpi_rsdp.oem_id, p + 9, 6);
     acpi_rsdp.oem_id[6] = '\0';
+
+    // Инициализируем корневую ACPI Namespace, в которую будут добавляться все объекты AML
+    acpi_make_root_ns();
     
     // Считать версию ACPI
     acpi_rsdp.revision = p[15];

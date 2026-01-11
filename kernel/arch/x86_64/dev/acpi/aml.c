@@ -125,6 +125,7 @@ uint32_t aml_ctx_addr_from_pkg(struct aml_ctx *ctx, uint8_t **begin_addr)
 
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 {
+    int from_root = 0;
     int string_base = 0;
     uint8_t chr = aml_ctx_peek_byte(ctx);
     //printk("ACPI STR. CHR 1 %c\n", chr);
@@ -139,7 +140,7 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
         break;
     case '\\':
         chr = aml_ctx_next_byte(ctx);
-        string_base = -1; // TODO: figure out
+        from_root = 1;
         break;
     }
 
@@ -165,11 +166,13 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 
     // выделяем память - размер заголовка + сегменты по 4 байта
     struct aml_name_string *res = kmalloc(sizeof(struct aml_name_string) + segments * 4);
+    res->from_root = from_root;
     res->base = string_base;
     res->segments_num = segments;
 
     for (int i = 0; i < segments; i ++)
     {
+        res->segments[i].seg_i = 0;
         for (int j = 0; j < 4; j ++)
         {
             uint8_t v = aml_ctx_get_byte(ctx);
@@ -192,6 +195,7 @@ int aml_parse(char *data, uint32_t len)
     parse_ctx.aml_data = data;
     parse_ctx.aml_len = len;
     parse_ctx.current_pos = 0;
+    parse_ctx.scope = NULL;
 
     struct aml_node *node;
 
@@ -207,6 +211,7 @@ int aml_parse(char *data, uint32_t len)
 
 int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
 {
+    int rc = 0;
     struct aml_node *node = NULL;
     uint8_t opcode = aml_ctx_get_byte(ctx);
 
@@ -245,12 +250,10 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             aml_op_alias(ctx);
             break;
         case AML_OP_NAME:
-            aml_op_name(ctx);
+            rc = aml_op_name(ctx);
             break;
         case AML_OP_SCOPE:
-            int rc = aml_op_scope(ctx);
-            if (rc != NULL)
-                return rc;
+            rc = aml_op_scope(ctx);
             break;
         case AML_OP_BUFFER:
             node = aml_op_buffer(ctx);
@@ -287,5 +290,5 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
 
     *node_out = node;
 
-    return 0;
+    return rc;
 }

@@ -905,7 +905,8 @@ int ehci_device_probe(struct device *dev)
 	uint32_t hccparams = ehci_read32(cntrl, EHCI_REG_HCCPARAMS);
 	cntrl->mode64 = hccparams & EHCI_HCCPARAMS_64BIT;
 	uint32_t eecp = (hccparams >> 8) & 0xFF;
-	printk("EHCI: HCCPARAMS 0x%x. 64bit = %i, EECP %x\n", hccparams, cntrl->mode64, eecp);
+	int pfl = (hccparams & EHCI_HCCPARAMS_PFL) == EHCI_HCCPARAMS_PFL;
+	printk("EHCI: HCCPARAMS 0x%x. 64bit = %i, EECP %x, PFL = %i\n", hccparams, cntrl->mode64, eecp, pfl);
 
 	uint32_t hcsparams = ehci_read32(cntrl, EHCI_REG_HCSPARAMS);
 	cntrl->nports = hcsparams & EHCI_HCSPARAMS_NPORTS_MASK;

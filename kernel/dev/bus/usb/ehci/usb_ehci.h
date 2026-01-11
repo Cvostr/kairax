@@ -13,6 +13,7 @@
 #define EHCI_REG_HCSP_PORTROUTE         0x0C
 
 #define EHCI_HCCPARAMS_64BIT            0x1
+#define EHCI_HCCPARAMS_PFL              0x2     //Programmable Frame List Flag
 
 #define EHCI_HCSPARAMS_NPORTS_MASK      0x0F
 #define EHCI_HCSPARAMS_PPC              0x10

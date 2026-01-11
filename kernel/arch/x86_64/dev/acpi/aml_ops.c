@@ -18,16 +18,31 @@ int aml_op_scope(struct aml_ctx *ctx)
     parse_ctx.aml_len = len;
     parse_ctx.current_pos = 0;
 
-    struct aml_name_string *ns = aml_read_name_string(&parse_ctx);
-    printk("SCOPE pkg_len %i, name segments %i\n", len, ns->segments_num);
+    struct aml_name_string *ns_name = aml_read_name_string(&parse_ctx);
+    printk("SCOPE pkg_len %i, name (root=%i, base=%i, segments=%i)\n", len, ns_name->from_root, ns_name->base, ns_name->segments_num);
 
+    // Попробуем получить объект по считанному имени
+    struct ns_node *scope_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, ns_name);
+    if (scope_node == NULL)
+    {
+        printk("ACPI: ScopeOp: Unable to find node in namespace\n");
+        kfree(nested);
+        return -ENOENT;
+    }
+
+    // TODO: Надо бы проверить тип объекта
+
+    // Устанавливаем новый scope для нового контекста
+    parse_ctx.scope = scope_node;
+
+    // Парсим контекст
     struct aml_node *node;
-
     while (parse_ctx.current_pos < parse_ctx.aml_len)
     {
         rc = aml_parse_next_node(&parse_ctx, &node);
         if (rc != 0)
         {
+            printk("ACPI: ScopeOp: Error parsing next node (%i)\n", rc);
             kfree(nested);
             return rc;
         }
@@ -167,6 +182,7 @@ void aml_op_method(struct aml_ctx *ctx)
     method_ctx.aml_data = nested;
     method_ctx.aml_len = len;
     method_ctx.current_pos = 0;
+    method_ctx.scope = ctx->scope;
 
     struct aml_name_string *method_name = aml_read_name_string(&method_ctx);
 
@@ -181,27 +197,36 @@ void aml_op_method(struct aml_ctx *ctx)
     kfree(nested);
 }
 
-void aml_op_name(struct aml_ctx *ctx)
+int aml_op_name(struct aml_ctx *ctx)
 {
+    // Считаем имя
     struct aml_name_string *name = aml_read_name_string(ctx);
     printk("OPNAME '%s'\n", name->segments->seg_s);
 
+    // Распарсим ноду
     struct aml_node *value;
     int rc = aml_parse_next_node(ctx, &value);
     if (rc != 0)
     {
         printk("ACPI: NameOp: Error reading next node (%i)\n", rc);
-        return;
+        return rc;
     }
 
     if (value == NULL)
     {
         printk("ACPI: NameOp: next node is NULL\n");
-        return NULL;
+        return -EINVAL;
     }
 
-    // TODO: make node?
-    // может просто добавлять ноду value с именем name
+    // Добавляем считанную ноду с именем
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, name, value);
+    if (rc != 0)
+    {
+        printk("ACPI: NameOp: Error adding node to namespace (%i)\n", rc);
+        return rc;
+    }
+
+    return 0;
 }
 
 struct aml_node *aml_op_package(struct aml_ctx *ctx)
@@ -224,9 +249,9 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
 
     struct aml_node *node = aml_make_node(PACKAGE);
     node->package.num_elements = num_elements;
+    node->package.elements = kmalloc(sizeof(struct aml_node *) * num_elements);
 
     struct aml_node *value;
-
     for (int i = 0; i < num_elements; i ++)
     {
         // TODO: строки и ссылки??
@@ -237,7 +262,7 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
             return NULL;
         }
 
-        // TODO: сохранить элемент
+        node->package.elements[i] = value;
     }
 
     return node;
@@ -271,8 +296,6 @@ struct aml_node *aml_op_buffer(struct aml_ctx *ctx)
         printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", buffer_size_node->type);
         return NULL;
     }
-
-    //printk("OP BUFFER len %i\n", buffer_size_node->int_value);
 
     // Формируем node для ответа
     result = aml_make_node(BUFFER);
