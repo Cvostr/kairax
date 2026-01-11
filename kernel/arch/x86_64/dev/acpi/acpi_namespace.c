@@ -111,10 +111,12 @@ struct ns_node *resolve_parent(struct acpi_namespace *ns, struct ns_node *scope,
             return ns->root;
         }
     }
-
-    cur = scope;
-    if (cur == NULL)
-        cur = ns->root;
+    else
+    {
+        cur = scope;
+        if (cur == NULL)
+            cur = ns->root;
+    }
 
     // Обработаем смещения назад '^'
     for (int i = 0; i < name->base; i ++)
@@ -128,7 +130,7 @@ struct ns_node *resolve_parent(struct acpi_namespace *ns, struct ns_node *scope,
         return NULL;
     }
 
-    int seg_i;
+    int seg_i = 0;
     for (seg_i = 0; seg_i < name->segments_num - 1; seg_i ++)
     {
         //printk("processing seg %s\n", name->segments[seg_i].seg_s);
@@ -157,6 +159,8 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
     }
 
     struct ns_node *nsnode = new_ns_node();
+    if (nsnode == NULL)
+        return -ENOMEM;
     nsnode->object = node;
     memcpy(nsnode->name, new_node_name, 4);
 
@@ -184,10 +188,14 @@ struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scop
             return ns->root;
         }
     }
-
-    cur = scope;
-    if (cur == NULL)
-        cur = ns->root;
+    else
+    {
+        // Ищем не от корня, значит берем за старт scope
+        cur = scope;
+        // Если он оказался NULL, то используем корень
+        if (cur == NULL)
+            cur = ns->root;
+    }
 
     // Обработаем смещения назад '^'
     for (int i = 0; i < name->base; i ++)
@@ -204,7 +212,7 @@ struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scop
     int seg_i;
     for (seg_i = 0; seg_i < name->segments_num; seg_i ++)
     {
-        //printk("processing seg %s\n", name->segments[seg_i].seg_s);
+        //printk("processing seg %i '%s'\n", seg_i, name->segments[seg_i].seg_s);
         cur = ns_node_find_child_with_name(cur, name->segments[seg_i].seg_s);
         if (cur == NULL)
         {

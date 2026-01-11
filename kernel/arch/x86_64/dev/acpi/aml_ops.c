@@ -5,8 +5,33 @@
 
 int aml_op_alias(struct aml_ctx *ctx)
 {
-    printk("ALIAS not SUPPORTED!!!\n");
-    return -ENOTSUP;
+    int rc = 0;
+    struct ns_node *source_node = NULL;
+    struct aml_name_string *source_name = aml_read_name_string(ctx);
+    struct aml_name_string *target_name = aml_read_name_string(ctx);
+    printk("ALIAS (%s to %s)\n", aml_debug_namestring(source_name), aml_debug_namestring(target_name));
+
+    // Получим node по старому имени
+    source_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, source_name);
+    if (source_node == NULL || source_node->object == NULL)
+    {
+        printk("ACPI: AliasOp: Unable to find source node (%s) in namespace\n", aml_debug_namestring(source_name));
+        rc = -ENOENT;
+        goto exit;
+    }
+
+    // Сохраним ту же ноду с другим именем
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, target_name, source_node->object);
+    if (rc != 0)
+    {
+        printk("ACPI: OpRegionOp: Error adding node to namespace (%i)\n", rc);
+        goto exit;
+    }
+
+exit:
+    KFREE_SAFE(source_name);
+    KFREE_SAFE(target_name);
+    return rc;
 }
 
 int aml_op_scope(struct aml_ctx *ctx)
