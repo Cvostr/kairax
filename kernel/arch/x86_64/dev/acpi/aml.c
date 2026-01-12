@@ -225,6 +225,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         opcode = aml_ctx_get_byte(ctx);
         switch (opcode)
         {
+            case AML_EXT_OP_MUTEX:
+                rc = aml_op_mutex(ctx);
+                break;
             case AML_EXT_OP_REGION_OP:
                 rc = aml_op_region_op(ctx);
                 break;

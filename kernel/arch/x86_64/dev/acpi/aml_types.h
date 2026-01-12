@@ -2,6 +2,7 @@
 #define AML_TYPES_H
 
 #include "kairax/types.h"
+#include "sync/semaphore.h"
 
 struct aml_name_string {
     int from_root;
@@ -21,6 +22,7 @@ enum aml_node_type {
     BUFFER,
     STRING,
     DEVICE,
+    MUTEX,
     OP_REGION
 };
 
@@ -68,6 +70,11 @@ struct aml_node {
             uint64_t offset;
             uint32_t len;
         } field;
+
+        struct {
+            uint8_t flags;
+            struct semaphore sem;
+        } mutex;
     };
 };
 

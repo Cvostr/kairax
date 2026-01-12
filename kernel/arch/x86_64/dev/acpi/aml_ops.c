@@ -435,6 +435,31 @@ int aml_op_device(struct aml_ctx *ctx)
     return rc;
 }
 
+int aml_op_mutex(struct aml_ctx *ctx)
+{
+    int rc = 0;
+    // Считаем имя
+    struct aml_name_string *mutex_name = aml_read_name_string(ctx);
+    // Считаем флаги
+    uint8_t mutex_flags = aml_ctx_get_byte(ctx);
+
+    printk("MUTEX '%s'\n", mutex_name->segments->seg_s);
+
+    struct aml_node *mutex_node = aml_make_node(MUTEX);
+    mutex_node->mutex.flags = mutex_flags;
+    semaphore_init(&mutex_node->mutex.sem, 1);
+
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, mutex_name, mutex_node);
+    if (rc != 0)
+    {
+        printk("ACPI: MutexOp: Error adding node to namespace (%i)\n", rc);
+        // clear node?
+    }
+
+    KFREE_SAFE(mutex_name)
+    return rc;
+}
+
 struct aml_node *aml_op_word(struct aml_ctx *ctx)
 {
     uint32_t tmp;

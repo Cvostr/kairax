@@ -20,6 +20,7 @@
 #define AML_OP_ONES         0xFF
 
 #define AML_EXT_OP_PREFIX       0x5B
+#define AML_EXT_OP_MUTEX        0x01
 #define AML_EXT_OP_REGION_OP    0x80
 #define AML_EXT_OP_FIELD        0x81     
 #define AML_EXT_OP_DEVICE       0x82
@@ -60,6 +61,7 @@ void aml_op_index_field(struct aml_ctx *ctx);
 void aml_op_method(struct aml_ctx *ctx);
 int aml_op_name(struct aml_ctx *ctx);
 int aml_op_device(struct aml_ctx *ctx);
+int aml_op_mutex(struct aml_ctx *ctx);
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);
 struct aml_node *aml_op_string(struct aml_ctx *ctx);
