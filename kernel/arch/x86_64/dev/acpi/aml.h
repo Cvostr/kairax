@@ -17,6 +17,10 @@
 #define AML_OP_PACKAGE      0x12
 #define AML_OP_METHOD       0x14
 #define AML_OP_NOOP         0x80
+#define AML_OP_CREATE_DWORD_FIELD   0x8A
+#define AML_OP_CREATE_WORD_FIELD    0x8B
+#define AML_OP_CREATE_BYTE_FIELD    0x8C
+#define AML_OP_IF           0xA0
 #define AML_OP_ONES         0xFF
 
 #define AML_EXT_OP_PREFIX       0x5B
@@ -69,11 +73,16 @@ int aml_op_name(struct aml_ctx *ctx);
 int aml_op_device(struct aml_ctx *ctx);
 int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
+
+int aml_op_create_byte_field(struct aml_ctx *ctx, size_t field_size);
+
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);
 struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
+
+struct aml_node *aml_op_if(struct aml_ctx *ctx);
 
 struct aml_node *aml_eval_string(struct aml_ctx *ctx);
 

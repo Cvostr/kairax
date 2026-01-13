@@ -294,6 +294,18 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_NOOP:
             //printk("ACPI: NOOP\n");
             break;
+        case AML_OP_CREATE_BYTE_FIELD:
+            rc = aml_op_create_byte_field(ctx, 8);
+            break;
+        case AML_OP_CREATE_WORD_FIELD:
+            rc = aml_op_create_byte_field(ctx, 16);
+            break;
+        case AML_OP_CREATE_DWORD_FIELD:
+            rc = aml_op_create_byte_field(ctx, 32);
+            break;
+        case AML_OP_IF:
+            node = aml_op_if(ctx);
+            break;
         case AML_OP_ONES:
             node = aml_make_node(INTEGER);
             node->int_value = UINT64_MAX;

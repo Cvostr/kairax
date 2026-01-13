@@ -9,7 +9,7 @@ int aml_op_alias(struct aml_ctx *ctx)
     struct ns_node *source_node = NULL;
     struct aml_name_string *source_name = aml_read_name_string(ctx);
     struct aml_name_string *target_name = aml_read_name_string(ctx);
-    printk("ALIAS (%s to %s)\n", aml_debug_namestring(source_name), aml_debug_namestring(target_name));
+    //printk("ALIAS (%s to %s)\n", aml_debug_namestring(source_name), aml_debug_namestring(target_name));
 
     // Получим node по старому имени
     source_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, source_name);
@@ -498,6 +498,87 @@ int aml_op_mutex(struct aml_ctx *ctx)
 
     KFREE_SAFE(mutex_name)
     return rc;
+}
+
+struct aml_node *aml_op_if(struct aml_ctx *ctx)
+{
+    int rc;
+    size_t len;
+    uint8_t *buffer_buf = NULL;
+    
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    struct aml_ctx if_ctx;
+    if_ctx.aml_data = buffer_buf;
+    if_ctx.aml_len = len;
+    if_ctx.current_pos = 0;
+    if_ctx.scope = ctx->scope;
+
+    struct aml_node *predicate;
+    rc = aml_parse_next_node(&if_ctx, &predicate);
+
+    printk("IF OP len %i, rc %i\n", len, rc);
+
+    // TODO: Сформировать и сохранить Node
+
+    return NULL;
+}
+
+int aml_op_create_byte_field(struct aml_ctx *ctx, size_t field_size)
+{
+    int res = 0;
+    struct aml_node *byte_index_node = NULL;
+    struct aml_name_string *source_buffer_name = NULL;
+    struct aml_name_string *field_name = NULL;
+
+    // Считаем имя буфера
+    source_buffer_name = aml_read_name_string(ctx);
+
+    // Получим буфер по имени
+    struct ns_node *src_buffer_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, source_buffer_name);
+    if (src_buffer_node == NULL || src_buffer_node->object == NULL)
+    {
+        printk("ACPI: CreateFieldOp: Unable to find node %s in namespace\n", aml_debug_namestring(source_buffer_name));
+        res = -ENOENT;
+        goto exit;
+    }
+    // Проверим тип
+    if (src_buffer_node->object->type != BUFFER)
+    {
+        printk("ACPI: CreateFieldOp: BufferSize node has incorrect type (%i)\n", aml_debug_namestring(source_buffer_name));
+        res = -EINVAL;
+        goto exit;
+    }
+
+    // Получим размер
+    res = aml_parse_next_node(ctx, &byte_index_node);
+    if (res != 0)
+    {
+        printk("ACPI: CreateFieldOp: Error reading RegionLen node (%i)\n", res);
+        goto exit;
+    }
+
+    if (byte_index_node->type != INTEGER)
+    {
+        printk("ACPI: CreateFieldOp: BufferSize node has incorrect type (%i)\n", byte_index_node->type);
+        res = -EINVAL;
+        goto exit;
+    }
+
+    // получим название поля
+    field_name = aml_read_name_string(ctx);
+
+    printk("CreateFieldOp: %s, ByteIndex: %i, FieldName: %s, FieldSize: %i\n",
+        aml_debug_namestring(source_buffer_name), byte_index_node->int_value, aml_debug_namestring(field_name), field_size);
+    
+    // TODO: Сформировать и сохранить Node
+
+exit:
+    KFREE_SAFE(byte_index_node)
+    KFREE_SAFE(source_buffer_name)
+    KFREE_SAFE(field_name)
+    return res;
 }
 
 struct aml_node *aml_op_word(struct aml_ctx *ctx)
