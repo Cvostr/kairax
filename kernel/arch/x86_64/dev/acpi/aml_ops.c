@@ -327,6 +327,7 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
     pkg_ctx.aml_data = pkg_buf;
     pkg_ctx.aml_len = len;
     pkg_ctx.current_pos = 0;
+    pkg_ctx.scope = ctx->scope;
 
     uint8_t num_elements = aml_ctx_get_byte(&pkg_ctx);
 
@@ -435,6 +436,45 @@ int aml_op_device(struct aml_ctx *ctx)
     return rc;
 }
 
+int aml_op_processor(struct aml_ctx *ctx)
+{
+    // Deprecated!!
+    // Use of this opcode for ProcessorOp has been deprecated in ACPI 6.4, and is not to be reused
+    int rc = 0;
+    size_t len;
+    uint8_t *buffer_buf = NULL;
+    
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    struct aml_ctx processor_ctx;
+    processor_ctx.aml_data = buffer_buf;
+    processor_ctx.aml_len = len;
+    processor_ctx.current_pos = 0;
+
+    struct aml_name_string *processor_name = aml_read_name_string(&processor_ctx);
+
+    uint8_t processor_id = aml_ctx_get_byte(&processor_ctx);
+    // TODO: Остальные поля
+    // PblkAddress
+    // PblkLength
+
+    printk("PROCESSOR OP '%s'. ProcessorID %i\n", processor_name->segments->seg_s, processor_id);
+
+    // TODO: Может формировать это как устройство?
+    // Так как Deprecated
+    struct aml_node *processor_node = aml_make_node(DEVICE);
+    // Заполнить поля
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, processor_name, processor_node);
+    if (rc != 0)
+    {
+        printk("ACPI: ProcessorOp: Error adding node to namespace (%i)\n", rc);
+    }
+
+    KFREE_SAFE(processor_name)
+    return 0;
+}
+
 int aml_op_mutex(struct aml_ctx *ctx)
 {
     int rc = 0;
@@ -499,4 +539,22 @@ struct aml_node *aml_op_string(struct aml_ctx *ctx)
     ctx->current_pos += (str_length + 1);
 
     return node;
+}
+
+struct aml_node *aml_eval_string(struct aml_ctx *ctx)
+{
+    struct aml_name_string *name = aml_read_name_string(ctx);
+    printk("ACPI: String %s\n", aml_debug_namestring(name));
+
+    // Вероятно, это ссылка, попробуем найти объект по этому имени
+    struct ns_node *ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, name);
+    if (ns_node != NULL)
+    {
+        return ns_node->object;
+    }
+
+    printk("ACPI: StringOp: Not found object with name %s\n", aml_debug_namestring(name));
+
+    // TODO: Implement
+    return NULL;
 }

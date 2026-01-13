@@ -24,8 +24,14 @@
 #define AML_EXT_OP_REGION_OP    0x80
 #define AML_EXT_OP_FIELD        0x81     
 #define AML_EXT_OP_DEVICE       0x82
-
+#define AML_EXT_OP_PROCESSOR    0x83
 #define AML_EXT_OP_INDEX_FIELD  0x86
+
+#define AML_ROOT_CHAR           '\\'
+#define AML_PARENT_PREFIX_CHAR  '^'
+#define AML_NAME_CHAR           '_'
+#define AML_DUAL_NAME_PREFIX    '.'
+#define AML_MULTI_NAME_PREFIX   '/'
 
 struct aml_ctx {
     uint8_t *aml_data;
@@ -61,11 +67,14 @@ void aml_op_index_field(struct aml_ctx *ctx);
 void aml_op_method(struct aml_ctx *ctx);
 int aml_op_name(struct aml_ctx *ctx);
 int aml_op_device(struct aml_ctx *ctx);
+int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);
 struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
+
+struct aml_node *aml_eval_string(struct aml_ctx *ctx);
 
 #endif

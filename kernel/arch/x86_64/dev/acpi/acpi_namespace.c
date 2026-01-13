@@ -33,7 +33,7 @@ struct acpi_namespace *acpi_make_root_ns()
     memcpy(name->segments[0].seg_s, "_PR_", 4);
     acpi_ns_add_named_object(ns, NULL, name, NULL);
 
-    // '\_SB'
+    // '\_SB' - All Device/Bus Objects are defined under this namespace.
     memcpy(name->segments[0].seg_s, "_SB_", 4);
     acpi_ns_add_named_object(ns, NULL, name, NULL);
 
@@ -113,6 +113,7 @@ struct ns_node *resolve_parent(struct acpi_namespace *ns, struct ns_node *scope,
     }
     else
     {
+        // Ищем не от корня, значит берем за старт scope
         cur = scope;
         if (cur == NULL)
             cur = ns->root;
@@ -154,7 +155,6 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
     struct ns_node *parent = resolve_parent(ns, scope, name, new_node_name);
     if (parent == NULL)
     {
-        //printk("NO PARENT!!!\n");
         return -ENOENT;
     }
 
@@ -195,6 +195,26 @@ struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scop
         // Если он оказался NULL, то используем корень
         if (cur == NULL)
             cur = ns->root;
+
+        // Для односегментных строк без каких либо префиксов особое правило поиска
+        if (name->from_root == 0 && name->base == 0 && name->segments_num == 1)
+        {
+            // Ищем вверх
+            struct ns_node *parent = cur;
+            while (parent != NULL)
+            {
+                cur = ns_node_find_child_with_name(parent, name->segments[0].seg_s);
+                if (cur != NULL)
+                {
+                    return cur;
+                }
+
+                // Переход на уровень выше
+                parent = parent->parent;
+            }
+
+            return NULL;
+        }
     }
 
     // Обработаем смещения назад '^'

@@ -237,6 +237,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             case AML_EXT_OP_DEVICE:
                 rc = aml_op_device(ctx);
                 break;
+            case AML_EXT_OP_PROCESSOR:
+                rc = aml_op_processor(ctx);
+                break;
             case AML_EXT_OP_INDEX_FIELD:
                 aml_op_index_field(ctx);
                 break;
@@ -294,6 +297,15 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_ONES:
             node = aml_make_node(INTEGER);
             node->int_value = UINT64_MAX;
+            break;
+        case 'A' ... 'Z':
+        case AML_ROOT_CHAR:
+        case AML_PARENT_PREFIX_CHAR:
+        case AML_NAME_CHAR:
+        case AML_DUAL_NAME_PREFIX:
+        case AML_MULTI_NAME_PREFIX:
+            ctx->current_pos--;
+            node = aml_eval_string(ctx);
             break;
         
         default:
