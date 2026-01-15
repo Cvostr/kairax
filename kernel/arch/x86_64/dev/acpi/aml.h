@@ -67,7 +67,7 @@ int aml_op_scope(struct aml_ctx *ctx);
 int aml_op_region_op(struct aml_ctx *ctx);
 int aml_parse_field_list(struct aml_ctx *ctx);
 int aml_op_field(struct aml_ctx *ctx);
-void aml_op_index_field(struct aml_ctx *ctx);
+int aml_op_index_field(struct aml_ctx *ctx);
 void aml_op_method(struct aml_ctx *ctx);
 int aml_op_name(struct aml_ctx *ctx);
 int aml_op_device(struct aml_ctx *ctx);

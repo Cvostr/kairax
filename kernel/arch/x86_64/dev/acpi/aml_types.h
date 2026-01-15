@@ -23,6 +23,7 @@ enum aml_node_type {
     STRING,
     DEVICE,
     MUTEX,
+    FIELD,
     OP_REGION
 };
 
@@ -67,6 +68,7 @@ struct aml_node {
         } op_region;
 
         struct {
+            struct aml_node *opregion;
             uint64_t offset;
             uint32_t len;
         } field;

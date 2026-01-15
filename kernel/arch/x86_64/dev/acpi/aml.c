@@ -241,7 +241,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
                 rc = aml_op_processor(ctx);
                 break;
             case AML_EXT_OP_INDEX_FIELD:
-                aml_op_index_field(ctx);
+                rc = aml_op_index_field(ctx);
                 break;
             default:
                 printk("ACPI: Unknown ext opcode %x\n", opcode);

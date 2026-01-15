@@ -147,6 +147,18 @@ struct ns_node *resolve_parent(struct acpi_namespace *ns, struct ns_node *scope,
     return cur;
 }
 
+int acpi_ns_add_named_object1(struct acpi_namespace *ns, struct ns_node *scope, const char *name, struct aml_node *node)
+{
+    uint8_t buffer[sizeof(struct aml_name_string) + 4];
+    struct aml_name_string *namestr = buffer;
+    namestr->base = 0;
+    namestr->from_root = 0;
+    namestr->segments_num = 1;
+    memcpy(namestr->segments->seg_s, name, 4);
+
+    return acpi_ns_add_named_object(ns, scope, namestr, node);
+}
+
 int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name, struct aml_node *node)
 {
     //printk("ACPI: NS adding object %s to scope %s\n", name->segments[0].seg_s, scope->name);

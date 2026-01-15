@@ -29,9 +29,10 @@ struct ns_node *ns_node_find_child_with_name(struct ns_node *node, const char *n
 struct acpi_namespace *acpi_make_root_ns();
 struct acpi_namespace *acpi_get_root_ns();
 
-// ADD SCOPE
+
 int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name, struct aml_node *node);
-// ADD SCOPE
+int acpi_ns_add_named_object1(struct acpi_namespace *ns, struct ns_node *scope, const char *name, struct aml_node *node);
+
 struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name);
 
 #endif

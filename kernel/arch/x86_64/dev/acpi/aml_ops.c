@@ -142,13 +142,17 @@ exit:
     return 0;
 }
 
+struct aml_field_desc {
+    char name[4];
+    uint32_t len;
+    uint64_t offset;
+};
+
 // 19.6.47 Field (Declare Field Objects)
-int aml_parse_field_list(struct aml_ctx *ctx)
+int aml_parse_next_field(struct aml_ctx *ctx, struct aml_field_desc *desc, uint64_t *current_offset_bits)
 {
     uint8_t cur; 
-    uint64_t offset_bits;
-    
-    while (ctx->current_pos < ctx->aml_len)
+    while (aml_ctx_get_remain_size(ctx) > 0)
     {
         cur = aml_ctx_peek_byte(ctx);
         switch (cur)
@@ -157,7 +161,7 @@ int aml_parse_field_list(struct aml_ctx *ctx)
                 aml_ctx_get_byte(ctx);
                 uint32_t offset = aml_read_pkg_len(ctx);
                 printk("\tReserved field. Offset %x (%i)\n", offset, offset);
-                offset_bits += offset;
+                *current_offset_bits += offset;
                 break;
             case 1:
                 aml_ctx_get_byte(ctx);
@@ -174,17 +178,16 @@ int aml_parse_field_list(struct aml_ctx *ctx)
                 return -ENOSYS;
                 break;
             default:
-                char seg[5];
-                seg[4] = 0;
-                aml_ctx_copy_bytes(ctx, seg, 4);
-                uint32_t len = aml_read_pkg_len(ctx);
-                printk("\tNamed field %s len %i\n", seg, len);
-                offset += len;
-                break;
+                aml_ctx_copy_bytes(ctx, desc->name, 4);
+                desc->len = aml_read_pkg_len(ctx);
+                printk("\tNamed field %s len %i\n", desc->name, desc->len);
+                desc->offset = *current_offset_bits;
+                *current_offset_bits += desc->len;
+                return 0;
         }
     }
 
-    return 0;
+    return -1;
 }
 
 // 20.2. AML Grammar Definition (998)
@@ -217,7 +220,7 @@ int aml_op_field(struct aml_ctx *ctx)
     // Проверим тип
     if (opregion_node->object->type != OP_REGION)
     {
-        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", opregion_node->object->type);
+        printk("ACPI: FieldOp: OpRegionOp node has incorrect type (%i)\n", opregion_node->object->type);
         res = -EINVAL;
         goto exit;
     }
@@ -226,8 +229,33 @@ int aml_op_field(struct aml_ctx *ctx)
 
     printk("FIELD OP pkg_len %i name '%s' flags %x\n", len, opregion_name->segments->seg_s, field_flags);
 
-    // Выполним разбор структуры полей
-    res = aml_parse_field_list(&field_ctx);
+    struct aml_field_desc desc;
+    uint64_t current_offset = 0;
+    // Считать поля
+    while (aml_ctx_get_remain_size(&field_ctx) > 0)
+    {
+        res = aml_parse_next_field(&field_ctx, &desc, &current_offset);
+        if (res != 0)
+        {
+            goto exit;
+        }
+
+        // Сформировать node
+        struct aml_node *field_node = aml_make_node(FIELD);
+        field_node->field.len = desc.len;
+        field_node->field.offset = desc.offset;
+        field_node->field.opregion = opregion_node->object;
+        // TODO: FLAGS
+
+        // Добавить поле
+        res = acpi_ns_add_named_object1(acpi_get_root_ns(), ctx->scope, desc.name, field_node);
+        if (res != 0)
+        {
+            printk("ACPI: FieldOp: Error adding node to namespace (%i)\n", res);
+            kfree(field_node);
+            goto exit;
+        }
+    }
 
 exit:
     KFREE_SAFE(nested);
@@ -235,8 +263,9 @@ exit:
     return res;
 }
 
-void aml_op_index_field(struct aml_ctx *ctx)
+int aml_op_index_field(struct aml_ctx *ctx)
 {   
+    int res;
     // Сделаем копию пакета
     size_t len;
     uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
@@ -253,9 +282,24 @@ void aml_op_index_field(struct aml_ctx *ctx)
     printk("INDEX FIELD OP pkg_len %i index_name '%s' data_name '%s' flags %x\n", 
         len, index_name->segments->seg_s, data_name->segments->seg_s, field_flags);
 
-    aml_parse_field_list(&field_ctx);
+    struct aml_field_desc desc;
+    uint64_t current_offset = 0;
 
+    // Считать поля
+    while (aml_ctx_get_remain_size(&field_ctx) > 0)
+    {
+        res = aml_parse_next_field(&field_ctx, &desc, &current_offset);
+        if (res != 0)
+        {
+            goto exit;
+        }
+    }
+
+exit:
+    KFREE_SAFE(index_name);
+    KFREE_SAFE(data_name);
     kfree(nested);
+    return res;
 }
 
 void aml_op_method(struct aml_ctx *ctx)
