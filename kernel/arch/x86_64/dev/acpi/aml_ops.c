@@ -151,7 +151,7 @@ struct aml_field_desc {
 // 19.6.47 Field (Declare Field Objects)
 int aml_parse_next_field(struct aml_ctx *ctx, struct aml_field_desc *desc, uint64_t *current_offset_bits)
 {
-    uint8_t cur; 
+    uint8_t cur;
     while (aml_ctx_get_remain_size(ctx) > 0)
     {
         cur = aml_ctx_peek_byte(ctx);
@@ -167,7 +167,7 @@ int aml_parse_next_field(struct aml_ctx *ctx, struct aml_field_desc *desc, uint6
                 aml_ctx_get_byte(ctx);
                 uint8_t access_type = aml_ctx_get_byte(ctx);
                 uint8_t access_attrib = aml_ctx_get_byte(ctx);
-                printk("\taccess field. access_type %i access_attrib %i\n");
+                printk("\tAccess field. access_type %i access_attrib %i\n", access_type, access_attrib);
                 break;
             case 2:
                 printk("\tConnect field. Not implemented\n");
@@ -225,6 +225,7 @@ int aml_op_field(struct aml_ctx *ctx)
         goto exit;
     }
 
+    // Считаем основные флаги
     uint8_t field_flags = aml_ctx_get_byte(&field_ctx);
 
     printk("FIELD OP pkg_len %i name '%s' flags %x\n", len, opregion_name->segments->seg_s, field_flags);
@@ -245,7 +246,7 @@ int aml_op_field(struct aml_ctx *ctx)
         field_node->field.len = desc.len;
         field_node->field.offset = desc.offset;
         field_node->field.opregion = opregion_node->object;
-        // TODO: FLAGS
+        field_node->field.flags = field_flags; // TODO: учесть флаги полей
 
         // Добавить поле
         res = acpi_ns_add_named_object1(acpi_get_root_ns(), ctx->scope, desc.name, field_node);
@@ -266,6 +267,8 @@ exit:
 int aml_op_index_field(struct aml_ctx *ctx)
 {   
     int res;
+    struct aml_name_string *index_name;
+    struct aml_name_string *data_name;
     // Сделаем копию пакета
     size_t len;
     uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
@@ -275,8 +278,41 @@ int aml_op_index_field(struct aml_ctx *ctx)
     field_ctx.aml_len = len;
     field_ctx.current_pos = 0;
 
-    struct aml_name_string *index_name = aml_read_name_string(&field_ctx);
-    struct aml_name_string *data_name = aml_read_name_string(&field_ctx);
+    // Считаем название Index поля
+    index_name = aml_read_name_string(&field_ctx);
+    struct ns_node *index_field_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, index_name);
+    if (index_field_node == NULL || index_field_node->object == NULL)
+    {
+        printk("ACPI: IndexFieldOp: Unable to find node %s in namespace\n", index_name->segments->seg_s);
+        res = -ENOENT;
+        goto exit;
+    }
+    // Проверим тип
+    if (index_field_node->object->type != FIELD)
+    {
+        printk("ACPI: IndexFieldOp: Field node has incorrect type (%i)\n", index_field_node->object->type);
+        res = -EINVAL;
+        goto exit;
+    }
+
+    // Считаем название поля для записи значения
+    data_name = aml_read_name_string(&field_ctx);
+    struct ns_node *data_field_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, data_name);
+    if (data_field_node == NULL || data_field_node->object == NULL)
+    {
+        printk("ACPI: IndexFieldOp: Unable to find node %s in namespace\n", data_name->segments->seg_s);
+        res = -ENOENT;
+        goto exit;
+    }
+    // Проверим тип
+    if (data_field_node->object->type != FIELD)
+    {
+        printk("ACPI: IndexFieldOp: Field node has incorrect type (%i)\n", data_field_node->object->type);
+        res = -EINVAL;
+        goto exit;
+    }
+
+    // Считаем основные флаги
     uint8_t field_flags = aml_ctx_get_byte(&field_ctx);
 
     printk("INDEX FIELD OP pkg_len %i index_name '%s' data_name '%s' flags %x\n", 

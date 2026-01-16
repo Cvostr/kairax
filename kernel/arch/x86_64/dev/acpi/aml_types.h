@@ -71,6 +71,7 @@ struct aml_node {
             struct aml_node *opregion;
             uint64_t offset;
             uint32_t len;
+            uint8_t flags;
         } field;
 
         struct {

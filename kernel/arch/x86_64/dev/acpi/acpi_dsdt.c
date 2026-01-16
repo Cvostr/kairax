@@ -24,7 +24,7 @@ void acpi_parse_dsdt(acpi_header_t* dsdt)
     char* data_address = (char*)(dsdt + 1);
     uint32_t dsdt_size = dsdt->length;
 
-    int parse_rc = aml_parse(data_address, dsdt_size);
+    int parse_rc = aml_parse(data_address, dsdt_size - sizeof(acpi_header_t));
     if (parse_rc != 0)
         printk("ACPI: AML parsing error %i", parse_rc);
     
