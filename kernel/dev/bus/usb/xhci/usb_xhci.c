@@ -652,7 +652,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	}
 
 	// Получение информации о названии устройства
-	rc = xhci_device_get_product_strings(device, usb_device);
+	rc = usb_device_get_product_strings(usb_device);
 	if (rc != 0) 
 	{
 		printk("XHCI: device product strings request error (%i)!\n", rc);	

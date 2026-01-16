@@ -437,3 +437,48 @@ struct usb_endpoint* new_usb_endpoint_array(size_t endpoints)
 
     return result;
 }
+
+
+int usb_device_get_product_strings(struct usb_device* device)
+{
+    struct usb_device_descriptor* dev_descriptor = &device->descriptor;
+    struct usb_string_descriptor str_descr;
+
+    int rc;
+    uint16_t lang_id = device->lang_id;
+
+    // считывание продукта
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    rc = usb_get_string_descriptor(device, dev_descriptor->iProduct, lang_id, &str_descr, sizeof(struct usb_string_descriptor));
+    if (rc != 0) 
+    {
+        printk("USB: device string product descriptor request error (%i)!\n", rc);	
+        return -1;
+    }
+    device->product = kmalloc(255);
+    seize_str(str_descr.unicode_string, device->product);
+
+    // Считывание производителя
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    rc = usb_get_string_descriptor(device, dev_descriptor->iManufacturer, lang_id, &str_descr, sizeof(struct usb_string_descriptor));
+    if (rc != 0) 
+    {
+        printk("USB: device string manufacturer descriptor request error (%i)!\n", rc);	
+        return -1;
+    }
+    device->manufacturer = kmalloc(255);
+    seize_str(str_descr.unicode_string, device->manufacturer);
+
+    // Считывание серийного номера
+    memset(&str_descr, 0, sizeof(struct usb_string_descriptor));
+    rc = usb_get_string_descriptor(device, dev_descriptor->iSerialNumber, lang_id, &str_descr, sizeof(struct usb_string_descriptor));
+    if (rc != 0) 
+    {
+        printk("USB: device string serial descriptor request error (%i)!\n", rc);	
+        return -1;
+    }
+    device->serial = kmalloc(255);
+    seize_str(str_descr.unicode_string, device->serial);
+
+    return 0;
+}

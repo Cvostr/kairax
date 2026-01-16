@@ -711,17 +711,27 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 		rc = usb_get_string_descriptor(usb_device, 0, 0, lang_descriptor, sizeof(struct usb_string_language_descriptor));
 		if (rc != 0) 
 		{
-			printk("EHCI: device string language descriptor request error (%i)!\n", rc);	
+			printk("EHCI: device string language descriptor request error (%i)!\n", rc);
+			kfree(lang_descriptor);	
 			return -1;
 		}
 
 		usb_device->lang_id = lang_descriptor->lang_ids[0];
     	kfree(lang_descriptor);
+
+		// Получение информации о названии устройства
+		rc = usb_device_get_product_strings(usb_device);
+		if (rc != 0) 
+		{
+			printk("EHCI: device product strings request error (%i)!\n", rc);	
+			return -1;
+		}
+		printk("EHCI: Product: %s Man: %s Serial: %s\n", usb_device->product, usb_device->manufacturer, usb_device->serial);
 	}
 
 	// Создать объект композитного устройства
 	struct device* composite_dev = new_device();
-	//device_set_name(composite_dev, usb_device->product);
+	device_set_name(composite_dev, usb_device->product);
 	composite_dev->dev_type = DEVICE_TYPE_USB_COMPOSITE;
 	composite_dev->dev_bus = DEVICE_BUS_USB;
 	composite_dev->usb_info.usb_device = usb_device;
@@ -760,7 +770,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 			struct usb_interface* iface = conf->interfaces[iface_i];
 
 			struct device* usb_dev = new_device();
-			//device_set_name(usb_dev, usb_device->product);
+			device_set_name(usb_dev, usb_device->product);
 			usb_dev->dev_type = DEVICE_TYPE_USB_INTERFACE;
 			usb_dev->dev_bus = DEVICE_BUS_USB;
 			device_set_data(usb_dev, ehci_dev);
@@ -774,6 +784,8 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 		// Удаляем больше не нужный дескриптор
     	kfree(config_descriptor);    
 	}
+
+	rc = register_device(composite_dev);
 }
 
 void ehci_check_ports(struct ehci_controller* hci)

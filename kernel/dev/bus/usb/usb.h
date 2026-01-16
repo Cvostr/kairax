@@ -194,6 +194,7 @@ int usb_device_set_configuration(struct usb_device* device, int configuration);
 int usb_get_string_descriptor(struct usb_device* device, uint8_t index, uint16_t language_id, struct usb_string_descriptor *out, size_t len);
 int usb_device_get_configuration_descriptor(struct usb_device* device, uint8_t configuration, struct usb_configuration_descriptor** descr);
 struct usb_config* usb_parse_configuration_descriptor(struct usb_configuration_descriptor* config_descriptor);
+int usb_device_get_product_strings(struct usb_device* device);
 
 struct usb_config* new_usb_config(struct usb_configuration_descriptor* descriptor);
 void usb_config_put_interface(struct usb_config* config, struct usb_interface* iface);

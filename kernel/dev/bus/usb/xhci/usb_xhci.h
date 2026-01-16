@@ -597,7 +597,6 @@ uint8_t xhci_ep_get_absolute_id(struct usb_endpoint_descriptor* descr);
 int xhci_device_handle_transfer_event(struct xhci_device* dev, struct xhci_trb* event);
 int xhci_device_process_configuration(struct xhci_device* device, uint8_t configuration_idx, struct usb_config** config);
 int xhci_device_get_strings_lang_id(struct xhci_device *xhci_device, uint16_t *lang_id);
-int xhci_device_get_product_strings(struct xhci_device* xhci_device, struct usb_device* device);
 int xhci_device_configure_endpoint(struct xhci_device* dev, struct usb_endpoint* endpoint);
 // функции для указателей
 int xhci_drv_device_send_usb_request(struct usb_device* dev, struct usb_device_request* req, void* out, uint32_t length);
