@@ -41,6 +41,8 @@
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
 
+#define EOVERFLOW	    75
+
 #define ENOTSUP         95
 
 #define EADDRINUSE	    98

@@ -363,6 +363,20 @@ int ehci_reset_port(struct ehci_controller* hci, uint32_t port_reg)
 	return 2;
 }
 
+int ehci_qh_to_error_code(struct ehci_qh *qh, int default_code)
+{
+	if (qh->token.status.babble == 1)
+		return -EOVERFLOW;
+	if (qh->token.status.missed == 1)
+		return -EIO;	// -EPROTO
+	if (qh->token.status.data_buffer_error == 1)
+		return -EIO;	// -ENOSR (IN) or -ECOMM (OUT)
+	if (qh->token.status.transaction_error == 1)
+		return -EPIPE;
+
+	return default_code;
+}
+
 int ehci_control(struct ehci_device *device, struct usb_device_request *request, void* buffer, uint32_t length)
 {
 	int rc = 0;
@@ -471,7 +485,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 			if (data)
 				printk("EHCI: DATA (halt %i) %i %i %i %i\n", data->token.status.halted, data->token.status.missed, data->token.status.babble, data->token.status.transaction_error, data->token.status.data_buffer_error);
 			printk("EHCI: STATUS (halt %i) %i %i %i %i\n", status->token.status.halted, status->token.status.missed, status->token.status.babble, status->token.status.transaction_error, status->token.status.data_buffer_error);
-			rc = -EIO;
+			rc = ehci_qh_to_error_code(qh, -EIO);
 			break;
 		}
 		
@@ -479,7 +493,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 
 		if (qh->token.status.active == 0 && completed)
 		{
-			rc = 0;
+			rc = ehci_qh_to_error_code(qh, 0);
 			break;
 		}
 
@@ -569,7 +583,8 @@ int ehci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoi
 			printk("EHCI: Halted %i %i %i %i\n" , qh->token.status.missed, qh->token.status.babble, qh->token.status.transaction_error, qh->token.status.data_buffer_error);
 			if (data)
 				printk("EHCI: DATA (halt %i) %i %i %i %i\n", td_data->token.status.halted, td_data->token.status.missed, td_data->token.status.babble, td_data->token.status.transaction_error, td_data->token.status.data_buffer_error);
-			rc = -EIO;
+
+			rc = ehci_qh_to_error_code(qh, -EIO);
 			break;
 		}
 		
@@ -577,7 +592,7 @@ int ehci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoi
 
 		if (qh->token.status.active == 0 && completed)
 		{
-			rc = 0;
+			rc = ehci_qh_to_error_code(qh, 0);
 			break;
 		}
 

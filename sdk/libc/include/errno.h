@@ -42,6 +42,7 @@ int* __errno_location();
 #define ERANGE                      34
 #define	ENOSYS		                38
 #define ENOTEMPTY                   39
+#define EOVERFLOW	                75
 #define ENOTSOCK                    88
 #define	EAFNOSUPPORT	            97
 #define EADDRINUSE	                98
