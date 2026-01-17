@@ -27,6 +27,12 @@ enum aml_node_type {
     OP_REGION
 };
 
+enum aml_field_type {
+    DEFAULT,
+    INDEX,
+    BANK
+};
+
 struct aml_node {
     enum aml_node_type type;
 
@@ -68,10 +74,22 @@ struct aml_node {
         } op_region;
 
         struct {
-            struct aml_node *opregion;
+            enum aml_field_type type;
             uint64_t offset;
             uint32_t len;
             uint8_t flags;
+
+            union {
+                struct aml_node *opregion;
+
+                struct {
+                    struct aml_node *index;
+                    struct aml_node *data;
+                } index;
+
+                // TODO: Bank
+            } mem;
+            
         } field;
 
         struct {

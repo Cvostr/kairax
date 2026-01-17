@@ -238,15 +238,17 @@ int aml_op_field(struct aml_ctx *ctx)
         res = aml_parse_next_field(&field_ctx, &desc, &current_offset);
         if (res != 0)
         {
+            printk("ACPI: FieldOp: Error reading field declaration (%i)\n", res);
             goto exit;
         }
 
         // Сформировать node
         struct aml_node *field_node = aml_make_node(FIELD);
+        field_node->field.type = DEFAULT;
         field_node->field.len = desc.len;
         field_node->field.offset = desc.offset;
-        field_node->field.opregion = opregion_node->object;
         field_node->field.flags = field_flags; // TODO: учесть флаги полей
+        field_node->field.mem.opregion = opregion_node->object;
 
         // Добавить поле
         res = acpi_ns_add_named_object1(acpi_get_root_ns(), ctx->scope, desc.name, field_node);
@@ -327,6 +329,25 @@ int aml_op_index_field(struct aml_ctx *ctx)
         res = aml_parse_next_field(&field_ctx, &desc, &current_offset);
         if (res != 0)
         {
+            printk("ACPI: IndexFieldOp: Error reading field declaration (%i)\n", res);
+            goto exit;
+        }
+
+        // Сформировать node
+        struct aml_node *field_node = aml_make_node(FIELD);
+        field_node->field.type = INDEX;
+        field_node->field.len = desc.len;
+        field_node->field.offset = desc.offset;
+        field_node->field.flags = field_flags; // TODO: учесть флаги полей
+        field_node->field.mem.index.index = index_field_node->object;
+        field_node->field.mem.index.data = data_field_node->object;
+
+        // Добавить поле
+        res = acpi_ns_add_named_object1(acpi_get_root_ns(), ctx->scope, desc.name, field_node);
+        if (res != 0)
+        {
+            printk("ACPI: IndexFieldOp: Error adding node to namespace (%i)\n", res);
+            kfree(field_node);
             goto exit;
         }
     }
