@@ -3,6 +3,8 @@
 #include "kairax/string.h"
 #include "mem/kheap.h"
 
+//#define AML_DEBUG_NAMEOP
+
 int aml_op_alias(struct aml_ctx *ctx)
 {
     int rc = 0;
@@ -383,6 +385,7 @@ exit:
 void aml_op_method(struct aml_ctx *ctx)
 {
     size_t len;
+    struct aml_name_string *method_name = NULL;
     uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
 
     struct aml_ctx method_ctx;
@@ -391,7 +394,8 @@ void aml_op_method(struct aml_ctx *ctx)
     method_ctx.current_pos = 0;
     method_ctx.scope = ctx->scope;
 
-    struct aml_name_string *method_name = aml_read_name_string(&method_ctx);
+    // Считаем название метода
+    method_name = aml_read_name_string(&method_ctx);
 
     uint8_t method_flags = aml_ctx_get_byte(&method_ctx);
     uint8_t arg_count = method_flags & 0b111;
@@ -401,28 +405,34 @@ void aml_op_method(struct aml_ctx *ctx)
     printk("METHOD OP pkg_len %i name '%s' args %i, serialized %i, sync level %i\n", 
         len, method_name->segments->seg_s, arg_count, serialize, sync_level);
 
+    KFREE_SAFE(method_name);
     kfree(nested);
 }
 
 int aml_op_name(struct aml_ctx *ctx)
 {
+    int rc = 0;
+    struct aml_name_string *name = NULL;
     // Считаем имя
-    struct aml_name_string *name = aml_read_name_string(ctx);
-    printk("OPNAME '%s'\n", name->segments->seg_s);
+    name = aml_read_name_string(ctx);
+#ifdef AML_DEBUG_NAMEOP
+    printk("NameOp: '%s'\n", name->segments->seg_s);
+#endif
 
     // Распарсим ноду
     struct aml_node *value;
-    int rc = aml_parse_next_node(ctx, &value);
+    rc = aml_parse_next_node(ctx, &value);
     if (rc != 0)
     {
         printk("ACPI: NameOp: Error reading next node (%i)\n", rc);
-        return rc;
+        goto exit;
     }
 
     if (value == NULL)
     {
         printk("ACPI: NameOp: next node is NULL\n");
-        return -EINVAL;
+        rc = -EINVAL;
+        goto exit;
     }
 
     // Добавляем считанную ноду с именем
@@ -430,9 +440,11 @@ int aml_op_name(struct aml_ctx *ctx)
     if (rc != 0)
     {
         printk("ACPI: NameOp: Error adding node to namespace (%i)\n", rc);
-        return rc;
+        goto exit;
     }
 
+exit:
+    KFREE_SAFE(name);
     return 0;
 }
 
@@ -647,10 +659,10 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
     return NULL;
 }
 
-int aml_op_create_byte_field(struct aml_ctx *ctx, size_t field_size)
+int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size)
 {
     int res = 0;
-    struct aml_node *byte_index_node = NULL;
+    struct aml_node *index_node = NULL;
     struct aml_name_string *source_buffer_name = NULL;
     struct aml_name_string *field_name = NULL;
 
@@ -674,30 +686,48 @@ int aml_op_create_byte_field(struct aml_ctx *ctx, size_t field_size)
     }
 
     // Получим индекс
-    res = aml_parse_next_node(ctx, &byte_index_node);
+    res = aml_parse_next_node(ctx, &index_node);
     if (res != 0)
     {
         printk("ACPI: CreateFieldOp: Error reading ByteIndex node (%i)\n", res);
         goto exit;
     }
     // Проверим тип
-    if (byte_index_node->type != INTEGER)
+    if (index_node->type != INTEGER)
     {
-        printk("ACPI: CreateFieldOp: ByteIndex node has incorrect type (%i)\n", byte_index_node->type);
+        printk("ACPI: CreateFieldOp: Index node has incorrect type (%i)\n", index_node->type);
         res = -EINVAL;
         goto exit;
     }
 
+    // Получим и преобразуем значение Index
+    size_t index_value = index_node->int_value;
+    index_value *= 8; // перевод в биты
+
     // получим название поля
     field_name = aml_read_name_string(ctx);
 
-    printk("CreateFieldOp: %s, ByteIndex: %i, FieldName: %s, FieldSize: %i\n",
-        aml_debug_namestring(source_buffer_name), byte_index_node->int_value, aml_debug_namestring(field_name), field_size);
-    
-    // TODO: Сформировать и сохранить Node
+    printk("CreateFieldOp: %s, Index: %i, FieldName: %s, FieldSize: %i\n",
+        aml_debug_namestring(source_buffer_name), index_value, aml_debug_namestring(field_name), field_size);
+
+    // Сформировать node
+    struct aml_node *field_node = aml_make_node(BUFFER_FIELD);
+    field_node->buffer_field.buffer = src_buffer_node->object;
+    field_node->buffer_field.index_bits = index_value;
+    field_node->buffer_field.size_bits = field_size;
+
+    // Добавить поле
+    res = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, field_name, field_node);
+    if (res != 0)
+    {
+        printk("ACPI: CreateFieldOp: Error adding node to namespace (%i)\n", res);
+        kfree(field_node);
+        goto exit;
+    }
+
 
 exit:
-    KFREE_SAFE(byte_index_node)
+    KFREE_SAFE(index_node)
     KFREE_SAFE(source_buffer_name)
     KFREE_SAFE(field_name)
     return res;
@@ -753,6 +783,7 @@ struct aml_node *aml_eval_string(struct aml_ctx *ctx)
     struct ns_node *ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, name);
     if (ns_node != NULL)
     {
+        kfree(name);
         return ns_node->object;
     }
 

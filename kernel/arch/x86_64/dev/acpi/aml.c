@@ -295,13 +295,13 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             //printk("ACPI: NOOP\n");
             break;
         case AML_OP_CREATE_BYTE_FIELD:
-            rc = aml_op_create_byte_field(ctx, 8);
+            rc = aml_op_create_buffer_field(ctx, 8);
             break;
         case AML_OP_CREATE_WORD_FIELD:
-            rc = aml_op_create_byte_field(ctx, 16);
+            rc = aml_op_create_buffer_field(ctx, 16);
             break;
         case AML_OP_CREATE_DWORD_FIELD:
-            rc = aml_op_create_byte_field(ctx, 32);
+            rc = aml_op_create_buffer_field(ctx, 32);
             break;
         case AML_OP_IF:
             node = aml_op_if(ctx);

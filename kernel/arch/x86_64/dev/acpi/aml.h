@@ -74,7 +74,7 @@ int aml_op_device(struct aml_ctx *ctx);
 int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
 
-int aml_op_create_byte_field(struct aml_ctx *ctx, size_t field_size);
+int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size);
 
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);

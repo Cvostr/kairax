@@ -24,6 +24,7 @@ enum aml_node_type {
     DEVICE,
     MUTEX,
     FIELD,
+    BUFFER_FIELD,
     OP_REGION
 };
 
@@ -91,6 +92,12 @@ struct aml_node {
             } mem;
             
         } field;
+
+        struct {
+            struct aml_node *buffer;
+            size_t index_bits;
+            size_t size_bits;
+        } buffer_field;
 
         struct {
             uint8_t flags;
