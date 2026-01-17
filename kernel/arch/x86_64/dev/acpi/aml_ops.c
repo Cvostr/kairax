@@ -56,7 +56,8 @@ int aml_op_scope(struct aml_ctx *ctx)
     if (scope_node == NULL)
     {
         printk("ACPI: ScopeOp: Unable to find scope node (%s) in namespace\n", aml_debug_namestring(ns_name));
-        return -ENOENT;
+        rc = -ENOENT;
+        goto exit;
     }
 
     // TODO: Надо бы проверить тип объекта
@@ -76,6 +77,8 @@ int aml_op_scope(struct aml_ctx *ctx)
         }
     }
 
+exit:
+    KFREE_SAFE(ns_name);
     return 0;
 }
 
@@ -187,7 +190,9 @@ int aml_parse_next_field(struct aml_ctx *ctx, struct aml_field_desc *desc, uint6
         }
     }
 
-    return -1;
+    // Дошли до конца, но поле так и не встретили.
+    // Ну такое тоже бывает
+    return -ENOENT;
 }
 
 // 20.2. AML Grammar Definition (998)
@@ -236,7 +241,15 @@ int aml_op_field(struct aml_ctx *ctx)
     while (aml_ctx_get_remain_size(&field_ctx) > 0)
     {
         res = aml_parse_next_field(&field_ctx, &desc, &current_offset);
-        if (res != 0)
+        if (res == -ENOENT)
+        {
+            // Некоторые "гиганты мысли" любят оставлять в конце например Offset(0x4) без поля
+            // Это нормально, поэтому ошибки нет
+            printk("ACPI: FieldOp: Trailing elements without field\n");
+            res = 0;
+            break;
+        }
+        else if (res != 0)
         {
             printk("ACPI: FieldOp: Error reading field declaration (%i)\n", res);
             goto exit;
@@ -327,7 +340,15 @@ int aml_op_index_field(struct aml_ctx *ctx)
     while (aml_ctx_get_remain_size(&field_ctx) > 0)
     {
         res = aml_parse_next_field(&field_ctx, &desc, &current_offset);
-        if (res != 0)
+        if (res == -ENOENT)
+        {
+            // Некоторые "гиганты мысли" любят оставлять в конце например Offset(0x4) без поля
+            // Это нормально, поэтому ошибки нет
+            printk("ACPI: IndexFieldOp: Trailing elements without field\n");
+            res = 0;
+            break;
+        }
+        else if (res != 0)
         {
             printk("ACPI: IndexFieldOp: Error reading field declaration (%i)\n", res);
             goto exit;
@@ -647,22 +668,22 @@ int aml_op_create_byte_field(struct aml_ctx *ctx, size_t field_size)
     // Проверим тип
     if (src_buffer_node->object->type != BUFFER)
     {
-        printk("ACPI: CreateFieldOp: BufferSize node has incorrect type (%i)\n", aml_debug_namestring(source_buffer_name));
+        printk("ACPI: CreateFieldOp: SourceBufferName node has incorrect type (%i)\n", aml_debug_namestring(source_buffer_name));
         res = -EINVAL;
         goto exit;
     }
 
-    // Получим размер
+    // Получим индекс
     res = aml_parse_next_node(ctx, &byte_index_node);
     if (res != 0)
     {
-        printk("ACPI: CreateFieldOp: Error reading RegionLen node (%i)\n", res);
+        printk("ACPI: CreateFieldOp: Error reading ByteIndex node (%i)\n", res);
         goto exit;
     }
-
+    // Проверим тип
     if (byte_index_node->type != INTEGER)
     {
-        printk("ACPI: CreateFieldOp: BufferSize node has incorrect type (%i)\n", byte_index_node->type);
+        printk("ACPI: CreateFieldOp: ByteIndex node has incorrect type (%i)\n", byte_index_node->type);
         res = -EINVAL;
         goto exit;
     }
