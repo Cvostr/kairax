@@ -4,6 +4,7 @@
 #include "mem/kheap.h"
 
 //#define AML_DEBUG_NAMEOP
+//#define AML_DEBUG_NAMED_FIELD
 
 int aml_op_alias(struct aml_ctx *ctx)
 {
@@ -185,7 +186,9 @@ int aml_parse_next_field(struct aml_ctx *ctx, struct aml_field_desc *desc, uint6
             default:
                 aml_ctx_copy_bytes(ctx, desc->name, 4);
                 desc->len = aml_read_pkg_len(ctx);
+#ifdef AML_DEBUG_NAMED_FIELD
                 printk("\tNamed field %s len %i\n", desc->name, desc->len);
+#endif
                 desc->offset = *current_offset_bits;
                 *current_offset_bits += desc->len;
                 return 0;
@@ -382,8 +385,9 @@ exit:
     return res;
 }
 
-void aml_op_method(struct aml_ctx *ctx)
+int aml_op_method(struct aml_ctx *ctx)
 {
+    int res = 0;
     size_t len;
     struct aml_name_string *method_name = NULL;
     uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
@@ -405,8 +409,27 @@ void aml_op_method(struct aml_ctx *ctx)
     printk("METHOD OP pkg_len %i name '%s' args %i, serialized %i, sync level %i\n", 
         len, method_name->segments->seg_s, arg_count, serialize, sync_level);
 
+    // Формируем node
+    struct aml_node *node = aml_make_node(METHOD);
+    node->method.args = arg_count;
+    node->method.serialized = serialize;
+    node->method.sync_level = sync_level;
+    node->method.code = method_ctx.aml_data + method_ctx.current_pos;
+    node->method.code_size = aml_ctx_get_remain_size(&method_ctx);
+
+    // Добавить поле
+    res = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, method_name, node);
+    if (res != 0)
+    {
+        printk("ACPI: MethodOp: Error adding node to namespace (%i)\n", res);
+        kfree(node);
+        goto exit;
+    }
+
+exit:
     KFREE_SAFE(method_name);
     kfree(nested);
+    return res;
 }
 
 int aml_op_name(struct aml_ctx *ctx)
@@ -790,5 +813,6 @@ struct aml_node *aml_eval_string(struct aml_ctx *ctx)
     printk("ACPI: StringOp: Not found object with name %s\n", aml_debug_namestring(name));
 
     // TODO: Implement
+    kfree(name);
     return NULL;
 }

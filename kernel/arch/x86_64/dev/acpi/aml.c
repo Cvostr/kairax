@@ -276,7 +276,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             node = aml_op_package(ctx);
             break;
         case AML_OP_METHOD:
-            aml_op_method(ctx);
+            rc = aml_op_method(ctx);
             break;
         case AML_OP_BYTE_PREFIX:
             node = aml_make_node(INTEGER);

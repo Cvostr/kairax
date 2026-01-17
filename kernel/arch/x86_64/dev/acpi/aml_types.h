@@ -45,16 +45,11 @@ struct aml_node {
         } string;
 
         struct {
-            uint8_t region_space;
-            uint64_t offset;
-            uint64_t length;
-        } opregion;
-
-        struct {
             uint8_t args;
             uint8_t serialized; // synchronized
             uint8_t sync_level;
-            // todo: term list
+            uint8_t *code;
+            size_t code_size;
         } method;
 
         struct
