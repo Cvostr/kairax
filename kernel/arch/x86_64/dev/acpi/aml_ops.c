@@ -98,6 +98,8 @@ int aml_op_region_op(struct aml_ctx *ctx)
         
     //printk("OP REGION OP name %s reg space 0x%x\n", region_name->segments->seg_s, region_space);
 
+    uint64_t region_offset, region_len;
+
     rc = aml_parse_next_node(ctx, &region_offset_node);
     if (rc != 0)
     {
@@ -105,10 +107,10 @@ int aml_op_region_op(struct aml_ctx *ctx)
         goto exit;
     }
 
-    if (region_offset_node->type != INTEGER)
+    rc = aml_node_as_integer(region_offset_node, &region_offset);
+    if (rc != 0)
     {
-        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", region_offset_node->type);
-        rc = -EINVAL;
+        printk("ACPI: OpRegionOp: Error casting RegionOffset node to Integer (%i)\n", rc);
         goto exit;
     }
     
@@ -119,17 +121,17 @@ int aml_op_region_op(struct aml_ctx *ctx)
         goto exit;
     }
 
-    if (region_len_node->type != INTEGER)
+    rc = aml_node_as_integer(region_len_node, &region_len);
+    if (rc != 0)
     {
-        printk("ACPI: BufferOp: BufferSize node has incorrect type (%i)\n", region_len_node->type);
-        rc = -EINVAL;
+        printk("ACPI: OpRegionOp: Error casting RegionLen node to Integer (%i)\n", rc);
         goto exit;
     }
 
     struct aml_node *region_node = aml_make_node(OP_REGION);
     region_node->op_region.space = region_space;
-    region_node->op_region.offset = region_offset_node->int_value;
-    region_node->op_region.len = region_len_node->int_value;
+    region_node->op_region.offset = region_offset;
+    region_node->op_region.len = region_len;
 
     rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, region_name, region_node);
     if (rc != 0)
@@ -138,8 +140,8 @@ int aml_op_region_op(struct aml_ctx *ctx)
         goto exit;
     }
 
-    //printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset_node->int_value);
-    //printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len_node->int_value);
+    //printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset);
+    //printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len);
 
 exit:
     KFREE_SAFE(region_len_node);
@@ -674,11 +676,27 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
 
     struct aml_node *predicate;
     rc = aml_parse_next_node(&if_ctx, &predicate);
+    if (rc != 0)
+    {
+        printk("ACPI: IfOp: Error parsing predicate (%i)\n", rc);
+        goto exit;
+    }
+    if (predicate == NULL)
+    {
+        printk("ACPI: IfOp: Predicate is NULL\n");
+        goto exit;
+    }
+    if (predicate->type != INTEGER)
+    {
+        printk("ACPI: IfOp: Predicate is not Integer\n");
+        goto exit;
+    }
 
-    printk("IF OP len %i, rc %i\n", len, rc);
+    printk("IF OP len %i, rc %i. predicate value %i\n", len, rc, predicate->int_value);
 
     // TODO: Сформировать и сохранить Node
 
+exit:
     return NULL;
 }
 
@@ -815,4 +833,115 @@ struct aml_node *aml_eval_string(struct aml_ctx *ctx)
     // TODO: Implement
     kfree(name);
     return NULL;
+}
+
+int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)
+{
+    int res;
+    struct aml_node *operand1, *operand2;
+    uint64_t op1_value, op2_value;
+
+    res = aml_parse_next_node(ctx, &operand1);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error reading operand 1 node (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_parse_next_node(ctx, &operand2);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error reading operand 2 node (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_node_as_integer(operand1, &op1_value);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error casting operand 1 to Integer (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_node_as_integer(operand2, &op2_value);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error casting operand 2 to Integer (%i)\n", res);
+        goto exit;
+    }
+
+    uint64_t result;
+    switch (opcode)
+    {
+    case AML_OP_ADD:
+        result = op1_value + op2_value;
+        break;
+    case AML_OP_SUBTRACT:
+        result = op1_value - op2_value;
+        break;
+    case AML_OP_MULTIPLY:
+        result = op1_value * op2_value;
+        break;
+    case AML_OP_DIVIDE:
+        result = op1_value / op2_value;
+        // TODO: остаток?
+        break;
+    case AML_OP_AND:
+        result = op1_value & op2_value;
+        break;
+    case AML_OP_OR:
+        result = op1_value | op2_value;
+        break;
+    case AML_OP_NAND:
+        result = ~(op1_value & op2_value);
+        break;
+    case AML_OP_NOR:
+        result = ~(op1_value | op2_value);
+        break;
+    case AML_OP_XOR:
+        result = (op1_value ^ op2_value);
+        break;
+    case AML_OP_MOD:
+        result = (op1_value % op2_value);
+        break;
+    case AML_OP_SHIFT_LEFT:
+        result = op1_value << op2_value;
+        break;
+    case AML_OP_SHIFT_RIGHT:
+        result = op1_value >> op2_value;
+        break;
+    default:
+        printk("ACPI: BinaryOp: Unknown operation (%i)\n", opcode);
+        res = -EINVAL;
+        goto exit;
+    }
+
+    // Прочитать информацию о том, куда сохранять результат
+    struct aml_store_target target;
+    res = aml_read_target(ctx, &target);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: error getting target\n", res);
+        goto exit;
+    }
+
+    // TODO: сделать запись в TARGET
+    if (target.type != NO)
+    {
+        printk("ACPI: BinaryOp: target should be written!\n");
+        res = -EINVAL;
+        goto exit;
+    }
+
+    printk("ACPI: BinaryOp: Op1 (type=%i, value=%i) Op2 (type=%i, value=%i). Target type: %i, Result %i\n", 
+        operand1->type, op1_value, operand2->type, op2_value, target.type, result);
+
+    // Сформировать node с результатом
+    struct aml_node *result_node = aml_make_node(INTEGER);
+    result_node->int_value = result;
+
+    // положить в ответ
+    *node_out = result_node;
+
+exit:
+    return res;
 }

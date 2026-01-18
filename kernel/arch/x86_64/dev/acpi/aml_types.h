@@ -14,6 +14,24 @@ struct aml_name_string {
     } segments[];
 };
 
+enum aml_store_target_type {
+    NO,   // NULL 0x0
+    DEBUG,  // EXT  0x31
+    REFERENCE,
+    NAME_STRING,
+    ARG,
+    LOCAL
+};
+
+struct aml_store_target {
+    enum aml_store_target_type type;
+
+    union {
+        struct aml_name_string *str;
+        uint8_t index; // for ARG, LOCAL
+    } target;
+};
+
 enum aml_node_type {
     NONE,
     INTEGER,

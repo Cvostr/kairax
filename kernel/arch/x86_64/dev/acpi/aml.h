@@ -16,7 +16,23 @@
 #define AML_OP_BUFFER       0x11
 #define AML_OP_PACKAGE      0x12
 #define AML_OP_METHOD       0x14
+#define AML_OP_LOCAL0       0x60
+#define AML_OP_LOCAL6       0x67
+#define AML_OP_ARG0         0x68
+#define AML_OP_ARG6         0x6E
+#define AML_OP_ADD          0x72
+#define AML_OP_SUBTRACT     0x74
+#define AML_OP_MULTIPLY     0x77
+#define AML_OP_DIVIDE       0x78
+#define AML_OP_SHIFT_LEFT   0x79
+#define AML_OP_SHIFT_RIGHT  0x7A
+#define AML_OP_AND          0x7B
+#define AML_OP_NAND         0x7C
+#define AML_OP_OR           0x7D
+#define AML_OP_NOR          0x7E
+#define AML_OP_XOR          0x7F
 #define AML_OP_NOOP         0x80
+#define AML_OP_MOD          0x85
 #define AML_OP_CREATE_DWORD_FIELD   0x8A
 #define AML_OP_CREATE_WORD_FIELD    0x8B
 #define AML_OP_CREATE_BYTE_FIELD    0x8C
@@ -58,6 +74,7 @@ uint32_t aml_read_pkg_len(struct aml_ctx *ctx);
 uint8_t *aml_ctx_dup_from_pkg(struct aml_ctx *ctx, size_t *len);
 uint32_t aml_ctx_addr_from_pkg(struct aml_ctx *ctx, uint8_t **begin_addr);
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx);
+int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target);
 
 struct aml_node *aml_make_node(enum aml_node_type);
 
@@ -82,8 +99,24 @@ struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
 
+int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 struct aml_node *aml_op_if(struct aml_ctx *ctx);
 
 struct aml_node *aml_eval_string(struct aml_ctx *ctx);
+
+
+int aml_node_as_integer(struct aml_node *node, uint64_t *result);
+
+// len в байтах
+int aml_read_from_field(struct aml_node *field, uint8_t *data, size_t len);
+// len в байтах
+int aml_write_to_field(struct aml_node *field, const uint8_t *data, size_t len);
+
+// len в байтах
+int aml_read_from_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *out);
+int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint8_t access_sz, uint64_t *out);
+// len в байтах
+int aml_write_to_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *in);
+int aml_write_integer_to_op_region(struct aml_node *region, size_t offset, uint8_t access_sz, uint64_t in);
 
 #endif

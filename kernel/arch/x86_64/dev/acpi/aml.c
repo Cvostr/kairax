@@ -128,7 +128,6 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
     int from_root = 0;
     int string_base = 0;
     uint8_t chr = aml_ctx_peek_byte(ctx);
-    //printk("ACPI STR. CHR 1 %c\n", chr);
     
     switch (chr)
     {
@@ -143,8 +142,6 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
         from_root = 1;
         break;
     }
-
-    //printk("ACPI STR. CHR 2 %c %i\n", chr, chr);
 
     size_t segments = 1;
     switch (chr)
@@ -162,7 +159,6 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
         chr = aml_ctx_get_byte(ctx);
         break;
     }
-    //printk("ACPI STR. CHR %c %i SEGMENTS %i\n", chr, chr, segments);
 
     // выделяем память - размер заголовка + сегменты по 4 байта
     struct aml_name_string *res = kmalloc(sizeof(struct aml_name_string) + segments * 4);
@@ -186,6 +182,38 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
     }
 
     return res;
+}
+
+int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
+{
+    uint8_t cur = aml_ctx_get_byte(ctx);
+
+    switch (cur)
+    {
+    case 0x0:
+        target->type = NO;
+        return 0;
+    case AML_OP_LOCAL0 ... AML_OP_LOCAL6:
+        target->type = LOCAL;
+        target->target.index = cur - AML_OP_LOCAL0;
+        return 0;
+    case AML_OP_ARG0 ... AML_OP_ARG6:
+        target->type = ARG;
+        target->target.index = cur - AML_OP_ARG0;
+        return 0;
+    case 'A' ... 'Z':
+        case AML_ROOT_CHAR:
+        case AML_PARENT_PREFIX_CHAR:
+        case AML_NAME_CHAR:
+        case AML_DUAL_NAME_PREFIX:
+        case AML_MULTI_NAME_PREFIX:
+            ctx->current_pos--;
+            target->type = NAME_STRING;
+            target->target.str = aml_read_name_string(ctx);
+            return 0;
+    default:
+        return -EINVAL;
+    }
 }
 
 char *aml_debug_namestring(struct aml_name_string *name)
@@ -290,6 +318,20 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             break;
         case AML_OP_STRING_PREFIX:
             node = aml_op_string(ctx);
+            break;
+        case AML_OP_ADD:
+        case AML_OP_AND:
+        case AML_OP_SUBTRACT:
+        case AML_OP_MULTIPLY:
+        case AML_OP_DIVIDE:
+        case AML_OP_SHIFT_LEFT:
+        case AML_OP_SHIFT_RIGHT:
+        case AML_OP_NAND:
+        case AML_OP_OR:
+        case AML_OP_NOR:
+        case AML_OP_XOR:
+        case AML_OP_MOD:
+            rc = aml_op_binary(ctx, opcode, &node);
             break;
         case AML_OP_NOOP:
             //printk("ACPI: NOOP\n");
