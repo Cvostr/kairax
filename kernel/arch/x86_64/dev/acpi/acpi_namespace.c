@@ -27,23 +27,23 @@ struct acpi_namespace *acpi_make_root_ns()
 
     // '\_GPE' - General events in GPE register block.
     memcpy(name->segments[0].seg_s, "_GPE", 4);
-    acpi_ns_add_named_object(ns, NULL, name, NULL);
+    acpi_ns_add_named_object(ns, NULL, name, aml_make_node(SCOPE));
 
     // '\_PR'
     memcpy(name->segments[0].seg_s, "_PR_", 4);
-    acpi_ns_add_named_object(ns, NULL, name, NULL);
+    acpi_ns_add_named_object(ns, NULL, name, aml_make_node(SCOPE));
 
     // '\_SB' - All Device/Bus Objects are defined under this namespace.
     memcpy(name->segments[0].seg_s, "_SB_", 4);
-    acpi_ns_add_named_object(ns, NULL, name, NULL);
+    acpi_ns_add_named_object(ns, NULL, name, aml_make_node(SCOPE));
 
     // '\_SI'
     memcpy(name->segments[0].seg_s, "_SI_", 4);
-    acpi_ns_add_named_object(ns, NULL, name, NULL);
+    acpi_ns_add_named_object(ns, NULL, name, aml_make_node(SCOPE));
 
     // '\_SI'
     memcpy(name->segments[0].seg_s, "_TZ_", 4);
-    acpi_ns_add_named_object(ns, NULL, name, NULL);
+    acpi_ns_add_named_object(ns, NULL, name, aml_make_node(SCOPE));
 
     acpi_root_namespace = ns;
 

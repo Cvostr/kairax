@@ -5,6 +5,9 @@
 
 //#define AML_DEBUG_NAMEOP
 //#define AML_DEBUG_NAMED_FIELD
+//#define AML_DEBUG_ALIAS
+#define AML_DEBUG_SCOPE
+//#define AML_DEBUG_OP_REGION
 
 int aml_op_alias(struct aml_ctx *ctx)
 {
@@ -12,7 +15,10 @@ int aml_op_alias(struct aml_ctx *ctx)
     struct ns_node *source_node = NULL;
     struct aml_name_string *source_name = aml_read_name_string(ctx);
     struct aml_name_string *target_name = aml_read_name_string(ctx);
-    //printk("ALIAS (%s to %s)\n", aml_debug_namestring(source_name), aml_debug_namestring(target_name));
+
+#ifdef AML_DEBUG_ALIAS
+    printk("ALIAS (%s to %s)\n", aml_debug_namestring(source_name), aml_debug_namestring(target_name));
+#endif
 
     // Получим node по старому имени
     source_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, source_name);
@@ -52,7 +58,10 @@ int aml_op_scope(struct aml_ctx *ctx)
     parse_ctx.current_pos = 0;
 
     struct aml_name_string *ns_name = aml_read_name_string(&parse_ctx);
-    printk("SCOPE pkg_len %i, name (root=%i, base=%i, segments=%i)\n", len, ns_name->from_root, ns_name->base, ns_name->segments_num);
+#ifdef AML_DEBUG_SCOPE
+    printk("SCOPE pkg_len %i, name %s (root=%i, base=%i, segments=%i)\n", 
+        len, aml_debug_namestring(ns_name), ns_name->from_root, ns_name->base, ns_name->segments_num);
+#endif
 
     // Попробуем получить объект по считанному имени
     struct ns_node *scope_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, ns_name);
@@ -96,7 +105,9 @@ int aml_op_region_op(struct aml_ctx *ctx)
     // Вид памяти, в которой располагается регион
     uint8_t region_space = aml_ctx_get_byte(ctx);
         
-    //printk("OP REGION OP name %s reg space 0x%x\n", region_name->segments->seg_s, region_space);
+#ifdef AML_DEBUG_OP_REGION
+    printk("OP REGION OP name %s reg space 0x%x\n", region_name->segments->seg_s, region_space);
+#endif
 
     uint64_t region_offset, region_len;
 
@@ -140,8 +151,10 @@ int aml_op_region_op(struct aml_ctx *ctx)
         goto exit;
     }
 
-    //printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset);
-    //printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len);
+#ifdef AML_DEBUG_OP_REGION
+    printk("\toffset type %i value 0x%x\n", region_offset_node->type, region_offset);
+    printk("\tlen type %i len 0x%x\n", region_len_node->type, region_len);
+#endif
 
 exit:
     KFREE_SAFE(region_len_node);
