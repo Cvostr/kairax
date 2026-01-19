@@ -4,7 +4,55 @@
 #include "kairax/stdio.h"
 #include "kairax/errors.h"
 #include "kairax/string.h"
+#include "kairax/kstdlib.h"
 #include "io.h"
+
+void aml_free_node(struct aml_node *node)
+{
+    if (node == NULL)
+        return;
+    
+    switch (node->type)
+    {
+    case STRING:
+        if (node->string.str)
+            kfree(node->string.str);
+        break;
+    case BUFFER:
+        if (node->buffer.buffer)
+            kfree(node->buffer.buffer);
+        break;
+    case METHOD:
+        kfree(node->method.code);
+        break;
+    default:
+        break;
+    }
+
+    kfree(node);
+}
+
+int aml_to_uint64(struct aml_node* node, uint64_t *out)
+{
+    int res = 0;
+    switch (node->type)
+    {
+    case PACKAGE:
+        printk("ACPI: Should PACKAGE be convertible to Integer?\n");
+        return -EINVAL;
+    case STRING:
+        *out = atol(node->string.str);
+        return 0;
+    default:
+        res = aml_node_as_integer(node, out);
+        if (res != 0)
+        {
+            printk("ACPI: Error getting node type %i as integer. rc = %i\n", node->type, res);
+        }
+        
+        return res;
+    }
+}
 
 // Page 1027
 int aml_map_access_type_to_size(uint8_t flags)
@@ -130,11 +178,49 @@ int aml_write_to_field(struct aml_node *field, const uint8_t *data, size_t len)
     return rc;
 }
 
+int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method)
+{
+    int rc;
+    struct aml_node *arg_node;
+
+    printk("ACPI: Executing method\n");
+
+    for (size_t i = 0; i < method->method.args; i ++)
+    {
+        rc = aml_parse_next_node(ctx, &arg_node);
+        if (rc != 0)
+        {
+            printk("ACPI: Error parsing next argument node (%i)\n", rc);
+            return rc;
+        }
+    }
+
+    struct aml_ctx method_ctx;
+    method_ctx.aml_data = method->method.code;
+    method_ctx.aml_len = method->method.code_size;
+    method_ctx.current_pos = 0;
+    method_ctx.scope = ctx->scope;
+
+    // Парсим метод
+    struct aml_node *node;
+    while (aml_ctx_get_remain_size(&method_ctx) > 0)
+    {
+        rc = aml_parse_next_node(&method_ctx, &node);
+        if (rc != 0)
+        {
+            printk("ACPI: Error parsing next node during method execution (%i)\n", rc);
+            return rc;
+        }
+    }
+
+    return -1;
+}
+
 /// -- РАБОТА С OP REGION
 
 int aml_read_from_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *out)
 {
-    printk("aml_read_from_op_region acc_sz %i len %i\n", access_sz, len);
+    //printk("aml_read_from_op_region acc_sz %i len %i\n", access_sz, len);
     int rc = 0;
     size_t blocks = len / access_sz;
     size_t remain_bytes = len % access_sz;
@@ -167,7 +253,7 @@ int aml_read_from_op_region(struct aml_node *region, size_t offset, size_t len, 
 
 int aml_write_to_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *in)
 {
-    printk("aml_write_to_op_region acc_sz %i len %i\n", access_sz, len);
+    //printk("aml_write_to_op_region acc_sz %i len %i\n", access_sz, len);
     int rc = 0;
     size_t blocks = len / access_sz;
     size_t remain_bytes = len % access_sz;

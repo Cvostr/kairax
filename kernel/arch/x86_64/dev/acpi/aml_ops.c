@@ -157,8 +157,8 @@ int aml_op_region_op(struct aml_ctx *ctx)
 #endif
 
 exit:
-    KFREE_SAFE(region_len_node);
-    KFREE_SAFE(region_offset_node);
+    aml_free_node(region_len_node);
+    aml_free_node(region_offset_node);
     KFREE_SAFE(region_name);
     return 0;
 }
@@ -404,8 +404,12 @@ int aml_op_method(struct aml_ctx *ctx)
 {
     int res = 0;
     size_t len;
+    uint8_t *nested = NULL;
+    
     struct aml_name_string *method_name = NULL;
-    uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
+
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &nested);
 
     struct aml_ctx method_ctx;
     method_ctx.aml_data = nested;
@@ -443,7 +447,6 @@ int aml_op_method(struct aml_ctx *ctx)
 
 exit:
     KFREE_SAFE(method_name);
-    kfree(nested);
     return res;
 }
 
@@ -665,7 +668,7 @@ int aml_op_mutex(struct aml_ctx *ctx)
     if (rc != 0)
     {
         printk("ACPI: MutexOp: Error adding node to namespace (%i)\n", rc);
-        // clear node?
+        aml_free_node(mutex_node);
     }
 
     KFREE_SAFE(mutex_name)
@@ -677,6 +680,7 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
     int rc;
     size_t len;
     uint8_t *buffer_buf = NULL;
+    struct aml_node *predicate = NULL;
     
     // Получим длину данных, указатель на начало и сместим курсор
     len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
@@ -687,7 +691,7 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
     if_ctx.current_pos = 0;
     if_ctx.scope = ctx->scope;
 
-    struct aml_node *predicate;
+    // Считываем предикат
     rc = aml_parse_next_node(&if_ctx, &predicate);
     if (rc != 0)
     {
@@ -707,9 +711,24 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
 
     printk("IF OP len %i, rc %i. predicate value %i\n", len, rc, predicate->int_value);
 
-    // TODO: Сформировать и сохранить Node
+    struct aml_node *node;
+
+    if (predicate->int_value != 0)
+    {
+        // Парсим все, что есть внутри
+        while (aml_ctx_get_remain_size(&if_ctx) > 0)
+        {
+            rc = aml_parse_next_node(&if_ctx, &node);
+            if (rc != 0)
+            {
+                printk("ACPI: IfOp: Error parsing next node (%i)\n", rc);
+                return rc;
+            }
+        }
+    }
 
 exit:
+    KFREE_SAFE(predicate);
     return NULL;
 }
 
@@ -775,13 +794,13 @@ int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size)
     if (res != 0)
     {
         printk("ACPI: CreateFieldOp: Error adding node to namespace (%i)\n", res);
-        kfree(field_node);
+        aml_free_node(field_node);
         goto exit;
     }
 
 
 exit:
-    KFREE_SAFE(index_node)
+    aml_free_node(index_node);
     KFREE_SAFE(source_buffer_name)
     KFREE_SAFE(field_name)
     return res;
@@ -828,8 +847,10 @@ struct aml_node *aml_op_string(struct aml_ctx *ctx)
     return node;
 }
 
-struct aml_node *aml_eval_string(struct aml_ctx *ctx)
+int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out)
 {
+    int rc = 0;
+    struct aml_node *result = NULL;
     struct aml_name_string *name = aml_read_name_string(ctx);
     printk("ACPI: String %s\n", aml_debug_namestring(name));
 
@@ -837,21 +858,29 @@ struct aml_node *aml_eval_string(struct aml_ctx *ctx)
     struct ns_node *ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, name);
     if (ns_node != NULL)
     {
-        kfree(name);
-        return ns_node->object;
+        result = ns_node->object;
+        if (result->type == METHOD)
+        {
+            // Если тип объекта, на который ссылаемся - метод, значит это вызов метода
+            rc = aml_execute_method(ctx, result);
+        }
+
+        *out = result;
+        goto exit;
     }
 
     printk("ACPI: StringOp: Not found object with name %s\n", aml_debug_namestring(name));
 
     // TODO: Implement
+exit:
     kfree(name);
-    return NULL;
+    return rc;
 }
 
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)
 {
     int res;
-    struct aml_node *operand1, *operand2;
+    struct aml_node *operand1 = NULL, *operand2 = NULL;
     uint64_t op1_value, op2_value;
 
     res = aml_parse_next_node(ctx, &operand1);
@@ -937,14 +966,6 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
         goto exit;
     }
 
-    // TODO: сделать запись в TARGET
-    if (target.type != NO)
-    {
-        printk("ACPI: BinaryOp: target should be written!\n");
-        res = -EINVAL;
-        goto exit;
-    }
-
     printk("ACPI: BinaryOp: Op1 (type=%i, value=%i) Op2 (type=%i, value=%i). Target type: %i, Result %i\n", 
         operand1->type, op1_value, operand2->type, op2_value, target.type, result);
 
@@ -952,9 +973,101 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
     struct aml_node *result_node = aml_make_node(INTEGER);
     result_node->int_value = result;
 
+    // Сохранить в target
+    res = aml_store_to_target(&target, result_node);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error writing to target %i!\n", res);
+        goto exit;
+    }
+
     // положить в ответ
     *node_out = result_node;
 
 exit:
+    return res;
+}
+
+int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)
+{
+    int res;
+    struct aml_node *operand1 = NULL, *operand2 = NULL;
+    uint64_t cmpresult;
+
+    res = aml_parse_next_node(ctx, &operand1);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error reading operand 1 node (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_parse_next_node(ctx, &operand2);
+    if (res != 0)
+    {
+        printk("ACPI: BinaryOp: Error reading operand 2 node (%i)\n", res);
+        goto exit;
+    }
+
+    // Смотрим тип первого операнда
+    switch (operand1->type)
+    {
+    case STRING:
+        printk("ACPI: Strings comparation is not supported\n");
+        res = -ENOSYS;
+        goto exit;
+        break;
+    case BUFFER:
+        printk("ACPI: Buffers comparation is not supported\n");
+        res = -ENOSYS;
+        goto exit;
+        break;
+    default:
+        // Вероятно, это Integer
+        uint64_t op1_ival, op2_ival;
+        res = aml_node_as_integer(operand1, &op1_ival);
+        if (res != 0)
+        {
+            printk("ACPI: CompareOp: Error casting Op1 to int (%i)\n", res);
+            goto exit;
+        }
+
+        // Пробуем сконвертировать второй операнд в Integer
+        res = aml_to_uint64(operand2, &op2_ival);
+        if (res != 0)
+        {
+            printk("ACPI: CompareOp: Error converting Op1 to int (%i)\n", res);
+            goto exit;
+        }
+
+        printk("ACPI: CompareOp: Op1 : %i, Op2: %i\n", op1_ival, op2_ival);
+
+        switch (opcode)
+        {
+            case AML_OP_LEQUAL:
+                cmpresult = op1_ival == op2_ival;
+                break;
+            case AML_OP_LGREATER:
+                cmpresult = op1_ival > op2_ival;
+                break;
+            case AML_OP_LLESS:
+                cmpresult = op1_ival < op2_ival;
+                break;
+            default:
+                // Я заебался
+        }
+    
+        break;
+    }
+
+    // Сформировать node с результатом
+    struct aml_node *result_node = aml_make_node(INTEGER);
+    // По спеке, когда истинно, то ожидается 0xFFFFFFFF
+    result_node->int_value = (cmpresult == TRUE) ? UINT32_MAX : 0;
+    // Сохраним
+    *node_out = result_node;
+
+exit:
+    aml_free_node(operand1);
+    aml_free_node(operand2);
     return res;
 }

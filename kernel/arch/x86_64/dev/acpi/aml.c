@@ -216,6 +216,19 @@ int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
     }
 }
 
+int aml_store_to_target(struct aml_store_target *target, struct aml_node *value)
+{
+    if (target->type == NO)
+    {
+        return 0;
+    }
+
+    // TODO: реализовать дополнительно
+    printk("ACPI: BinaryOp: Unknown target type %i!\n", target->type);
+
+    return -EINVAL;
+}
+
 char *aml_debug_namestring(struct aml_name_string *name)
 {
     return name->segments > 0 ? name->segments->seg_s : "empty";
@@ -345,6 +358,11 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_CREATE_DWORD_FIELD:
             rc = aml_op_create_buffer_field(ctx, 32);
             break;
+        case AML_OP_LEQUAL:
+        case AML_OP_LGREATER:
+        case AML_OP_LLESS:
+            rc = aml_op_compare(ctx, opcode, &node);
+            break;
         case AML_OP_IF:
             node = aml_op_if(ctx);
             break;
@@ -359,7 +377,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_DUAL_NAME_PREFIX:
         case AML_MULTI_NAME_PREFIX:
             ctx->current_pos--;
-            node = aml_eval_string(ctx);
+            rc = aml_eval_string(ctx, &node);
             break;
         
         default:

@@ -34,6 +34,7 @@ struct aml_store_target {
 
 enum aml_node_type {
     NONE,
+    SCOPE,
     INTEGER,
     METHOD,
     PACKAGE,
