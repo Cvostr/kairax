@@ -40,6 +40,7 @@
 #define AML_OP_LGREATER     0x94
 #define AML_OP_LLESS        0x95
 #define AML_OP_IF           0xA0
+#define AML_OP_RETURN       0xA4
 #define AML_OP_ONES         0xFF
 
 #define AML_EXT_OP_PREFIX       0x5B
@@ -61,6 +62,8 @@ struct aml_ctx {
     uint32_t aml_len;
     uint32_t current_pos;
     struct ns_node *scope;
+
+    struct aml_node *args[7];
 };
 
 char *aml_debug_namestring(struct aml_name_string *name);
@@ -106,9 +109,10 @@ struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
 
 int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
-struct aml_node *aml_op_if(struct aml_ctx *ctx);
+int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
 
 int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);
+int aml_op_return(struct aml_ctx *ctx, struct aml_node **out);
 
 int aml_to_uint64(struct aml_node* node, uint64_t *out);
 int aml_node_as_integer(struct aml_node *node, uint64_t *result);
@@ -125,6 +129,6 @@ int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint
 int aml_write_to_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *in);
 int aml_write_integer_to_op_region(struct aml_node *region, size_t offset, uint8_t access_sz, uint64_t in);
 
-int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method);
+int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, int read_args, struct aml_node **returned_node);
 
 #endif

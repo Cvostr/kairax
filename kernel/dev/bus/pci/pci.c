@@ -13,6 +13,14 @@
 #define PCI_BAR_64 0x04
 #define PCI_BAR_PREFETCH 0x08
 
+uint8_t i_pci_config_read8(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset)
+{
+	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
+
+	outl(0xCF8, address);
+	return inb(0xCFC + (offset & 3));
+}
+
 uint16_t i_pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset)
 {
 	uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));

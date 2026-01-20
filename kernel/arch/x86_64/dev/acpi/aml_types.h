@@ -86,6 +86,7 @@ struct aml_node {
             uint8_t space;
             uint64_t offset;
             uint64_t len;
+            struct ns_node *scope;
         } op_region;
 
         struct {

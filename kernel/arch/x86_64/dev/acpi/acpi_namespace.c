@@ -182,6 +182,18 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
     return 0;
 }
 
+struct ns_node *acpi_ns_get_node1(struct acpi_namespace *ns, struct ns_node *scope, const char *name)
+{
+    uint8_t buffer[sizeof(struct aml_name_string) + 4];
+    struct aml_name_string *namestr = buffer;
+    namestr->base = 0;
+    namestr->from_root = 0;
+    namestr->segments_num = 1;
+    memcpy(namestr->segments->seg_s, name, 4);
+
+    return acpi_ns_get_node(ns, scope, namestr);
+}
+
 struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name)
 {
     /*

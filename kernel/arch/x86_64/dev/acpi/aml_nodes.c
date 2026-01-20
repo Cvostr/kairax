@@ -6,6 +6,7 @@
 #include "kairax/string.h"
 #include "kairax/kstdlib.h"
 #include "io.h"
+#include "dev/bus/pci/pci.h"
 
 void aml_free_node(struct aml_node *node)
 {
@@ -52,6 +53,31 @@ int aml_to_uint64(struct aml_node* node, uint64_t *out)
         
         return res;
     }
+}
+
+int acpi_evaluate_value(struct aml_node* scope, struct aml_node* node, struct aml_node **val)
+{
+    int res = 0;
+    switch (node->type)
+    {
+        case METHOD:
+            // Конструируем фиктивный контекст
+            // Поскольку аргументов нет, то просто заполним только scope
+            struct aml_ctx fake_ctx;
+            memset(&fake_ctx, 0, sizeof(struct aml_ctx));
+            fake_ctx.scope = scope;
+
+            res = aml_execute_method(&fake_ctx, node, FALSE, val);
+            break;
+        default:
+            // делаем копию
+            struct aml_node* resnode = aml_make_node(NONE);
+            memcpy(resnode, node, sizeof(struct aml_node));
+            *val = resnode; 
+            break;
+    }
+
+    return res;
 }
 
 // Page 1027
@@ -178,42 +204,62 @@ int aml_write_to_field(struct aml_node *field, const uint8_t *data, size_t len)
     return rc;
 }
 
-int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method)
+int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, int read_args, struct aml_node **returned_node)
 {
     int rc;
+    uint8_t opcode;
     struct aml_node *arg_node;
 
     printk("ACPI: Executing method\n");
 
-    for (size_t i = 0; i < method->method.args; i ++)
-    {
-        rc = aml_parse_next_node(ctx, &arg_node);
-        if (rc != 0)
-        {
-            printk("ACPI: Error parsing next argument node (%i)\n", rc);
-            return rc;
-        }
-    }
-
+    // Конструируем контекст
     struct aml_ctx method_ctx;
+    memset(&method_ctx, 0, sizeof(struct aml_ctx));
     method_ctx.aml_data = method->method.code;
     method_ctx.aml_len = method->method.code_size;
     method_ctx.current_pos = 0;
     method_ctx.scope = ctx->scope;
+
+    if (read_args == TRUE)
+    {
+        for (size_t i = 0; i < method->method.args; i ++)
+        {
+            // Считаем очередной аргумент
+            rc = aml_parse_next_node(ctx, &arg_node);
+            if (rc != 0)
+            {
+                printk("ACPI: Error parsing next argument node (%i)\n", rc);
+                return rc;
+            }
+
+            // Сохраним аргумент в контекст
+            method_ctx.args[i] = arg_node;
+        }
+    }
+
+    // TODO: Mutex, если synchronized
 
     // Парсим метод
     struct aml_node *node;
     while (aml_ctx_get_remain_size(&method_ctx) > 0)
     {
         rc = aml_parse_next_node(&method_ctx, &node);
-        if (rc != 0)
+        if (rc == (0xFF00 | AML_OP_RETURN))
+        {
+            // Выход из метода
+            *returned_node = node;
+            rc = 0;
+            printk("ACPI: method return catch\n");
+            break;
+        }
+        else if (rc != 0)
         {
             printk("ACPI: Error parsing next node during method execution (%i)\n", rc);
             return rc;
         }
     }
 
-    return -1;
+    return rc;
 }
 
 /// -- РАБОТА С OP REGION
@@ -285,8 +331,74 @@ int aml_write_to_op_region(struct aml_node *region, size_t offset, size_t len, u
     return rc;
 }
 
+int aml_get_pci_config_space(struct aml_node *region, uint8_t *bus, uint8_t *dev, uint8_t *func)
+{
+    int rc;
+    struct ns_node *bbn;
+    struct ns_node *adr;
+    
+    bbn = acpi_ns_get_node1(acpi_get_root_ns(), region->op_region.scope, "_BBN");
+    if (bbn == NULL)
+    {
+        printk("ACPI: aml_get_pci_config_space: _BBN node not found\n");
+        return -ENOENT;
+    }
+
+    adr = acpi_ns_get_node1(acpi_get_root_ns(), region->op_region.scope, "_ADR");
+    if (adr == NULL)
+    {
+        printk("ACPI: aml_get_pci_config_space: _ADR node not found\n");
+        return -ENOENT;
+    }
+
+/*
+    struct aml_node *bbn_node = bbn->object;
+    struct aml_node *adr_node = adr->object;
+    printk("BBN type %i ADR type %i\n", bbn_node->type, adr_node->type);
+*/
+    struct aml_node *bbn_val_node, *adr_val_node;
+    uint64_t bbn_val, adr_val;
+    
+    rc = acpi_evaluate_value(region->op_region.scope, bbn->object, &bbn_val_node);
+    if (rc != 0)
+    {
+        printk("ACPI: Error evaluating _BBN node (%i)\n", rc);
+        return rc;
+    }
+
+    rc = acpi_evaluate_value(region->op_region.scope, adr->object, &adr_val_node);
+    if (rc != 0)
+    {
+        printk("ACPI: Error evaluating _ADR node (%i)\n", rc);
+        return rc;
+    }
+
+    rc = aml_to_uint64(bbn_val_node, &bbn_val);
+    if (rc != 0)
+    {
+        printk("ACPI: Error casting _BBN node to Integer (%i)\n", rc);
+        return rc;
+    }
+
+    rc = aml_to_uint64(adr_val_node, &adr_val);
+    if (rc != 0)
+    {
+        printk("ACPI: Error casting _ADR node to Integer (%i)\n", rc);
+        return rc;
+    }
+
+    printk("BBN: %i ADR: %i\n", bbn_val, adr_val);
+
+    *bus = bbn_val;
+    *dev = adr_val >> 16;
+    *func = adr_val & 0xFF;
+
+    return 0;
+}
+
 int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint8_t access_sz, uint64_t *out)
 {
+    int rc;
     uintptr_t addr_val = region->op_region.offset + offset;
     switch (region->op_region.space)
     {
@@ -327,8 +439,30 @@ int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint
             }
             break;
         case ACPI_GAS_PCI_CONF:
-            printk("ACPI: PCI Conf space is not implemented!\n");
-            return -ENOSYS;
+            uint8_t bus, dev, func;
+            rc = aml_get_pci_config_space(region, &bus, &dev, &func);
+            if (rc != 0)
+            {
+                printk("ACPI: Error getting PCI Device Address (%i)\n", rc);
+                return rc;
+            }
+
+            switch (access_sz)
+            {
+                case 1:
+                    *out = i_pci_config_read8(bus, dev, func, addr_val);
+                    break;
+                case 2:
+                    *out = i_pci_config_read16(bus, dev, func, addr_val);
+                    break;
+                case 4:
+                    *out = i_pci_config_read32(bus, dev, func, addr_val);
+                    break;
+                default:
+                    return -EINVAL;
+            }
+            
+            break;
         default:
             return -EINVAL;
     }

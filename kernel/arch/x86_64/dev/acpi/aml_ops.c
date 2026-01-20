@@ -5,6 +5,7 @@
 
 //#define AML_DEBUG_NAMEOP
 //#define AML_DEBUG_NAMED_FIELD
+//#define AML_DEBUG_RESERVED_FIELD
 //#define AML_DEBUG_ALIAS
 #define AML_DEBUG_SCOPE
 //#define AML_DEBUG_OP_REGION
@@ -143,6 +144,7 @@ int aml_op_region_op(struct aml_ctx *ctx)
     region_node->op_region.space = region_space;
     region_node->op_region.offset = region_offset;
     region_node->op_region.len = region_len;
+    region_node->op_region.scope = ctx->scope;
 
     rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, region_name, region_node);
     if (rc != 0)
@@ -181,7 +183,9 @@ int aml_parse_next_field(struct aml_ctx *ctx, struct aml_field_desc *desc, uint6
             case 0:
                 aml_ctx_get_byte(ctx);
                 uint32_t offset = aml_read_pkg_len(ctx);
+#ifdef AML_DEBUG_RESERVED_FIELD
                 printk("\tReserved field. Offset %x (%i)\n", offset, offset);
+#endif
                 *current_offset_bits += offset;
                 break;
             case 1:
@@ -675,7 +679,7 @@ int aml_op_mutex(struct aml_ctx *ctx)
     return rc;
 }
 
-struct aml_node *aml_op_if(struct aml_ctx *ctx)
+int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 {
     int rc;
     size_t len;
@@ -719,7 +723,14 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
         while (aml_ctx_get_remain_size(&if_ctx) > 0)
         {
             rc = aml_parse_next_node(&if_ctx, &node);
-            if (rc != 0)
+            if (rc == (0xFF00 | AML_OP_RETURN))
+            {
+                // Выход из метода
+                *returned_node = node;
+                // проброс rc дальше 
+                break;
+            }
+            else if (rc != 0)
             {
                 printk("ACPI: IfOp: Error parsing next node (%i)\n", rc);
                 return rc;
@@ -729,7 +740,7 @@ struct aml_node *aml_op_if(struct aml_ctx *ctx)
 
 exit:
     KFREE_SAFE(predicate);
-    return NULL;
+    return 0; //rc;
 }
 
 int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size)
@@ -862,7 +873,7 @@ int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out)
         if (result->type == METHOD)
         {
             // Если тип объекта, на который ссылаемся - метод, значит это вызов метода
-            rc = aml_execute_method(ctx, result);
+            rc = aml_execute_method(ctx, result, TRUE, &result);
         }
 
         *out = result;
@@ -875,6 +886,19 @@ int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out)
 exit:
     kfree(name);
     return rc;
+}
+
+int aml_op_return(struct aml_ctx *ctx, struct aml_node **out)
+{
+    int rc = aml_parse_next_node(ctx, out);
+    if (rc != 0)
+    {
+        printk("ACPI: ReturnOp: Error reading next node (%i)\n", rc);
+        return rc;
+    }
+
+    // Возвращаем специальный код ошибки
+    return (0xFF00 | AML_OP_RETURN);
 }
 
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)

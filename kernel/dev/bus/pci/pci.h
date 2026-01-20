@@ -76,6 +76,7 @@ struct msix_table_entry {
 
 struct device;
 
+uint8_t i_pci_config_read8(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 uint16_t i_pci_config_read16(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 uint32_t i_pci_config_read32(uint32_t bus, uint32_t slot, uint32_t func, uint32_t offset);
 

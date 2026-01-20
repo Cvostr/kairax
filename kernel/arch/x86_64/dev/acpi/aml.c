@@ -364,7 +364,10 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             rc = aml_op_compare(ctx, opcode, &node);
             break;
         case AML_OP_IF:
-            node = aml_op_if(ctx);
+            rc = aml_op_if(ctx, &node);
+            break;
+        case AML_OP_RETURN:
+            rc = aml_op_return(ctx, &node);
             break;
         case AML_OP_ONES:
             node = aml_make_node(INTEGER);
