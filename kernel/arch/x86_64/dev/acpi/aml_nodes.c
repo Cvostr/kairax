@@ -7,6 +7,8 @@
 #include "kairax/kstdlib.h"
 #include "io.h"
 #include "dev/bus/pci/pci.h"
+#include "memory/paging.h"
+#include "memory/kernel_vmm.h"
 
 void aml_free_node(struct aml_node *node)
 {
@@ -267,6 +269,11 @@ int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, int read_ar
 int aml_read_from_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *out)
 {
     //printk("aml_read_from_op_region acc_sz %i len %i\n", access_sz, len);
+    
+    // Защита от деления на 0
+    if (access_sz == 0)
+        access_sz = 1;
+
     int rc = 0;
     size_t blocks = len / access_sz;
     size_t remain_bytes = len % access_sz;
@@ -284,7 +291,7 @@ int aml_read_from_op_region(struct aml_node *region, size_t offset, size_t len, 
         written_bytes += access_sz;
     }
 
-    // Запись оставшегося
+    // Чтение оставшегося
     if (remain_bytes > 0)
     {
         rc = aml_read_integer_from_op_region(region, offset + written_bytes, access_sz, &tmp);
@@ -301,6 +308,11 @@ int aml_write_to_op_region(struct aml_node *region, size_t offset, size_t len, u
 {
     //printk("aml_write_to_op_region acc_sz %i len %i\n", access_sz, len);
     int rc = 0;
+
+    // Защита от деления на 0
+    if (access_sz == 0)
+        access_sz = 1;
+
     size_t blocks = len / access_sz;
     size_t remain_bytes = len % access_sz;
     uint64_t tmp;
@@ -400,9 +412,11 @@ int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint
 {
     int rc;
     uintptr_t addr_val = region->op_region.offset + offset;
+    //printk("ACPI: aml_read_integer_from_op_region start accsz %i addr %p\n", access_sz, addr_val);
     switch (region->op_region.space)
     {
         case ACPI_GAS_MEMORY:
+            //printk("ACPI: aml_read_integer_from_op_region: System Memory\n");
             void *vaddr = arch_phys_to_virtual_addr(addr_val);
             switch (access_sz)
             {
