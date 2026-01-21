@@ -530,6 +530,7 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
         node->package.elements[i] = value;
     }
 
+    aml_acquire_node(node);
     return node;
 }
 
@@ -568,6 +569,7 @@ struct aml_node *aml_op_buffer(struct aml_ctx *ctx)
     result->buffer.buffer = kmalloc(result->buffer.len);
     aml_ctx_copy_bytes(&pkg_ctx, result->buffer.buffer, result->buffer.len);
 
+    aml_acquire_node(result);
     return result;
 }
 
@@ -824,6 +826,7 @@ struct aml_node *aml_op_word(struct aml_ctx *ctx)
     node->int_value = aml_ctx_get_byte(ctx);
     tmp = aml_ctx_get_byte(ctx);
     node->int_value |= tmp << 8;
+    aml_acquire_node(node);
     return node;
 }
 
@@ -838,6 +841,7 @@ struct aml_node *aml_op_dword(struct aml_ctx *ctx)
     node->int_value |= tmp << 16;
     tmp = aml_ctx_get_byte(ctx);
     node->int_value |= tmp << 24;
+    aml_acquire_node(node);
     return node;
 }
 
@@ -851,6 +855,7 @@ struct aml_node *aml_op_string(struct aml_ctx *ctx)
     struct aml_node *node = aml_make_node(STRING);
     node->string.str = kmalloc(str_length + 1);
     strcpy(node->string.str, curptr);
+    aml_acquire_node(node);
 
     // не забываем сдвинуть курсор в контексте
     ctx->current_pos += (str_length + 1);
@@ -874,6 +879,11 @@ int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out)
         {
             // Если тип объекта, на который ссылаемся - метод, значит это вызов метода
             rc = aml_execute_method(ctx, result, TRUE, &result);
+        }
+        else
+        {
+            // Увеличим счетчик ссылок, т.к мы вытащили объект из namespace
+            aml_acquire_node(result);
         }
 
         *out = result;
@@ -931,6 +941,7 @@ int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out)
     struct aml_node *result_node = aml_make_node(INTEGER);
     result_node->int_value = operand_value;
     // Записать
+    aml_acquire_node(result_node);
     *node_out = result_node;
 
 exit:
@@ -1043,9 +1054,12 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
     }
 
     // положить в ответ
+    aml_acquire_node(result_node);
     *node_out = result_node;
 
 exit:
+    aml_free_node(operand1);
+    aml_free_node(operand2);
     return res;
 }
 
@@ -1125,6 +1139,7 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
     // По спеке, когда истинно, то ожидается 0xFFFFFFFF
     result_node->int_value = (cmpresult == TRUE) ? UINT32_MAX : 0;
     // Сохраним
+    aml_acquire_node(result_node);
     *node_out = result_node;
 
 exit:

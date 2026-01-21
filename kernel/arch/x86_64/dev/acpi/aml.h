@@ -88,6 +88,7 @@ int aml_store_to_target(struct aml_store_target *target, struct aml_node *value)
 
 struct aml_node *aml_make_node(enum aml_node_type);
 void aml_free_node(struct aml_node *node);
+void aml_acquire_node(struct aml_node *node);
 
 // OP handlers
 int aml_op_alias(struct aml_ctx *ctx);
@@ -114,10 +115,10 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
 int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
-
-int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);
 int aml_op_return(struct aml_ctx *ctx, struct aml_node **out);
+int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);
 
+int aml_store_to_node(struct aml_node *value, struct aml_node *dest);
 int aml_to_uint64(struct aml_node* node, uint64_t *out);
 int aml_node_as_integer(struct aml_node *node, uint64_t *result);
 

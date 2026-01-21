@@ -173,6 +173,8 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
     struct ns_node *nsnode = new_ns_node();
     if (nsnode == NULL)
         return -ENOMEM;
+    
+    aml_acquire_node(node);
     nsnode->object = node;
     memcpy(nsnode->name, new_node_name, 4);
 

@@ -187,6 +187,8 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
 {
     uint8_t cur = aml_ctx_get_byte(ctx);
+    struct aml_name_string *name = NULL;
+    struct ns_node *node;
 
     switch (cur)
     {
@@ -208,8 +210,19 @@ int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
         case AML_DUAL_NAME_PREFIX:
         case AML_MULTI_NAME_PREFIX:
             ctx->current_pos--;
-            target->type = NAME_STRING;
-            target->target.str = aml_read_name_string(ctx);
+            // Считаем имя
+            name = aml_read_name_string(ctx);
+            node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, name);
+
+            if (node == NULL)
+            {
+                kfree(name);
+                return -ENOENT;
+            }
+
+            target->type = NODE;
+            target->target.node = node;
+            kfree(name);
             return 0;
     default:
         return -EINVAL;
@@ -218,15 +231,19 @@ int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
 
 int aml_store_to_target(struct aml_store_target *target, struct aml_node *value)
 {
-    if (target->type == NO)
+    switch (target->type)
     {
+    case NO:
         return 0;
+    case NODE:
+        return aml_store_to_node(value, target->target.node->object);
+    default:
+        // TODO: реализовать дополнительно
+        printk("ACPI: BinaryOp: Unknown target type %i!\n", target->type);
+        return -EINVAL;
     }
 
-    // TODO: реализовать дополнительно
-    printk("ACPI: BinaryOp: Unknown target type %i!\n", target->type);
-
-    return -EINVAL;
+    return 0;
 }
 
 char *aml_debug_namestring(struct aml_name_string *name)
@@ -296,10 +313,12 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_ZERO:
             node = aml_make_node(INTEGER);
             node->int_value = 0;
+            aml_acquire_node(node);
             break;
         case AML_OP_ONE:
             node = aml_make_node(INTEGER);
             node->int_value = 1;
+            aml_acquire_node(node);
             break;
         case AML_OP_ALIAS:
             rc = aml_op_alias(ctx);
@@ -322,6 +341,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_BYTE_PREFIX:
             node = aml_make_node(INTEGER);
             node->int_value = aml_ctx_get_byte(ctx);
+            aml_acquire_node(node);
             break;
         case AML_OP_WORD_PREFIX:
             node = aml_op_word(ctx);
@@ -375,6 +395,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_ONES:
             node = aml_make_node(INTEGER);
             node->int_value = UINT64_MAX;
+            aml_acquire_node(node);
             break;
         case 'A' ... 'Z':
         case AML_ROOT_CHAR:

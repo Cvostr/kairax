@@ -10,29 +10,44 @@
 #include "memory/paging.h"
 #include "memory/kernel_vmm.h"
 
+void aml_acquire_node(struct aml_node *node)
+{
+    atomic_inc(&node->refs);
+}
+
 void aml_free_node(struct aml_node *node)
 {
     if (node == NULL)
         return;
     
-    switch (node->type)
+    if (atomic_dec_and_test(&node->refs))
     {
-    case STRING:
-        if (node->string.str)
-            kfree(node->string.str);
-        break;
-    case BUFFER:
-        if (node->buffer.buffer)
-            kfree(node->buffer.buffer);
-        break;
-    case METHOD:
-        kfree(node->method.code);
-        break;
-    default:
-        break;
-    }
+        printk("Freeing AML Node %p\n", node);
+        switch (node->type)
+        {
+        case STRING:
+            if (node->string.str)
+                kfree(node->string.str);
+            break;
+        case BUFFER:
+            if (node->buffer.buffer)
+                kfree(node->buffer.buffer);
+            break;
+        case PACKAGE:
+            if (node->package.elements != NULL)
+            {
+                // TODO: free all elements
+                kfree(node->package.elements);
+            }
+            break;
+        case METHOD:
+            break;
+        default:
+            break;
+        }
 
-    kfree(node);
+        kfree(node);
+    }
 }
 
 int aml_to_uint64(struct aml_node* node, uint64_t *out)
@@ -55,6 +70,30 @@ int aml_to_uint64(struct aml_node* node, uint64_t *out)
         
         return res;
     }
+}
+
+int aml_store_to_node(struct aml_node *value, struct aml_node *dest)
+{
+    int res;
+    switch (dest->type)
+    {
+        case INTEGER:
+            uint64_t converted;
+            res = aml_to_uint64(value, &converted);
+            if (res != 0)
+            {
+                printk("ACPI: Failed to convert value to Integer: %i\n", res);
+                return res;
+            }
+
+            dest->int_value = converted;
+            break;
+        default:
+            printk("ACPI: aml_store_to_node: Unsupported for type %i\n", dest->type);
+            return -ENOTSUP;
+    }
+
+    return 0;
 }
 
 int acpi_evaluate_value(struct aml_node* scope, struct aml_node* node, struct aml_node **val)
@@ -399,7 +438,7 @@ int aml_get_pci_config_space(struct aml_node *region, uint8_t *bus, uint8_t *dev
         return rc;
     }
 
-    printk("BBN: %i ADR: %i\n", bbn_val, adr_val);
+    //printk("BBN: %i ADR: %i\n", bbn_val, adr_val);
 
     *bus = bbn_val;
     *dev = adr_val >> 16;

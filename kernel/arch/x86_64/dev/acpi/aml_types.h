@@ -3,6 +3,7 @@
 
 #include "kairax/types.h"
 #include "sync/semaphore.h"
+#include "kairax/atomic.h"
 
 struct aml_name_string {
     int from_root;
@@ -18,7 +19,7 @@ enum aml_store_target_type {
     NO,   // NULL 0x0
     DEBUG,  // EXT  0x31
     REFERENCE,
-    NAME_STRING,
+    NODE,
     ARG,
     LOCAL
 };
@@ -27,7 +28,7 @@ struct aml_store_target {
     enum aml_store_target_type type;
 
     union {
-        struct aml_name_string *str;
+        struct ns_node *node;
         uint8_t index; // for ARG, LOCAL
     } target;
 };
@@ -55,6 +56,7 @@ enum aml_field_type {
 
 struct aml_node {
     enum aml_node_type type;
+    atomic_t refs;
 
     union {
         uint64_t int_value;
