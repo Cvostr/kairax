@@ -461,6 +461,10 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_CREATE_DWORD_FIELD:
             rc = aml_op_create_buffer_field(ctx, 32);
             break;
+        case AML_OP_LAND:
+        case AML_OP_LOR:
+            rc = aml_op_ilogical(ctx, opcode, &node);
+            break;
         case AML_OP_LNOT:
             rc = aml_op_not(ctx, &node);
             break;

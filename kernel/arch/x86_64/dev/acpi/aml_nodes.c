@@ -1,6 +1,7 @@
 #include "aml.h"
 #include "acpi_tables.h"
 #include "mem/paging.h"
+#include "mem/kheap.h"
 #include "kairax/stdio.h"
 #include "kairax/errors.h"
 #include "kairax/string.h"
@@ -19,7 +20,7 @@ void aml_free_node(struct aml_node *node)
 {
     if (node == NULL)
         return;
-    
+
     if (atomic_dec_and_test(&node->refs))
     {
         printk("Freeing AML Node %p\n", node);

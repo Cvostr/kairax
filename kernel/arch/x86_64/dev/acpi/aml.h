@@ -36,6 +36,8 @@
 #define AML_OP_CREATE_DWORD_FIELD   0x8A
 #define AML_OP_CREATE_WORD_FIELD    0x8B
 #define AML_OP_CREATE_BYTE_FIELD    0x8C
+#define AML_OP_LAND         0x90
+#define AML_OP_LOR          0x91
 #define AML_OP_LNOT         0x92
 #define AML_OP_LEQUAL       0x93
 #define AML_OP_LGREATER     0x94
@@ -122,6 +124,7 @@ struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
 
+int aml_op_ilogical(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);

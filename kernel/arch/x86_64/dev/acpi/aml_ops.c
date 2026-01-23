@@ -8,6 +8,7 @@
 //#define AML_DEBUG_RESERVED_FIELD
 //#define AML_DEBUG_ALIAS
 #define AML_DEBUG_SCOPE
+#define AML_DEBUG_UNKNOWN_STRINGS
 //#define AML_DEBUG_OP_REGION
 
 int aml_op_alias(struct aml_ctx *ctx)
@@ -895,8 +896,9 @@ int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out)
         *out = result;
         goto exit;
     }
-
+#ifdef AML_DEBUG_UNKNOWN_STRINGS
     printk("ACPI: StringOp: Not found object with name %s\n", aml_debug_namestring(name));
+#endif
 
     // TODO: Implement
 exit:
@@ -941,7 +943,7 @@ int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out)
     }
 
     // Инвертировать
-    operand_value = (operand_value > 0) ? 0 : UINT32_MAX;
+    operand_value = (operand_value > 0) ? AML_FALSE : AML_TRUE;
     
     // Сформировать node с результатом
     struct aml_node *result_node = aml_make_node(INTEGER);
@@ -1060,6 +1062,72 @@ exit:
     return res;
 }
 
+int aml_op_ilogical(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)
+{
+    int res;
+    struct aml_node *operand1 = NULL, *operand2 = NULL;
+    uint64_t op1_ival, op2_ival;
+    uint64_t cmpresult;
+
+    // Чтение операндовы
+    res = aml_parse_next_node(ctx, &operand1);
+    if (res != 0)
+    {
+        printk("ACPI: ILogical: Error reading operand 1 node (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_parse_next_node(ctx, &operand2);
+    if (res != 0)
+    {
+        printk("ACPI: ILogical: Error reading operand 2 node (%i)\n", res);
+        goto exit;
+    }
+
+    // Приведение операндов к Integer
+    res = aml_node_as_integer(operand1, &op1_ival);
+    if (res != 0)
+    {
+        printk("ACPI: ILogical: Error casting Op1 to int (%i)\n", res);
+        goto exit;
+    }
+
+    // Пробуем сконвертировать второй операнд в Integer
+    res = aml_to_uint64(operand2, &op2_ival);
+    if (res != 0)
+    {
+        printk("ACPI: ILogical: Error converting Op1 to int (%i)\n", res);
+        goto exit;
+    }
+
+    switch (opcode)
+    {
+    case AML_OP_LOR:
+        cmpresult = (op1_ival || op2_ival);
+        break;
+    case AML_OP_LAND:
+        cmpresult = (op1_ival && op2_ival);
+        break;
+    default:
+        printk("ACPI: ILogical: Unknown opcode %i\n", opcode);
+        res = -EINVAL;
+        break;
+    }
+
+    // Сформировать node с результатом
+    struct aml_node *result_node = aml_make_node(INTEGER);
+    // По спеке, когда истинно, то ожидается 0xFFFFFFFF
+    result_node->int_value = (cmpresult == TRUE) ? AML_TRUE : AML_FALSE;
+    // Сохраним
+    aml_acquire_node(result_node);
+    *node_out = result_node;
+
+exit:
+    aml_free_node(operand1);
+    aml_free_node(operand2);
+    return res;
+}
+
 int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)
 {
     int res;
@@ -1095,7 +1163,7 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
         break;
     default:
         // Вероятно, это Integer
-        uint64_t op1_ival = 0, op2_ival;
+        uint64_t op1_ival, op2_ival;
         res = aml_node_as_integer(operand1, &op1_ival);
         if (res != 0)
         {
