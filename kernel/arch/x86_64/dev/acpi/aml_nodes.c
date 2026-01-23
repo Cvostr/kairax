@@ -164,6 +164,9 @@ int aml_node_as_integer(struct aml_node *node, uint64_t *result)
             return -EINVAL;
         }
 
+        // Обнулим вначале, вдруг вызвавший не обнулил
+        *result = 0;
+
         rc = aml_read_from_field(node, result, field_sz / 8);
 
         if (rc != 0)

@@ -15,20 +15,19 @@ struct aml_name_string {
     } segments[];
 };
 
-enum aml_store_target_type {
-    NO,   // NULL 0x0
+enum aml_superstring_type {
     DEBUG,  // EXT  0x31
-    REFERENCE,
-    NODE,
+    REF,
+    NAME,
     ARG,
     LOCAL
 };
 
-struct aml_store_target {
-    enum aml_store_target_type type;
+struct aml_supername {
+    enum aml_superstring_type type;
 
     union {
-        struct ns_node *node;
+        struct aml_name_string *name;
         uint8_t index; // for ARG, LOCAL
     } target;
 };
@@ -44,6 +43,7 @@ enum aml_node_type {
     DEVICE,
     MUTEX,
     FIELD,
+    REFERENCE,
     BUFFER_FIELD,
     OP_REGION
 };
@@ -60,6 +60,8 @@ struct aml_node {
 
     union {
         uint64_t int_value;
+        // для REFERENCE
+        struct aml_node *link;
 
         struct {
             char *str;

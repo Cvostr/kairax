@@ -123,6 +123,19 @@ uint32_t aml_ctx_addr_from_pkg(struct aml_ctx *ctx, uint8_t **begin_addr)
     return data_len;
 }
 
+int aml_ctx_set_local(struct aml_ctx *ctx, uint8_t arg, struct aml_node* value)
+{
+    if (ctx->locals[arg] == NULL)
+    {
+        ctx->locals[arg] = value;
+        aml_acquire_node(value);
+        return 0;
+    }
+
+    aml_store_to_node(value, ctx->locals[arg]);
+    return 0;
+}
+
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 {
     int from_root = 0;
@@ -184,7 +197,7 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
     return res;
 }
 
-int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
+int aml_read_supername(struct aml_ctx *ctx, struct aml_supername *sname)
 {
     uint8_t cur = aml_ctx_get_byte(ctx);
     struct aml_name_string *name = NULL;
@@ -192,16 +205,13 @@ int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
 
     switch (cur)
     {
-    case 0x0:
-        target->type = NO;
-        return 0;
-    case AML_OP_LOCAL0 ... AML_OP_LOCAL6:
-        target->type = LOCAL;
-        target->target.index = cur - AML_OP_LOCAL0;
+    case AML_OP_LOCAL0 ... AML_OP_LOCAL7:
+        sname->type = LOCAL;
+        sname->target.index = cur - AML_OP_LOCAL0;
         return 0;
     case AML_OP_ARG0 ... AML_OP_ARG6:
-        target->type = ARG;
-        target->target.index = cur - AML_OP_ARG0;
+        sname->type = ARG;
+        sname->target.index = cur - AML_OP_ARG0;
         return 0;
     case 'A' ... 'Z':
         case AML_ROOT_CHAR:
@@ -212,34 +222,104 @@ int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target)
             ctx->current_pos--;
             // Считаем имя
             name = aml_read_name_string(ctx);
-            node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, name);
-
-            if (node == NULL)
-            {
-                kfree(name);
-                return -ENOENT;
-            }
-
-            target->type = NODE;
-            target->target.node = node;
+            sname->type = NAME;
+            sname->target.name = name;
             kfree(name);
             return 0;
     default:
+        printk("ACPI: Unknown SuperName type %i\n", cur);
         return -EINVAL;
     }
 }
 
-int aml_store_to_target(struct aml_store_target *target, struct aml_node *value)
+int aml_read_supername_as_ref(struct aml_ctx *ctx, struct aml_node **node)
 {
-    switch (target->type)
+    struct aml_supername sname;
+    int res = aml_read_supername(ctx, &sname);
+    if (res != 0)
     {
-    case NO:
-        return 0;
-    case NODE:
-        return aml_store_to_node(value, target->target.node->object);
+        printk("ACPI: aml_read_supername_as_ref: error reading supername %i\n", res);
+        return res;
+    }
+
+    switch (sname.type)
+    {
+    case NAME:
+        struct ns_node *ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, sname.target.name);
+        kfree(sname.target.name);
+        if (ns_node == NULL)
+        {
+            printk("ACPI: aml_read_supername_as_ref: Can't find node in namespace\n");
+            return -ENOENT;
+        }
+        *node = ns_node->object;
+        aml_acquire_node(*node);
+        break;
+    case LOCAL:
+        *node = ctx->locals[sname.target.index];
+        aml_acquire_node(*node);
+        break;
+    case ARG:
+        *node = ctx->args[sname.target.index];
+        aml_acquire_node(*node);
+        break;
     default:
         // TODO: реализовать дополнительно
-        printk("ACPI: BinaryOp: Unknown target type %i!\n", target->type);
+        printk("ACPI: aml_read_supername_as_ref: Unknown target type %i!\n", sname.type);
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+int aml_store_to_target(struct aml_ctx *ctx, struct aml_node *value)
+{
+    struct aml_supername sname;
+
+    uint8_t peekb = aml_ctx_peek_byte(ctx);
+    if (peekb == 0x0)
+    {
+        aml_ctx_get_byte(ctx);
+        // ничего сохранять не надо
+        return 0;
+    }
+
+    // Чтение SuperName
+    int res = aml_read_supername(ctx, &sname);
+    if (res != 0)
+    {
+        printk("ACPI: aml_store_to_target: error reading superstring %i\n", res);
+        return res;
+    }
+
+    if (value == NULL)
+    {
+        // Если на самом деле ничего не надо сохранять, а просто считать данные из контекста
+        if (sname.type == NAME)
+        {
+            kfree(sname.target.name);
+        }
+
+        return 0;
+    }
+
+    switch (sname.type)
+    {
+    case NAME:
+        struct ns_node *ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, sname.target.name);
+        kfree(sname.target.name);
+        if (ns_node == NULL)
+        {
+            printk("ACPI: aml_store_to_target: Can't find node in namespace\n");
+            return -ENOENT;
+        }
+    
+        return aml_store_to_node(value, ns_node->object);
+    case LOCAL:
+        return aml_ctx_set_local(ctx, sname.target.index, value);
+    default:
+        // TODO: реализовать дополнительно
+        printk("ACPI: aml_store_to_target: Unknown target type %i!\n", sname.type);
         return -EINVAL;
     }
 
@@ -285,6 +365,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         {
             case AML_EXT_OP_MUTEX:
                 rc = aml_op_mutex(ctx);
+                break;
+            case AML_EXT_OP_COND_REF_OF:
+                rc = aml_op_cond_ref_of(ctx, &node);
                 break;
             case AML_EXT_OP_REGION_OP:
                 rc = aml_op_region_op(ctx);

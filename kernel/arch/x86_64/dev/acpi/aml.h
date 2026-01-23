@@ -17,7 +17,7 @@
 #define AML_OP_PACKAGE      0x12
 #define AML_OP_METHOD       0x14
 #define AML_OP_LOCAL0       0x60
-#define AML_OP_LOCAL6       0x67
+#define AML_OP_LOCAL7       0x67
 #define AML_OP_ARG0         0x68
 #define AML_OP_ARG6         0x6E
 #define AML_OP_ADD          0x72
@@ -48,6 +48,7 @@
 
 #define AML_EXT_OP_PREFIX       0x5B
 #define AML_EXT_OP_MUTEX        0x01
+#define AML_EXT_OP_COND_REF_OF  0x12
 #define AML_EXT_OP_REGION_OP    0x80
 #define AML_EXT_OP_FIELD        0x81     
 #define AML_EXT_OP_DEVICE       0x82
@@ -60,13 +61,20 @@
 #define AML_DUAL_NAME_PREFIX    '.'
 #define AML_MULTI_NAME_PREFIX   '/'
 
+#define AML_FALSE       0
+#define AML_TRUE        0xFFFFFFFF
+
+#define AML_ARGS_NUM    7
+#define AML_LOCALS_NUM  8
+
 struct aml_ctx {
     uint8_t *aml_data;
     uint32_t aml_len;
     uint32_t current_pos;
     struct ns_node *scope;
 
-    struct aml_node *args[7];
+    struct aml_node *args[AML_ARGS_NUM];
+    struct aml_node *locals[AML_LOCALS_NUM];
 };
 
 char *aml_debug_namestring(struct aml_name_string *name);
@@ -82,9 +90,12 @@ int aml_ctx_copy_bytes(struct aml_ctx *ctx, uint8_t *out, size_t len);
 uint32_t aml_read_pkg_len(struct aml_ctx *ctx);
 uint8_t *aml_ctx_dup_from_pkg(struct aml_ctx *ctx, size_t *len);
 uint32_t aml_ctx_addr_from_pkg(struct aml_ctx *ctx, uint8_t **begin_addr);
+int aml_ctx_set_local(struct aml_ctx *ctx, uint8_t arg, struct aml_node* value);
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx);
-int aml_read_target(struct aml_ctx *ctx, struct aml_store_target *target);
-int aml_store_to_target(struct aml_store_target *target, struct aml_node *value);
+
+int aml_read_supername_as_ref(struct aml_ctx *ctx, struct aml_node **ref);
+int aml_read_supername(struct aml_ctx *ctx, struct aml_supername *sname);
+int aml_store_to_target(struct aml_ctx *ctx, struct aml_node *value);
 
 struct aml_node *aml_make_node(enum aml_node_type);
 void aml_free_node(struct aml_node *node);
@@ -116,6 +127,7 @@ int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
 int aml_op_return(struct aml_ctx *ctx, struct aml_node **out);
+int aml_op_cond_ref_of(struct aml_ctx *ctx, struct aml_node **out);
 int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);
 
 int aml_store_to_node(struct aml_node *value, struct aml_node *dest);

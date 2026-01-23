@@ -697,6 +697,12 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
     if_ctx.current_pos = 0;
     if_ctx.scope = ctx->scope;
 
+    // Копирование аргументов
+    for (int i = 0; i < AML_ARGS_NUM; i ++)
+    {
+        if_ctx.args[i] = ctx->args[i];
+    }
+
     // Считываем предикат
     rc = aml_parse_next_node(&if_ctx, &predicate);
     if (rc != 0)
@@ -1029,24 +1035,15 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
         goto exit;
     }
 
-    // Прочитать информацию о том, куда сохранять результат
-    struct aml_store_target target;
-    res = aml_read_target(ctx, &target);
-    if (res != 0)
-    {
-        printk("ACPI: BinaryOp: error getting target\n", res);
-        goto exit;
-    }
-
-    printk("ACPI: BinaryOp: Op1 (type=%i, value=%i) Op2 (type=%i, value=%i). Target type: %i, Result %i\n", 
-        operand1->type, op1_value, operand2->type, op2_value, target.type, result);
+    printk("ACPI: BinaryOp: Op1 (type=%i, value=%i) Op2 (type=%i, value=%i). Result %i\n", 
+        operand1->type, op1_value, operand2->type, op2_value, result);
 
     // Сформировать node с результатом
     struct aml_node *result_node = aml_make_node(INTEGER);
     result_node->int_value = result;
 
     // Сохранить в target
-    res = aml_store_to_target(&target, result_node);
+    res = aml_store_to_target(ctx, result_node);
     if (res != 0)
     {
         printk("ACPI: BinaryOp: Error writing to target %i!\n", res);
@@ -1098,7 +1095,7 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
         break;
     default:
         // Вероятно, это Integer
-        uint64_t op1_ival, op2_ival;
+        uint64_t op1_ival = 0, op2_ival;
         res = aml_node_as_integer(operand1, &op1_ival);
         if (res != 0)
         {
@@ -1137,7 +1134,7 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
     // Сформировать node с результатом
     struct aml_node *result_node = aml_make_node(INTEGER);
     // По спеке, когда истинно, то ожидается 0xFFFFFFFF
-    result_node->int_value = (cmpresult == TRUE) ? UINT32_MAX : 0;
+    result_node->int_value = (cmpresult == TRUE) ? AML_TRUE : AML_FALSE;
     // Сохраним
     aml_acquire_node(result_node);
     *node_out = result_node;
@@ -1146,4 +1143,70 @@ exit:
     aml_free_node(operand1);
     aml_free_node(operand2);
     return res;
+}
+
+int aml_op_cond_ref_of(struct aml_ctx *ctx, struct aml_node **out)
+{
+    int res;
+    int src_exists = TRUE;
+    struct aml_node *src_node = NULL;
+    struct aml_node *result_node = NULL;
+    struct aml_node *ref_node = NULL;
+
+    // Считаем ссылку на node из SuperName
+    res = aml_read_supername_as_ref(ctx, &src_node);
+    if (res == -ENOENT)
+    {
+        printk("ACPI: CondRefOfOp: Can't find node\n");
+        // помечаем, что SOURCE не существует
+        src_exists = FALSE;
+        return 0;
+    }
+    else if (res != 0)
+    {
+        printk("ACPI: CondRefOfOp: Error reading SuperName: %i\n", res);
+        return res;
+    }
+
+    if (src_exists == TRUE)
+    {
+        // Если источник существует
+        // Создадим ссылку с увеличением счетчика ссылок на источник
+        ref_node = aml_make_node(REFERENCE);
+        aml_acquire_node(ref_node);
+        ref_node->link = src_node;
+        aml_acquire_node(src_node);
+
+        // Вернем TRUE
+        // Сформировать node с результатом
+        result_node = aml_make_node(INTEGER);
+        result_node->int_value = AML_TRUE;
+        aml_acquire_node(result_node);
+        *out = result_node;
+
+        printk("ACPI: CondRefOfOp: TRUE\n");
+    }
+    else
+    {
+        // Вернем FALSE
+        // Сформировать node с результатом
+        result_node = aml_make_node(INTEGER);
+        result_node->int_value = AML_FALSE;
+        aml_acquire_node(result_node);
+        *out = result_node;
+
+        printk("ACPI: CondRefOfOp: FALSE\n");
+    }
+
+    // Сохранить в target
+    res = aml_store_to_target(ctx, ref_node);
+    if (res != 0)
+    {
+        printk("ACPI: CondRefOfOp: Error writing to target %i!\n", res);
+        goto exit;
+    }
+
+exit:
+    aml_free_node(ref_node);
+    return 0;
 }
