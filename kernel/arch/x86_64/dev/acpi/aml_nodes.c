@@ -23,7 +23,7 @@ void aml_free_node(struct aml_node *node)
 
     if (atomic_dec_and_test(&node->refs))
     {
-        printk("Freeing AML Node %p\n", node);
+        //printk("Freeing AML Node %p\n", node);
         switch (node->type)
         {
         case STRING:

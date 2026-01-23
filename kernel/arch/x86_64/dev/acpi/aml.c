@@ -201,7 +201,6 @@ int aml_read_supername(struct aml_ctx *ctx, struct aml_supername *sname)
 {
     uint8_t cur = aml_ctx_get_byte(ctx);
     struct aml_name_string *name = NULL;
-    struct ns_node *node;
 
     switch (cur)
     {
@@ -224,7 +223,6 @@ int aml_read_supername(struct aml_ctx *ctx, struct aml_supername *sname)
             name = aml_read_name_string(ctx);
             sname->type = NAME;
             sname->target.name = name;
-            kfree(name);
             return 0;
     default:
         printk("ACPI: Unknown SuperName type %i\n", cur);
