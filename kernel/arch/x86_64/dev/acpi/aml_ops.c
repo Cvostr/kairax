@@ -685,13 +685,25 @@ int aml_op_mutex(struct aml_ctx *ctx)
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 {
     int rc;
-    size_t len;
-    uint8_t *buffer_buf = NULL;
+    size_t len = 0, else_len = 0;
+    uint8_t *buffer_buf = NULL, *else_buf = NULL;
     struct aml_node *predicate = NULL;
     
     // Получим длину данных, указатель на начало и сместим курсор
     len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+    
+    // Смотрим, есть ли дальше ELSE
+    uint8_t else_test = aml_ctx_peek_byte(ctx);
+    if (else_test == AML_OP_ELSE)
+    {
+        // Дальше есть ELSE
+        // Вытащить ElseOp
+        else_test = aml_ctx_get_byte(ctx);
+        // Получить длину блока ELSE и сместим курсор
+        else_len = aml_ctx_addr_from_pkg(ctx, &else_buf);
+    }
 
+    // Читаем предикат и действия, которые будут выполнены при ИСТИНА
     struct aml_ctx if_ctx;
     if_ctx.aml_data = buffer_buf;
     if_ctx.aml_len = len;
@@ -726,24 +738,39 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 
     struct aml_node *node;
 
-    if (predicate->int_value != 0)
+    if (predicate->int_value == AML_FALSE)
     {
-        // Парсим все, что есть внутри
-        while (aml_ctx_get_remain_size(&if_ctx) > 0)
+        if (else_len > 0)
         {
-            rc = aml_parse_next_node(&if_ctx, &node);
-            if (rc == (0xFF00 | AML_OP_RETURN))
-            {
-                // Выход из метода
-                *returned_node = node;
-                // проброс rc дальше 
-                break;
-            }
-            else if (rc != 0)
-            {
-                printk("ACPI: IfOp: Error parsing next node (%i)\n", rc);
-                return rc;
-            }
+            // Если ЛОЖЬ и у нас есть код для ELSE, то вероломно подменяем данные в контексте
+            if_ctx.aml_data = else_buf;
+            if_ctx.aml_len = else_len;
+            // не забываем сбросить позицию
+            if_ctx.current_pos = 0;
+            printk("ACPI: IfOp: Executing ELSE Branch\n");
+        }
+        else
+        {
+            // нечего выполнять - просто выходим
+            goto exit;
+        }
+    }
+
+    // Парсим все, что есть внутри
+    while (aml_ctx_get_remain_size(&if_ctx) > 0)
+    {
+        rc = aml_parse_next_node(&if_ctx, &node);
+        if (rc == (0xFF00 | AML_OP_RETURN))
+        {
+            // Выход из метода
+            *returned_node = node;
+            // проброс rc дальше 
+            break;
+        }
+        else if (rc != 0)
+        {
+            printk("ACPI: IfOp: Error parsing next node (%i)\n", rc);
+            return rc;
         }
     }
 

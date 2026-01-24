@@ -45,6 +45,7 @@
 #define AML_OP_LLESS_EQUAL  0x94
 #define AML_OP_LGREATER_EQUAL 0x95
 #define AML_OP_IF           0xA0
+#define AML_OP_ELSE         0xA1
 #define AML_OP_RETURN       0xA4
 #define AML_OP_ONES         0xFF
 
