@@ -1141,10 +1141,24 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
         goto exit;
     }
 
+    if (operand1 == NULL)
+    {
+        res = -ENOENT;
+        printk("ACPI: BinaryOp: Operand 1 Node is NULL\n");
+        goto exit;
+    }
+
     res = aml_parse_next_node(ctx, &operand2);
     if (res != 0)
     {
         printk("ACPI: BinaryOp: Error reading operand 2 node (%i)\n", res);
+        goto exit;
+    }
+
+    if (operand2 == NULL)
+    {
+        res = -ENOENT;
+        printk("ACPI: BinaryOp: Operand 2 Node is NULL\n");
         goto exit;
     }
 

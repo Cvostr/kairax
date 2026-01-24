@@ -247,6 +247,11 @@ struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scop
     for (int i = 0; i < name->base; i ++)
     {
         cur = cur->parent;
+        if (cur == NULL)
+        {
+            printk("ACPI: Level up to NULL parent\n");
+            return NULL;
+        }
     }
 
     if (name->segments_num == 0)
