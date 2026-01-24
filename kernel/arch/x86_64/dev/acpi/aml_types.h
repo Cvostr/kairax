@@ -44,6 +44,7 @@ enum aml_node_type {
     MUTEX,
     FIELD,
     REFERENCE,
+    POWER_RESOURCE,
     BUFFER_FIELD,
     OP_REGION
 };
@@ -122,6 +123,11 @@ struct aml_node {
             uint8_t flags;
             struct semaphore sem;
         } mutex;
+
+        struct {
+            uint8_t system_level;
+            uint16_t resource_order;
+        } power_resource;
     };
 };
 

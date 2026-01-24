@@ -579,6 +579,7 @@ int aml_op_device(struct aml_ctx *ctx)
     int rc = 0;
     size_t len;
     uint8_t *buffer_buf = NULL;
+    struct aml_name_string *device_name = NULL;
     
     // Получим длину данных, указатель на начало и сместим курсор
     len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
@@ -588,7 +589,8 @@ int aml_op_device(struct aml_ctx *ctx)
     dev_ctx.aml_len = len;
     dev_ctx.current_pos = 0;
 
-    struct aml_name_string *device_name = aml_read_name_string(&dev_ctx);
+    // Считаем имя устройства
+    device_name = aml_read_name_string(&dev_ctx);
 
     printk("DEVICE OP %s\n", device_name->segments->seg_s);
 
@@ -597,7 +599,7 @@ int aml_op_device(struct aml_ctx *ctx)
     if (rc != 0)
     {
         printk("ACPI: DeviceOp: Error adding node to namespace (%i)\n", rc);
-        return rc;
+        goto exit;
     }
 
     struct ns_node *device_ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, device_name);
@@ -611,10 +613,67 @@ int aml_op_device(struct aml_ctx *ctx)
         if (rc != 0)
         {
             printk("ACPI: DeviceOp: Error parsing next node (%i)\n", rc);
-            return rc;
+            goto exit;
         }
     }
 
+exit:
+    KFREE_SAFE(device_name);
+    return rc;
+}
+
+int aml_op_power_resource(struct aml_ctx *ctx)
+{
+    int rc = 0;
+    size_t len;
+    uint8_t *buffer_buf = NULL;
+    struct aml_name_string *pwr_res_name = NULL;
+    
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    struct aml_ctx pwr_ctx;
+    pwr_ctx.aml_data = buffer_buf;
+    pwr_ctx.aml_len = len;
+    pwr_ctx.current_pos = 0;
+
+    // Считаем основные аттрибуты
+    pwr_res_name = aml_read_name_string(&pwr_ctx);
+    uint8_t system_level = aml_ctx_get_byte(&pwr_ctx);
+    uint16_t resource_order = aml_ctx_get_word(&pwr_ctx);
+
+    printk("POWER RESOURCE OP %s, SystemLevel %i, ResourceOrder %i\n", 
+        pwr_res_name->segments->seg_s, system_level, resource_order);
+
+    // Создать Node
+    struct aml_node *pwr_res_node = aml_make_node(POWER_RESOURCE);
+    pwr_res_node->power_resource.system_level = system_level;
+    pwr_res_node->power_resource.resource_order = resource_order;
+    // Добавить Node
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, pwr_res_name, pwr_res_node);
+    if (rc != 0)
+    {
+        printk("ACPI: PowerResOp: Error adding node to namespace (%i)\n", rc);
+        goto exit;
+    }
+
+    struct ns_node *device_ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, pwr_res_name);
+    pwr_ctx.scope = device_ns_node; 
+
+    // Парсим внутренности
+    struct aml_node *node;
+    while (aml_ctx_get_remain_size(&pwr_ctx) > 0)
+    {
+        rc = aml_parse_next_node(&pwr_ctx, &node);
+        if (rc != 0)
+        {
+            printk("ACPI: PowerResOp: Error parsing next node (%i)\n", rc);
+            goto exit;
+        }
+    }
+
+exit:
+    KFREE_SAFE(pwr_res_name);
     return rc;
 }
 

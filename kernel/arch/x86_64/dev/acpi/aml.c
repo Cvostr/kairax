@@ -14,6 +14,16 @@ uint8_t aml_ctx_get_byte(struct aml_ctx *ctx)
     return ctx->aml_data[ctx->current_pos++];
 }
 
+uint16_t aml_ctx_get_word(struct aml_ctx *ctx)
+{
+    uint16_t res;
+    uint16_t tmp;
+    res = aml_ctx_get_byte(ctx);
+    tmp = aml_ctx_get_byte(ctx);
+    res |= tmp << 8;
+    return res;
+}
+
 uint8_t aml_ctx_next_byte(struct aml_ctx *ctx)
 {
     return ctx->aml_data[++ctx->current_pos];
@@ -378,6 +388,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
                 break;
             case AML_EXT_OP_PROCESSOR:
                 rc = aml_op_processor(ctx);
+                break;
+            case AML_EXT_OP_POWER_RES:
+                rc = aml_op_power_resource(ctx);
                 break;
             case AML_EXT_OP_INDEX_FIELD:
                 rc = aml_op_index_field(ctx);
