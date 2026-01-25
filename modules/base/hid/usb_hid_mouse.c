@@ -93,11 +93,17 @@ void mouse_event_callback(struct usb_msg* msg)
 {
     struct usb_hid_mouse* mouse = msg->private;
 
-    // Обработать отчет
-    hid_process_report(mouse, mouse->report_buffer, msg->transferred_length, &mouse->report_items, mouse_hid_report_handler);
-
-    // Послать запрос на прерывание
-    usb_send_async_msg(mouse->device, mouse->ep, msg);
+    if (msg->status == 0)
+    {
+        // Обработать отчет
+        hid_process_report(mouse, mouse->report_buffer, msg->transferred_length, &mouse->report_items, mouse_hid_report_handler);
+        // Послать запрос на прерывание
+        usb_send_async_msg(mouse->device, mouse->ep, msg);
+    }
+    else
+    {
+        printk("HID Mouse Error!!! (%i)\n", -msg->status);
+    }
 }
 
 int usb_hid_mouse_device_probe(struct device *dev) 

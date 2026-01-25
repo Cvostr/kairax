@@ -187,46 +187,48 @@ void hid_kbd_event_callback(struct usb_msg* msg)
 {
     struct usb_hid_kbd* kbd = msg->private;
 
-    if (msg->status != 0)
+    if (msg->status == 0)
+    {
+        // Обработать отчет
+        hid_process_report(kbd, kbd->report_buffer, msg->transferred_length, &kbd->report_items, kbd_hid_report_handler);
+
+        for (int i = HID_FIRST_KEYCODE; i < HID_MAX_KEYCODE; i ++)
+        {
+            uint8_t old = kbd->old[i];
+            uint8_t current = kbd->current[i];
+            uint8_t mapped = hid_kbd_bindings[i];
+
+            if (old == 1 && current == 0)
+            {
+                keyboard_add_event(mapped, KRXK_RELEASED);
+            }
+            else if (old == 0 && current == 1)
+            {
+                usb_hid_handle_led_key(kbd, mapped);
+                keyboard_add_event(mapped, KRXK_PRESSED);
+            }
+
+            kbd->old[i] = 0;
+        }
+
+        // поменяем массивы местами
+        uint8_t* tmp = kbd->current;
+        kbd->current = kbd->old;
+        kbd->old = tmp;
+
+        if (kbd->upd_led)
+        {
+            usb_hid_kbd_upd_led(kbd);
+            kbd->upd_led = FALSE;
+        }
+
+        // Послать запрос на прерывание
+        usb_send_async_msg(kbd->device, kbd->ep, msg);
+    }
+    else
     {
         printk("HID keyboard Error!!! (%i)\n", -msg->status);
     }
-
-    // Обработать отчет
-    hid_process_report(kbd, kbd->report_buffer, msg->transferred_length, &kbd->report_items, kbd_hid_report_handler);
-
-    for (int i = HID_FIRST_KEYCODE; i < HID_MAX_KEYCODE; i ++)
-    {
-        uint8_t old = kbd->old[i];
-        uint8_t current = kbd->current[i];
-        uint8_t mapped = hid_kbd_bindings[i];
-
-        if (old == 1 && current == 0)
-        {
-            keyboard_add_event(mapped, KRXK_RELEASED);
-        }
-        else if (old == 0 && current == 1)
-        {
-            usb_hid_handle_led_key(kbd, mapped);
-            keyboard_add_event(mapped, KRXK_PRESSED);
-        }
-
-        kbd->old[i] = 0;
-    }
-
-    // поменяем массивы местами
-    uint8_t* tmp = kbd->current;
-    kbd->current = kbd->old;
-    kbd->old = tmp;
-
-    if (kbd->upd_led)
-    {
-        usb_hid_kbd_upd_led(kbd);
-        kbd->upd_led = FALSE;
-    }
-
-    // Послать запрос на прерывание
-    usb_send_async_msg(kbd->device, kbd->ep, msg);
 }
 
 void usb_hid_handle_led_key(struct usb_hid_kbd* kbd, uint8_t key)

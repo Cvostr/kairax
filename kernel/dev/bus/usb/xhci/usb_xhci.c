@@ -280,7 +280,7 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 						} 
 						else
 						{
-							printk("XHCI: port (%i) disconnection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
+							//printk("XHCI: port (%i) disconnection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
 							
 							// Получить указатель на устройство в порту
 							struct xhci_device* device = controller->ports[port_id].bound_device;
