@@ -1030,7 +1030,10 @@ int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out)
         if (result->type == METHOD)
         {
             // Если тип объекта, на который ссылаемся - метод, значит это вызов метода
-            rc = aml_execute_method(ctx, result, TRUE, &result);
+            // Выполняем из scope - сам метод. Вроде как надо из scope родителя
+            // Но ломаются некоторые методы
+            // Возможно это одно из нарушений стандарта, которое прижилось
+            rc = aml_execute_method(ctx, result, ns_node, TRUE, &result);
         }
         else
         {

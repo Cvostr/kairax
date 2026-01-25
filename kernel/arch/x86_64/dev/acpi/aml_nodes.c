@@ -97,7 +97,7 @@ int aml_store_to_node(struct aml_node *value, struct aml_node *dest)
     return 0;
 }
 
-int acpi_evaluate_value(struct aml_node* scope, struct aml_node* node, struct aml_node **val)
+int acpi_evaluate_value(struct ns_node* scope, struct aml_node* node, struct aml_node **val)
 {
     int res = 0;
     switch (node->type)
@@ -107,9 +107,8 @@ int acpi_evaluate_value(struct aml_node* scope, struct aml_node* node, struct am
             // Поскольку аргументов нет, то просто заполним только scope
             struct aml_ctx fake_ctx;
             memset(&fake_ctx, 0, sizeof(struct aml_ctx));
-            fake_ctx.scope = scope;
 
-            res = aml_execute_method(&fake_ctx, node, FALSE, val);
+            res = aml_execute_method(&fake_ctx, node, scope, FALSE, val);
             break;
         default:
             // делаем копию
@@ -249,7 +248,7 @@ int aml_write_to_field(struct aml_node *field, const uint8_t *data, size_t len)
     return rc;
 }
 
-int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, int read_args, struct aml_node **returned_node)
+int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, struct ns_node *scope, int read_args, struct aml_node **returned_node)
 {
     int rc;
     uint8_t opcode;
@@ -263,7 +262,7 @@ int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, int read_ar
     method_ctx.aml_data = method->method.code;
     method_ctx.aml_len = method->method.code_size;
     method_ctx.current_pos = 0;
-    method_ctx.scope = ctx->scope;
+    method_ctx.scope = scope;
 
     if (read_args == TRUE)
     {

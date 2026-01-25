@@ -17,10 +17,12 @@
 #define AML_OP_BUFFER       0x11
 #define AML_OP_PACKAGE      0x12
 #define AML_OP_METHOD       0x14
+#define AML_OP_EXTERNAL     0x15
 #define AML_OP_LOCAL0       0x60
 #define AML_OP_LOCAL7       0x67
 #define AML_OP_ARG0         0x68
 #define AML_OP_ARG6         0x6E
+#define AML_OP_STORE        0x70
 #define AML_OP_ADD          0x72
 #define AML_OP_SUBTRACT     0x74
 #define AML_OP_MULTIPLY     0x77
@@ -159,6 +161,6 @@ int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint
 int aml_write_to_op_region(struct aml_node *region, size_t offset, size_t len, uint8_t access_sz, uint8_t *in);
 int aml_write_integer_to_op_region(struct aml_node *region, size_t offset, uint8_t access_sz, uint64_t in);
 
-int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, int read_args, struct aml_node **returned_node);
+int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, struct ns_node *scope, int read_args, struct aml_node **returned_node);
 
 #endif
