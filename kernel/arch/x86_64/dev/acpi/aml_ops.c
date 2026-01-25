@@ -743,12 +743,13 @@ int aml_op_processor(struct aml_ctx *ctx)
 
     struct aml_name_string *processor_name = aml_read_name_string(&processor_ctx);
 
+    // Считаем основные заголовочные поля
     uint8_t processor_id = aml_ctx_get_byte(&processor_ctx);
-    // TODO: Остальные поля
-    // PblkAddress
-    // PblkLength
+    uint32_t p_blk_address = aml_ctx_get_dword(&processor_ctx);
+    uint8_t p_blk_len = aml_ctx_get_byte(&processor_ctx);
 
-    printk("PROCESSOR OP '%s'. ProcessorID %i\n", processor_name->segments->seg_s, processor_id);
+    printk("PROCESSOR OP '%s'. ProcessorID %i, PblkAddress 0x%p, PblkLen %i\n", 
+        processor_name->segments->seg_s, processor_id, p_blk_address, p_blk_len);
 
     // TODO: Может формировать это как устройство?
     // Так как Deprecated
@@ -759,6 +760,8 @@ int aml_op_processor(struct aml_ctx *ctx)
     {
         printk("ACPI: ProcessorOp: Error adding node to namespace (%i)\n", rc);
     }
+
+    // TODO: Считать вложенные Node
 
     KFREE_SAFE(processor_name)
     return 0;
@@ -982,6 +985,14 @@ struct aml_node *aml_op_dword(struct aml_ctx *ctx)
     node->int_value |= tmp << 16;
     tmp = aml_ctx_get_byte(ctx);
     node->int_value |= tmp << 24;
+    aml_acquire_node(node);
+    return node;
+}
+
+struct aml_node *aml_op_qword(struct aml_ctx *ctx)
+{
+    struct aml_node *node = aml_make_node(INTEGER);
+    node->int_value = aml_ctx_get_qword(ctx);
     aml_acquire_node(node);
     return node;
 }

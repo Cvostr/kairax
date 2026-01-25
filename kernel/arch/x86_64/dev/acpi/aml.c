@@ -24,6 +24,22 @@ uint16_t aml_ctx_get_word(struct aml_ctx *ctx)
     return res;
 }
 
+uint32_t aml_ctx_get_dword(struct aml_ctx *ctx)
+{
+    uint32_t res;
+    // так как все в Little Endian
+    aml_ctx_copy_bytes(ctx, &res, sizeof(uint32_t));
+    return res;
+}
+
+uint64_t aml_ctx_get_qword(struct aml_ctx *ctx)
+{
+    uint64_t res;
+    // так как все в Little Endian
+    aml_ctx_copy_bytes(ctx, &res, sizeof(uint64_t));
+    return res;
+}
+
 uint8_t aml_ctx_next_byte(struct aml_ctx *ctx)
 {
     return ctx->aml_data[++ctx->current_pos];
@@ -448,6 +464,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             break;
         case AML_OP_STRING_PREFIX:
             node = aml_op_string(ctx);
+            break;
+        case AML_OP_QWORD_PREFIX:
+            node = aml_op_qword(ctx);
             break;
         case AML_OP_ADD:
         case AML_OP_AND:

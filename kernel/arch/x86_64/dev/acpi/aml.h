@@ -12,6 +12,7 @@
 #define AML_OP_WORD_PREFIX  0x0B
 #define AML_OP_DWORD_PREFIX 0x0C
 #define AML_OP_STRING_PREFIX    0x0D
+#define AML_OP_QWORD_PREFIX 0x0E
 #define AML_OP_SCOPE        0x10
 #define AML_OP_BUFFER       0x11
 #define AML_OP_PACKAGE      0x12
@@ -90,6 +91,8 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out);
 size_t aml_ctx_get_remain_size(struct aml_ctx *ctx);
 uint8_t aml_ctx_get_byte(struct aml_ctx *ctx);
 uint16_t aml_ctx_get_word(struct aml_ctx *ctx);
+uint32_t aml_ctx_get_dword(struct aml_ctx *ctx);
+uint64_t aml_ctx_get_qword(struct aml_ctx *ctx);
 uint8_t aml_ctx_next_byte(struct aml_ctx *ctx);
 uint8_t aml_ctx_peek_byte(struct aml_ctx *ctx);
 int aml_ctx_copy_bytes(struct aml_ctx *ctx, uint8_t *out, size_t len);
@@ -126,6 +129,7 @@ int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size);
 
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
 struct aml_node *aml_op_dword(struct aml_ctx *ctx);
+struct aml_node *aml_op_qword(struct aml_ctx *ctx);
 struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
