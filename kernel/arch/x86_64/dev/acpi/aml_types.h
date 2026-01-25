@@ -45,6 +45,7 @@ enum aml_node_type {
     FIELD,
     REFERENCE,
     POWER_RESOURCE,
+    THERMAL_ZONE,
     BUFFER_FIELD,
     OP_REGION
 };

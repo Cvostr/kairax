@@ -57,6 +57,7 @@
 #define AML_EXT_OP_DEVICE       0x82
 #define AML_EXT_OP_PROCESSOR    0x83
 #define AML_EXT_OP_POWER_RES    0x84
+#define AML_EXT_OP_THERMAL_ZONE 0x85
 #define AML_EXT_OP_INDEX_FIELD  0x86
 
 #define AML_ROOT_CHAR           '\\'
@@ -117,6 +118,7 @@ int aml_op_method(struct aml_ctx *ctx);
 int aml_op_name(struct aml_ctx *ctx);
 int aml_op_device(struct aml_ctx *ctx);
 int aml_op_power_resource(struct aml_ctx *ctx);
+int aml_op_thermal_zone(struct aml_ctx *ctx);
 int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
 

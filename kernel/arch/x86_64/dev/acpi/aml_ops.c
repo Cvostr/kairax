@@ -622,6 +622,54 @@ exit:
     return rc;
 }
 
+int aml_op_thermal_zone(struct aml_ctx *ctx)
+{
+    int rc = 0;
+    size_t len;
+    uint8_t *buffer_buf = NULL;
+    struct aml_name_string *zone_name = NULL;
+    
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    struct aml_ctx zone_ctx;
+    zone_ctx.aml_data = buffer_buf;
+    zone_ctx.aml_len = len;
+    zone_ctx.current_pos = 0;
+
+    // Считаем имя устройства
+    zone_name = aml_read_name_string(&zone_ctx);
+
+    printk("THERMAL ZONE OP %s\n", zone_name->segments->seg_s);
+
+    struct aml_node *thermal_zone_node = aml_make_node(THERMAL_ZONE);
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, zone_name, thermal_zone_node);
+    if (rc != 0)
+    {
+        printk("ACPI: ThermalZoneOp: Error adding node to namespace (%i)\n", rc);
+        goto exit;
+    }
+
+    struct ns_node *zone_ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, zone_name);
+    zone_ctx.scope = zone_ns_node; 
+
+    // Парсим внтренности устройства
+    struct aml_node *node;
+    while (aml_ctx_get_remain_size(&zone_ctx) > 0)
+    {
+        rc = aml_parse_next_node(&zone_ctx, &node);
+        if (rc != 0)
+        {
+            printk("ACPI: ThermalZoneOp: Error parsing next node (%i)\n", rc);
+            goto exit;
+        }
+    }
+
+exit:
+    KFREE_SAFE(zone_name);
+    return rc;
+}
+
 int aml_op_power_resource(struct aml_ctx *ctx)
 {
     int rc = 0;

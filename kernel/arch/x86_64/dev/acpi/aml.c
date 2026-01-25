@@ -392,6 +392,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             case AML_EXT_OP_POWER_RES:
                 rc = aml_op_power_resource(ctx);
                 break;
+            case AML_EXT_OP_THERMAL_ZONE:
+                rc = aml_op_thermal_zone(ctx);
+                break;
             case AML_EXT_OP_INDEX_FIELD:
                 rc = aml_op_index_field(ctx);
                 break;
