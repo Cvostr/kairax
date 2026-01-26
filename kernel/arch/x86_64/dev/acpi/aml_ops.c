@@ -225,9 +225,10 @@ int aml_op_field(struct aml_ctx *ctx)
 {
     int res = 0;
     struct aml_name_string *opregion_name = NULL;
-    // Сделаем копию пакета
+    // Получим длину данных, указатель на начало и сместим курсор
     size_t len;
-    uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
+    uint8_t *nested = 0;
+    len = aml_ctx_addr_from_pkg(ctx, &nested);
     // Изза особенностей функций мы зависим от aml_ctx. 
     // Сделаем еще один фиктивный, ну а хули нет?
     struct aml_ctx field_ctx;
@@ -299,7 +300,6 @@ int aml_op_field(struct aml_ctx *ctx)
     }
 
 exit:
-    KFREE_SAFE(nested);
     KFREE_SAFE(opregion_name);
     return res;
 }
@@ -309,9 +309,10 @@ int aml_op_index_field(struct aml_ctx *ctx)
     int res;
     struct aml_name_string *index_name;
     struct aml_name_string *data_name;
-    // Сделаем копию пакета
+    // Получим длину данных, указатель на начало и сместим курсор
     size_t len;
-    uint8_t *nested = aml_ctx_dup_from_pkg(ctx, &len);
+    uint8_t *nested = 0;
+    len = aml_ctx_addr_from_pkg(ctx, &nested);
 
     struct aml_ctx field_ctx;
     field_ctx.aml_data = nested;
@@ -401,7 +402,6 @@ int aml_op_index_field(struct aml_ctx *ctx)
 exit:
     KFREE_SAFE(index_name);
     KFREE_SAFE(data_name);
-    kfree(nested);
     return res;
 }
 
@@ -815,6 +815,7 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 
     // Читаем предикат и действия, которые будут выполнены при ИСТИНА
     struct aml_ctx if_ctx;
+    memset(&if_ctx, 0, sizeof(struct aml_ctx));
     if_ctx.aml_data = buffer_buf;
     if_ctx.aml_len = len;
     if_ctx.current_pos = 0;
@@ -1065,6 +1066,46 @@ int aml_op_return(struct aml_ctx *ctx, struct aml_node **out)
 
     // Возвращаем специальный код ошибки
     return (0xFF00 | AML_OP_RETURN);
+}
+
+int aml_op_local(struct aml_ctx *ctx, uint8_t index, struct aml_node **out)
+{
+    if (index > AML_LOCALS_NUM)
+    {
+        return -EINVAL;
+    }
+
+    struct aml_node *local_node = ctx->locals[index];
+    if (local_node == NULL)
+    {
+        printk("ACPI: Local%i is not initialized\n", index);
+        return -ENOENT;
+    }
+
+    aml_acquire_node(local_node);
+    *out = local_node;
+
+    return 0;
+}
+
+int aml_op_arg(struct aml_ctx *ctx, uint8_t index, struct aml_node **out)
+{
+    if (index > AML_ARGS_NUM)
+    {
+        return -EINVAL;
+    }
+
+    struct aml_node *arg_node = ctx->args[index];
+    if (arg_node == NULL)
+    {
+        printk("ACPI: Arg%i is not initialized\n", index);
+        return -ENOENT;
+    }
+
+    aml_acquire_node(arg_node);
+    *out = arg_node;
+
+    return 0;
 }
 
 int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out)

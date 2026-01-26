@@ -144,6 +144,8 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
 int aml_op_return(struct aml_ctx *ctx, struct aml_node **out);
 int aml_op_cond_ref_of(struct aml_ctx *ctx, struct aml_node **out);
 int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);
+int aml_op_local(struct aml_ctx *ctx, uint8_t index, struct aml_node **out);
+int aml_op_arg(struct aml_ctx *ctx, uint8_t index, struct aml_node **out);
 
 int aml_store_to_node(struct aml_node *value, struct aml_node *dest);
 int aml_to_uint64(struct aml_node* node, uint64_t *out);
