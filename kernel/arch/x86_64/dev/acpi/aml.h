@@ -50,6 +50,7 @@
 #define AML_OP_IF           0xA0
 #define AML_OP_ELSE         0xA1
 #define AML_OP_RETURN       0xA4
+#define AML_OP_BREAK        0xA5
 #define AML_OP_ONES         0xFF
 
 #define AML_EXT_OP_PREFIX       0x5B
@@ -102,6 +103,7 @@ uint32_t aml_read_pkg_len(struct aml_ctx *ctx);
 uint8_t *aml_ctx_dup_from_pkg(struct aml_ctx *ctx, size_t *len);
 uint32_t aml_ctx_addr_from_pkg(struct aml_ctx *ctx, uint8_t **begin_addr);
 int aml_ctx_set_local(struct aml_ctx *ctx, uint8_t arg, struct aml_node* value);
+int aml_ctx_inherit(struct aml_ctx *ctx, struct aml_ctx *dest);
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx);
 
 int aml_read_supername_as_ref(struct aml_ctx *ctx, struct aml_node **ref);

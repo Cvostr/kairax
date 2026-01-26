@@ -162,6 +162,23 @@ int aml_ctx_set_local(struct aml_ctx *ctx, uint8_t arg, struct aml_node* value)
     return 0;
 }
 
+int aml_ctx_inherit(struct aml_ctx *ctx, struct aml_ctx *dest)
+{
+    dest->scope = ctx->scope;
+
+    // Копирование аргументов
+    for (int i = 0; i < AML_ARGS_NUM; i ++)
+    {
+        dest->args[i] = ctx->args[i];
+    }
+
+    // Копирование аргументов
+    for (int i = 0; i < AML_LOCALS_NUM; i ++)
+    {
+        dest->locals[i] = ctx->locals[i];
+    }
+}
+
 struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
 {
     int from_root = 0;
@@ -518,6 +535,8 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_RETURN:
             rc = aml_op_return(ctx, &node);
             break;
+        case AML_OP_BREAK:
+            return (0xFF00 | AML_OP_BREAK);
         case AML_OP_ONES:
             node = aml_make_node(INTEGER);
             node->int_value = UINT64_MAX;

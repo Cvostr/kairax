@@ -819,13 +819,7 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
     if_ctx.aml_data = buffer_buf;
     if_ctx.aml_len = len;
     if_ctx.current_pos = 0;
-    if_ctx.scope = ctx->scope;
-
-    // Копирование аргументов
-    for (int i = 0; i < AML_ARGS_NUM; i ++)
-    {
-        if_ctx.args[i] = ctx->args[i];
-    }
+    aml_ctx_inherit(ctx, &if_ctx);
 
     // Считываем предикат
     rc = aml_parse_next_node(&if_ctx, &predicate);
