@@ -34,7 +34,7 @@
 #define AML_OP_OR           0x7D
 #define AML_OP_NOR          0x7E
 #define AML_OP_XOR          0x7F
-#define AML_OP_NOOP         0x80
+#define AML_OP_NOT          0x80
 #define AML_OP_MOD          0x85
 #define AML_OP_CREATE_DWORD_FIELD   0x8A
 #define AML_OP_CREATE_WORD_FIELD    0x8B
@@ -46,6 +46,7 @@
 #define AML_OP_LGREATER     0x94
 #define AML_OP_LLESS        0x95
 #define AML_OP_TO_INTEGER   0x99
+#define AML_OP_CONTINUE     0x9F
 #define AML_OP_IF           0xA0
 #define AML_OP_ELSE         0xA1
 #define AML_OP_WHILE        0xA2
@@ -139,11 +140,13 @@ struct aml_node *aml_op_string(struct aml_ctx *ctx);
 struct aml_node *aml_op_package(struct aml_ctx *ctx);
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx);
 
+int aml_op_to_integer(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_ilogical(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
+int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node);
 int aml_op_return(struct aml_ctx *ctx, struct aml_node **out);
 int aml_op_cond_ref_of(struct aml_ctx *ctx, struct aml_node **out);
 int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);

@@ -508,9 +508,6 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_MOD:
             rc = aml_op_binary(ctx, opcode, &node);
             break;
-        case AML_OP_NOOP:
-            //printk("ACPI: NOOP\n");
-            break;
         case AML_OP_CREATE_BYTE_FIELD:
             rc = aml_op_create_buffer_field(ctx, 8);
             break;
@@ -532,8 +529,16 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_LLESS:
             rc = aml_op_compare(ctx, opcode, &node);
             break;
+        case AML_OP_TO_INTEGER:
+            rc = aml_op_to_integer(ctx, &node);
+            break;
+        case AML_OP_CONTINUE:
+            return (0xFF00 | AML_OP_CONTINUE);
         case AML_OP_IF:
             rc = aml_op_if(ctx, &node);
+            break;
+        case AML_OP_WHILE:
+            rc = aml_op_while(ctx, &node);
             break;
         case AML_OP_RETURN:
             rc = aml_op_return(ctx, &node);

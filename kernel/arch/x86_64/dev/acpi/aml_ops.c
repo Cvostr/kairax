@@ -846,7 +846,7 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
         goto exit;
     }
 
-    printk("IF OP len %i, rc %i. predicate value %i\n", len, rc, predicate->int_value);
+    printk("IF OP predicate value %i\n", predicate->int_value);
 
     struct aml_node *node;
 
@@ -888,6 +888,92 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 
 exit:
     KFREE_SAFE(predicate);
+    return rc;
+}
+
+int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node)
+{
+    int rc;
+    size_t len = 0;
+    uint8_t *buffer_buf = NULL;
+    struct aml_node *predicate = NULL;
+    uint64_t predicate_int;
+    struct aml_ctx while_ctx;
+    int interrupted = FALSE;
+    struct aml_node *node;
+
+    // Получим длину данных, указатель на начало и сместим курсор
+    len = aml_ctx_addr_from_pkg(ctx, &buffer_buf);
+
+    while (interrupted == FALSE)
+    {
+        // На каждом раунде сбрасываем контекст
+        memset(&while_ctx, 0, sizeof(struct aml_ctx));
+        while_ctx.aml_data = buffer_buf;
+        while_ctx.aml_len = len;
+        while_ctx.current_pos = 0;
+        aml_ctx_inherit(ctx, &while_ctx);
+
+        // Считываем предикат
+        rc = aml_parse_next_node(&while_ctx, &predicate);
+        if (rc != 0)
+        {
+            printk("ACPI: WhileOp: Error parsing predicate (%i)\n", rc);
+            goto end_loop;
+        }
+        if (predicate == NULL)
+        {
+            printk("ACPI: WhileOp: Predicate is NULL\n");
+            goto end_loop;
+        }
+        // Пробуем сконвертировать предикат в Integer
+        rc = aml_to_uint64(predicate, &predicate_int);
+        if (rc != 0)
+        {
+            printk("ACPI: WhileOp: Error converting Predicate to int (%i)\n", rc);
+            goto end_loop;
+        }
+
+        printk("WHILE OP Round predicate value %i\n", predicate_int);
+
+        if (predicate_int != AML_FALSE)
+        {
+            // Парсим все, что есть внутри
+            while (aml_ctx_get_remain_size(&while_ctx) > 0)
+            {
+                rc = aml_parse_next_node(&while_ctx, &node);
+                if (rc == (0xFF00 | AML_OP_RETURN))
+                {
+                    interrupted = TRUE;
+                    // Выход из метода
+                    *returned_node = node;
+                    // проброс rc дальше 
+                    break;
+                }
+                else if (rc == (0xFF00 | AML_OP_BREAK))
+                {
+                    // Перебиваем код возврата на успешный
+                    rc = 0;
+                    // Больше ничего не делаем
+                    interrupted = TRUE;
+                    break;
+                }
+                else if (rc == (0xFF00 | AML_OP_CONTINUE))
+                {
+                    break;
+                }
+                else if (rc != 0)
+                {
+                    printk("ACPI: WhileOp: Error parsing next node (%i)\n", rc);
+                    return rc;
+                }
+            }
+        }
+
+    end_loop:
+        aml_free_node(predicate);
+    }
+
     return rc;
 }
 
@@ -1251,6 +1337,53 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
 exit:
     aml_free_node(operand1);
     aml_free_node(operand2);
+    return res;
+}
+
+int aml_op_to_integer(struct aml_ctx *ctx, struct aml_node** node_out)
+{
+    int res;
+    struct aml_node *value_node = NULL;
+    uint64_t int_val;
+
+    res = aml_parse_next_node(ctx, &value_node);
+    if (res != 0)
+    {
+        printk("ACPI: ToInteger: Error reading operand node (%i)\n", res);
+        goto exit;
+    }
+
+    if (value_node->type == INTEGER)
+    {
+        // Счетчик увеличивать не будем, потому что не будем уменьшать
+        *node_out = value_node;
+        return 0;
+    }
+
+    res = aml_to_uint64(value_node, &int_val);
+    if (res != 0)
+    {
+        printk("ACPI: ToInteger: Error converting operand to int (%i)\n", res);
+        goto exit;
+    }
+
+    // Сформировать node с результатом
+    struct aml_node *result_node = aml_make_node(INTEGER);
+    result_node->int_value = int_val;
+    // Отдать наверх с увеличением счетчика
+    aml_acquire_node(result_node);
+    *node_out = result_node;
+
+    // Сохранить в target
+    res = aml_store_to_target(ctx, result_node);
+    if (res != 0)
+    {
+        printk("ACPI: ToInteger: Error writing to target %i!\n", res);
+        goto exit;
+    }
+
+exit:
+    aml_free_node(value_node);
     return res;
 }
 
