@@ -491,6 +491,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_ARG0 ... AML_OP_ARG6:
             rc = aml_op_arg(ctx, opcode - AML_OP_ARG0, &node);
             break;
+        case AML_OP_STORE:
+            rc = aml_op_store(ctx);
+            break;
         case AML_OP_ADD:
         case AML_OP_AND:
         case AML_OP_SUBTRACT:

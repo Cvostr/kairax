@@ -10,6 +10,9 @@
 #define AML_DEBUG_SCOPE
 #define AML_DEBUG_UNKNOWN_STRINGS
 //#define AML_DEBUG_OP_REGION
+//#define AML_DEBUG_METHOD
+//#define AML_DEBUG_DEVICE
+//#define AML_OP_BINARY_OP
 
 int aml_op_alias(struct aml_ctx *ctx)
 {
@@ -430,8 +433,10 @@ int aml_op_method(struct aml_ctx *ctx)
     uint8_t serialize = (method_flags > 3) & 1;
     uint8_t sync_level = (method_flags > 4) & 0xF;
 
+#ifdef AML_DEBUG_METHOD
     printk("METHOD OP pkg_len %i name '%s' args %i, serialized %i, sync level %i\n", 
         len, method_name->segments->seg_s, arg_count, serialize, sync_level);
+#endif
 
     // Формируем node
     struct aml_node *node = aml_make_node(METHOD);
@@ -592,7 +597,9 @@ int aml_op_device(struct aml_ctx *ctx)
     // Считаем имя устройства
     device_name = aml_read_name_string(&dev_ctx);
 
+#ifdef AML_DEBUG_DEVICE
     printk("DEVICE OP %s\n", device_name->segments->seg_s);
+#endif
 
     struct aml_node *device_node = aml_make_node(DEVICE);
     rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, device_name, device_node);
@@ -1220,8 +1227,10 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
         goto exit;
     }
 
+#ifdef AML_OP_BINARY_OP
     printk("ACPI: BinaryOp: Op1 (type=%i, value=%i) Op2 (type=%i, value=%i). Result %i\n", 
         operand1->type, op1_value, operand2->type, op2_value, result);
+#endif
 
     // Сформировать node с результатом
     struct aml_node *result_node = aml_make_node(INTEGER);
@@ -1474,4 +1483,31 @@ int aml_op_cond_ref_of(struct aml_ctx *ctx, struct aml_node **out)
 exit:
     aml_free_node(ref_node);
     return 0;
+}
+
+int aml_op_store(struct aml_ctx *ctx)
+{
+    int res;
+    struct aml_node *value_node;
+
+    res = aml_parse_next_node(ctx, &value_node);
+    if (res != 0)
+    {
+        printk("ACPI: StoreOp: Error reading value node (%i)\n", res);
+        goto exit;
+    }
+
+    // Сохранить в target
+    res = aml_store_to_target(ctx, value_node);
+    if (res != 0)
+    {
+        printk("ACPI: StoreOp: Error writing to target %i!\n", res);
+        goto exit;
+    }
+
+    printk("AML Store. Value node has %i refs\n", value_node->refs.counter);
+
+exit:
+    aml_free_node(value_node); // ???
+    return res;
 }

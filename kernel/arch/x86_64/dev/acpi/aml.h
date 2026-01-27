@@ -45,10 +45,10 @@
 #define AML_OP_LEQUAL       0x93
 #define AML_OP_LGREATER     0x94
 #define AML_OP_LLESS        0x95
-#define AML_OP_LLESS_EQUAL  0x94
-#define AML_OP_LGREATER_EQUAL 0x95
+#define AML_OP_TO_INTEGER   0x99
 #define AML_OP_IF           0xA0
 #define AML_OP_ELSE         0xA1
+#define AML_OP_WHILE        0xA2
 #define AML_OP_RETURN       0xA4
 #define AML_OP_BREAK        0xA5
 #define AML_OP_ONES         0xFF
@@ -116,6 +116,7 @@ void aml_acquire_node(struct aml_node *node);
 
 // OP handlers
 int aml_op_alias(struct aml_ctx *ctx);
+int aml_op_store(struct aml_ctx *ctx);
 int aml_op_scope(struct aml_ctx *ctx);
 int aml_op_region_op(struct aml_ctx *ctx);
 int aml_parse_field_list(struct aml_ctx *ctx);
@@ -150,7 +151,9 @@ int aml_op_local(struct aml_ctx *ctx, uint8_t index, struct aml_node **out);
 int aml_op_arg(struct aml_ctx *ctx, uint8_t index, struct aml_node **out);
 
 int aml_store_to_node(struct aml_node *value, struct aml_node *dest);
+// Выдает числовое значение Node, при необходимости, конвертируя значение другого типа в Integer
 int aml_to_uint64(struct aml_node* node, uint64_t *out);
+// Выдает числовое значение Node, но без конвертации
 int aml_node_as_integer(struct aml_node *node, uint64_t *result);
 
 // len в байтах

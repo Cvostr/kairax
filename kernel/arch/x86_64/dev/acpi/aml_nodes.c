@@ -56,9 +56,12 @@ int aml_to_uint64(struct aml_node* node, uint64_t *out)
     int res = 0;
     switch (node->type)
     {
-    case PACKAGE:
-        printk("ACPI: Should PACKAGE be convertible to Integer?\n");
-        return -EINVAL;
+    case BUFFER:
+        *out = 0;
+        // Little Endian
+        // в ACPI.SYS обрезание до uint32_t
+        memcpy(out, node->buffer.buffer, MIN(sizeof(uint64_t), node->buffer.len));
+        return 0;
     case STRING:
         *out = atol(node->string.str);
         return 0;
