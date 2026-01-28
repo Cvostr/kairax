@@ -34,7 +34,7 @@ int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_po
 	}
 
 	size_t td_pages;
-	void *td_pool_phys = pmm_alloc(QH_buffersz, &td_pages);
+	void *td_pool_phys = pmm_alloc(TD_buffersz, &td_pages);
 	// Адрес должен быть выделен и быть не больше 4Гб
 	if (td_pool_phys == NULL || td_pool_phys > UINT32_MAX)
 	{
@@ -67,9 +67,8 @@ struct ehci_qh *ehci_alloc_qh(struct ehci_controller *ehc)
 	for (size_t i = 0; i < ehc->qh_pool_size; i ++)
 	{
 		current = ehc->qh_pool + QH_SIZE * i;
-		if (current->acquired == FALSE)
+		if (__sync_bool_compare_and_swap(&current->acquired, FALSE, TRUE) != 0)
 		{
-			current->acquired = TRUE;
 			result = current;
 			break;
 		}
@@ -93,9 +92,8 @@ struct ehci_td *ehci_alloc_td(struct ehci_controller *ehc)
 	for (size_t i = 0; i < ehc->td_pool_size; i ++)
 	{
 		current = ehc->td_pool + TD_SIZE * i;
-		if (current->acquired == FALSE)
+		if (__sync_bool_compare_and_swap(&current->acquired, FALSE, TRUE) != 0)
 		{
-			current->acquired = TRUE;
 			result = current;
 			break;
 		}
