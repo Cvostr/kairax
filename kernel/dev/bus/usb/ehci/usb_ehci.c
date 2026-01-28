@@ -621,31 +621,21 @@ int ehci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoin
 		qh = endpoint->transfer_ring;
 		qh->msg = msg;
 
-		td_data = ehci_alloc_td(hci);
-		if (td_data == NULL)
-		{
-			rc = -ENOMEM;
-			goto exit;
-		}
-
-		td_data->token.pid_code = EHCI_PID_CODE_IN;
-		td_data->token.err_count = 3;
-		td_data->token.status.active = 1;
+		// Получить и настроить TD
+		td_data = qh->first_td;
 		td_data->token.total_len = msg->length;
-		td_data->token.data_toggle = 0;	// TODO: ???
-		td_data->token.ioc = 1;
-		TD_LINK_TERMINATE(td_data)
+		td_data->token.status.active = 1;
 		ehci_td_set_databuffers(td_data, msg->data, hci->mode64);
 
 		// Отправить на выполнение
 		ehci_qh_link_td(qh, td_data);
+		rc = 0;
 	}
 	else
 	{
 		return -ENOTSUP;
 	}
 
-exit:
 	return rc;
 }
 
@@ -664,9 +654,18 @@ int ehci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoi
 		struct ehci_qh *qh = NULL;
 		struct ehci_td *td_data = NULL;
 
+		// Выделить QH
 		qh = ehci_alloc_qh(hci);
 		if (qh == NULL)
 			return -ENOMEM;
+
+		// Выделить TD
+		td_data = ehci_alloc_td(hci);
+		if (td_data == NULL)
+		{
+			ehci_free_td(hci, td_data);
+			return -ENOMEM;
+		}
 
 		// Interrupt Endpoint
 		qh->ep_ch.endpt = ep_num;
@@ -676,6 +675,18 @@ int ehci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoi
 		qh->ep_ch.dtc = 1;
 		qh->ep_cap.int_schedule_mask = 1;
 		QH_LINK_TERMINATE(qh);
+
+		// Создать TD
+		td_data->token.pid_code = EHCI_PID_CODE_IN;
+		td_data->token.err_count = 3;
+		td_data->token.status.active = 0;
+		td_data->token.total_len = 0;
+		td_data->token.data_toggle = 0;	// TODO: ???
+		td_data->token.ioc = 1;
+		TD_LINK_TERMINATE(td_data)
+		
+		// Сохранить TD в QH
+		qh->first_td = td_data;
 
 		for (int i = 0; i < FRAME_LIST_ELEMENT_NUM - 1; i += (1 << (interval - 1))) 
 		{
@@ -698,6 +709,7 @@ int ehci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoi
 			flp->lp = new_phys >> 5;
 		}
 
+		// Сохранить QH в структуре usb_endpoint
 		endpoint->transfer_ring = qh;
 	}
 	

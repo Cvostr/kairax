@@ -239,6 +239,7 @@ struct ehci_qh
     struct ehci_qh *prev_ptr;
     struct ehci_qh *next_ptr;
     struct usb_msg *msg;
+    struct ehci_td *first_td;
     int acquired;
 } PACKED;
 

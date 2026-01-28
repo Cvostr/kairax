@@ -8,7 +8,7 @@ qemu-system-x86_64 -m 1G -d int \
 			-device intel-hda -device hda-duplex \
 			-netdev user,id=n0,hostfwd=tcp::5555-:23,hostfwd=udp::5590-:22 -device rtl8139,netdev=n0,mac=02:12:fe:f0:0d:01 \
 			-object filter-dump,id=n0,netdev=n0,file=dump.pcap \
-			-device qemu-xhci,id=xhci \
-			-device usb-mouse,id=usbms,bus=xhci.0 \
+			-device usb-ehci,id=ehci \
+			-device usb-mouse,id=usbms,bus=ehci.0 \
 			-no-reboot \
 			-no-shutdown      
