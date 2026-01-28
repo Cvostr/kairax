@@ -14,6 +14,8 @@
 #include "proc/thread.h"
 #include "kairax/kstdlib.h"
 
+#define FRAME_LIST_ELEMENT_NUM (PAGE_SIZE / sizeof(struct ehci_flp))
+
 int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_pool)
 {
 	size_t QH_SIZE = align(sizeof(struct ehci_qh), 32);
@@ -22,7 +24,7 @@ int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_po
 	size_t QH_buffersz = QH_SIZE * qh_pool;
 	size_t TD_buffersz = TD_SIZE * td_pool;
 
-	//printk("EHCI: QH size %i TD size %i\n", QH_SIZE, TD_SIZE);
+	//printk("EHCI: QH size %i TD size %i, QH bufsize %i\n", QH_SIZE, TD_SIZE, QH_buffersz);
 
 	size_t qh_pages;
 	void *qh_pool_phys = pmm_alloc(QH_buffersz, &qh_pages);
@@ -607,10 +609,102 @@ exit:
 
 int ehci_drv_send_async_msg(struct usb_device* dev, struct usb_endpoint* endpoint, struct usb_msg *msg)
 {
-	return -ENODEV;
+	int rc;
+	struct ehci_device *hci_device = dev->controller_device_data;
+	struct ehci_controller *hci = hci_device->hci;
+	int ep_type = endpoint->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK;
+	struct ehci_qh *qh = NULL;
+	struct ehci_td *td_data = NULL;
+
+	if (ep_type == USB_ENDPOINT_ATTR_TT_INTERRUPT)
+	{
+		qh = endpoint->transfer_ring;
+		qh->msg = msg;
+
+		td_data = ehci_alloc_td(hci);
+		if (td_data == NULL)
+		{
+			rc = -ENOMEM;
+			goto exit;
+		}
+
+		td_data->token.pid_code = EHCI_PID_CODE_IN;
+		td_data->token.err_count = 3;
+		td_data->token.status.active = 1;
+		td_data->token.total_len = msg->length;
+		td_data->token.data_toggle = 0;	// TODO: ???
+		td_data->token.ioc = 1;
+		TD_LINK_TERMINATE(td_data)
+		ehci_td_set_databuffers(td_data, msg->data, hci->mode64);
+
+		// Отправить на выполнение
+		ehci_qh_link_td(qh, td_data);
+	}
+	else
+	{
+		return -ENOTSUP;
+	}
+
+exit:
+	return rc;
 }
 
 int ehci_drv_device_configure_endpoint(struct usb_device* dev, struct usb_endpoint* endpoint)
+{
+	struct ehci_device *hci_device = dev->controller_device_data;
+	struct ehci_controller *hci = hci_device->hci;
+
+	int ep_type = endpoint->descriptor.bmAttributes & USB_ENDPOINT_ATTR_TT_MASK;
+	int ep_num = endpoint->descriptor.bEndpointAddress & 0xF;
+
+	if (ep_type == USB_ENDPOINT_ATTR_TT_INTERRUPT)
+	{
+		int interval = endpoint->descriptor.bInterval;
+
+		struct ehci_qh *qh = NULL;
+		struct ehci_td *td_data = NULL;
+
+		qh = ehci_alloc_qh(hci);
+		if (qh == NULL)
+			return -ENOMEM;
+
+		// Interrupt Endpoint
+		qh->ep_ch.endpt = ep_num;
+		qh->ep_ch.device_address = hci_device->address;
+		qh->ep_ch.eps = hci_device->speed;
+		qh->ep_ch.max_pkt_length = endpoint->descriptor.wMaxPacketSize;
+		qh->ep_ch.dtc = 1;
+		qh->ep_cap.int_schedule_mask = 1;
+		QH_LINK_TERMINATE(qh);
+
+		for (int i = 0; i < FRAME_LIST_ELEMENT_NUM - 1; i += (1 << (interval - 1))) 
+		{
+			struct ehci_flp *flp = &hci->frame_list[i];
+			// Получим адрес старой головы списка
+			uint32_t old_phys = flp->lp;
+			old_phys <<= 5;
+			struct ehci_qh *old_head = vmm_get_virtual_address(old_phys);
+
+			// Делаем в новом QH ссылку на старую голову
+			qh->link_ptr.type = EHCI_TYPE_QH;
+			qh->link_ptr.lp = flp->lp;
+			qh->link_ptr.terminate = 0;
+
+			// Сделаем ссылки
+			qh->next_ptr = old_head;
+			
+			// Установим новую QH как голову списка
+			uintptr_t new_phys = (uintptr_t) vmm_get_physical_address(qh);
+			flp->lp = new_phys >> 5;
+		}
+
+		endpoint->transfer_ring = qh;
+	}
+	
+	return 0;
+}
+
+int ehci_send_async_control_request(struct usb_device*, struct usb_msg*)
 {
 	return 0;
 }
@@ -692,13 +786,11 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
 	struct usb_device* usb_device = new_usb_device(&device_descriptor, ehci_dev);
 	usb_device->state = USB_STATE_ATTACHED;
-	//usb_device->slot_id = slot;
 	usb_device->send_request = ehci_drv_device_send_usb_request;
 	usb_device->bulk_msg = ehci_drv_device_bulk_msg;
 	usb_device->async_msg = ehci_drv_send_async_msg;
 	usb_device->configure_endpoint = ehci_drv_device_configure_endpoint;
-	/*
-	usb_device->send_async_request = xhci_drv_device_send_usb_async_request;*/
+	usb_device->send_async_request = ehci_send_async_control_request;
 
 	// Смотрим, что в iManufacturer, iProduct, iSerialNumber
 	// Если все три значения равны 0, то считаем, что устройство вообще не поддерживает String Descriptors
@@ -844,6 +936,53 @@ void ehci_check_ports(struct ehci_controller* hci)
 	}
 }
 
+void ehci_handle_event_irq(struct ehci_controller* hci)
+{
+	//printk("EHCI: USBINT\n");
+	int completed;
+	int result_code;
+	for (int i = 0; i < FRAME_LIST_ELEMENT_NUM; i ++)
+	{
+		struct ehci_flp *flp = &hci->frame_list[i];
+		// Получим адрес старой головы списка
+		uint32_t head_phys = flp->lp;
+		head_phys <<= 5;
+
+		struct ehci_qh *head = vmm_get_virtual_address(head_phys);
+		while (head->link_ptr.terminate == 0)
+		{
+			//printk("Head on %i = %p\n", i, head);
+
+			if (head->token.status.halted == 1)
+			{
+				result_code = ehci_qh_to_error_code(head, -EIO);
+			}
+			else
+			{			
+				completed = head->next.terminate == 1;
+				if (head->token.status.active == 0 && completed)
+				{
+					result_code = ehci_qh_to_error_code(head, 0);
+				}
+			}
+
+			struct usb_msg *umsg = head->msg;
+			if (umsg != NULL)
+			{
+				// Записать код ответа
+				umsg->status = result_code;
+				head->msg = NULL;
+				// выполнить callback, если он есть
+				if (umsg->callback)
+					umsg->callback(umsg);
+			}
+
+			// Перейдем к следующей голове
+			head = head->next_ptr;
+		}
+	}
+}
+
 void ehci_irq_handler(void* regs, struct ehci_controller* dev) 
 {
 	uint32_t usbsts = ehci_op_read32(dev, EHCI_REG_OP_USBSTS);
@@ -851,7 +990,7 @@ void ehci_irq_handler(void* regs, struct ehci_controller* dev)
 
 	if ((usbsts & EHCI_USBSTS_USBINT) == EHCI_USBSTS_USBINT)
 	{
-		//printk("EHCI: USBINT\n");
+		ehci_handle_event_irq(dev);
 	}
 
 	if ((usbsts & EHCI_USBSTS_PORT_CHANGE_DETECT) == EHCI_USBSTS_PORT_CHANGE_DETECT)
@@ -939,7 +1078,7 @@ int ehci_device_probe(struct device *dev)
 	uint8_t N_CC = (hcsparams >> 12) & 0b1111;
 	printk("EHCI: HCSPARAMS 0x%x. NPORTS %i, PPC %i, N_CC %i\n", hcsparams, cntrl->nports, ppc, N_CC);
 
-	rc = ehci_allocate_pool(cntrl, 256, 256);
+	rc = ehci_allocate_pool(cntrl, 128, 256);
 	if (rc != 0)
 	{
 		printk("EHCI: Failed to allocate QH and TD pool\n");
@@ -947,7 +1086,6 @@ int ehci_device_probe(struct device *dev)
 	}
 
 	// Выделить память под frame list
-	size_t frame_list_sz = PAGE_SIZE / sizeof(struct ehci_flp);
 	cntrl->frame_list_phys = pmm_alloc(PAGE_SIZE, NULL);
 	if (cntrl->frame_list_phys == NULL || cntrl->frame_list_phys > UINT32_MAX)
 	{
@@ -965,13 +1103,14 @@ int ehci_device_probe(struct device *dev)
 	uintptr_t periodic_qh_phys = vmm_get_physical_address(periodic_qh);
 
 	// Заполняем periodic frame list выделенной QH
-	for (i = 0; i < frame_list_sz; i ++) 
+	for (i = 0; i < FRAME_LIST_ELEMENT_NUM; i ++) 
 	{
         cntrl->frame_list[i].type = EHCI_TYPE_QH;
         cntrl->frame_list[i].lp = periodic_qh_phys >> 5;
         cntrl->frame_list[i].terminate = 0;
     }
-	cntrl->frame_list[frame_list_sz - 1].terminate = 1;
+	// Терминируем последний элемент
+	cntrl->frame_list[FRAME_LIST_ELEMENT_NUM - 1].terminate = 1;
 
 	// Выделяем QH для async
 	struct ehci_qh *async_qh = ehci_alloc_qh(cntrl);

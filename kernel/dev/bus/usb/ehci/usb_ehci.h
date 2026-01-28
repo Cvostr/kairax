@@ -162,7 +162,6 @@ struct ehci_qh
         volatile uint32_t raw;
     } PACKED link_ptr;
 
-
     // Endpoint Characteristics
     struct 
     {
@@ -239,8 +238,8 @@ struct ehci_qh
     // Внутреннее состояние для драйвера
     struct ehci_qh *prev_ptr;
     struct ehci_qh *next_ptr;
+    struct usb_msg *msg;
     int acquired;
-
 } PACKED;
 
 struct ehci_controller 
