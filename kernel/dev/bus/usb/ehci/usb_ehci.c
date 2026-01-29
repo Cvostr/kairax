@@ -798,6 +798,7 @@ int ehci_init_device(struct ehci_controller* hci, int portnum)
 	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
 	struct usb_device* usb_device = new_usb_device(&device_descriptor, ehci_dev);
 	usb_device->state = USB_STATE_ATTACHED;
+	usb_device->speed = USB_SPEED_HIGH;
 	usb_device->send_request = ehci_drv_device_send_usb_request;
 	usb_device->bulk_msg = ehci_drv_device_bulk_msg;
 	usb_device->async_msg = ehci_drv_send_async_msg;

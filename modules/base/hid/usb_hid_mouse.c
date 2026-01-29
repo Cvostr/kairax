@@ -197,6 +197,9 @@ int usb_hid_mouse_device_probe(struct device *dev)
     mouse->report_buffer_phys = (uintptr_t) pmm_alloc(max_packet_sz, &mouse->report_buffer_pages);
     mouse->report_buffer = map_io_region(mouse->report_buffer_phys, mouse->report_buffer_pages * PAGE_SIZE);
 
+    // Сохранить адрес объекта мыши в устройстве
+    dev->dev_data = mouse;
+
     struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
     msg->data = mouse->report_buffer_phys;
     msg->length = max_packet_sz;

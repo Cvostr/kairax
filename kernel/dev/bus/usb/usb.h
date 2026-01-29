@@ -107,6 +107,15 @@ enum usb_device_state {
     USB_STATE_DISCONNECTED
 };
 
+enum usb_device_speed {
+    USB_SPEED_NONE,
+    USB_SPEED_LOW,          // USB 1.0 Low Speed (1.5 Mbps).
+    USB_SPEED_FULL,         // USB 1.1 Full Speed (12 Mbps).
+    USB_SPEED_HIGH,         // USB 2.0 High Speed (480 Mbps).
+    USB_SPEED_SUPER,        // USB 3.0/3.1 SuperSpeed (5 Gbps).
+    USB_SPEED_SUPER_PLUS    // USB 3.1+ SuperSpeed Plus (10 Gbps). 
+};
+
 // Описывает USB устройство в системе
 struct usb_device {
     struct usb_device_descriptor    descriptor;
@@ -114,6 +123,7 @@ struct usb_device {
     void*                           controller_device_data;
 
     enum usb_device_state           state;
+    enum usb_device_speed           speed;
 
     char* product;
 	char* manufacturer;

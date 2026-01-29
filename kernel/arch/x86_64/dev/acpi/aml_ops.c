@@ -919,11 +919,13 @@ int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node)
         if (rc != 0)
         {
             printk("ACPI: WhileOp: Error parsing predicate (%i)\n", rc);
+            interrupted = TRUE;
             goto end_loop;
         }
         if (predicate == NULL)
         {
             printk("ACPI: WhileOp: Predicate is NULL\n");
+            interrupted = TRUE;
             goto end_loop;
         }
         // Пробуем сконвертировать предикат в Integer
@@ -931,6 +933,7 @@ int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node)
         if (rc != 0)
         {
             printk("ACPI: WhileOp: Error converting Predicate to int (%i)\n", rc);
+            interrupted = TRUE;
             goto end_loop;
         }
 

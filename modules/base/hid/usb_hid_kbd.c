@@ -360,6 +360,9 @@ int usb_hid_kbd_device_probe(struct device *dev)
     kbd->report_buffer_phys = (uintptr_t) pmm_alloc(max_packet_sz, &kbd->report_buffer_pages);
     kbd->report_buffer = (uint8_t*) map_io_region(kbd->report_buffer_phys, kbd->report_buffer_pages * PAGE_SIZE);
 
+    // Сохранить адрес объекта мыши в устройстве
+    dev->dev_data = kbd;
+
     // создаем объект usb_msg для получения отчетов в прерываниях
     struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
     msg->data = (void*) kbd->report_buffer_phys;

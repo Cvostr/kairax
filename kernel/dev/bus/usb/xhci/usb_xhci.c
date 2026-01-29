@@ -533,6 +533,35 @@ uint16_t xhci_get_device_max_initial_packet_size(uint8_t port_speed)
     return initial_max_packet_size;
 }
 
+enum usb_device_speed xhci_map_device_speed(uint8_t port_speed)
+{
+    enum usb_device_speed speed = USB_SPEED_NONE;
+
+    switch (port_speed) 
+	{
+		case XHCI_USB_SPEED_LOW_SPEED: 
+			speed = USB_SPEED_LOW;
+			break;
+		case XHCI_USB_SPEED_FULL_SPEED:
+			speed = USB_SPEED_FULL;
+			break;
+		case XHCI_USB_SPEED_HIGH_SPEED: 
+			speed = USB_SPEED_HIGH;
+			break;
+		case XHCI_USB_SPEED_SUPER_SPEED:
+			speed = USB_SPEED_SUPER;
+			break;
+		case XHCI_USB_SPEED_SUPER_SPEED_PLUS:
+			speed = XHCI_USB_SPEED_SUPER_SPEED_PLUS;
+			break;
+		default:
+			speed = USB_SPEED_NONE;
+			break;
+    }
+
+    return speed;
+}
+
 int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port_id)
 {
 	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
@@ -635,6 +664,7 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	// Создаем общий объект устройства в ядре, не зависящий от типа контроллера 
 	struct usb_device* usb_device = new_usb_device(&device_descriptor, device);
 	usb_device->state = USB_STATE_ATTACHED;
+	usb_device->speed = xhci_map_device_speed(port_speed);
 	usb_device->slot_id = slot;
 	usb_device->send_request = xhci_drv_device_send_usb_request;
 	usb_device->send_async_request = xhci_drv_device_send_usb_async_request;
