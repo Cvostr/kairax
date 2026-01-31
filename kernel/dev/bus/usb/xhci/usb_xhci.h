@@ -32,6 +32,21 @@
 #define XHCI_PORTSC_PRC			(1 << 21)	// Port Reset Change
 #define XHCI_PORTSC_WPR			(1U << 31)	// Port Warm Reset on USB3
 
+// Port Link Status
+#define XHCI_PLS_U0			0
+#define XHCI_PLS_U1			1
+#define XHCI_PLS_U2			2
+#define XHCI_PLS_U3			3
+#define XHCI_PLS_DISABLED	4
+#define XHCI_PLS_RXDETECT	5
+#define XHCI_PLS_INACTIVE	6
+#define XHCI_PLS_POLLING	7
+#define XHCI_PLS_RECOVERY	8
+#define XHCI_PLS_HOT_RESET	9
+#define XHCI_PLS_COMPLIANCE_MODE	10
+#define XHCI_PLS_TEST_MODE	11
+#define XHCI_PLS_RESUME		15
+
 #define XHCI_CR_CYCLE_STATE (1)
 #define XHCI_CR_CMD_STOP 	(1 << 1)
 #define XHCI_CR_ABORT		(1 << 2)

@@ -212,6 +212,7 @@ int xhci_device_probe(struct device *dev)
 	struct process* xhci_process = create_new_process(NULL);
 	process_set_name(xhci_process, "xhci");
     struct thread* xhci_event_thr = create_kthread(xhci_process, xhci_controller_event_thread_routine, cntrl);
+	thread_set_name(xhci_event_thr, "xhci_event_thread");
     scheduler_add_thread(xhci_event_thr);
 
     return 0;
@@ -1068,19 +1069,7 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 		{
 			//printk("XHCI: legacy support capability\n");
 
-			struct xhci_legacy_support_cap* legacy_cap = (struct xhci_legacy_support_cap*) ext_cap_ptr;
-			
-			uint32_t mask = (XHCI_LEGACY_SMI_ENABLE | 
-							XHCI_LEGACY_SMI_ON_OS_OWNERSHIP | 
-							XHCI_LEGACY_SMI_ON_HOST_ERROR |
-							XHCI_LEGACY_SMI_ON_PCI_COMMAND |
-				 			XHCI_LEGACY_SMI_ON_BAR);
-
-			// Выключить все SMI
-			/*uint32_t legctlsts_temp = legacy_cap->usblegctlsts;
-			legctlsts_temp &= ~(mask);
-			legacy_cap->usblegctlsts = legctlsts_temp;
-			hpet_sleep(10);*/
+			volatile struct xhci_legacy_support_cap* legacy_cap = (struct xhci_legacy_support_cap*) ext_cap_ptr;
 
 			// Если BIOS владеет устройством, значит надо его отобрать у него
 			if (legacy_cap->bios_owned_semaphore) 
@@ -1104,6 +1093,18 @@ int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 				legacy_cap->bios_owned_semaphore = FALSE;
 				hpet_sleep(10);
 			}
+
+			uint32_t mask = (XHCI_LEGACY_SMI_ENABLE | 
+							XHCI_LEGACY_SMI_ON_OS_OWNERSHIP | 
+							XHCI_LEGACY_SMI_ON_HOST_ERROR |
+							XHCI_LEGACY_SMI_ON_PCI_COMMAND |
+				 			XHCI_LEGACY_SMI_ON_BAR);
+
+			// Выключить все SMI, чтобы BIOS точно не перехватывал прерывания 
+			uint32_t legctlsts_temp = legacy_cap->usblegctlsts;
+			legctlsts_temp &= ~(mask);
+			legacy_cap->usblegctlsts = legctlsts_temp;
+			hpet_sleep(10);
 		}
 
 		if (cap->next_capability > 0)
