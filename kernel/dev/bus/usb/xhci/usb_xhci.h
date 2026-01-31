@@ -26,11 +26,14 @@
 #define XHCI_PORTSC_OCA			(1 << 3) 	// Overcurrent Active
 #define XHCI_PORTSC_PORTRESET	(1 << 4)
 #define XHCI_PORTSC_PORTPOWER	(1 << 9)
+#define XHCI_PORTSC_LWS			(1 << 16)	// Port Link State Write Strobe
 #define XHCI_PORTSC_CSC			(1 << 17)	// Connect Status Change
 #define XHCI_PORTSC_PEC			(1 << 18)	// Port Enable Disable Change
 #define XHCI_PORTSC_WRC			(1 << 19)	// Warm Port Reset Change
 #define XHCI_PORTSC_PRC			(1 << 21)	// Port Reset Change
 #define XHCI_PORTSC_WPR			(1U << 31)	// Port Warm Reset on USB3
+#define XHCI_PORTSC_PLS_SHIFT	5
+#define XHCI_PORTSC_PLS_MASK	0xF
 
 // Port Link Status
 #define XHCI_PLS_U0			0

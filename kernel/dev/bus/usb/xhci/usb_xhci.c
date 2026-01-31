@@ -358,6 +358,28 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	// Очистить флаги статуса
 	port_regs->status |= (XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC);
 
+	// Получить текущий PLS
+	uint16_t port_link_state = (port_regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
+	if (is_usb3)
+	{
+		printk("XHCI: Port %i link state %i\n", port_id, port_link_state);
+		int need_to_wpr = (port_link_state == XHCI_PLS_INACTIVE) || (port_link_state == XHCI_PLS_COMPLIANCE_MODE) || (port_link_state == XHCI_PLS_HOT_RESET);
+		if (port_link_state == XHCI_PLS_DISABLED)
+		{
+			// Port Link выключен, надо перевести в состояние RxDetect
+			// Установим PLS = 5 и LWS
+			port_regs->status = (port_regs->status & ~(XHCI_PORTSC_PLS_MASK << XHCI_PORTSC_PLS_SHIFT))
+				| (XHCI_PLS_RXDETECT << XHCI_PORTSC_PLS_SHIFT)
+				| XHCI_PORTSC_LWS;
+			return TRUE;
+		}
+		else if (need_to_wpr == FALSE)
+		{
+			// Для USB3 нет необходимости в WPR если нет ошибок в PLS
+			return TRUE;
+		}
+	}
+
 	// Для USB 3.0 можно использовать новомодный Warm Port Reset
 	uint32_t status_reset_flag = is_usb3 ? XHCI_PORTSC_WPR : XHCI_PORTSC_PORTRESET;
 	uint32_t status_reset_expect_flag = is_usb3 ? XHCI_PORTSC_WRC : XHCI_PORTSC_PRC;
