@@ -36,6 +36,7 @@ static const char* xhci_speed_string[7] = {
 //#define XHCI_LOG_CMD_COMPLETION
 //#define XHCI_LOG_PORT_RESET_SUCCESS
 //#define XHCI_LOG_PORT_STATUS_CHANGE
+//#define XHCI_LOG_PORT_DISCONNECT
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -281,8 +282,9 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 						} 
 						else
 						{
-							//printk("XHCI: port (%i) disconnection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
-							
+#ifdef XHCI_LOG_PORT_DISCONNECT
+							printk("XHCI: port (%i) disconnection: %i\n", port_id, port_regs->status & XHCI_PORTSC_CCS);
+#endif
 							// Получить указатель на устройство в порту
 							struct xhci_device* device = controller->ports[port_id].bound_device;
 							
@@ -308,7 +310,8 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 								xhci_free_device(device);
 							}
 
-							rc = xhci_controller_reset_port(controller, port_id);
+							// Очистить флаги статуса, чтобы приходили события об изменении статуса
+							port_regs->status |= (XHCI_PORTSC_CSC | XHCI_PORTSC_PRC | XHCI_PORTSC_PLC);
 						}
 					}
 
@@ -352,11 +355,12 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 
 	if (xhci_controller_poweron(controller, port_id) == FALSE)
 	{
+		printk("XHCI: Error powering on port %i. is_usb3=%i\n", port_id, is_usb3);
 		return FALSE;
 	}
 
 	// Очистить флаги статуса
-	port_regs->status |= (XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC);
+	port_regs->status |= (XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC | XHCI_PORTSC_PLC);
 
 	// Получить текущий PLS
 	uint16_t port_link_state = (port_regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
@@ -394,6 +398,7 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	}
 	if (tries == 0)
 	{
+		printk("XHCI: Timeout resetting port %i. is_usb3=%i\n", port_id, is_usb3);
 		return FALSE;
 	}
 

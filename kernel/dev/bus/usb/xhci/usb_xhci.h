@@ -30,7 +30,11 @@
 #define XHCI_PORTSC_CSC			(1 << 17)	// Connect Status Change
 #define XHCI_PORTSC_PEC			(1 << 18)	// Port Enable Disable Change
 #define XHCI_PORTSC_WRC			(1 << 19)	// Warm Port Reset Change
+#define XHCI_PORTSC_OOC			(1 << 20)	// Over Current Change
 #define XHCI_PORTSC_PRC			(1 << 21)	// Port Reset Change
+#define XHCI_PORTSC_PLC			(1 << 22)	// Port Link State Change
+#define XHCI_PORTSC_CEC			(1 << 23)	// Port Config Error Change
+#define XHCI_PORTSC_REMOVABLE	(1 << 30)	// Device Removable
 #define XHCI_PORTSC_WPR			(1U << 31)	// Port Warm Reset on USB3
 #define XHCI_PORTSC_PLS_SHIFT	5
 #define XHCI_PORTSC_PLS_MASK	0xF
