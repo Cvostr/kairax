@@ -54,8 +54,9 @@
 #define AML_OP_BREAK        0xA5
 #define AML_OP_ONES         0xFF
 
-#define AML_EXT_OP_PREFIX       0x5B
 #define AML_EXT_OP_MUTEX        0x01
+#define AML_EXT_OP_EVENT        0x02
+#define AML_EXT_OP_PREFIX       0x5B
 #define AML_EXT_OP_COND_REF_OF  0x12
 #define AML_EXT_OP_REGION_OP    0x80
 #define AML_EXT_OP_FIELD        0x81     
@@ -130,6 +131,7 @@ int aml_op_power_resource(struct aml_ctx *ctx);
 int aml_op_thermal_zone(struct aml_ctx *ctx);
 int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
+int aml_op_event(struct aml_ctx *ctx);
 
 int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size);
 

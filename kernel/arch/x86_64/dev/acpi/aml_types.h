@@ -43,6 +43,7 @@ enum aml_node_type {
     DEVICE,
     MUTEX,
     FIELD,
+    EVENT,
     REFERENCE,
     POWER_RESOURCE,
     THERMAL_ZONE,
@@ -124,6 +125,10 @@ struct aml_node {
             uint8_t flags;
             struct semaphore sem;
         } mutex;
+
+        struct {
+            atomic_t sigcount;
+        } event;
 
         struct {
             uint8_t system_level;

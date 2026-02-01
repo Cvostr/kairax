@@ -799,6 +799,28 @@ int aml_op_mutex(struct aml_ctx *ctx)
     return rc;
 }
 
+int aml_op_event(struct aml_ctx *ctx)
+{
+    int rc = 0;
+    // Считаем имя
+    struct aml_name_string *event_name = aml_read_name_string(ctx);
+
+    printk("EVENT '%s'\n", event_name->segments->seg_s);
+
+    struct aml_node *event_node = aml_make_node(EVENT);
+    event_node->event.sigcount.counter = 0;
+
+    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, event_name, event_node);
+    if (rc != 0)
+    {
+        printk("ACPI: EventOp: Error adding node to namespace (%i)\n", rc);
+        aml_free_node(event_node);
+    }
+
+    KFREE_SAFE(event_name)
+    return rc;
+}
+
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 {
     int rc;

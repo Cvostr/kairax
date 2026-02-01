@@ -407,6 +407,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             case AML_EXT_OP_MUTEX:
                 rc = aml_op_mutex(ctx);
                 break;
+            case AML_EXT_OP_EVENT:
+                rc = aml_op_event(ctx);
+                break;
             case AML_EXT_OP_COND_REF_OF:
                 rc = aml_op_cond_ref_of(ctx, &node);
                 break;
