@@ -6,11 +6,13 @@
 #include "memory/kernel_vmm.h"
 #include "sync/spinlock.h"
 #include "kstdlib.h"
+#include "sync/semaphore.h"
 
 #define KHEAP_INIT_SIZE 4096000
 
 kheap_t kheap;
 spinlock_t kheap_lock;
+struct semaphore kheap_sem;
 
 uint64_t kheap_expand(uint64_t size)
 {
@@ -47,7 +49,9 @@ uint64_t kheap_expand(uint64_t size)
 }
 
 int kheap_init(uint64_t start_vaddr, uint64_t size)
-{
+{   
+    semaphore_init(&kheap_sem, 1);
+
     kheap.start_vaddr = start_vaddr;
     kheap.end_vaddr = kheap.start_vaddr;
 
@@ -95,7 +99,8 @@ kheap_item_t* get_suitable_item(uint64_t size)
 
 void* kmalloc(uint64_t size) 
 {
-    acquire_spinlock(&kheap_lock);
+    //acquire_spinlock(&kheap_lock);
+    semaphore_acquire(&kheap_sem);
 
     size = align(size, 8);
 
@@ -138,7 +143,8 @@ void* kmalloc(uint64_t size)
         result = current_item + 1;
     }
 
-    release_spinlock(&kheap_lock);
+    //release_spinlock(&kheap_lock);
+    semaphore_release(&kheap_sem);
     return result;
 }
 
@@ -179,7 +185,8 @@ void kfree(void* mem)
         return;
     }
 
-    acquire_spinlock(&kheap_lock);
+    //acquire_spinlock(&kheap_lock);
+    semaphore_acquire(&kheap_sem);
     kheap_item_t* item = (kheap_item_t*)mem - 1;
 
     if(item->free == 0) {
@@ -192,7 +199,8 @@ void kfree(void* mem)
         combine_forward(item->prev);
     }
 
-    release_spinlock(&kheap_lock);
+    //release_spinlock(&kheap_lock);
+    semaphore_release(&kheap_sem);
 }
 
 uint64_t kheap_get_size(void* mem)
