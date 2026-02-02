@@ -170,6 +170,13 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
         return -ENOENT;
     }
 
+    // Проверить, что объекта с таким именем еще нет
+    if (ns_node_find_child_with_name(parent, new_node_name) != NULL)
+    {
+        printk("ACPI Namespace Error: Object %s already exists\n", new_node_name);
+        return -EEXIST;
+    }
+
     struct ns_node *nsnode = new_ns_node();
     if (nsnode == NULL)
         return -ENOMEM;
