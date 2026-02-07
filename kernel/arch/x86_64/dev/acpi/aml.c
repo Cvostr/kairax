@@ -471,6 +471,9 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_METHOD:
             rc = aml_op_method(ctx);
             break;
+        case AML_OP_EXTERNAL:
+            rc = aml_op_external_decl(ctx);
+            break;
         case AML_OP_BYTE_PREFIX:
             node = aml_make_node(INTEGER);
             node->int_value = aml_ctx_get_byte(ctx);
@@ -525,7 +528,7 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
             rc = aml_op_ilogical(ctx, opcode, &node);
             break;
         case AML_OP_LNOT:
-            rc = aml_op_not(ctx, &node);
+            rc = aml_op_logical_not(ctx, &node);
             break;
         case AML_OP_LEQUAL:
         case AML_OP_LGREATER:

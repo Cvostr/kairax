@@ -14,6 +14,12 @@
 //#define AML_DEBUG_DEVICE
 //#define AML_OP_BINARY_OP
 
+int aml_op_external_decl(struct aml_ctx *ctx)
+{
+    printk("ACPI: ExternalOp not implemented!\n");
+    return -ENOTSUP;
+}
+
 int aml_op_alias(struct aml_ctx *ctx)
 {
     int rc = 0;
@@ -1220,7 +1226,7 @@ int aml_op_arg(struct aml_ctx *ctx, uint8_t index, struct aml_node **out)
     return 0;
 }
 
-int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out)
+int aml_op_logical_not(struct aml_ctx *ctx, struct aml_node** node_out)
 {
     int res;
     struct aml_node *operand = NULL;
@@ -1290,6 +1296,13 @@ int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_ou
     {
         printk("ACPI: BinaryOp: Error casting operand 2 to Integer (%i)\n", res);
         goto exit;
+    }
+
+    // проверка деления на 0
+    if ((opcode == AML_OP_DIVIDE || opcode == AML_OP_MOD) && op2_value == 0)
+    {
+        printk("ACPI: Division by zero!\n");
+        return -EINVAL;
     }
 
     uint64_t result;

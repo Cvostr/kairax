@@ -132,6 +132,7 @@ int aml_op_thermal_zone(struct aml_ctx *ctx);
 int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
 int aml_op_event(struct aml_ctx *ctx);
+int aml_op_external_decl(struct aml_ctx *ctx);
 
 int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size);
 
@@ -146,6 +147,7 @@ int aml_op_to_integer(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_ilogical(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out);
+int aml_op_logical_not(struct aml_ctx *ctx, struct aml_node** node_out);
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out);
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
 int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node);
