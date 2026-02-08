@@ -161,9 +161,15 @@ int acpi_ns_add_named_object1(struct acpi_namespace *ns, struct ns_node *scope, 
 
 int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name, struct aml_node *node)
 {
+    return acpi_ns_add_named_object_ex(ns, scope, name, node, NULL);
+}
+
+int acpi_ns_add_named_object_ex(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name, struct aml_node *node, struct ns_node **ns_node_out)
+{
     //printk("ACPI: NS adding object %s to scope %s\n", name->segments[0].seg_s, scope->name);
     char new_node_name[4];
 
+    struct ns_node *nsnode = NULL;
     struct ns_node *parent = resolve_parent(ns, scope, name, new_node_name);
     if (parent == NULL)
     {
@@ -171,13 +177,20 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
     }
 
     // Проверить, что объекта с таким именем еще нет
-    if (ns_node_find_child_with_name(parent, new_node_name) != NULL)
+    nsnode = ns_node_find_child_with_name(parent, new_node_name);
+    if (nsnode != NULL)
     {
-        printk("ACPI Namespace Error: Object %s already exists\n", new_node_name);
-        return -EEXIST;
+        printk("ACPI Namespace Warning: Object %s already exists\n", new_node_name);
+        // Выдадим вызывавшему
+        if (ns_node_out != NULL)
+        {
+            *ns_node_out = nsnode;
+        }
+        return 0;
     }
 
-    struct ns_node *nsnode = new_ns_node();
+    // создаем новую node в namespace
+    nsnode = new_ns_node();
     if (nsnode == NULL)
         return -ENOMEM;
     
@@ -187,6 +200,12 @@ int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, s
 
     ns_node_intrusive_list_add(&parent->children, nsnode);
     nsnode->parent = parent;
+
+    // Выдадим вызывавшему
+    if (ns_node_out != NULL)
+    {
+        *ns_node_out = nsnode;
+    }
 
     return 0;
 }

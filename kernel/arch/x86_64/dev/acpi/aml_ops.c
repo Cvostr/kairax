@@ -456,7 +456,7 @@ int aml_op_method(struct aml_ctx *ctx)
     res = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, method_name, node);
     if (res != 0)
     {
-        printk("ACPI: MethodOp: Error adding node to namespace (%i)\n", res);
+        printk("ACPI: MethodOp: Error adding method node '%s' to namespace (%i)\n", aml_debug_namestring(method_name), res);
         kfree(node);
         goto exit;
     }
@@ -607,15 +607,15 @@ int aml_op_device(struct aml_ctx *ctx)
     printk("DEVICE OP %s\n", device_name->segments->seg_s);
 #endif
 
+    struct ns_node *device_ns_node;
     struct aml_node *device_node = aml_make_node(DEVICE);
-    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, device_name, device_node);
+    rc = acpi_ns_add_named_object_ex(acpi_get_root_ns(), ctx->scope, device_name, device_node, &device_ns_node);
     if (rc != 0)
     {
         printk("ACPI: DeviceOp: Error adding node to namespace (%i)\n", rc);
         goto exit;
     }
 
-    struct ns_node *device_ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, device_name);
     dev_ctx.scope = device_ns_node; 
 
     // Парсим внтренности устройства
@@ -655,16 +655,16 @@ int aml_op_thermal_zone(struct aml_ctx *ctx)
 
     printk("THERMAL ZONE OP %s\n", zone_name->segments->seg_s);
 
+    struct ns_node *thermal_zone_ns_node;
     struct aml_node *thermal_zone_node = aml_make_node(THERMAL_ZONE);
-    rc = acpi_ns_add_named_object(acpi_get_root_ns(), ctx->scope, zone_name, thermal_zone_node);
+    rc = acpi_ns_add_named_object_ex(acpi_get_root_ns(), ctx->scope, zone_name, thermal_zone_node, &thermal_zone_ns_node);
     if (rc != 0)
     {
         printk("ACPI: ThermalZoneOp: Error adding node to namespace (%i)\n", rc);
         goto exit;
     }
 
-    struct ns_node *zone_ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, zone_name);
-    zone_ctx.scope = zone_ns_node; 
+    zone_ctx.scope = thermal_zone_ns_node; 
 
     // Парсим внтренности устройства
     struct aml_node *node;
@@ -1474,7 +1474,7 @@ int aml_op_ilogical(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_
     default:
         printk("ACPI: ILogical: Unknown opcode %i\n", opcode);
         res = -EINVAL;
-        break;
+        goto exit;
     }
 
     // Сформировать node с результатом
@@ -1570,7 +1570,9 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
                 cmpresult = op1_ival < op2_ival;
                 break;
             default:
-                // Я заебался
+                printk("ACPI: CompareOp (default): Unknown opcode %i\n", opcode);
+                res = -EINVAL;
+                goto exit;
         }
     
         break;

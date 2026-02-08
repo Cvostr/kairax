@@ -299,13 +299,6 @@ int aml_execute_method(struct aml_ctx *ctx, struct aml_node *method, struct ns_n
             //printk("ACPI: method return catch\n");
             break;
         }
-        else if (rc == -EEXIST && method->method.serialized == TRUE)
-        {
-            // По хорошему такого быть не должно
-            // Но находятся долбоебы, которые что либо создают в методе, потом вызывают метод несколько раз
-            // Поэтому игнорируем эту ошибку, если метод Serialized
-            continue;
-        } 
         else if (rc != 0)
         {
             printk("ACPI: Error parsing next node during method execution (%i)\n", rc);

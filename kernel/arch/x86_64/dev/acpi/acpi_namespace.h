@@ -32,6 +32,7 @@ struct acpi_namespace *acpi_get_root_ns();
 
 int acpi_ns_add_named_object(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name, struct aml_node *node);
 int acpi_ns_add_named_object1(struct acpi_namespace *ns, struct ns_node *scope, const char *name, struct aml_node *node);
+int acpi_ns_add_named_object_ex(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name, struct aml_node *node, struct ns_node **ns_node_out);
 
 struct ns_node *acpi_ns_get_node(struct acpi_namespace *ns, struct ns_node *scope, struct aml_name_string *name);
 struct ns_node *acpi_ns_get_node1(struct acpi_namespace *ns, struct ns_node *scope, const char *name);
