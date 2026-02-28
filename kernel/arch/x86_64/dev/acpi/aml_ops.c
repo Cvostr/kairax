@@ -1264,6 +1264,51 @@ exit:
     return res;
 }
 
+int aml_op_not(struct aml_ctx *ctx, struct aml_node** node_out)
+{
+    int res;
+    struct aml_node *operand = NULL;
+    uint64_t operand_value;
+
+    // Считать node
+    res = aml_parse_next_node(ctx, &operand);
+    if (res != 0)
+    {
+        printk("ACPI: NotOp: Error reading operand node (%i)\n", res);
+        goto exit;
+    }
+
+    // Попытаться сконвертировать в Integer
+    res = aml_node_as_integer(operand, &operand_value);
+    if (res != 0)
+    {
+        printk("ACPI: NotOp: Error casting operand to Integer (%i)\n", res);
+        goto exit;
+    }
+
+    // Инвертировать все биты
+    operand_value = ~(operand_value);
+    
+    // Сформировать node с результатом
+    struct aml_node *result_node = aml_make_node(INTEGER);
+    result_node->int_value = operand_value;
+    // Записать в результат выполнения
+    aml_acquire_node(result_node);
+    *node_out = result_node;
+
+    // Сохранить в target
+    res = aml_store_to_target(ctx, result_node);
+    if (res != 0)
+    {
+        printk("ACPI: NotOp: Error writing to target %i!\n", res);
+        goto exit;
+    }
+
+exit:
+    aml_free_node(operand);
+    return res;
+}
+
 int aml_op_binary(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_out)
 {
     int res;
