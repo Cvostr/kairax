@@ -88,12 +88,9 @@ int main(int argc, char** argv) {
 		time_t timesec = time(NULL);
 		struct tm* t = gmtime(&timesec);
 
-		printf("%02i:%02i:%02i   %i %s %i\n", t->tm_hour, 
-										t->tm_min,
-										t->tm_sec,
-										t->tm_mday,
-										months[t->tm_mon],
-										t->tm_year + 1900);
+		char _datebuff[110];
+		strftime(_datebuff, 110, "%a %b %e %H:%M:%S %Y", t);
+		printf("%s\n", _datebuff);
 	}
 
     return 0;

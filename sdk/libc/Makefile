@@ -87,6 +87,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/getopt.o \
 				obj/poll.o \
 				obj/err.o \
+				obj/strftime.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
 				obj/threads/thrd.o \

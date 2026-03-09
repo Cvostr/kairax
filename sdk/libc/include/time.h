@@ -3,6 +3,7 @@
 
 #include <sys/cdefs.h>
 #include "sys/time.h"
+#include "stddef.h"
 
 __BEGIN_DECLS
 
@@ -16,6 +17,8 @@ time_t timegm(struct tm *timeptr);
 struct tm* localtime(const time_t* t) __THROW;
 
 time_t mktime(struct tm *timeptr);
+
+size_t strftime(char *s, size_t max, const char *format, const struct tm *tm) __THROW;
 
 time_t time(time_t *t);
 int stime(time_t *t);
