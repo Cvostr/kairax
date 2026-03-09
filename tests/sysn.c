@@ -122,6 +122,30 @@ int main(int argc, char** argv, char** envp) {
     }
     }
 
+    if (argc > 1 && strcmp(argv[1], "strpbrk") == 0)
+    {
+        const char str1[] = "geeksforgeeks";
+        const char str2[] = "app";
+        const char str3[] = "kite";
+        char* r;
+
+        r = strpbrk(str1, str2);
+        if (r != NULL) {
+            printf("First matching character in str2: %c\n", *r);
+        } else {
+            printf("Character from str2 not found\n");
+        }
+
+        // Checks for matching character (first match for 'k', 'i', 't', or 'e' is 'e')
+        r = strpbrk(str1, str3);
+        if (r != NULL) {
+            printf("\nFirst matching character in str3: %c\n", *r);
+        } else {
+            printf("Character from str3 not found\n");
+        }
+        return 0;
+    }
+
     if (argc > 1 && strcmp(argv[1], "tmpfile") == 0)
     {
         char buff[40];

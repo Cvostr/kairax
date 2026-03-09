@@ -285,3 +285,22 @@ size_t strcspn(const char* dest, const char* src)
 
     return len;
 }
+
+char *strpbrk(const char *s, const char *accept)
+{
+    size_t i;
+    while (*s != 0)
+    {
+        for (i = 0; accept[i] != 0; i ++)
+        {
+            if (*s == accept[i])
+            {
+                return (char *) s;
+            }
+        }
+
+        s++;
+    }
+
+    return NULL;
+}

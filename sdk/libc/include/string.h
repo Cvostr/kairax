@@ -69,6 +69,8 @@ char *strtok_r(char *s, const char *delim, char **ptrptr) __THROW;
 
 char *strerror(int errnum);
 
+char *strpbrk(const char *s, const char *accept) __THROW;
+
 __END_DECLS
 
 #endif
