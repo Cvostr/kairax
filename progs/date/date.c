@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 		struct tm* t = gmtime(&timesec);
 
 		char _datebuff[110];
-		strftime(_datebuff, 110, "%a %b %e %H:%M:%S %Y", t);
+		strftime(_datebuff, 110, "%a %b %e %T %Y", t);
 		printf("%s\n", _datebuff);
 	}
 

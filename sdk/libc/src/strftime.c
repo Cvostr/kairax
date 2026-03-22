@@ -46,6 +46,21 @@ size_t strftime(char *s, size_t max, const char *format, const struct tm *tm)
             case '%':
                 *s++ = '%';
                 break;
+            case 'R':
+                dst += strftime(dst, s + max - dst, "%H:%M", tm);
+                break;
+            case 'X':
+                dst += strftime(dst, s + max - dst, "%k:%M:%S", tm);
+                break;
+            case 'D':
+                dst += strftime(dst, s + max - dst, "%m/%d/%y", tm);
+                break;
+            case 'F':
+                dst += strftime(dst, s + max - dst, "%Y-%m-%d", tm);
+                break;
+            case 'T':
+                dst += strftime(dst, s + max - dst, "%H:%M:%S", tm);
+                break;
             case 'a':
                 dst = __strftime_append(dst, s + max, __short_weekdays[tm->tm_wday]);
                 break;
