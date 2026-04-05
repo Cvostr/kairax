@@ -12,6 +12,7 @@ int printk(const char* __restrict, ...);
 
 void* kmalloc(uint64_t size);
 void kfree(void* mem);
+#define KFREE_SAFE(x) if (x) {kfree(x);}
 
 void* pmm_alloc_page();
 void* pmm_alloc_pages(uint32_t pages);
@@ -27,8 +28,13 @@ struct thread;
 struct process*  create_new_process(struct process* parent);
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
 
+void process_set_name(struct process* process, const char* name);
+void thread_set_name(struct thread* thread, const char* name);
+
 void scheduler_add_thread(struct thread* thread);
 
 void eth_handle_frame(struct net_buffer* nbuffer);
+
+void wait_active_ms(uint64_t ms);
 
 #endif

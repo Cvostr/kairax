@@ -19,6 +19,7 @@
 #include "proc/tasklet.h"
 #include "kairax/kstdlib.h"
 #include "dev/device_man.h"
+#include "cpu/cpu.h"
 #include "drivers/char/input/keyboard.h"
 #include "drivers/char/input/mouse.h"
 #include "dev/type/drive_device.h"
@@ -63,6 +64,8 @@ struct kernel_function functions[] = {
     KFUNCTION(scheduler_add_thread),
     KFUNCTION(create_new_process),
     KFUNCTION(process_set_name),
+    KFUNCTION(thread_set_name),
+    KFUNCTION(process_add_to_list),
     KFUNCTION(new_nic),
     KFUNCTION(register_nic),
     KFUNCTION(eth_handle_frame),
@@ -81,6 +84,7 @@ struct kernel_function functions[] = {
     KFUNCTION(new_drive_device_info),
     KFUNCTION(keyboard_add_event),
     KFUNCTION(mouse_add_event),
+    KFUNCTION(wait_active_ms),
     // usb
     KFUNCTION(new_usb_msg),
     KFUNCTION(usb_device_send_request),

@@ -25,5 +25,6 @@ struct cpu {
 };
 
 int cpu_get_info(struct cpu* cpuinf);
+void wait_active_ms(uint64_t ms);
 
 #endif

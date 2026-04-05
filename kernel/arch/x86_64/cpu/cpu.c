@@ -18,3 +18,8 @@ int cpu_get_info(struct cpu* cpuinf)
 
     return 0;
 }
+
+void wait_active_ms(uint64_t ms)
+{
+    hpet_sleep(ms);
+}
