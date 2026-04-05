@@ -69,14 +69,7 @@ int scheduler_sleep_on(struct blocker* blocker)
     thr->blocker = blocker;
     scheduler_sleep_intrusive(&blocker->head, &blocker->tail, &blocker->lock);
 
-    int wake_rsn = thr->wake_reason; 
-    if (wake_rsn != WAKE_NORMAL)
-    {
-        thr->wake_reason = WAKE_NORMAL;
-        return wake_rsn;
-    }
-
-    return 0;
+    return scheduler_get_wake_reason(thr);
 }
 
 uint32_t scheduler_wake(struct blocker* blocker, uint32_t max)
@@ -216,11 +209,13 @@ int scheduler_get_wake_reason(struct thread* thr)
     int wake_rsn = thr->wake_reason; 
     if (wake_rsn != WAKE_NORMAL)
     {
+        // сбросим на значение по-умолчанию
+        // Потому что обычные пробуждения не всегда его устанавливают
         thr->wake_reason = WAKE_NORMAL;
         return wake_rsn;
     }
 
-    return 0;
+    return wake_rsn;
 }
 
 int scheduler_sleep1()

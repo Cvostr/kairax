@@ -215,6 +215,7 @@ int xhci_device_probe(struct device *dev)
     struct thread* xhci_event_thr = create_kthread(xhci_process, xhci_controller_event_thread_routine, cntrl);
 	thread_set_name(xhci_event_thr, "xhci_event_thread");
     scheduler_add_thread(xhci_event_thr);
+	process_add_to_list((struct process*) xhci_event_thr);
 
     return 0;
 }

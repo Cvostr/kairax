@@ -80,6 +80,11 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
 
     // Получить предпочитаемый адрес
     address = process_get_free_addr(process, length, align_down((uint64_t) address, PAGE_SIZE));
+    // получилось ли выделить память?
+    if (address == NULL)
+    {
+        return -ENOMEM;
+    }
 
     // Сформировать регион
     struct mmap_range* range = new_mmap_region();

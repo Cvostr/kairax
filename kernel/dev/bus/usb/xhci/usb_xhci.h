@@ -577,6 +577,8 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event);
 void xhci_controller_init_ports(struct xhci_controller* controller);
 
+#define XHCI_DEVICE_EPS_ARRAY_SIZE	30
+
 struct xhci_device {
 	struct xhci_controller* controller;
 	uint8_t port_id;
@@ -588,7 +590,7 @@ struct xhci_device {
 
 	struct usb_device* usb_device;
 	struct device* composite_dev;
-	struct usb_endpoint* eps[30];
+	struct usb_endpoint* eps[XHCI_DEVICE_EPS_ARRAY_SIZE];
 
 	// Input Context
 	size_t input_ctx_pages;

@@ -55,7 +55,7 @@ pid_t sys_wait(pid_t id, int* status, int options)
             
             free_process(child);
             
-            if (scheduler_sleep_on(&process->wait_blocker) == 1)
+            if (scheduler_sleep_on(&process->wait_blocker) == WAKE_SIGNAL)
             {
                 return -EINTR;
             }
