@@ -16,6 +16,10 @@ cd hid
 make
 cd ..
 
+cd xhci
+make
+cd ..
+
 cd usb_mass
 make
 cd ..
