@@ -97,7 +97,7 @@ void kterm_tty_master_read_routine(struct terminal_session* session)
 		{
 			kterm_session_process(session);
 		} else {
-			sys_thread_sleep(0, 500);
+			thread_sleep(0, 500);
 		}
 	}
 }

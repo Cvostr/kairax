@@ -78,7 +78,7 @@ int sys_execve(const char *filename, char *const argv [], char *const envp[]);
 
 void sys_exit_thread(int code);
 
-int sys_thread_sleep(time_t tv_sec, long int tv_nsec);
+int sys_sleep(time_t tv_sec, long int tv_nsec);
 
 int sys_pause();
 

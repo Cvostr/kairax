@@ -3,7 +3,7 @@
 #include "mem/kheap.h"
 #include "cpu/cpu_local.h"
 
-int sys_thread_sleep(time_t sec, long int nsec)
+int sys_sleep(time_t sec, long int nsec)
 {
     int rc = 0;
 

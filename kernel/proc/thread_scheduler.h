@@ -33,13 +33,17 @@ void init_scheduler();
 
 void scheduler_start();
 
+/// @brief Добавить поток в очередь исполнения текущего CPU
 void scheduler_add_thread(struct thread* thread);
 
+/// @brief Удалить поток из очереди исполнения текущего CPU
+/// @param thread  
 void scheduler_remove_thread(struct thread* thread);
 
 struct thread* scheduler_get_next_runnable_thread();
 
 void scheduler_yield(int save_context);
+int thread_sleep(time_t tv_sec, long int tv_nsec);
 
 // Подготавливает поток ко сну
 // Используется в случаях, когда необходимо зарегистрировать поток перед сном

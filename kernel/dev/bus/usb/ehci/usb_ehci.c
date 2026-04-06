@@ -1030,7 +1030,7 @@ void ehci_event_thread_routine(struct ehci_controller* hci)
 	while (1)
 	{
 		// немного поспим, чтобы не грузить процессор
-		sys_thread_sleep(0, 500);
+		thread_sleep(0, 500);
 
 		if (hci->port_status_changed == 1) 
 		{

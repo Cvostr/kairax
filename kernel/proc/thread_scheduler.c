@@ -275,6 +275,11 @@ void scheduler_unblock(struct thread* thread)
     thread->timer = NULL;
 }
 
+int thread_sleep(time_t tv_sec, long int tv_nsec)
+{
+    return sys_sleep(tv_sec, tv_nsec);
+}
+
 struct thread* scheduler_get_next_runnable_thread()
 {
     struct sched_wq* wq = cpu_get_wq();

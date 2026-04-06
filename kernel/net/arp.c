@@ -139,7 +139,7 @@ uint8_t* arp_get_ip4(struct nic* nic, uint32_t addr)
 
         while (rounds < 10) {
 
-            sys_thread_sleep(0, 100000);
+            thread_sleep(0, 100000);
 
             entry = get_arp_cache_entry(addr);
             if (entry != NULL) {

@@ -70,6 +70,10 @@ struct main_thread_create_info {
 struct thread* new_thread(struct process* process);
 void thread_set_name(struct thread* thread, const char* name);
 
+/// @brief Создать новый поток пространства ядра и добавить его к процессу
+/// @param process объект процесса
+/// @param function адрес кода для выполнения
+/// @param arg аргумент
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
 struct thread* create_thread(struct process* process, void* entry, void* arg1, int stack_size, struct main_thread_create_info* info);
 void thread_recreate_on_execve(struct thread* thread, struct main_thread_create_info* info);
