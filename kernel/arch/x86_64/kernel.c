@@ -8,8 +8,6 @@
 #include "dev/serial/serial.h"
 #include "dev/bus/pci/pci.h"
 
-#include "dev/bus/usb/xhci/usb_xhci.h"
-
 #include "memory/mem_layout.h"
 #include "mem/pmm.h"
 #include "memory/kernel_vmm.h"

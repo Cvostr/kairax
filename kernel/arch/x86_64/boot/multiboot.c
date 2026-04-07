@@ -40,6 +40,7 @@ int parse_mb2_tags(taglist_t *tags, size_t* total_size)
         case MBOOT2_MODULE:
             module_t* mod = tag->data;
             size_t modsize = mod->mod_end - mod->mod_start;
+            modsize = align(modsize, PAGE_SIZE);
             // Даем временную защиту области памяти, в которую загружен модуль
             pmm_set_mem_region(mod->mod_start, modsize, TRUE);
             break;

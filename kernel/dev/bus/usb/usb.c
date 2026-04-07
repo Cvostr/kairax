@@ -6,14 +6,12 @@
 #include "kairax/kstdlib.h"
 
 extern struct pci_device_driver ehci_ctrl_driver;
-extern struct pci_device_driver xhci_ctrl_driver;
 
 //#define USB_LOG_BINTERFACE_NUM_PROBLEM
 
 void usb_init()
 {
     register_pci_device_driver(&ehci_ctrl_driver);
-	//register_pci_device_driver(&xhci_ctrl_driver);
 }
 
 struct usb_device* new_usb_device(struct usb_device_descriptor* descriptor, void* controller_device_data)
