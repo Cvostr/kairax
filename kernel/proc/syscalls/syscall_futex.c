@@ -143,10 +143,14 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
 
     if (timeout != NULL)
     {
+        // Создаем объект таймера
         timer = register_event_timer(*timeout);
         
-        // Засыпаем на таймере
-        sleep_result = sleep_on_timer(timer);
+        // Привязываем текущий поток к таймеру
+        bind_to_timer(timer);
+
+        // Засыпаем
+        sleep_result = scheduler_sleep_on(&futx->blocker); 
 
         // Удаляем таймер из списка и освобождаем память
         unregister_event_timer(timer);
@@ -154,6 +158,7 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
     }
     else
     {
+        // Засыпаем
         sleep_result = scheduler_sleep_on(&futx->blocker); 
     }
 

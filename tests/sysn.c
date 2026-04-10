@@ -105,6 +105,14 @@ int bsearchtest()
     return 0;
 }
 
+cnd_t cndtest;
+void signthrd() 
+{
+    sleep(3);
+    cnd_signal(&cndtest);
+    thread_exit(125);
+}
+    
 int main(int argc, char** argv, char** envp) {
 
     int counter = 0;
@@ -187,6 +195,27 @@ int main(int argc, char** argv, char** envp) {
         }
 
         return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "cnd") == 0)
+    {
+        struct timespec tsp;
+        tsp.tv_sec = 10;
+        tsp.tv_nsec = 0;
+        printf("CND test with 10 seconds wait and wake after 3 seconds\n");
+        mtx_t mttest;
+        mtx_init(&mttest, mtx_plain);
+        cnd_init(&cndtest);
+        pid_t tpi = create_thread(signthrd, NULL);
+        int cndres = cnd_timedwait(&cndtest, &mttest, &tsp);
+        printf("CNDRES: %i\n", cndres);
+                
+        printf("CND test with 7 seconds wait\n");
+        tsp.tv_sec = 7;
+        mtx_init(&mttest, mtx_plain);
+        cnd_init(&cndtest);
+        cndres = cnd_timedwait(&cndtest, &mttest, &tsp);
+        printf("CNDRES: %i\n", cndres);
     }
 
     int fd1 = open("/mydir/blabla", O_RDONLY, 0);
@@ -304,19 +333,6 @@ int main(int argc, char** argv, char** envp) {
         while (1)
         {
         }
-    }
-
-    if (argc > 1 && strcmp(argv[1], "cnd") == 0)
-    {
-        struct timespec tsp;
-        tsp.tv_sec = 7;
-        tsp.tv_nsec = 0;
-        printf("CND test\n");
-        cnd_t cndtest;
-        mtx_t mttest;
-        mtx_init(&mttest, mtx_plain);
-        cnd_init(&cndtest);
-        cnd_timedwait(&cndtest, &mttest, &tsp);
     }
 
     if (argc > 1 && strcmp(argv[1], "paus") == 0)
