@@ -353,3 +353,16 @@ exit:
         file_close(file);
     return rc;
 }
+
+int sys_socketpair(int domain, int type, int protocol, int sv[2])
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    // Возможны только AF_LOCAL сокеты
+    if (domain != AF_LOCAL)
+    {
+        return -ENOTSUP;
+    }
+
+    return -1;
+}

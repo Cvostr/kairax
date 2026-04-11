@@ -67,3 +67,8 @@ int getsockname(int s, struct sockaddr *name, socklen_t *namelen)
 {
     __set_errno(syscall_getsockname(s, name, namelen));
 }
+
+int socketpair(int domain, int type, int protocol, int sv[2])
+{
+    __set_errno(syscall_socketpair(domain, type, protocol, sv));
+}

@@ -91,5 +91,6 @@ extern int syscall_setsockopt(int s, int level, int optname, const void *optval,
 extern int syscall_shutdown(int sockfd, int how);
 extern int syscall_getpeername(int s, void *name, void *namelen);
 extern int syscall_getsockname(int s, void *name, void *namelen);
+extern int syscall_socketpair(int domain, int type, int protocol, int sv[2]);
 
 #endif

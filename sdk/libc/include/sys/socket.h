@@ -76,25 +76,16 @@ struct msghdr {
 };
 
 int socket(int domain, int type, int protocol) __THROW;
-
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) __THROW;
-
 int listen(int sockfd, int backlog) __THROW;
-
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) __THROW;
-
 int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen) __THROW;
-
 int send(int fd, const void * buf, size_t n, int flags) __THROW;
-
 int sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen) __THROW;
-
 ssize_t recv(int sockfd, void* buf, size_t len, int flags) __THROW;
-
 ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen) __THROW;
-
 int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen) __THROW;
-
+int socketpair(int domain, int type, int protocol, int sv[2]);
 int shutdown(int sockfd, int how) __THROW;
 int getpeername(int s, struct sockaddr *name, socklen_t *namelen) __THROW;
 int getsockname(int s, struct sockaddr *name, socklen_t *namelen) __THROW;
