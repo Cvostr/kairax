@@ -356,13 +356,53 @@ exit:
 
 int sys_socketpair(int domain, int type, int protocol, int sv[2])
 {
+    int rc;
+    int fd1, fd2;
+    struct socket *sock1 = NULL, *sock2 = NULL;
+    struct file *fsock1 = NULL, *fsock2 = NULL;
     struct process* process = cpu_get_current_thread()->process;
 
-    // Возможны только AF_LOCAL сокеты
-    if (domain != AF_LOCAL)
+    // Запомнить доп флаги
+    int cloexec = (type & SOCK_CLOEXEC) == SOCK_CLOEXEC;
+    int nonblock = (type & SOCK_NONBLOCK) == SOCK_NONBLOCK;
+    // Отрезать дополнительные флаги
+    type = type & 0777;
+
+    // Операция для создания сокетов и соединения их между собой
+    rc = socket_pair(domain, type, protocol, &sock1, &sock2);
+    if (rc != 0)
     {
-        return -ENOTSUP;
+        return rc;
     }
 
-    return -1;
+    // Создать файлы из сокетов
+    fsock1 = make_file_from_sock(sock1);
+    fsock2 = make_file_from_sock(sock2);
+
+    // Добавить к процессу
+    fd1 = process_add_file(process, fsock1);
+    if (fd1 < 0) 
+    {
+        // TODO: destroy socket
+        file_close(fsock1);
+        rc = fd1;
+        goto exit;
+    }
+
+    // Добавить к процессу
+    fd2 = process_add_file(process, fsock2);
+    if (fd2 < 0) 
+    {
+        // TODO: destroy socket
+        file_close(fsock2);
+        rc = fd2;
+        goto exit;
+    }
+
+    // по стандарту POSIX.1-2008 TC2 заполняем массив sv только при успешном выполнении
+    sv[0] = fd1;
+    sv[1] = fd2;
+
+exit:
+    return rc;
 }

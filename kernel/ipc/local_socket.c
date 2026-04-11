@@ -227,6 +227,25 @@ exit:
     return rc;
 }
 
+int sock_local_pair(struct socket* sock1, struct socket* sock2) 
+{
+    struct local_socket* sock1_data = (struct local_socket*) sock1->data;
+    struct local_socket* sock2_data = (struct local_socket*) sock2->data;
+
+    // Установка пира для первого сокета
+    sock1_data->peer = sock2;
+    acquire_socket(sock2);
+
+    // Установить пира для второго сокета
+    sock2_data->peer = sock1;
+    acquire_socket(sock1);
+
+    sock1->state = SOCKET_STATE_CONNECTED;
+    sock2->state = SOCKET_STATE_CONNECTED;
+
+    return 0;
+}
+
 int socket_local_append_to_backlog(struct socket* server_sock, struct socket* sock)
 {
     int rc = 0;

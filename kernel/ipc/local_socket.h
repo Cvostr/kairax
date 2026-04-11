@@ -46,6 +46,7 @@ struct local_sock_bucket {
 };
 
 int socket_local_append_to_backlog(struct socket* server_sock, struct socket* sock);
+int sock_local_pair(struct socket* sock1, struct socket* sock2);
 
 int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
 int sock_local_listen (struct socket* sock, int backlog);

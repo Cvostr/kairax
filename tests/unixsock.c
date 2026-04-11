@@ -35,6 +35,12 @@ int main(int argc, char** argv)
         {
             deletesock = 0;
         }
+        
+        if (strcmp(arg, "pair") == 0)
+        {
+            int pre = _socketpair();
+            return pre;
+        }
     }
 
     srand(time(NULL));
@@ -173,5 +179,72 @@ int client()
         fflush(NULL);
     }
 
+    return 0;
+}
+
+int _socketpair()
+{
+    int socks[2];
+    int rc = socketpair(AF_UNIX, SOCK_STREAM, 0, socks);
+    if (rc != 0)
+    {
+        perror("socketpair error");
+        return rc;
+    }
+
+    srand(time(NULL));
+    pid_t client_pid = fork();
+
+    if (client_pid == 0)
+    {
+        close(socks[0]);
+
+        char buff [40];
+        char recv_buffer [40];
+        for (int i = 0; i < 100; i ++)
+        {
+            for (int j = 0; j < sizeof(buff); j ++)
+            {
+                buff[j] = 32 + rand() % 20;
+            }
+
+            if (send(socks[1], buff, sizeof(buff), 0) == -1)
+            {
+                perror("client: send");
+                return 1;
+            }
+
+            ssize_t received = recv(socks[1], recv_buffer, sizeof(recv_buffer), 0);
+
+            if (received != 40)
+            {
+                printf("Error: received %i bytes\n", received);
+            }
+
+            if (memcmp(buff, recv_buffer, sizeof(buff)) != 0)
+            {
+                printf("Error: results missmatch\n");
+                printf("orig: %s\n", buff);
+                printf("recv: %s\n", recv_buffer);
+            }
+
+            printf("R %i ", i);
+            fflush(NULL);
+        }
+        
+        exit(0);
+    }
+
+    close(socks[1]);
+
+    ssize_t readed = 0;
+    char buf[20];
+    while ((readed = recv(socks[0], buf, sizeof(buf), 0)) > 0)
+    {
+        send(socks[0], buf, readed, 0);
+    }
+
+    int clrc = 0;
+    waitpid(client_pid, &clrc, 0);
     return 0;
 }

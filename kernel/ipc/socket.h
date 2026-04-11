@@ -149,6 +149,7 @@ void acquire_socket(struct socket* sock);
 void free_socket(struct socket* sock);
 
 int socket_init(struct socket* sock, int domain, int type, int protocol);
+int socket_pair(int domain, int type, int protocol, struct socket **sock1, struct socket **sock2);
 
 int socket_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
 int socket_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);

@@ -1,6 +1,7 @@
 #include "socket.h"
 #include "mem/kheap.h"
 #include "string.h"
+#include "local_socket.h"
 #include "kairax/errors.h"
 #include "list/list.h"
 
@@ -31,10 +32,16 @@ struct socket* new_socket()
     }
 
     memset(result, 0, sizeof(struct socket));
-
     result->state = SOCKET_STATE_UNCONNECTED;
 
+    // Создать inode
     struct inode* ino = new_vfs_inode();
+    if (ino == NULL)
+    {
+        kfree(result);
+        return NULL;
+    }
+
     ino->mode = INODE_FLAG_SOCKET;
     ino->file_ops = &socket_fops;
     ino->private_data = result;
@@ -105,6 +112,57 @@ int socket_init(struct socket* sock, int domain, int type, int protocol)
     }
 
     return 0;
+}
+
+int socket_pair(int domain, int type, int protocol, struct socket **sock1, struct socket **sock2)
+{
+    int rc;
+    struct socket *_sock1 = NULL, *_sock2 = NULL;
+
+    // Возможны только AF_LOCAL сокеты
+    if (domain != AF_LOCAL)
+    {
+        return -ENOTSUP;
+    }
+    
+    _sock1 = new_socket();
+    if (_sock1 == NULL)
+    {
+        return -ENOMEM;
+    }
+
+    _sock2 = new_socket();
+    if (_sock2 == NULL)
+    {
+        // TODO: destroy socket 1
+        return -ENOMEM;
+    }
+
+    rc = socket_init(_sock1, domain, type, protocol);
+    if (rc != 0) {
+        // TODO: destroy sockets
+        goto exit;
+    }
+
+    rc = socket_init(_sock2, domain, type, protocol);
+    if (rc != 0) {
+        // TODO: destroy sockets
+        goto exit;
+    }
+
+    // Так как такая операция возможна только с AF_LOCAL, то сразу вызываем уже определенную функцию
+    rc = sock_local_pair(_sock1, _sock2);
+    if (rc != 0)
+    {
+        // TODO: destroy sockets
+        goto exit;
+    }
+
+    *sock1 = _sock1;
+    *sock2 = _sock2;
+
+exit:
+    return rc;
 }
 
 int socket_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
