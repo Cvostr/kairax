@@ -267,6 +267,12 @@ int sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int flags
         {
             return -EINVAL;
         }
+
+        // Проверим значение sa_family
+        if (to->sa_family != AF_INET) 
+        {
+            return -EINVAL;
+        }
     }
 
     // Для UDP допускается broadcast. Если не включено явно, то не разрешаем

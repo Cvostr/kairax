@@ -39,6 +39,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EOVERFLOW, "Value too large for defined data type"),
     // ...
     DEFINE_ERROR(ENOTSOCK, "Socket operation on non-socket"),
+    DEFINE_ERROR(EDESTADDRREQ, "Destination address required"),
     DEFINE_ERROR(EAFNOSUPPORT, "Address family not supported by protocol"),
     DEFINE_ERROR(EADDRINUSE, "Address already in use"),
     DEFINE_ERROR(EADDRNOTAVAIL, "Cannot assign requested address"),

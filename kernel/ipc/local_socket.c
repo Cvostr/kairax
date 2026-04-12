@@ -172,6 +172,18 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
 
 int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
 {
+    // Проверим, что размер адреса минимум sa_family_t
+    if (sockaddr_len < sizeof(sa_family_t)) 
+    {
+        return -EINVAL;
+    }
+
+    // Проверим значение sa_family
+    if (saddr->sa_family != AF_LOCAL) 
+    {
+        return -EINVAL;
+    }
+
     if (sock->state != SOCKET_STATE_UNCONNECTED)
     {
         return -EISCONN;

@@ -40,6 +40,7 @@
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET
+#define EDESTADDRREQ	89
 #define EILSEQ		    84
 
 #define EOVERFLOW	    75
