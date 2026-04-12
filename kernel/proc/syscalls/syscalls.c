@@ -29,6 +29,7 @@ int sys_yield()
 
 int sys_pipe(int* pipefd, int flags)
 {
+    int fdread, fdwrite;
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_POINTER_PROTECTION(process, pipefd, sizeof(int*) * 2, PAGE_PROTECTION_WRITE_ENABLE);
 
@@ -39,6 +40,7 @@ int sys_pipe(int* pipefd, int flags)
 
     ppe->check_ends = 1; // EPIPE если другой конец закрыт
 
+    // Создаем объекты файлов
     struct file* pread_file = new_file();
     if (pread_file == NULL) {
         free_pipe(ppe);
@@ -46,11 +48,32 @@ int sys_pipe(int* pipefd, int flags)
     }
     
     struct file* pwrite_file = new_file();
+    if (pread_file == NULL) {
+        free_pipe(ppe);
+        file_close(pread_file);
+        return -ENOMEM;  
+    }
 
     pipe_create_files(ppe, flags, pread_file, pwrite_file);
 
-    pipefd[0] = process_add_file(process, pread_file);
-    pipefd[1] = process_add_file(process, pwrite_file);
+    // Пробуем добавить файлы к процессу
+    fdread = process_add_file(process, pread_file);
+    if (fdread < 0)
+    {
+        // TODO: implement
+        return fdread;
+    }
+
+    fdwrite = process_add_file(process, pwrite_file);
+    if (fdwrite < 0)
+    {
+        // TODO: implement
+        return fdwrite;
+    }
+
+    // по стандарту POSIX.1-2008 TC2 заполняем массив pipefd только при успешном выполнении
+    pipefd[0] = fdread;
+    pipefd[1] = fdwrite;
 
     return 0;
 }

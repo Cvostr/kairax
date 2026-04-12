@@ -13,8 +13,8 @@ struct futex {
     uintptr_t   futex;
     struct blocker blocker;
 
-    struct futex_holder* prev;
-    struct futex_holder* next;
+    struct futex *prev;
+    struct futex *next;
 };
 
 struct futex* new_futex() 
