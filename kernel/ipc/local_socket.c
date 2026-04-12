@@ -25,6 +25,7 @@ struct socket_prot_ops local_stream_ops = {
     .accept = sock_local_accept,
     .connect = sock_local_connect,
     .close = sock_local_close,
+    .poll = sock_local_poll,
     .sendto = sock_local_sendto,
     .recvfrom = sock_local_recvfrom_stream
 };
@@ -108,6 +109,10 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
 int sock_local_listen(struct socket* sock, int backlog)
 {
     struct local_socket* sock_data = (struct local_socket*) sock->data;
+
+    if (sock->state != SOCKET_STATE_UNCONNECTED)
+        return -EINVAL;
+
     sock_data->backlog_sz = backlog;
 
     // Принимающий подключения
@@ -260,6 +265,9 @@ int socket_local_append_to_backlog(struct socket* server_sock, struct socket* so
 
         // Разбудить ожидающих подключений
         scheduler_wake(&server_sock_data->backlog_blk, 1);
+
+        // Будим наблюдающих за сокетом сервера
+        poll_wakeall(&server_sock_data->poll_wq);
     } else {
         rc = -ECONNREFUSED;
         goto exit;
@@ -295,6 +303,9 @@ int sock_local_close(struct socket* sock)
 
         // Разбудить ожидающих приема данных от пира
         scheduler_wake(&peer_data->rx_blk, INT_MAX);
+
+        // Будим наблюдающих за сокетом пира
+        poll_wakeall(&peer_data->poll_wq);
     }
 
     // Очистить остатки буфера приема
@@ -366,7 +377,35 @@ int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flag
     // Разбудить одного ожидающего приема
     scheduler_wake(&peer_data->rx_blk, 1);
 
+    // Будим наблюдающих за сокетом пира
+    poll_wakeall(&peer_data->poll_wq);
+
     return 0;
+}
+
+short sock_local_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl)
+{
+    short poll_mask = 0;
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+
+    poll_wait(nctl, file, &sock_data->poll_wq);
+
+    if ((sock->state == SOCKET_STATE_LISTEN) && (sock_data->backlog.head != NULL))
+        return POLLIN | POLLRDNORM;
+
+    // Пир закрыл свой сокет
+    if (sock_data->peer_disconnected == TRUE)
+        poll_mask |= POLLHUP;
+
+    // очередь приема не пуста?
+    if (list_size(&sock_data->rx_queue) > 0)
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // Пока что запись возможна, когда сокет соединен
+    if (sock->state == SOCKET_STATE_CONNECTED)
+        poll_mask |= (POLLOUT | POLLWRNORM);
+    
+    return poll_mask;
 }
 
 ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)

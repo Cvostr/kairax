@@ -7,10 +7,12 @@
 #include "sys/wait.h"
 #include "poll.h"
 #include "sys/select.h"
+#include "sys/socket.h"
 #include "string.h"
 
 int fds[2];
 int fds1[2];
+int localsockets[2];
 
 void thread(void* n) {
     sleep(1);
@@ -26,6 +28,15 @@ void thread_closefd(void* n) {
 
     int* f = n;
     close(*f);
+
+    thread_exit(125);
+}
+
+void thread_sockets(void* n) {
+    sleep(2);
+
+    char val = '0';
+    send(localsockets[1], &val, 1, 0);
 
     thread_exit(125);
 }
@@ -141,6 +152,32 @@ int main(int argc, char** argv) {
     printf("poll() with pipe with closing write end\n");
     events = poll(&closepfd, 1, -1);
     printf("got %i events. revents1 = %i\n", events, closepfd.revents);
+    waitpid(pid, &status,  0);
+
+
+    printf("Test 10\n");
+    printf("poll() with waiting for read avail in unix stream socket\n");
+    socketpair(AF_UNIX, SOCK_STREAM, 0, localsockets);
+    pfds[0].fd = localsockets[0];
+    pfds[0].events = POLLIN;
+    pfds[0].revents = 0;
+
+    pid = create_thread(thread_sockets, &fds[1]);
+    events = poll(&pfds, 1, -1);
+    printf("got %i events. revents1 = %i\n", events, pfds[0].revents);
+    waitpid(pid, &status,  0);
+
+
+    printf("Test 11\n");
+    printf("poll() with close unix stream socket\n");
+    //socketpair(AF_UNIX, SOCK_STREAM, 0, localsockets);
+    pfds[0].fd = localsockets[0];
+    pfds[0].events = POLLHUP;
+    pfds[0].revents = 0;
+
+    pid = create_thread(thread_closefd, &localsockets[1]);
+    events = poll(&pfds, 1, -1);
+    printf("got %i events. revents1 = %i\n", events, pfds[0].revents);
     waitpid(pid, &status,  0);
 
     return 0;
