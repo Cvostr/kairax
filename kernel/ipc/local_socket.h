@@ -56,9 +56,11 @@ int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr
 int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr);
 int sock_local_close(struct socket* sock);
 int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
-short sock_local_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl);
+int sock_local_sendto_dgram(struct socket *sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 ssize_t sock_local_recvfrom_dgram(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+
+short sock_local_poll(struct socket *sock, struct file *file, struct poll_ctl *nctl);
 
 int local_sock_create(struct socket* s, int type, int protocol);
 

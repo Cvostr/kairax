@@ -6,8 +6,10 @@
 #include "stdlib.h"
 #include <time.h>
 #include <sys/wait.h>
+#include "errno.h"
 
 #define SOCK_PATH "/tmp/testsock"
+#define SOCK_INC_PATH "/tmp/testsock_incorrect"
 
 int client();
 int server();
@@ -41,6 +43,12 @@ int main(int argc, char** argv)
             int pre = _socketpair();
             return pre;
         }
+
+        if (strcmp(arg, "inc") == 0)
+        {
+            int pre = incorrect_type();
+            return pre;
+        }
     }
 
     srand(time(NULL));
@@ -59,6 +67,47 @@ int main(int argc, char** argv)
     waitpid(client_pid, &clrc, 0);
 
     return rc;
+}
+
+int incorrect_type()
+{
+    int stream_serv;
+    int rc;
+
+    if ((stream_serv = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) 
+    {
+        perror("socket() failed");
+        return -1;
+    }
+
+    struct sockaddr_un serv_addr;
+    serv_addr.sun_family = AF_UNIX;
+    strcpy(serv_addr.sun_path, SOCK_INC_PATH);
+
+    if (bind(stream_serv, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_un)) < 0)
+    {
+        close(stream_serv);
+        perror("server: bind()");
+        return -1;
+    }
+
+    int clientsocket = socket(AF_UNIX, SOCK_DGRAM, 0);
+	if (clientsocket == -1)
+	{
+		perror("client: socket");
+		return 1;
+	}
+
+    char tt[2];
+    rc = sendto(clientsocket, tt, 2, 0, &serv_addr, sizeof(serv_addr));
+    if (rc == 0)
+    {
+        printf("Error: should fail, but rc is ok\n");
+    }
+
+    printf("RC=%i errno=%i\n", rc, errno);
+
+    return 0;
 }
 
 int server(int mode, int deletesock)

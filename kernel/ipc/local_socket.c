@@ -33,7 +33,7 @@ struct socket_prot_ops local_stream_ops = {
 struct socket_prot_ops local_dgram_ops = {
     .bind = sock_local_bind,
     .close = sock_local_close,
-    .sendto = sock_local_sendto,
+    .sendto = sock_local_sendto_dgram,
     .recvfrom = sock_local_recvfrom_dgram
 };
 
@@ -498,10 +498,118 @@ ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, i
     return readed;
 }
 
+int sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+{
+    int rc = 0;
+    struct sockaddr_un* addr_un = (struct sockaddr_un*) to;
+    struct socket* peer_sock = NULL;
+    struct file* peer_file = NULL;
+
+    // Указан ли адрес назначения?
+    if (to == NULL)
+    {
+        // Подключен ли сокет?
+        if (sock->state == SOCKET_STATE_CONNECTED)
+        {
+            // TODO: Если да, то отправляем в пира
+            return -ENOTSUP;
+        }
+        else
+        {
+            // Если не подключен и адресат не указан, то ошибка
+            return -EDESTADDRREQ;
+        }
+    }
+    else
+    {
+        // адрес указан
+        // Проверим, что размер адреса минимум sa_family_t
+        if (tolen < sizeof(sa_family_t)) {
+            return -EINVAL;
+        }
+
+        // Проверим значение sa_family
+        if (to->sa_family != AF_LOCAL) {
+            return -EINVAL;
+        }
+
+        // Сколько осталось под адрес сокета
+        int namelen = tolen - sizeof(sa_family_t);
+        if (namelen < 1) {
+            return -EINVAL;
+        }
+        
+        // ищем файл сокета
+        peer_file = file_open(NULL, addr_un->sun_path, 0, 0);
+        if (peer_file == NULL)
+        {
+            return -ECONNREFUSED;
+        }
+
+        // Проверяем, что это сокет
+        if ((peer_file->inode->mode & INODE_FLAG_SOCKET) == 0) {
+            // Мы пытаемся открыть файл, который не является сокетом
+            rc = -ECONNREFUSED;
+            goto exit;
+        }
+
+        peer_sock = (struct socket*) peer_file->inode->private_data;
+    }
+
+    // Проверим, получилось ли найти объект сокета
+    if (peer_sock == NULL)
+    {
+        rc = -ECONNREFUSED;
+        goto exit;
+    }
+
+    // Проверим, что это сокет того же типа
+    if (peer_sock->domain != AF_LOCAL || peer_sock->type != SOCK_DGRAM)
+    {
+        return -EPROTOTYPE;
+    }
+
+    struct local_socket* peer_data = (struct local_socket*) peer_sock->data;
+    if (peer_data == NULL)
+    {
+        rc = -ECONNREFUSED;
+        goto exit;
+    }
+
+    // Выделим память сразу и под заголовок и под данные
+    unsigned char* bucket = kmalloc(sizeof(struct local_sock_bucket) + len);
+    // получим основные указатели
+    struct local_sock_bucket* header = (struct local_sock_bucket*) bucket;
+    unsigned char* data = (header + 1);
+    // запись данных
+    memcpy(data, msg, len);
+    header->size = len;
+    header->offset = 0;
+
+    // добавление пакета в очередь
+    acquire_spinlock(&peer_data->rx_queue_lock);
+    list_add(&peer_data->rx_queue, header);
+    peer_data->rx_available += len;
+    release_spinlock(&peer_data->rx_queue_lock);
+
+    // Разбудить одного ожидающего приема
+    scheduler_wake(&peer_data->rx_blk, 1);
+
+    // Будим наблюдающих за сокетом пира
+    poll_wakeall(&peer_data->poll_wq);
+
+exit:
+    if (peer_file != NULL)
+        file_close(peer_file);
+    return rc;
+}
 
 ssize_t sock_local_recvfrom_dgram(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
-    return 0;
+    ssize_t readed = 0;
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+
+    return -ENOTSUP;
 }
 
 int local_sock_create(struct socket* s, int type, int protocol) 
