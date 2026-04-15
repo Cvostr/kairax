@@ -232,7 +232,16 @@ int sys_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = process_get_file_ex(process, sockfd, TRUE);
+    struct file* file = NULL;
+
+    // Проверить адрес переменной-длины и что запись разрешена
+    VALIDATE_USER_POINTER_PROTECTION(process, addrlen, sizeof(socklen_t), PAGE_PROTECTION_WRITE_ENABLE);
+
+    // Проверить, что выходной буфер имеет доступную длину namelen и запись разрешена
+    VALIDATE_USER_POINTER_PROTECTION(process, addr, *addrlen, PAGE_PROTECTION_WRITE_ENABLE)
+
+    // Получить файл по дескриптору
+    file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;
@@ -257,7 +266,16 @@ int sys_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = process_get_file_ex(process, sockfd, TRUE);
+    struct file* file = NULL;
+
+    // Проверить адрес переменной-длины и что запись разрешена
+    VALIDATE_USER_POINTER_PROTECTION(process, namelen, sizeof(socklen_t), PAGE_PROTECTION_WRITE_ENABLE);
+
+    // Проверить, что выходной буфер имеет доступную длину namelen и запись разрешена
+    VALIDATE_USER_POINTER_PROTECTION(process, name, *namelen, PAGE_PROTECTION_WRITE_ENABLE)
+    
+    // Получить файл по дескриптору
+    file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
         rc = -ERROR_BAD_FD;

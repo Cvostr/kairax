@@ -27,6 +27,7 @@ int* __errno_location();
 #define EWOULDBLOCK	                EAGAIN
 #define	ENOMEM                      12
 #define	EACCES		                13
+#define EFAULT		                14
 #define	EBUSY                       16
 #define EEXIST                      17
 #define EXDEV                       18

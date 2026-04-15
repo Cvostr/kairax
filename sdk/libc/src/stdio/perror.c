@@ -20,6 +20,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EAGAIN, "Try again"),
     DEFINE_ERROR(ENOMEM, "Out of memory"),
     DEFINE_ERROR(EACCES, "Permission denied"),
+    DEFINE_ERROR(EFAULT, "Bad address"),
     DEFINE_ERROR(EBUSY, "Device or resource busy"),
     DEFINE_ERROR(EEXIST, "File exists"),
     DEFINE_ERROR(EXDEV, "Cross-device link"),

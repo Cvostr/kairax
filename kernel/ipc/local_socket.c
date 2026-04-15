@@ -26,6 +26,8 @@ struct socket_prot_ops local_stream_ops = {
     .connect = sock_local_connect,
     .close = sock_local_close,
     .poll = sock_local_poll,
+    .getsockname = sock_local_getsockname,
+    .getpeername = sock_local_getpeername,
     .sendto = sock_local_sendto,
     .recvfrom = sock_local_recvfrom_stream
 };
@@ -102,6 +104,11 @@ int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t 
         // Закрыть файл
         file_close(file);
     }
+
+    lsock->address_len = addrlen;
+    // Сохраняем адрес в структуре сокета
+    lsock->address = kmalloc(addrlen);
+    memcpy(lsock->address, addr, addrlen);
     
     return 0;
 }
@@ -290,6 +297,73 @@ exit:
     return rc;
 }
 
+int sock_local_getsockname(struct socket *sock, struct sockaddr *name, socklen_t *namelen)
+{
+    sa_family_t default_family = AF_LOCAL;
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+
+    if (sock_data->address == NULL || sock_data->address_len == 0)
+    {
+        // для сокета не вызывался bind().
+        // 
+        return 0;
+    }
+
+    // найдем минимальную доступную длину
+    socklen_t minlen = MIN(sock_data->address_len, *namelen);
+
+    // копируем
+    memcpy(name, sock_data->address, minlen);
+
+    // не забываем записать кол-во скопированных байт
+    if (minlen != *namelen)
+    {
+        *namelen = minlen;
+    }
+
+    return 0;
+}
+
+int sock_local_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen)
+{
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+    struct local_socket* peer_sock_data;
+
+    // Проверим, что сокет подключен
+    if (sock->state != SOCKET_STATE_CONNECTED)
+    {
+        return -ENOTCONN;
+    }
+
+    if (sock_data->peer == NULL || sock_data->peer_disconnected == TRUE)
+    {
+        return -ENOTCONN;
+    }
+
+    // получить структуру пира
+    peer_sock_data = sock_data->peer->data;
+    
+    if (peer_sock_data->address == NULL || peer_sock_data->address_len == 0)
+    {
+        // для сокета-пира не вызывался bind(). просто ничего не делаем
+        return 0;
+    }
+
+    // найдем минимальную доступную длину
+    socklen_t minlen = MIN(peer_sock_data->address_len, *addrlen);
+
+    // копируем
+    memcpy(addr, sock_data->address, minlen);
+
+    // не забываем записать кол-во скопированных байт
+    if (minlen != *addrlen)
+    {
+        *addrlen = minlen;
+    }
+
+    return 0;
+}
+
 int sock_local_close(struct socket* sock)
 {
 #ifdef LOCAL_SOCK_LOG_CLOSE
@@ -356,6 +430,14 @@ int sock_local_close(struct socket* sock)
     }
 
     sock->state = SOCKET_STATE_UNCONNECTED;
+
+    // Если прибинжен адрес, то его надо освободить
+    if (sock_data->address)
+    {
+        kfree(sock_data->address);
+        sock_data->address = NULL;
+    }
+
     return 0;
 }
 

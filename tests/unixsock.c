@@ -193,7 +193,15 @@ int client()
 		return 1;
 	}
 
-    printf("Connected to server!\n");
+    struct sockaddr_un peer_addr;
+    socklen_t peer_addr_len = sizeof(peer_addr);
+    int rc = getpeername(clientsocket, &peer_addr, &peer_addr_len);
+    if (rc != 0)
+    {
+        perror("getpeername()");
+    }
+    
+    printf("Connected to server '%s'!\n", peer_addr.sun_path);
 
     char buff [40];
     char recv_buffer [40];
