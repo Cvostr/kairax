@@ -151,6 +151,7 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
         }
     }
 
+    // Данные сокета клиента со стороны приложения-клиента
     struct local_socket* client_sock_data = (struct local_socket*) client_sock->data;
 
     // Создание сокета клиента
@@ -169,6 +170,12 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
     client_sock_data->connection_accepted = 1;
     scheduler_wake(&client_sock_data->connect_blk, 1);
 
+    // Задаем адрес клиентского сокета со стороны сервера равным адресу сервера
+    client_pair_sock_data->address = kmalloc(sock_data->address_len);
+    memcpy(client_pair_sock_data->address, sock_data->address, sock_data->address_len);
+    client_pair_sock_data->address_len = sock_data->address_len;
+
+    // 
     *newsock = client_pair_sock;
 
     // Уменьшить счетчик ссылок, т.к мы вытащили иноду из очереди
@@ -305,7 +312,7 @@ int sock_local_getsockname(struct socket *sock, struct sockaddr *name, socklen_t
     if (sock_data->address == NULL || sock_data->address_len == 0)
     {
         // для сокета не вызывался bind().
-        // 
+        *namelen = 0;
         return 0;
     }
 
@@ -346,6 +353,7 @@ int sock_local_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t
     if (peer_sock_data->address == NULL || peer_sock_data->address_len == 0)
     {
         // для сокета-пира не вызывался bind(). просто ничего не делаем
+        *addrlen = 0;
         return 0;
     }
 
@@ -353,7 +361,7 @@ int sock_local_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t
     socklen_t minlen = MIN(peer_sock_data->address_len, *addrlen);
 
     // копируем
-    memcpy(addr, sock_data->address, minlen);
+    memcpy(addr, peer_sock_data->address, minlen);
 
     // не забываем записать кол-во скопированных байт
     if (minlen != *addrlen)

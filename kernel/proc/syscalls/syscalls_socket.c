@@ -306,6 +306,11 @@ int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
         VALIDATE_USER_POINTER(process, to, tolen);
     }
 
+    if (len > 0) {
+        // В некоторых случаях допускается пустое сообщение, так что проверяем только для непустых сообщений
+        VALIDATE_USER_POINTER(process, msg, len)
+    }
+
     struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
     if (file == NULL) {
@@ -343,6 +348,11 @@ ssize_t sys_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockad
     if (from != NULL) {
         // Если адрес задан, то проверить его
         VALIDATE_USER_POINTER(process, from, sizeof(struct sockaddr));
+    }
+
+    if (len > 0) {
+        // В некоторых случаях допускается пустое сообщение, так что проверяем только для непустых сообщений
+        VALIDATE_USER_POINTER_PROTECTION(process, buf, len, PAGE_PROTECTION_WRITE_ENABLE)
     }
 
     struct file* file = process_get_file_ex(process, sockfd, TRUE);

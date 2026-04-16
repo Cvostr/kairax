@@ -7,6 +7,7 @@
 #include "fcntl.h"
 #include <sys/mman.h>
 #include <unistd.h>
+#include "sys/socket.h"
 
 #define MMAP_PORTION 100
 
@@ -140,6 +141,25 @@ int main(int argc, char** argv)
         return 5;
     }
 
+    printf("Test 15: send() with bad ptr\n");
+    int socks[2];
+    rc = socketpair(AF_LOCAL, SOCK_STREAM, 0, socks);
+    if (rc != 0)
+    {
+        perror("socketpair");
+        return 1;
+    }
+    // Проверочное
+    rc = send(socks[0], 0x1, 10, 0);
+    if (rc >= 0) {
+        printf("Successful send()\n");
+        return 9;
+    }
+
+    printf("Test 16: recv() with bad ptr\n");
+    rc = send(socks[0], socks, 4, 0);
+
+    rc = recv(socks[1], 0x1, 10, 0);
 
     return 0;
 }
