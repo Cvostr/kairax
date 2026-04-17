@@ -119,7 +119,17 @@ exit:
 int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
     int rc = -1;
+    struct socket* newsock = NULL;
     struct process* process = cpu_get_current_thread()->process;
+
+    if (addr != NULL)
+    {
+        // Для начала надо проверить, что addrlen - корректный указатель с разрешением на запись
+        VALIDATE_USER_POINTER_PROTECTION(process, addrlen, sizeof(socklen_t), PAGE_PROTECTION_WRITE_ENABLE);
+
+        // Проверим, что addr - корректный адрес с разрешением на запись
+        VALIDATE_USER_POINTER_PROTECTION(process, addr, *addrlen, PAGE_PROTECTION_WRITE_ENABLE);
+    }
 
     struct file* file = process_get_file_ex(process, sockfd, TRUE);
 
@@ -134,8 +144,8 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     }
 
     struct socket* sock = (struct socket*) file->inode->private_data;
-    struct socket* newsock = NULL;
-    rc = socket_accept(sock, &newsock, addrlen);
+    
+    rc = socket_accept(sock, &newsock, addr, addrlen);
     if (rc == 0 && newsock != NULL) {
         // Создаем файл из сокета и добавляем
         struct file* fsock = make_file_from_sock(newsock);

@@ -849,7 +849,7 @@ struct socket* tcp_ip4_listener_get(struct socket* listener, uint32_t addr, uint
     return result;
 }
 
-int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr)
+int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 

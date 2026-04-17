@@ -122,7 +122,7 @@ void tcp_ip4_init();
 // Операции с сокетом
 int sock_tcp4_create (struct socket* sock);
 int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
-int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr);
+int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr, socklen_t *addrlen);
 int sock_tcp4_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
 int sock_tcp4_listen(struct socket* sock, int backlog);
 ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);

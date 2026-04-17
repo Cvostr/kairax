@@ -192,13 +192,13 @@ int socket_listen(struct socket* sock, int backlog)
     return sock->ops->listen(sock, backlog);
 }
 
-int socket_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr)
+int socket_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr, socklen_t *addrlen)
 {
     if (sock->ops->accept == NULL) {
         return -ERROR_INVALID_VALUE;
     }
 
-    return sock->ops->accept(sock, newsock, addr);
+    return sock->ops->accept(sock, newsock, addr, addrlen);
 }
 
 int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)

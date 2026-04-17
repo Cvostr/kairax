@@ -127,7 +127,7 @@ int sock_local_listen(struct socket* sock, int backlog)
     return 0;
 }
 
-int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr)
+int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr, socklen_t *addrlen)
 {
     struct local_socket* sock_data = (struct local_socket*) sock->data;
 

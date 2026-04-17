@@ -54,7 +54,7 @@ int sock_local_pair(struct socket* sock1, struct socket* sock2);
 int sock_local_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
 int sock_local_listen (struct socket* sock, int backlog);
 int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len);
-int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr);
+int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sockaddr *addr, socklen_t *addrlen);
 int sock_local_close(struct socket* sock);
 int sock_local_getsockname(struct socket *sock, struct sockaddr *name, socklen_t *namelen);
 int sock_local_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
