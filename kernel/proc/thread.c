@@ -48,6 +48,11 @@ void thread_destroy(struct thread* thread)
 
 int thread_send_signal(struct thread* thread, int signal)
 {
+    if (thread == NULL)
+    {
+        return -EINVAL;
+    }
+
     sigset_t shifted = 1 << signal;
 
     int blocked = (thread->process->blocked_signals & shifted) == shifted;

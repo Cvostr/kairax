@@ -155,7 +155,7 @@ int socket_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_len
 int socket_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
 int socket_listen(struct socket* sock, int backlog);
 int socket_accept(struct socket *sock, struct socket **newsock, struct sockaddr *addr, socklen_t *addrlen);
-int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+ssize_t socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 ssize_t socket_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 int socket_setsockopt(struct socket* sock, int level, int optname, const void *optval, unsigned int optlen);
 int socket_shutdown(struct socket* sock, int how);

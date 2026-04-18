@@ -201,7 +201,7 @@ int socket_accept(struct socket *sock, struct socket **newsock, struct sockaddr 
     return sock->ops->accept(sock, newsock, addr, addrlen);
 }
 
-int socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+ssize_t socket_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     return sock->ops->sendto(sock, msg, len, flags, to, tolen);
 }

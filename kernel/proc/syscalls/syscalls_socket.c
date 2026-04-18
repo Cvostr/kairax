@@ -306,7 +306,7 @@ exit:
     return rc;
 }
 
-int sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+ssize_t sys_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
