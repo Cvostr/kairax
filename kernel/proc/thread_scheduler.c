@@ -201,7 +201,8 @@ int scheduler_prepare_sleep(struct thread* thr)
     thr->state = STATE_INTERRUPTIBLE_SLEEP;
 
     // удалить из очереди текущего ЦП
-    wq_remove_thread(wq, thr);
+    if (thr->balance_forbidden == FALSE)
+        wq_remove_thread(wq, thr);
 }
 
 int scheduler_get_wake_reason(struct thread* thr)

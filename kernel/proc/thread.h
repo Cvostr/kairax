@@ -45,6 +45,7 @@ struct thread {
     void                *timer; 
     int                 in_queue;
     // Следующий поток при блокировке на семафоре
+    struct thread*      sem_next;
     struct thread*      prev;
     struct thread*      next;
 

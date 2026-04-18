@@ -55,12 +55,15 @@ int semaphore_acquire(struct semaphore* sem)
         // И ставит статус "блокирован"
         scheduler_prepare_sleep(current);
 
+        // Зануляем адрес следующего потока в семафоре
+        current->sem_next = NULL;
+
         // Добавление потока в очередь блокированных
         // Делаем это именно сейчас, потому что semaphore_release() ожидает, что потоки в очереди уже блокированы
         if (sem->first == NULL) {
             sem->first = current;
         } else {
-            sem->last->next = current; 
+            sem->last->sem_next = current; 
         }
 
         sem->last = current;
@@ -80,18 +83,19 @@ void semaphore_release(struct semaphore* sem)
     // Первый заблокированный поток
     struct thread* first_thread = NULL;
 
-    if (__sync_sub_and_fetch(&sem->current.counter, 1) >= sem->max)
+    if (atomic_dec_and_get(&sem->current) >= sem->max)
     {
         while (first_thread == NULL)
         {
             // Извлекаем первый блокированный поток
             acquire_spinlock(&sem->lock);
+
             first_thread = sem->first;
             if (first_thread) 
             {
-                sem->first = first_thread->next; 
-                first_thread->next = NULL;
+                sem->first = first_thread->sem_next; 
             }
+
             release_spinlock(&sem->lock);
         }
 
