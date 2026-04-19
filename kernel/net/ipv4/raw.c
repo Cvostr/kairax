@@ -78,7 +78,7 @@ int sock_raw4_create (struct socket* sock)
     return 0;
 }
 
-int sock_raw4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+ssize_t sock_raw4_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     if (to == NULL)
     {

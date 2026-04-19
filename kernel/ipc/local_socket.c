@@ -449,7 +449,7 @@ int sock_local_close(struct socket* sock)
     return 0;
 }
 
-int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+ssize_t sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     if (sock->state != SOCKET_STATE_CONNECTED)
     {
@@ -588,7 +588,7 @@ ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, i
     return readed;
 }
 
-int sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+ssize_t sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     int rc = 0;
     struct sockaddr_un* addr_un = (struct sockaddr_un*) to;

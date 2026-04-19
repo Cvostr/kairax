@@ -58,8 +58,8 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
 int sock_local_close(struct socket* sock);
 int sock_local_getsockname(struct socket *sock, struct sockaddr *name, socklen_t *namelen);
 int sock_local_getpeername(struct socket *sock, struct sockaddr *addr, socklen_t *addrlen);
-int sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
-int sock_local_sendto_dgram(struct socket *sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+ssize_t sock_local_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+ssize_t sock_local_sendto_dgram(struct socket *sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 ssize_t sock_local_recvfrom_dgram(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 

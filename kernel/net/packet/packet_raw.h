@@ -28,7 +28,7 @@ void packet_raw_put_to_rx_queue(struct socket* sock, struct net_buffer* nbuffer)
 
 int sock_packet_raw_create (struct socket* sock);
 int sock_packet_raw_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen);
-int sock_packet_raw_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+ssize_t sock_packet_raw_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
 ssize_t sock_packet_raw_recvfrom(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
 short sock_packet_raw_poll(struct socket *sock, struct file *file, struct poll_ctl *pctl);
 int sock_packet_raw_close(struct socket* sock);

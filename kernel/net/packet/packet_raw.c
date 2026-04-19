@@ -101,7 +101,7 @@ int sock_packet_raw_bind(struct socket* sock, const struct sockaddr *addr, sockl
     return 0;
 }
 
-int sock_packet_raw_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
+ssize_t sock_packet_raw_sendto(struct socket* sock, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
     if (to != NULL || tolen != 0)
     {

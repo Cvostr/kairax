@@ -148,7 +148,11 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 goto exit;
             }
 
+            // Сохранить номер indirect блока 1 уровня
             inode->blocks[EXT2_DIRECT_BLOCKS] = new_block_index;
+            // При добавлении indirect блоков, i_blocks нужно также увеличивать
+            inode->num_blocks += (inst->block_size / 512);
+
             ext2_write_inode_metadata(inst, inode, inode_index);
         }
 
@@ -178,7 +182,12 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 rc = -2;
                 goto exit;
             }
+            
+            // Сохранить номер корневого double indirect блока
             inode->blocks[EXT2_DIRECT_BLOCKS + 1] = new_block_index;
+            // При добавлении indirect блоков, i_blocks нужно также увеличивать
+            inode->num_blocks += (inst->block_size / 512);
+            
             ext2_write_inode_metadata(inst, inode, inode_index);
         }
 
@@ -192,7 +201,12 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 rc = -2;
                 goto exit;
             }
+            
+            // Сохранить номер indirect блока 2 уровня
             ((uint32_t*)buffer)[c] = new_block_index;
+            // При добавлении indirect блоков, i_blocks нужно также увеличивать
+            inode->num_blocks += (inst->block_size / 512);
+            
             ext2_partition_write_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, buffer);
         }
 
@@ -226,7 +240,12 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 rc = -2;
                 goto exit;
             }
+            
+            // Сохранить номер корневого triple indirect блока
             inode->blocks[EXT2_DIRECT_BLOCKS + 2] = new_block_index;
+            // При добавлении indirect блоков, i_blocks нужно также увеличивать
+            inode->num_blocks += (inst->block_size / 512);
+            
             ext2_write_inode_metadata(inst, inode, inode_index);
         }
 
@@ -240,7 +259,11 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 rc = -2;
                 goto exit;
             }
+
             ((uint32_t*)buffer)[d] = new_block_index;
+            // При добавлении indirect блоков, i_blocks нужно также увеличивать
+            inode->num_blocks += (inst->block_size / 512);
+
             ext2_partition_write_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, buffer);
         }
 
@@ -255,7 +278,11 @@ int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t in
                 rc = -2;
                 goto exit;
             }
+            
             ((uint32_t*)buffer)[f] = new_block_index;
+            // При добавлении indirect блоков, i_blocks нужно также увеличивать
+            inode->num_blocks += (inst->block_size / 512);
+
             ext2_partition_write_block_virt(inst, saved_block, 1, buffer);
         }
 
