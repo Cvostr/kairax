@@ -320,7 +320,12 @@ ssize_t sock_udp4_sendto(struct socket* sock, const void *msg, size_t len, int f
     // освобождение памяти, выделенной под буфер
     net_buffer_free(resp);
 
-    return rc;
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return len;
 }
 
 int sock_udp4_setsockopt_sol_IP(struct socket* sock, int optname, const void *optval, unsigned int optlen)
