@@ -34,6 +34,7 @@ struct socket_prot_ops local_stream_ops = {
 
 struct socket_prot_ops local_dgram_ops = {
     .bind = sock_local_bind,
+    .connect = sock_local_connect_dgram,
     .close = sock_local_close,
     .sendto = sock_local_sendto_dgram,
     .recvfrom = sock_local_recvfrom_dgram
@@ -251,6 +252,80 @@ int	sock_local_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr
         goto exit;
     }
 
+    sock->state = SOCKET_STATE_CONNECTED;
+
+exit:
+    file_close(file);
+    return rc;
+}
+
+
+int	sock_local_connect_dgram(struct socket* sock, struct sockaddr* saddr, int sockaddr_len)
+{
+    int rc = 0;
+    struct sockaddr_un* addr_un = (struct sockaddr_un*) saddr;
+    struct local_socket* sock_data = (struct local_socket*) sock->data;
+
+    // Проверим, что размер адреса минимум sa_family_t
+    if (sockaddr_len < sizeof(sa_family_t)) 
+    {
+        return -EINVAL;
+    }
+
+    // Проверим значение sa_family
+    if (saddr->sa_family != AF_LOCAL) 
+    {
+        return -EINVAL;
+    }
+
+    // Не проверяем статус, так как connect() у DGRAM можно вызывать много раз
+    
+    // Пробуем открыть файл
+    struct file* file = file_open(NULL, addr_un->sun_path, 0, 0);
+
+    // Файл не найден
+    if (file == NULL)
+    {
+        return -ECONNREFUSED;
+    }
+
+    if ((file->inode->mode & INODE_FLAG_SOCKET) == 0) {
+        // Мы пытаемся открыть файл, который не является сокетом
+        rc = -ECONNREFUSED;
+        goto exit;
+    }
+
+    struct socket* peer_sock = (struct socket*) file->inode->private_data;
+    if (peer_sock == NULL)
+    {
+        rc = -ECONNREFUSED;
+        goto exit;
+    }
+
+    // Проверим, что это сокет того же типа
+    if (peer_sock->domain != AF_LOCAL || peer_sock->type != SOCK_DGRAM)
+    {
+        rc = -EPROTOTYPE;
+        goto exit;
+    }
+
+    struct socket* old_peer_sock = sock_data->peer;
+
+    // TODO: Возможны Race Condition
+    if (peer_sock != old_peer_sock)
+    {
+        // Устанавливаем нового пира
+        acquire_socket(peer_sock);
+        sock_data->peer = peer_sock;
+
+        // Снижаем счетчик ссылок старого пира
+        if (old_peer_sock)
+        {
+            free_socket(old_peer_sock);
+        }
+    }
+
+    // Устанавливаем новое состояние
     sock->state = SOCKET_STATE_CONNECTED;
 
 exit:
@@ -592,19 +667,18 @@ ssize_t sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len
 {
     int rc = 0;
     struct sockaddr_un* addr_un = (struct sockaddr_un*) to;
+    struct local_socket *sock_data = (struct local_socket*) sock->data;
     struct socket* peer_sock = NULL;
     struct file* peer_file = NULL;
 
     // Указан ли адрес назначения?
     if (to == NULL)
     {
+        // Сохраним указатель
+        peer_sock = sock_data->peer;
+
         // Подключен ли сокет?
-        if (sock->state == SOCKET_STATE_CONNECTED)
-        {
-            // TODO: Если да, то отправляем в пира
-            return -ENOTSUP;
-        }
-        else
+        if (sock->state != SOCKET_STATE_CONNECTED || peer_sock == NULL)
         {
             // Если не подключен и адресат не указан, то ошибка
             return -EDESTADDRREQ;
@@ -653,10 +727,13 @@ ssize_t sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len
         goto exit;
     }
 
+    acquire_socket(peer_sock);
+
     // Проверим, что это сокет того же типа
     if (peer_sock->domain != AF_LOCAL || peer_sock->type != SOCK_DGRAM)
     {
-        return -EPROTOTYPE;
+        rc = -EPROTOTYPE;
+        goto exit;
     }
 
     struct local_socket* peer_data = (struct local_socket*) peer_sock->data;
@@ -691,6 +768,8 @@ ssize_t sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len
 exit:
     if (peer_file != NULL)
         file_close(peer_file);
+    if (peer_sock != NULL)
+        free_socket(peer_sock);
     return rc;
 }
 

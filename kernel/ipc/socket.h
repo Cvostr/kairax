@@ -5,6 +5,7 @@
 #include "fs/vfs/inode.h"
 #include "fs/vfs/file.h"
 
+#define AF_UNSPEC	0
 #define AF_LOCAL    1
 #define AF_INET     2
 #define AF_INET6    10

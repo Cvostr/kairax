@@ -180,7 +180,7 @@ int server(int mode, int deletesock)
     printf("Connected client!\n");
 
     ssize_t readed = 0;
-    char buf[20];
+    char buf[40];
     while ((readed = recv(client_sock, buf, sizeof(buf), 0)) > 0)
     {
         send(client_sock, buf, readed, 0);
@@ -365,9 +365,11 @@ int dgram_server()
 
 int dgram_client()
 {
+    int rc;
     int sfd;
     struct sockaddr_un svaddr;
     char *msg = "Hello from client!";
+    char *msg2 = "Hello from connected client!";
 
     sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
 
@@ -379,6 +381,20 @@ int dgram_client()
     {
         // Send message to the server path
         sendto(sfd, msg, strlen(msg), 0, (struct sockaddr *) &svaddr, sizeof(struct sockaddr_un));
+        printf("Message %i sent.\n", i);
+    }
+
+    rc = connect(sfd, (struct sockaddr *) &svaddr, sizeof(struct sockaddr_un));
+    if (rc != 0)
+    {
+        perror("connect()");
+        return 1;
+    }
+
+    for (int i = 0; i < 5; i ++)
+    {
+        // Send message to the server path
+        send(sfd, msg2, strlen(msg2), 0);
         printf("Message %i sent.\n", i);
     }
 
