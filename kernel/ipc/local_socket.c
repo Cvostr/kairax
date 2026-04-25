@@ -140,9 +140,9 @@ int	sock_local_accept (struct socket *sock, struct socket **newsock, struct sock
         scheduler_sleep_on(&sock_data->backlog_blk);
 
         // Пробуем вытащить пакет
-        acquire_spinlock(&sock_data->rx_queue_lock);
+        semaphore_acquire(&sock_data->rx_queue_lock);
         client_sock = list_dequeue(&sock_data->backlog);
-        release_spinlock(&sock_data->rx_queue_lock);
+        semaphore_release(&sock_data->rx_queue_lock);
 
         if (client_sock == NULL)
         {
@@ -282,7 +282,7 @@ int socket_local_append_to_backlog(struct socket* server_sock, struct socket* so
     int rc = 0;
     struct local_socket* server_sock_data = (struct local_socket*) server_sock->data;
 
-    acquire_spinlock(&server_sock_data->backlog_lock);
+    semaphore_acquire(&server_sock_data->backlog_lock);
     if (list_size(&server_sock_data->backlog) < server_sock_data->backlog_sz) 
     {
         // Добавляем сокет к очереди подключений
@@ -300,7 +300,7 @@ int socket_local_append_to_backlog(struct socket* server_sock, struct socket* so
     }
 
 exit:
-    release_spinlock(&server_sock_data->backlog_lock);
+    semaphore_release(&server_sock_data->backlog_lock);
     return rc;
 }
 
@@ -403,13 +403,13 @@ int sock_local_close(struct socket* sock)
     }
 
     // Очистить остатки буфера приема
-    acquire_spinlock(&sock_data->rx_queue_lock);
+    semaphore_acquire(&sock_data->rx_queue_lock);
     struct local_sock_bucket* current; 
     while ((current = list_dequeue(&sock_data->rx_queue)) != NULL)
     {
         kfree(current);
     }
-    release_spinlock(&sock_data->rx_queue_lock);
+    semaphore_release(&sock_data->rx_queue_lock);
 
     // Освободить память под inode файла сокета
     if (sock_data->bound_inode != NULL)
@@ -423,7 +423,7 @@ int sock_local_close(struct socket* sock)
     if (sock->state == SOCKET_STATE_LISTEN)
     {
         // В очереди на прием соединения могут остаться сокеты
-        acquire_spinlock(&sock_data->backlog_lock);
+        semaphore_acquire(&sock_data->backlog_lock);
         struct socket* current_peer; 
         while ((current_peer = list_dequeue(&sock_data->backlog)) != NULL)
         {
@@ -434,7 +434,7 @@ int sock_local_close(struct socket* sock)
             free_socket(current_peer);
         }
 
-        release_spinlock(&sock_data->backlog_lock);
+        semaphore_release(&sock_data->backlog_lock);
     }
 
     sock->state = SOCKET_STATE_UNCONNECTED;
@@ -471,10 +471,10 @@ ssize_t sock_local_sendto(struct socket* sock, const void *msg, size_t len, int 
     struct socket* peer = sock_data->peer;
     struct local_socket* peer_data = (struct local_socket*) peer->data;
     
-    acquire_spinlock(&peer_data->rx_queue_lock);
+    semaphore_acquire(&peer_data->rx_queue_lock);
     list_add(&peer_data->rx_queue, header);
     peer_data->rx_available += len;
-    release_spinlock(&peer_data->rx_queue_lock);
+    semaphore_release(&peer_data->rx_queue_lock);
 
     // Разбудить одного ожидающего приема
     scheduler_wake(&peer_data->rx_blk, 1);
@@ -554,7 +554,7 @@ ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, i
         }
     }
 
-    acquire_spinlock(&sock_data->rx_queue_lock);
+    semaphore_acquire(&sock_data->rx_queue_lock);
 
     size_t readable = MIN(len, sock_data->rx_available);
 
@@ -583,7 +583,7 @@ ssize_t sock_local_recvfrom_stream(struct socket* sock, void* buf, size_t len, i
         }
     }
 
-    release_spinlock(&sock_data->rx_queue_lock);
+    semaphore_release(&sock_data->rx_queue_lock);
 
     return readed;
 }
@@ -677,10 +677,10 @@ ssize_t sock_local_sendto_dgram(struct socket* sock, const void *msg, size_t len
     header->offset = 0;
 
     // добавление пакета в очередь
-    acquire_spinlock(&peer_data->rx_queue_lock);
+    semaphore_acquire(&peer_data->rx_queue_lock);
     list_add(&peer_data->rx_queue, header);
     peer_data->rx_available += len;
-    release_spinlock(&peer_data->rx_queue_lock);
+    semaphore_release(&peer_data->rx_queue_lock);
 
     // Разбудить одного ожидающего приема
     scheduler_wake(&peer_data->rx_blk, 1);
@@ -696,10 +696,52 @@ exit:
 
 ssize_t sock_local_recvfrom_dgram(struct socket* sock, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
+    int wake_reason = 0;
     ssize_t readed = 0;
-    struct local_socket* sock_data = (struct local_socket*) sock->data;
+    struct local_sock_bucket *bucket = NULL;
+    struct local_socket *sock_data = (struct local_socket*) sock->data;
 
-    return -ENOTSUP;
+    // Попробуем вытащить пакет из очереди
+    semaphore_acquire(&sock_data->rx_queue_lock);
+    bucket = list_dequeue(&sock_data->rx_queue);
+    semaphore_release(&sock_data->rx_queue_lock);
+
+    if (bucket == NULL) 
+    {
+        // неблокирующее чтение
+        if (((flags & MSG_DONTWAIT) == MSG_DONTWAIT) ) //|| sock_data->nonblock == 1)
+        {
+            return -EAGAIN;
+        }
+
+        while (bucket == NULL)
+        {
+            // Ожидание пакета
+            wake_reason = scheduler_sleep_on(&sock_data->rx_blk);
+
+            // Пробуем вытащить пакет
+            semaphore_acquire(&sock_data->rx_queue_lock);
+            bucket = list_dequeue(&sock_data->rx_queue);
+            semaphore_release(&sock_data->rx_queue_lock);
+
+            if (wake_reason == WAKE_SIGNAL)
+            {
+                return -EINTR;
+            }
+        }
+    }
+
+    // Считаем размер, который будет считан
+    readed = MIN(len, bucket->size);
+
+    // Запишем данные
+    memcpy(buf, bucket->data, readed);
+
+    kfree(bucket);
+
+    // TODO: запись адреса отправителя в src_addr
+
+    return readed;
 }
 
 int local_sock_create(struct socket* s, int type, int protocol) 
@@ -727,13 +769,15 @@ int local_sock_create(struct socket* s, int type, int protocol)
 
 struct socket_data* new_local_socket(int type)
 {
-    struct socket_data* sock = kmalloc(sizeof(struct local_socket));
+    struct local_socket* sock = kmalloc(sizeof(struct local_socket));
     if (sock == NULL)
     {
         return sock;
     }
     
     memset(sock, 0, sizeof(struct local_socket));
+    semaphore_init(&sock->rx_queue_lock, 1);
+    semaphore_init(&sock->backlog_lock, 1);
 
     return sock;
 }

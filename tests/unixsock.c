@@ -11,6 +11,8 @@
 #define SOCK_PATH "/tmp/testsock"
 #define SOCK_INC_PATH "/tmp/testsock_incorrect"
 
+#define STREAM_ROUNDS 200
+
 int client();
 int server();
 
@@ -52,6 +54,7 @@ int main(int argc, char** argv)
     }
 
     srand(time(NULL));
+    printf("Testing STREAM\n");
     pid_t client_pid = fork();
 
     if (client_pid == 0)
@@ -64,6 +67,21 @@ int main(int argc, char** argv)
     int rc = server(srv_mode, deletesock);
 
     int clrc = 0;
+    waitpid(client_pid, &clrc, 0);
+
+    // ------------------
+
+    printf("Testing DGRAM\n");
+    client_pid = fork();
+
+    if (client_pid == 0)
+    {
+        sleep(1);
+        dgram_client();
+        exit(0);
+    }
+
+    rc = dgram_server(srv_mode, deletesock);
     waitpid(client_pid, &clrc, 0);
 
     return rc;
@@ -205,7 +223,7 @@ int client()
 
     char buff [40];
     char recv_buffer [40];
-    for (int i = 0; i < 100; i ++)
+    for (int i = 0; i < STREAM_ROUNDS; i ++)
     {
         for (int j = 0; j < sizeof(buff); j ++)
         {
@@ -232,7 +250,7 @@ int client()
             printf("recv: %s\n", recv_buffer);
         }
 
-        printf("R %i ", i);
+        printf(" '%i' ", i);
         fflush(NULL);
     }
 
@@ -258,7 +276,7 @@ int _socketpair()
 
         char buff [40];
         char recv_buffer [40];
-        for (int i = 0; i < 100; i ++)
+        for (int i = 0; i < STREAM_ROUNDS; i ++)
         {
             for (int j = 0; j < sizeof(buff); j ++)
             {
@@ -285,7 +303,7 @@ int _socketpair()
                 printf("recv: %s\n", recv_buffer);
             }
 
-            printf("R %i ", i);
+            printf(" '%i' ", i);
             fflush(NULL);
         }
         
@@ -303,5 +321,69 @@ int _socketpair()
 
     int clrc = 0;
     waitpid(client_pid, &clrc, 0);
+    return 0;
+}
+
+int dgram_server()
+{
+    int sfd;
+    struct sockaddr_un svaddr;
+    char buf[1024];
+    ssize_t numBytes;
+
+    // Create datagram socket
+    sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+    
+    // Remove existing socket file if it exists
+    unlink(SOCK_PATH);
+
+    memset(&svaddr, 0, sizeof(struct sockaddr_un));
+    svaddr.sun_family = AF_UNIX;
+    strncpy(svaddr.sun_path, SOCK_PATH, sizeof(svaddr.sun_path) - 1);
+
+    // Bind to the file path
+    bind(sfd, (struct sockaddr *) &svaddr, sizeof(struct sockaddr_un));
+
+    printf("Server listening on %s...\n", SOCK_PATH);
+
+    while (1) {
+        // Receive data
+        numBytes = recvfrom(sfd, buf, 1024, 0, NULL, NULL);
+        if (numBytes > 0) {
+            buf[numBytes] = '\0';
+            printf("Received: %s\n", buf);
+        }
+
+        if ((numBytes == 3) && (buf[0] == 'D' && buf[1] == 'I' && buf[2] == 'E'))
+        {
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+int dgram_client()
+{
+    int sfd;
+    struct sockaddr_un svaddr;
+    char *msg = "Hello from client!";
+
+    sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+
+    memset(&svaddr, 0, sizeof(struct sockaddr_un));
+    svaddr.sun_family = AF_UNIX;
+    strncpy(svaddr.sun_path, SOCK_PATH, sizeof(svaddr.sun_path) - 1);
+
+    for (int i = 0; i < 5; i ++)
+    {
+        // Send message to the server path
+        sendto(sfd, msg, strlen(msg), 0, (struct sockaddr *) &svaddr, sizeof(struct sockaddr_un));
+        printf("Message %i sent.\n", i);
+    }
+
+    char *diecmd = "DIE";
+    sendto(sfd, diecmd, 3, 0, (struct sockaddr *) &svaddr, sizeof(struct sockaddr_un));
+
     return 0;
 }

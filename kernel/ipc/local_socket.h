@@ -5,6 +5,7 @@
 #include "ipc/socket.h"
 #include "list/list.h"
 #include "sync/spinlock.h"
+#include "sync/semaphore.h"
 #include "proc/blocker.h"
 
 #define LOCAL_PATH_MAX	108
@@ -16,11 +17,11 @@ struct local_socket {
 
     uint32_t backlog_sz;  
     list_t backlog;
-    spinlock_t backlog_lock;
+    struct semaphore backlog_lock;
 
     list_t rx_queue;
     size_t rx_available;
-    spinlock_t rx_queue_lock;
+    struct semaphore rx_queue_lock;
 
     struct blocker backlog_blk;
     struct blocker rx_blk;
