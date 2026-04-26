@@ -21,6 +21,7 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
     int wake_reason;
     struct event_timer* timer = NULL;
     struct timespec ts;
+    fd_set _readfds, _writefds, _exceptfds;
 
     struct poll_ctl pctl;
     memset(&pctl, 0, sizeof(struct poll_ctl));
@@ -39,9 +40,9 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
     if (timeout)
         VALIDATE_USER_POINTER(process, timeout, sizeof(struct timeval))
 
-    fd_set _readfds, _writefds;
     FD_ZERO(&_readfds);
     FD_ZERO(&_writefds);
+    FD_ZERO(&_exceptfds);
 
     while (1)
     {
@@ -53,7 +54,8 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
                 reqdpollmask |= POLLIN;
             if ((writefds != NULL) && FD_ISSET(i, writefds))
                 reqdpollmask |= POLLOUT;
-            // TODO: exceptfds
+            if ((exceptfds != NULL) && FD_ISSET(i, exceptfds))
+                reqdpollmask |= (POLLPRI | POLLERR);
 
             if (reqdpollmask != 0)
             {
@@ -82,7 +84,12 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
                         catched ++;
                         FD_SET(i, &_writefds);
                     }
-                    // TODO: exceptfds
+
+                    if ((revents & (POLLPRI | POLLERR)) != 0)
+                    {
+                        catched ++;
+                        FD_SET(i, &_exceptfds);
+                    }
                 }
                 else
                 {
@@ -153,5 +160,7 @@ exit:
         memcpy(readfds, &_readfds, sizeof(fd_set));
     if (writefds)
         memcpy(writefds, &_writefds, sizeof(fd_set));
+    if (exceptfds)
+        memcpy(exceptfds, &_exceptfds, sizeof(fd_set));
     return rc;
 }
