@@ -31,7 +31,7 @@ int sys_pipe(int* pipefd, int flags)
 {
     int fdread, fdwrite;
     struct process* process = cpu_get_current_thread()->process;
-    VALIDATE_USER_POINTER_PROTECTION(process, pipefd, sizeof(int*) * 2, PAGE_PROTECTION_WRITE_ENABLE);
+    VALIDATE_USER_POINTER_PROTECTION(process, pipefd, sizeof(int) * 2, PAGE_PROTECTION_WRITE_ENABLE);
 
     struct pipe* ppe = new_pipe();
     if (ppe == NULL) {
@@ -80,11 +80,25 @@ int sys_pipe(int* pipefd, int flags)
 
 int sys_create_pty(int *master_fd, int *slave_fd)
 {
+    int rc;
     struct file *master;
     struct file *slave;
-    int rc = tty_create(&master, &slave);
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
 
-    struct process* process = cpu_get_current_thread()->process;
+    // Проверить адреса указателей, если вызов был из userspace
+    if (thread->is_userspace) 
+    {
+        VALIDATE_USER_POINTER_PROTECTION(process, master_fd, sizeof(int), PAGE_PROTECTION_WRITE_ENABLE);
+        VALIDATE_USER_POINTER_PROTECTION(process, slave_fd, sizeof(int), PAGE_PROTECTION_WRITE_ENABLE);
+    }
+
+    rc = tty_create(&master, &slave);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
     *master_fd = process_add_file(process, master);
     *slave_fd = process_add_file(process, slave);
 
