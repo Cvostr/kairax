@@ -137,3 +137,7 @@ cd ..
 cd df
 make
 cd ..
+
+cd ps
+make
+cd ..

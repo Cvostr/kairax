@@ -32,6 +32,7 @@ sudo cp ./touch/touch.a /mnt/kxvol/bin/touch
 sudo cp ./umount/umount.a /mnt/kxvol/bin/umount
 sudo cp ./realpath/realpath.a /mnt/kxvol/bin/realpath
 sudo cp ./df/df.a /mnt/kxvol/bin/df
+sudo cp ./ps/ps.a /mnt/kxvol/bin/ps
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo
