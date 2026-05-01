@@ -66,3 +66,8 @@ struct dirent *readdir(DIR *dir)
 
     return &dir->drent;
 }
+
+int dirfd(DIR *dirp) 
+{
+    return dirp->fd;
+}

@@ -44,6 +44,7 @@ DIR *opendir (const char *name);
 DIR *fdopendir(int fd);
 int closedir (DIR *dir);
 struct dirent *readdir(DIR *dir);
+int dirfd(DIR *dirp);
 
 #ifdef __cplusplus
 }

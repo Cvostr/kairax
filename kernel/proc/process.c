@@ -745,6 +745,11 @@ int process_get_relative_direntry1(struct process* process, int dirfd, const cha
 
         if (dirfile) {
 
+            // проверим, что у файла есть inode, она вполне может отсутствовать
+            if (dirfile->inode == NULL) {
+                return -ERROR_NOT_A_DIRECTORY;
+            }
+
             // проверить тип inode от dirfd
             if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
                 return -ERROR_NOT_A_DIRECTORY;
