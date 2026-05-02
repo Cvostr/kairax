@@ -7,22 +7,26 @@
 #include "string.h"
 #include "time.h"
 
-char* to_filetype(int dentry_type)
+char to_filetype(int dentry_type)
 {
     switch (dentry_type){
         case DT_REG:
-            return "f";
+            return '-';
         case DT_DIR:
-            return "d";
+            return 'd';
         case DT_FIFO:
-            return "p";
+            return 'p';
+        case DT_CHR:
+            return 'c';
+        case DT_BLK:
+            return 'b';
         case DT_SOCK:
-            return "s";
+            return 's';
         case DT_LNK:
-            return "l";
+            return 'l';
     }
 
-    return "";
+    return '?';
 }
 
 void stringify_perm(int perm, char* str)
@@ -61,8 +65,9 @@ int main(int argc, char** argv) {
     int dirfd = open(path, O_RDONLY, 0);
     DIR* dir = opendir(path);
 
-    if (dirfd == -1) {
-        printf("Can't open %s, errno=%i\n", path, errno);
+    if (dirfd == -1) 
+    {
+        printf("ls: Can't open '%s': %s\n", path, strerror(errno));
         return 1;
     }
 
@@ -81,8 +86,9 @@ int main(int argc, char** argv) {
             rc = fstatat(dirfd, dr->d_name, &file_stat, AT_SYMLINK_NOFOLLOW);
             int perm = file_stat.st_mode & 0777;
         
-            if (rc == -1) {
-                printf("Error! Can't stat file %s, error=%i\n", dr->d_name, errno);
+            if (rc == -1) 
+            {
+                printf("ls: Can't stat file '%s': %s\n", dr->d_name, strerror(errno));
             }
         
             struct tm* t = gmtime(&file_stat.st_mtim.tv_sec);
@@ -107,7 +113,7 @@ int main(int argc, char** argv) {
                 linkbuff[0] = 0;
             }
 
-            printf("%s %s %i %i %9i %02i:%02i:%02i %02i-%02i-%i %s %s\n", 
+            printf("%c%s %4i %4i %9i %02i:%02i:%02i %02i-%02i-%i %s %s\n", 
                 to_filetype(dr->d_type),
                 perm_str,
                 file_stat.st_uid,
@@ -125,7 +131,7 @@ int main(int argc, char** argv) {
         
         } else {
         
-            printf("%s %s\n", to_filetype(dr->d_type), dr->d_name);
+            printf("%c %s\n", to_filetype(dr->d_type), dr->d_name);
         
         }
     }    
