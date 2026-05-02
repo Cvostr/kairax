@@ -80,6 +80,7 @@ int ext2_partition_write_block_virt(ext2_instance_t* inst, uint64_t block_start,
 
 uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block_index)
 {
+    uint32_t result = 0;
     uint32_t level = inst->block_size / 4;
     int d, e, f, g;
     if (inode_block_index < EXT2_DIRECT_BLOCKS) {
@@ -90,35 +91,63 @@ uint32_t ext2_inode_block_absolute(ext2_instance_t* inst, ext2_inode_t* inode, u
     //Выделение временной памяти под считываемые блоки
     uint32_t* tmp = kmalloc(inst->block_size);
     int b = a - level;
-    if(b < 0) {
+    if (b < 0) 
+    {
+        if (inode->blocks[EXT2_DIRECT_BLOCKS] == 0)
+            goto exit;
+            
         ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS], 1, tmp);
-        uint32_t result = tmp[a];
-        kfree(tmp);
-        return result;
+        result = tmp[a];
+        goto exit;
     }
+
     int c = b - level * level;
-    if(c < 0) {
+    if (c < 0) 
+    {
         c = b / level;
         d = b - c * level;
+
+        if (inode->blocks[EXT2_DIRECT_BLOCKS + 1] == 0)
+            goto exit;
+
         ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 1], 1, tmp);
+
+        if (tmp[c] == 0)
+            goto exit;
+
         ext2_partition_read_block_virt(inst, tmp[c], 1, tmp);
-        uint32_t result = tmp[d];
-        kfree(tmp);
-        return result;
+        result = tmp[d];
+        goto exit;
     }
+
     d = c - level * level * level;
-    if(d < 0) {
+    if (d < 0) 
+    {
         e = c / (level * level);
         f = (c - e * level * level) / level;
         g = (c - e * level * level - f * level);
+
+        if (inode->blocks[EXT2_DIRECT_BLOCKS + 2] == 0)
+            goto exit;
+
         ext2_partition_read_block_virt(inst, inode->blocks[EXT2_DIRECT_BLOCKS + 2], 1, tmp);
+
+        if (tmp[e] == 0)
+            goto exit;
+
         ext2_partition_read_block_virt(inst, tmp[e], 1, tmp);
+
+        if (tmp[f] == 0)
+            goto exit;
+
         ext2_partition_read_block_virt(inst, tmp[f], 1, tmp);
-        uint32_t result = tmp[g];
-        kfree(tmp);
-        return result;
+        result = tmp[g];
+        goto exit;
     }
-    return 0;   
+
+exit:
+    kfree(tmp);
+    return result;   
 }
 
 int ext2_inode_add_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_index, uint32_t abs_block, uint32_t inode_block)
@@ -309,25 +338,35 @@ exit:
 
 int ext2_read_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_block, char* buffer)
 {
-    //Получить номер блока иноды внутри всего раздела
+    // Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
+
+    // Блок не выделен - возвращаем нули
+    if (inode_block_abs == 0)
+    {
+        memset(buffer, 0, inst->block_size);
+        return 0;
+    }
+
     return ext2_partition_read_block_virt(inst, inode_block_abs, 1, buffer);
 }
 
-uint32_t ext2_write_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer)
+int ext2_write_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, uint32_t inode_block, char* buffer)
 {
-    uint32_t blksize512 = inst->block_size / 512;
-    // Если пытаемся записать в невыделенный номер блока
-    // Расширить размер inode
-    while (inode_block >= inode->num_blocks / blksize512) {
-        // Выделить блок
-		ext2_alloc_inode_block(inst, inode, inode_num, inode->num_blocks / blksize512);
-        // Обновить данные inode
-		ext2_inode(inst, inode, inode_num);
-	}
-
-    //Получить номер блока иноды внутри всего раздела
+    int rc;
+    // Получить номер блока иноды внутри всего раздела
     uint32_t inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
+    if (inode_block_abs == 0)
+    {
+        // блок для этого индекса не был выделен - значит выделяем
+        rc = ext2_alloc_inode_block(inst, inode, inode_num, inode_block);
+        if (rc != 0)
+            return rc;
+
+        // получим номер выделенного блока
+        inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
+    }
+
     return ext2_partition_write_block_virt(inst, inode_block_abs, 1, buffer);
 }
 
@@ -570,6 +609,7 @@ exit:
     kfree(buffer);
 }
 
+// Выделяет блок в BGDS и зануляет его
 uint64_t ext2_alloc_block(ext2_instance_t* inst)
 {
     uint64_t bitmap_index = 0;
@@ -620,6 +660,7 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
     inst->superblock->free_blocks--;
     ext2_rewrite_superblock(inst);
 
+    // Занулить выделенный блок
     memset(buffer, 0, inst->block_size);
     ext2_partition_write_block_virt(inst, block_index, 1, buffer);
 
@@ -690,18 +731,15 @@ int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t 
 {
     // Выделить блок
     uint64_t new_block = ext2_alloc_block(inst);
-    if (!new_block) {
-        return -1;
+    if (!new_block) 
+    {
+        return -ENOSPC;
     }
 
     // Добавим блок к inode
     ext2_inode_add_block(inst, inode, node_num, new_block, block_index);
 
     // Обновим количество блоков, занимаемых inode
-    //uint32_t blocks_count = (block_index + 1) * (inst->block_size / 512);
-    //if (inode->num_blocks < blocks_count) {
-    //    inode->num_blocks = blocks_count;
-    //}
     inode->num_blocks += (inst->block_size / 512);
 
     // Перезаписать inode
@@ -772,7 +810,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
         if (in_block_offset + dirent_len >= inst->block_size) {
             // Не хватает места в inode - расширяем
             block_index++;
-            uint32_t new_block_index = ext2_alloc_inode_block(inst, e2_inode, parent->inode, block_index);
+            ext2_alloc_inode_block(inst, e2_inode, parent->inode, block_index);
             
             in_block_offset = 0;
 

@@ -19,7 +19,7 @@ char* testsock_file = "testpipe";
 #define TESTDIR_PERM 0666
 #define TESTFILE_PERM 0667
 
-#define WRITE_PATTERN_ROUNDS 128
+#define WRITE_PATTERN_ROUNDS 300
 #define PATTERN_SIZE 256
 char pattern[PATTERN_SIZE];
 
