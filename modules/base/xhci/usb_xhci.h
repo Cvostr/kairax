@@ -128,6 +128,12 @@
 #define XHCI_COMPLETION_CODE_SHORT_PACKET		13
 #define XHCI_COMPLETION_CODE_CTX_PARAMETER_ERROR	17
 
+// Получить максимальный размер для Control Endpoint по скорости порта
+// Используется только при начальной конфигурации устройства
+uint16_t xhci_get_device_max_initial_packet_size(uint8_t port_speed);
+// Преобразовать код ошибки xHCI в общий код ядра
+int xhci_map_completion_code(uint32_t transfer_code);
+
 struct xhci_cap_regs {
 	uint8_t caplen;
     uint8_t reserved;
@@ -574,6 +580,7 @@ int xhci_controller_start(struct xhci_controller* controller);
 int xhci_controller_check_ext_caps(struct xhci_controller* controller);
 int xhci_controller_init_scratchpad(struct xhci_controller* controller);
 int xhci_controller_init_interrupts(struct xhci_controller* controller, struct xhci_event_ring* event_ring);
+void xhci_controller_handle_events(struct xhci_controller* controller);
 void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event);
 void xhci_controller_init_ports(struct xhci_controller* controller);
 
@@ -658,5 +665,9 @@ int xhci_controller_configure_endpoint(struct xhci_controller* controller, uint8
 // Общий обработчик прерывания
 void xhci_int_hander(void* regs, struct xhci_controller* data);
 void xhci_controller_event_thread_routine(struct xhci_controller* controller);
+
+int xhci_device_probe(struct device *dev);
+int xhci_init(void);
+void xhci_exit(void);
 
 #endif
