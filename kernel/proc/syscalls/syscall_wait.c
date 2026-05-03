@@ -15,12 +15,17 @@
 pid_t sys_wait(pid_t id, int* status, int options)
 {
     pid_t       result = -1;
+    struct process* child = NULL;
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
 
-    acquire_spinlock(&process->wait_lock);
+    // Проверить адрес указателя status, если вызов был из userspace
+    if (thread->is_userspace) 
+    {
+        VALIDATE_USER_POINTER_PROTECTION(process, status, sizeof(int), PAGE_PROTECTION_WRITE_ENABLE);
+    }
 
-    struct process* child = NULL;
+    acquire_spinlock(&process->wait_lock);
         
     if (id > 0) {
 
