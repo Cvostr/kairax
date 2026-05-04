@@ -419,11 +419,11 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     // Сохранить некоторые полезные значения
     instance->block_size = (1024 << instance->superblock->log2block_size);
     instance->total_groups = instance->superblock->total_blocks / instance->superblock->blocks_per_group;
-    while(instance->superblock->blocks_per_group * instance->total_groups < instance->superblock->total_blocks)
+    while (instance->superblock->blocks_per_group * instance->total_groups < instance->superblock->total_blocks)
         instance->total_groups++;
-    //необходимое количество блоков дескрипторов групп (BGD)
+    // необходимое количество блоков дескрипторов групп (BGD)
     instance->bgds_blocks = (instance->total_groups * sizeof(ext2_bgd_t)) / instance->block_size;
-    while(instance->bgds_blocks * instance->block_size < instance->total_groups * sizeof(ext2_bgd_t))
+    while (instance->bgds_blocks * instance->block_size < instance->total_groups * sizeof(ext2_bgd_t))
         instance->bgds_blocks++;
 
     instance->bgds = (ext2_bgd_t*)kmalloc(instance->bgds_blocks * instance->block_size);
@@ -622,7 +622,7 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
     // Выделить временную память под буфер
     uint8_t* buffer = (uint8_t*)kmalloc(inst->block_size);
 
-    for (uint64_t bgd_i = 0; bgd_i < inst->bgds_blocks; bgd_i ++) {
+    for (uint64_t bgd_i = 0; bgd_i < inst->total_groups; bgd_i ++) {
         if (inst->bgds[bgd_i].free_blocks > 0) {
 
             bitmap_index = 0;
@@ -731,7 +731,7 @@ int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t 
 {
     // Выделить блок
     uint64_t new_block = ext2_alloc_block(inst);
-    if (!new_block) 
+    if (new_block == 0) 
     {
         return -ENOSPC;
     }
@@ -1866,8 +1866,8 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
     size_t name_len = strlen(name);
 
     //Получить родительскую иноду
-    ext2_inode_t* parent_inode = new_ext2_inode();
-    ext2_inode(inst, parent_inode, vfs_parent_inode->inode);
+    ext2_inode_t parent_inode;
+    ext2_inode(inst, &parent_inode, vfs_parent_inode->inode);
 
     //Переменные
     uint32_t curr_offset = 0;
@@ -1877,16 +1877,16 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
     
-    //Прочитать начальный блок иноды
-    ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
-    //Пока не прочитаны все блоки
-    while(curr_offset < parent_inode->size) {
-
+    // Прочитать начальный блок иноды
+    ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+    // Пока не прочитаны все блоки
+    while (curr_offset < parent_inode.size) 
+    {
         //Проверка, не прочитан ли весь блок?
         if(in_block_offset >= inst->block_size){
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
+            ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
         }
 
         // Считанный dirent
@@ -1907,7 +1907,6 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
     }
 
 exit:
-    kfree(parent_inode);
     kfree(buffer);
 
     return result;
