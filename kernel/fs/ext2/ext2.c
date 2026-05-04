@@ -1037,10 +1037,9 @@ int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num)
 {
     ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
-    ext2_inode_t* e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, ino_num);
-    struct inode* vfs_inode = ext2_inode_to_vfs_inode(inst, e2_inode, ino_num);
-    kfree(e2_inode);
+    ext2_inode_t e2_inode;
+    ext2_inode(inst, &e2_inode, ino_num);
+    struct inode* vfs_inode = ext2_inode_to_vfs_inode(inst, &e2_inode, ino_num);
     return vfs_inode;
 }
 
@@ -1749,9 +1748,9 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     struct inode* vfs_inode = dir->inode;
     struct dirent* result = NULL;
     ext2_instance_t* inst = (ext2_instance_t*)vfs_inode->sb->fs_info;
-    //Получить родительскую иноду
-    ext2_inode_t* parent_inode = new_ext2_inode();
-    ext2_inode(inst, parent_inode, vfs_inode->inode);
+    // Получить родительскую иноду
+    ext2_inode_t parent_inode;
+    ext2_inode(inst, &parent_inode, vfs_inode->inode);
     //Переменные
     uint32_t curr_offset = 0;
     uint32_t block_offset = 0;
@@ -1760,14 +1759,14 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
     //Прочитать начальный блок иноды
-    ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
+    ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
     //Проверка, не прочитан ли весь блок?
-    while (curr_offset < parent_inode->size) {
+    while (curr_offset < parent_inode.size) {
 
         if (in_block_offset >= inst->block_size) {
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block_virt(inst, parent_inode, block_offset, buffer);
+            ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
@@ -1786,10 +1785,7 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     }
 
 exit:
-
-    kfree(parent_inode);
     kfree(buffer);
-
     return result;
 }
 
