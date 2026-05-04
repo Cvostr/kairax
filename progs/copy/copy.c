@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
         written = write(dstfd, region, readed);
         if (written < 0)
         {
-            printf("cp: error writing to destination file: %s\n", dest, strerror(errno));
+            printf("cp: error writing to destination file '%s': %s\n", dest, strerror(errno));
             return 1;
         }
 
