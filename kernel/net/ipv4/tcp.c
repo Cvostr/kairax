@@ -957,6 +957,21 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
+    // Разработчики могут использовать recv() с нулевой длиной для проверки состояния сокета,
+    // При этом ничего не читаем
+    // проверим, не приходил ли RST
+    if (len == 0)
+    {
+        // Пришел RST
+        if (sock_data->is_rst) 
+        {
+            return -ECONNRESET;
+        }
+
+        // Если не было RST, возвращаем 0 в любом случае
+        return 0;
+    }
+
     struct net_buffer* rcv_buffer = list_head(&sock_data->rx_queue);
 
     while (rcv_buffer == NULL) 
@@ -1029,10 +1044,24 @@ ssize_t sock_tcp4_sendto(struct socket* sock, const void *msg, size_t len, int f
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
+    // Пришел RST
+    if (sock_data->is_rst) 
+    {
+        return -ECONNRESET;
+    }
+
     if (sock_data->shut_wr == TRUE)
     {
         // shutdown(SHUT_WR)
         return -EPIPE;
+    }
+
+    // Разработчики могут использовать send() с нулевой длиной для проверки состояния сокета,
+    // При этом ничего никуда не отправляется
+    // Проверки выше уже пройдены, поэтому просто возвращаем 0 и больше ничего не делаем
+    if (len == 0)
+    {
+        return 0;
     }
 
     // Маршрут назначения
