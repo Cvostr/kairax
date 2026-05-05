@@ -898,13 +898,22 @@ void ext2_inode_set_size(ext2_instance_t* inst, ext2_inode_t* inode, size_t size
 // Записать данные файла inode
 ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t inode_num, off_t offset, size_t size, const char * buf)
 {
+    // Возвращаемое значение
+    // По умолчанию устанавливаем как кол-во запрошенных байт 
+    ssize_t result = size;
     // Вычислить необходимый размер файла
     size_t write_end = offset + size;
+    int rc;
 
     // Проверить размер иноды, при необходимости расширить её
-    if (write_end > ext2_inode_get_size(inst, inode)) {
+    if (write_end > ext2_inode_get_size(inst, inode)) 
+    {
         ext2_inode_set_size(inst, inode, write_end);
-        ext2_write_inode_metadata(inst, inode, inode_num);
+        // запишем изменения
+        rc = ext2_write_inode_metadata(inst, inode, inode_num);
+        if (rc != 0) {
+            return rc;
+        }
     }
 
     //Защита от выхода за границы файла в 32х битном режиме
@@ -923,14 +932,30 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
 
     char* temp_buffer = kmalloc(inst->block_size);
 
-    if (start_inode_block == end_inode_block) {
+    if (start_inode_block == end_inode_block) 
+    {
         // Размер данных входит в 1 блок
-        ext2_read_inode_block_virt(inst, inode, start_inode_block, temp_buffer);
+        // Читаем блок
+        rc = ext2_read_inode_block_virt(inst, inode, start_inode_block, temp_buffer);
+        if (rc != 0) {
+            result = rc;
+            goto exit;
+        }
+
+        // Изменяем блок
         memcpy(temp_buffer + start_block_offset, buf, size);
-        ext2_write_inode_block_virt(inst, inode, inode_num, start_inode_block, temp_buffer);
+
+        // Записываем блок
+        rc = ext2_write_inode_block_virt(inst, inode, inode_num, start_inode_block, temp_buffer);
+        if (rc != 0) {
+            result = rc;
+            goto exit;
+        }
+
         goto exit;
-    } else {
-        
+    } 
+    else 
+    {    
         uint32_t written_blocks = 0;
 
         for (uint32_t block_i = start_inode_block; block_i < end_inode_block; block_i ++, written_blocks++) {
@@ -946,12 +971,20 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
                 // Скопируем новую часть блока
                 memcpy(temp_buffer + start_block_offset, buf, inst->block_size - start_block_offset);
                 // Запишем на диск
-                ext2_write_inode_block_virt(inst, inode, inode_num, start_inode_block, temp_buffer);
+                rc = ext2_write_inode_block_virt(inst, inode, inode_num, start_inode_block, temp_buffer);
+                if (rc != 0) {
+                    result = rc;
+                    goto exit;
+                }
             } else {
                 // Скопировать в буфер данные для записи
                 memcpy(temp_buffer, buf + buffer_offset, inst->block_size);
                 // Запишем на диск
-                ext2_write_inode_block_virt(inst, inode, inode_num, block_i, temp_buffer);
+                rc = ext2_write_inode_block_virt(inst, inode, inode_num, block_i, temp_buffer);
+                if (rc != 0) {
+                    result = rc;
+                    goto exit;
+                }
             }
         }
 
@@ -963,14 +996,18 @@ ssize_t write_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_
             size_t buffer_offset = written_blocks * inst->block_size - start_block_offset;
             memcpy(temp_buffer, buf + buffer_offset, end_size);
             // Запишем на диск
-            ext2_write_inode_block_virt(inst, inode, inode_num, end_inode_block, temp_buffer);
+            rc = ext2_write_inode_block_virt(inst, inode, inode_num, end_inode_block, temp_buffer);
+            if (rc != 0) {
+                result = rc;
+                goto exit;
+            }
         }
     }
 
 exit:
     ext2_write_bgds(inst);
     kfree(temp_buffer);
-    return size;
+    return result;
 }
 
 int ext2_inode(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
@@ -1036,10 +1073,15 @@ int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num)
 {
-    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
     ext2_inode_t e2_inode;
-    ext2_inode(inst, &e2_inode, ino_num);
-    struct inode* vfs_inode = ext2_inode_to_vfs_inode(inst, &e2_inode, ino_num);
+    struct inode* vfs_inode = NULL;
+    ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
+    
+    if (ext2_inode(inst, &e2_inode, ino_num) != 0) {
+        return NULL;
+    }
+
+    vfs_inode = ext2_inode_to_vfs_inode(inst, &e2_inode, ino_num);
     return vfs_inode;
 }
 
@@ -1260,14 +1302,22 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
 
 int ext2_chmod(struct inode * inode, uint32_t mode)
 {
+    int rc;
+    ext2_inode_t e2_inode;
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
-    ext2_inode_t* e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, inode->inode);
-    e2_inode->mode = (e2_inode->mode & 0xFFFFF000) | mode;
-    ext2_write_inode_metadata(inst, e2_inode, inode->inode);
-    kfree(e2_inode);
+    
+    // получить ext2 inode
+    rc = ext2_inode(inst, &e2_inode, inode->inode);
+    if (rc != 0) {
+        return rc;
+    }
 
-    return 0;
+    // обновить mode
+    e2_inode.mode = (e2_inode.mode & 0xFFFFF000) | mode;
+    // перезаписать
+    rc = ext2_write_inode_metadata(inst, &e2_inode, inode->inode);
+
+    return rc;
 }
 
 int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const struct timespec* mtime)
@@ -1688,26 +1738,28 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
 
 ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
 {
+    ssize_t readable;
+    ext2_inode_t symlink_inode;
     ext2_instance_t* inst = (ext2_instance_t*) inode->sb->fs_info;
 
     // Получить ext2 иноду ссылки
-    ext2_inode_t* symlink_inode = new_ext2_inode();
-    ext2_inode(inst, symlink_inode, inode->inode);
+    readable = ext2_inode(inst, &symlink_inode, inode->inode);
+    if (readable != 0) {
+        return readable;
+    }
 
     // Размер данных, который будем считывать
-    ssize_t readable = MIN(symlink_inode->size, pathbuflen);
+    readable = MIN(symlink_inode.size, pathbuflen);
 
-    if (symlink_inode->size <= 60)
+    if (symlink_inode.size <= 60)
     {
-        memcpy(pathbuf, symlink_inode->blocks, readable);
+        memcpy(pathbuf, symlink_inode.blocks, readable);
     } 
     else 
     {
-        read_inode_filedata(inst, symlink_inode, 0, readable, pathbuf);
+        read_inode_filedata(inst, &symlink_inode, 0, readable, pathbuf);
     }
 
-exit:
-    kfree(symlink_inode);
     return readable;
 }
 
