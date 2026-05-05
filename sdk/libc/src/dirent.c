@@ -71,3 +71,11 @@ int dirfd(DIR *dirp)
 {
     return dirp->fd;
 }
+
+void rewinddir(DIR *d) 
+{
+    if (lseek(d->fd, 0, SEEK_SET) != (off_t)-1)
+    {
+        d->tell = 0;
+    }
+}

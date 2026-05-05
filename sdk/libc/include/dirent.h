@@ -46,6 +46,8 @@ int closedir (DIR *dir);
 struct dirent *readdir(DIR *dir);
 int dirfd(DIR *dirp);
 
+void rewinddir(DIR *d);
+
 #ifdef __cplusplus
 }
 #endif
