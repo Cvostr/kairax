@@ -55,6 +55,33 @@ struct net_buffer* new_net_buffer_out(size_t len)
     return nbuffer;
 }
 
+struct net_buffer* new_net_buffer_in(size_t len, struct nic* nic)
+{
+    unsigned char* mem = kmalloc(len);
+    if (mem == NULL) {
+        return NULL;
+    }
+
+    memset(mem, 0, len);
+
+    struct net_buffer* nbuffer = kmalloc(sizeof(struct net_buffer));
+    if (nbuffer == NULL) {
+        kfree(mem);
+        return NULL;
+    }
+
+    memset(nbuffer, 0, sizeof(struct net_buffer));
+    nbuffer->buffer = mem;
+    nbuffer->buffer_len = len;
+    nbuffer->netdev = nic;
+
+    // Курсор в самом начале
+    nbuffer->cursor = mem;
+    nbuffer->cur_len = 0;
+
+    return nbuffer;
+}
+
 size_t net_buffer_get_remain_len(struct net_buffer* nbuffer)
 {
     return nbuffer->cur_len;
@@ -65,9 +92,14 @@ size_t net_buffer_get_payload_remain_len(struct net_buffer* nbuffer)
     return nbuffer->payload_size - nbuffer->payload_read_offset;
 }
 
+size_t net_buffer_get_buffer_remain_len(struct net_buffer* nbuffer)
+{
+    return nbuffer->buffer_len - nbuffer->cur_len;
+}
+
 void net_buffer_seek_end(struct net_buffer* nbuffer)
 {
-    nbuffer->cursor += nbuffer->buffer_len;
+    nbuffer->cursor = nbuffer->buffer + nbuffer->buffer_len;
     nbuffer->cur_len = 0;
 }
 
@@ -96,6 +128,20 @@ void net_buffer_add_front(struct net_buffer* nbuffer, const void* data, size_t s
     nbuffer->cursor -= size;
     nbuffer->cur_len += size;
     memcpy(nbuffer->cursor, data, size);
+}
+
+int net_buffer_add_back(struct net_buffer* nbuffer, const void* data, size_t size)
+{
+    size_t available = nbuffer->buffer_len - nbuffer->cur_len;
+    if (available < size)
+    {
+        return -ENOSPC;
+    }
+
+    memcpy(nbuffer->buffer + nbuffer->cur_len, data, size);
+    nbuffer->cur_len += size;
+
+    return 0;
 }
 
 void net_buffer_acquire(struct net_buffer* nbuffer)

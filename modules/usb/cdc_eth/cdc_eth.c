@@ -182,10 +182,16 @@ void usb_cdc_rx_callback(struct usb_msg* msg)
 
 void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 {
-	struct usb_msg *msg = new_usb_msg();
+	// Определим MTU
+	int MTU = eth_dev->iface->mtu;
+	// Определим wMaxPacketSize для In Bulk Endpoint
+	int in_max_pack_size = eth_dev->data_in->descriptor.wMaxPacketSize;
 
+	struct net_buffer* nb = NULL;
+
+	struct usb_msg *msg = new_usb_msg();
 	msg->data = eth_dev->rx_data_buffer_phys;
-	msg->length = eth_dev->iface->mtu;
+	msg->length = MTU;
 	//msg->callback = usb_cdc_rx_callback;
 	msg->private = eth_dev;
 
@@ -204,17 +210,40 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 			continue;
 		}
 
+		// Размер полученных байт
 		uint32_t received_bytes = msg->transferred_length;
+		// Пришел ли short packet? (либо равен 0, либо не кратен in_max_pack_size)
+		int is_short_packet = ((received_bytes == 0) || (received_bytes % in_max_pack_size) != 0);
 
+		// обновление статистики
 		eth_dev->iface->stats.rx_bytes += received_bytes;
-		eth_dev->iface->stats.rx_packets += 1;
 	
 		if (received_bytes > 0)
 		{
-			struct net_buffer* nb = new_net_buffer(eth_dev->rx_data_buffer, received_bytes, eth_dev->iface);
-			net_buffer_acquire(nb);
+			if (nb == NULL)
+			{
+				size_t memsz = (is_short_packet == TRUE) ? received_bytes : MTU;
+				nb = new_net_buffer_in(memsz, eth_dev->iface);
+				net_buffer_acquire(nb);
+			}
+
+			// Добавить принятые данные в net_buffer
+			rc = net_buffer_add_back(nb, eth_dev->rx_data_buffer, received_bytes);
+			if (rc != 0)
+			{
+				printk("net_buffer_add_back error RCV %i remain %i\n", received_bytes, net_buffer_get_buffer_remain_len(nb));
+			}
+		}
+
+		// Если пришел Short Packet, то завершаем прием пакета
+		if (is_short_packet == TRUE && nb != NULL)
+		{
+			// обновление статистики
+			eth_dev->iface->stats.rx_packets += 1;
+			// отправить в сетевой стек ядра
 			eth_handle_frame(nb);
 			net_buffer_free(nb);
+			nb = NULL;
 		}
 	}
 }
@@ -222,6 +251,16 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 {
 	struct cdc_eth_dev* eth_dev = nic->dev->dev_data;
+
+	// Если размер данных 0 - сразу выходим с успехом (уточнить!!!)
+	if (size == 0)
+	{
+		return 0;
+	}
+
+	// Проверим необходимость отправки нулевого пакета
+	// Если размер данных кратен wMaxPacketSize, то надо отправить
+	int send_short_pck = (size % eth_dev->data_out->descriptor.wMaxPacketSize) == 0;
 
 	// Выделить временную память с запретом кэширования
 	size_t reqd_pages = 0;
@@ -236,6 +275,19 @@ int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 	{
 		printk("Tx result %i (%i)\n", -rc, rc);
 	}
+
+	if (send_short_pck == TRUE)
+	{
+		// отправляем Short Packet (С валидным указателем!!!)
+		rc = usb_device_bulk_msg(eth_dev->usbdev, eth_dev->data_out, tmp_data_buffer_phys, 0);
+		if (rc != 0)
+		{
+			printk("Tx short result %i (%i)\n", -rc, rc);
+		}
+	}
+
+	// обновление статистики
+	eth_dev->iface->stats.tx_bytes += size;
 
 	// Очистка
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
@@ -434,6 +486,9 @@ int usb_cdc_device_probe(struct device *dev)
 		printk("CDC ECM: Error initialize OUT endpoint (%i)\n", rc);
 		return -1;
 	}
+
+	printk("CDC ECM: Bulk IN  EP max packet size %i\n", data_in->descriptor.wMaxPacketSize);
+	printk("CDC ECM: Bulk OUT EP max packet size %i\n", data_out->descriptor.wMaxPacketSize);
 
 	struct cdc_eth_dev* eth_dev = kmalloc(sizeof(struct cdc_eth_dev));
 	eth_dev->interrupt_in = interrupt_in;
