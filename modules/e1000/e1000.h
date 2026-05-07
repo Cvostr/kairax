@@ -117,6 +117,9 @@ void module_exit(void);
 
 int e1000_device_probe(struct device *dev);
 
+int e1000_up(struct nic* nic);
+int e1000_down(struct nic* nic);
+
 // Внутренние операции
 void e1000_detect_eeprom(struct e1000* dev);
 uint16_t e1000_eeprom_read(struct e1000* dev, uint8_t addr);

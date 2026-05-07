@@ -57,7 +57,7 @@ int main(int argc, char** argv)
         printf("PARENT, child: %i\n", r);
         printf("Waiting for completion\n");
         waitpid(r, &status, 0);
-        printf("Completed with code %i\n", status);
+        printf("Completed with code %i (WIFEXITED=%i, return code=%i)\n", status, WIFEXITED(status), WEXITSTATUS(status));
     } else {
         perror("fork()");
     }

@@ -57,6 +57,11 @@ struct rtl8139 {
     uint32_t int_tx_pos;   
 };
 
+int init(void);
+void exit(void);
+
+int rtl8139_device_probe(struct device *dev);
+
 void rtl8139_rx(struct rtl8139* rtl_dev);
 int rtl8139_tx(struct nic* nic, const unsigned char* buffer, size_t size);
 

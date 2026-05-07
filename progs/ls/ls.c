@@ -1,11 +1,16 @@
 #include "stdio.h"
 #include "errno.h"
 #include "unistd.h"
+#include "getopt.h"
 #include "fcntl.h"
 #include "dirent.h"
 #include "sys/stat.h"
 #include "string.h"
 #include "time.h"
+
+// Режим работы
+int verbose = 0;
+int all = 0;
 
 char to_filetype(int dentry_type)
 {
@@ -41,27 +46,9 @@ void stringify_perm(int perm, char* str)
 
 char linkbuff[300] = {0,};
 
-int main(int argc, char** argv) {
-
-    int verbose = 0;
-    int all = 0;
-
+int printdir(const char *path) 
+{
     int rc;
-
-    char* path = "";
-    for (int i = 1; i < argc; i ++) {
-        if (argv[i][0] != '-') {
-            path = argv[i];
-        } else {
-            if (argv[i][1] == 'l') {
-                verbose = 1;
-            }
-            if (argv[i][1] == 'a') {
-                all = 1;
-            }
-        }
-    }
-
     int dirfd = open(path, O_RDONLY, 0);
     DIR* dir = opendir(path);
 
@@ -137,6 +124,35 @@ int main(int argc, char** argv) {
     }    
 
     closedir(dir);
+}
+
+int main(int argc, char** argv) 
+{
+    int opt;
+    int rc;
+
+    while ((opt = getopt(argc, argv, "la")) != -1) {
+        switch (opt) {
+            case 'l': 
+                verbose = 1;
+                break;
+            case 'a':
+                all = 1;
+                break;
+        }
+    }
+
+    if (optind == argc) 
+    {
+        printdir(".");
+    }
+    else
+    {
+        for (; optind < argc; optind++) 
+        {
+            printdir(argv[optind]);
+        }
+    }
 
     return 0;
 }
