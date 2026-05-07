@@ -14,6 +14,12 @@ enum ast_node_type
     AST_NODE_PIPE
 };
 
+struct redirect {
+    struct redirect *next;
+    int fd;
+    char *fname;
+};
+
 struct ast_node
 {
     enum ast_node_type type;
@@ -32,12 +38,14 @@ struct ast_node
         } pipe;
     };
 
+    struct redirect *redir_head;
 
     void (*free) (struct ast_node*);
 };
 
 struct ast_builder_ctx
 {
+    list* asts;
     struct token** tokens;
     size_t ntokens;
     size_t offset;

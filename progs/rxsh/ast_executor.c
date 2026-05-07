@@ -7,6 +7,7 @@
 #include "errno.h"
 #include "stdio.h"
 #include "sys/ioctl.h"
+#include "fcntl.h"
 
 extern char curdir[512];
 extern char** __environ;
@@ -15,14 +16,22 @@ void ast_exec_func(struct ast_node* node);
 
 void ast_execute(struct ast_node* node)
 {
-    if (node->type == AST_NODE_FUNC) {
+    switch (node->type)
+    {
+    case AST_NODE_FUNC:
         ast_exec_func(node);
+        break;
+    case AST_NODE_PIPE:
+        printf("Pipes are not implemented\n");
+        break;
+    default:
+        break;
     }
 }
 
 void ast_exec_func(struct ast_node* node)
 {
-    list_node* cur_arg = node->func_call.args.head;
+    struct list_node* cur_arg = node->func_call.args.head;
     int argc = node->func_call.args.size;
     char* func = cur_arg->element;
     int rc = 0;
@@ -31,7 +40,7 @@ void ast_exec_func(struct ast_node* node)
         if (argc == 1) {
             return;
         }
-        list_node* next_arg = node->func_call.args.head->next;
+        struct list_node* next_arg = node->func_call.args.head->next;
         rc = chdir(next_arg->element);
         if (rc != 0)
         {
@@ -50,7 +59,7 @@ void ast_exec_func(struct ast_node* node)
             return;
         }
 
-        list_node* next_arg = node->func_call.args.head->next;
+        struct list_node* next_arg = node->func_call.args.head->next;
         putenv(next_arg->element);
     } else if (strcmp(func, "pwd") == 0) {
         printf("%s\n", curdir);
@@ -61,6 +70,21 @@ void ast_exec_func(struct ast_node* node)
 
         if (pid == 0) 
         {
+            // обработать перенаправления
+            struct redirect *redir_curr = node->redir_head;
+            while (redir_curr != NULL)
+            {
+                int fd = open(redir_curr->fname, O_CREAT | O_WRONLY, 0666);
+                if (fd == -1) {
+                    printf("rxsh: %s: %s", redir_curr->fname, strerror(errno));
+                    _exit(127);
+                }
+                
+                dup2(fd, redir_curr->fd);
+                close(fd);
+                redir_curr = redir_curr->next;
+            }
+
             sigset_t ss;
             sigemptyset(&ss);
             sigaddset(&ss, SIGINT);

@@ -12,7 +12,7 @@ list* create_list(){
 
 void list_add(list* list, void* element)
 {
-    list_node* new_node = malloc(sizeof(list_node));
+    struct list_node* new_node = malloc(sizeof(struct list_node));
     new_node->element = element;
     new_node->next = NULL;
 
@@ -27,17 +27,19 @@ void list_add(list* list, void* element)
 }
 
 void* list_get(list* list, unsigned int i){
-    list_node* current = list->head;
+    struct list_node* current = list->head;
     for(unsigned int _i = 0; _i < i; _i++){
         current = current->next;
     }
     return current->element;
 }
 
-void* list_head(list* list){
+void* list_head(list* list)
+{
     return list->head->element;
 }
 
-void* list_tail(list* list){
+void* list_tail(list* list)
+{
     return list->tail->element;    
 }

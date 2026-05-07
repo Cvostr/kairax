@@ -72,7 +72,7 @@ void cmd_process()
 
     struct ast_node* root = ast_build(tokens, n);
 
-    list_node* anode = root->nodes->head;
+    struct list_node* anode = root->nodes->head;
     while (anode != NULL) {
         struct ast_node* nd = anode->element;
         
