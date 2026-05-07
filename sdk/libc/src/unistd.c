@@ -151,6 +151,11 @@ int pipe(int pipefd[2])
     __set_errno(syscall_create_pipe(pipefd, 0));
 }
 
+int pipe2(int pipefd[2], int flags)
+{
+    __set_errno(syscall_create_pipe(pipefd, flags));
+}
+
 int close(int fd)
 {
     __set_errno(syscall_close(fd));

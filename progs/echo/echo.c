@@ -3,42 +3,20 @@
 #include "fcntl.h"
 #include "string.h"
 
-int main(int argc, char** argv) {
+const char SPACE = ' ';
+const char NL = '\n';
 
-    char* path = "/dev/console";
-    char* content = NULL;
-
-    int path_mode = 0;
-
-    for (int i = 1; i < argc; i ++) {
-
-        if (i == 1) {
-            content = argv[i];
-        } else {
-
-            if (argv[i][0] == '.') {
-                path_mode = 1;
-            } else if (path_mode == 1) {
-                path = argv[i];
-                path_mode = 0;
-            }
-
+int main(int argc, char** argv) 
+{
+    for (int i = 1; i < argc; i ++) 
+    {
+        write(STDOUT_FILENO, argv[i], strlen(argv[i]));
+        if (i < (argc - 1)) {
+            write(STDOUT_FILENO, &SPACE, 1);
         }
     }
 
-    if (content == NULL) {
-        return 1;
-    }
-
-    int fd = creat(path, 0777);
-
-    if (fd == -1) {
-        printf("Can't open file with path %s", path);
-    }
-
-    write(fd, content, strlen(content));
-
-    close(fd);
+    write(STDOUT_FILENO, &NL, 1);
 
     return 0;
 }
