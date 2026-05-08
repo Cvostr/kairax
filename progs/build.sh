@@ -141,3 +141,7 @@ cd ..
 cd ps
 make
 cd ..
+
+cd wc
+make
+cd ..
