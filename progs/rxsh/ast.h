@@ -39,14 +39,13 @@ struct ast_node
     };
 
     struct redirect *redir_head;
-
-    void (*free) (struct ast_node*);
 };
 
 struct ast_builder_ctx
 {
     list* asts;
     struct token** tokens;
+    struct token* current;
     size_t ntokens;
     size_t offset;
     size_t saved_offset;
@@ -55,7 +54,9 @@ struct ast_builder_ctx
 struct ast_node* ast_build(struct token** tokens, size_t ntokens);
 
 struct token* ast_next_token(struct ast_builder_ctx* ctx);
+struct token* ast_backspace(struct ast_builder_ctx* ctx);
 
 void ast_execute(struct ast_node* node);
+void ast_free(struct ast_node* node);
 
 #endif

@@ -1,6 +1,7 @@
 #include "ast.h"
 #include "string.h"
 #include "stdlib.h"
+#include "unistd.h"
 
 struct ast_node* read_expression(struct ast_builder_ctx *ctx);
 
@@ -35,9 +36,11 @@ int token_is_ctrl(struct token* tk)
     return (tk->type == TOKEN_CTRL_CHAR);
 }
 
+// Является ли символ явным разделителем команд?
 int token_is_terminator(struct token* tk) 
 {
-    return (tk->type == TOKEN_CTRL_CHAR) && (tk->punct_val == ';' || tk->punct_val == '\n');
+    return (tk->type == TOKEN_CTRL_CHAR) && 
+        (tk->punct_val == ';' || tk->punct_val == '\n' || tk->punct_val == '|');
 }
 
 char *token_copy_str(struct token* tk) 
@@ -109,7 +112,7 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
                         }
                         redir_last = redir;
 
-                        redir->fd = 1;
+                        redir->fd = STDOUT_FILENO;
 
                         tk = ast_next_token(ctx);
                         redir->fname = token_copy_str(tk);
@@ -118,6 +121,23 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
 
                 tk = ast_next_token(ctx);
             }
+
+            if ((tk->type == TOKEN_CTRL_CHAR) && (tk->punct_val == '|')) 
+            {
+                ast_backspace(ctx);
+            }
+        }
+    }
+    else if (tkn_type == TOKEN_CTRL_CHAR)
+    {
+        ch = tk->punct_val;
+        if (ch == '|') {
+            node->type = AST_NODE_PIPE;
+
+            // Вытащить предыдущую AST из стека
+            node->pipe.sender = list_pop(ctx->asts);
+            // Прочитать следующую AST - приемник
+            node->pipe.receiver = read_expression(ctx);
         }
     }
 
@@ -130,5 +150,50 @@ struct token* ast_next_token(struct ast_builder_ctx* ctx)
         return NULL;
     }
 
-    return ctx->tokens[ctx->offset++];
+    struct token* new = ctx->tokens[ctx->offset++];
+    ctx->current = new;
+
+    return new;
+}
+
+struct token* ast_backspace(struct ast_builder_ctx* ctx)
+{
+    ctx->offset--;
+}
+
+void ast_free(struct ast_node* node)
+{
+    switch (node->type)
+    {
+    case AST_NODE_ROOT:
+        list* children = node->nodes;
+        struct list_node* current = children->head;
+
+        for (size_t i = 0; i < children->size; i++)
+        {
+            struct list_node* temp = current;
+            if (current) 
+            {
+                // очистить саму AST
+                ast_free(current->element);
+                current = current->next;
+                // удалить list_node
+                free(temp);
+            }
+        }
+
+        free(children);
+        break;
+    case AST_NODE_FUNC:
+        /* code */
+        break;
+    case AST_NODE_PIPE:
+        ast_free(node->pipe.receiver);
+        ast_free(node->pipe.sender);
+        break;
+    default:
+        break;
+    }
+
+    free(node);
 }

@@ -62,7 +62,7 @@ void printcwd()
 
 void cmd_process()
 {
-    struct token* tokens[10];
+    struct token* tokens[20];
     int n = lexer_decode(cmd, strlen(cmd), tokens);
 
 #if 0
@@ -87,17 +87,22 @@ void cmd_process()
 
     struct ast_node* root = ast_build(tokens, n);
 
+    // Освободить память под токены - не нужны больше
+    for (int i = 0; i < n; i ++)
+    {
+        free(tokens[i]);
+    }    
+
+    // Выполнение собранных AST
     struct list_node* anode = root->nodes->head;
-    while (anode != NULL) {
+    while (anode != NULL) 
+    {
         struct ast_node* nd = anode->element;
-        
         ast_execute(nd);
 
         anode = anode->next;
     }
 
-    for (int i = 0; i < n; i ++)
-    {
-        free(tokens[i]);
-    }    
+    // очистить AST дерево
+    ast_free(root);
 }

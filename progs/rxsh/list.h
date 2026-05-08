@@ -22,4 +22,8 @@ void* list_get(list* list, unsigned int i);
 void* list_head(list* list);
 void* list_tail(list* list);
 
+void list_unlink(list* list, struct list_node* node);
+void* list_dequeue(list * list);
+void* list_pop(list * list);
+
 #endif
