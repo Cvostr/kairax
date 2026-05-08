@@ -68,6 +68,7 @@ void tty_fill_ccs(cc_t *control_characters)
     control_characters[VKILL] = NAK;
     control_characters[VSUSP] = SUB;
     control_characters[VWERASE] = ETB;
+    control_characters[VEOF] = EOT;
     control_characters[VEOL] = 0;   // по умолчанию не указываем
 }
 

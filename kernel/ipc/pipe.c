@@ -90,8 +90,8 @@ ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
         // Закрыт ли дескриптор записи?
         if ((pipe->check_ends == 1 && pipe->nwritefds == 0))
         {
-            // TODO : SIGPIPE
-            i = -EPIPE;
+            // EOF
+            i = 0;
             goto exit;
         }
 

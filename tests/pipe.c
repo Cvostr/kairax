@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     ssize_t total = 0;
     while (1) {
         ssize_t rrc = read(fds[0], val, 80);
-        if (rrc < 0) {
+        if (rrc <= 0) {
             break;
         }
         total += rrc;

@@ -18,6 +18,7 @@ struct vgaconsole* current_console = NULL;
 struct terminal_session* current_session = NULL;
 
 #define ETX 3
+#define EOT 0x4
 #define FS  28
 #define NAK 0x15
 #define ETB 0x17
@@ -186,6 +187,10 @@ void kterm_main()
 									break;
 								case 'h':
 									chr = '\b';
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'd':
+									chr = EOT;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 							}

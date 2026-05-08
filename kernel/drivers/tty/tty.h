@@ -144,6 +144,7 @@ struct winsize {
 #define TIOCNOTTY	0x5422
 
 #define ETX         3
+#define EOT         0x4
 #define FS          0x1C
 #define BS         '\b'
 #define NAK         0x15
