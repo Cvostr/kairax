@@ -6,7 +6,9 @@
 #include "ast.h"
 #include "sys/ioctl.h"
 #include "signal.h"
+#include "getopt.h"
 
+int trace = 0;
 char curdir[512];
 char hostname[256];
 char cmd[256];
@@ -18,6 +20,19 @@ void cmd_process();
 
 int main(int argc, char** argv)
 {
+    int opt;
+    while ((opt = getopt(argc, argv, "xc:")) != -1) {
+        switch (opt) {
+            case 'x':
+                trace = 1;
+                break;
+            case 'c':
+                strcpy(cmd, optarg); // Аргумент, следующий сразу за -c
+                cmd_process();
+                return 0;
+        }
+    }
+
     setpgid(0, 0);
     ioctl(0, TIOCSPGRP, getpgid(0));
 

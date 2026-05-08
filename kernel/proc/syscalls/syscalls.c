@@ -383,7 +383,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
 
         // Загрузить аргументы в адресное пространство процесса
         argc = info->num_args;
-        rc = process_load_arguments(new_process, info->num_args, info->args, &argv, 0);
+        rc = process_load_arguments(new_process, info->num_args, info->args, &argv, 1);
         if (rc != 0) {
             free_process(new_process);
             goto exit;
