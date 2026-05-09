@@ -122,7 +122,7 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
                 tk = ast_next_token(ctx);
             }
 
-            if ((tk->type == TOKEN_CTRL_CHAR) && (tk->punct_val == '|')) 
+            if ((tk != NULL) && (tk->type == TOKEN_CTRL_CHAR) && (tk->punct_val == '|')) 
             {
                 ast_backspace(ctx);
             }

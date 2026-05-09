@@ -6,6 +6,7 @@
 #include "errno.h"
 #include "fcntl.h"
 #include "setjmp.h"
+#include "stdlib.h"
 
 #define TESTMSG "Test message"
 
@@ -85,6 +86,11 @@ int main(int argc, char** argv)
         }
         waitpid(r, &status, 0);
     }
+
+    int shell_present = system(NULL);
+    printf("system(NULL) result is %i\n", shell_present);
+
+    system("ls -la");
 
     return 0;
 }
