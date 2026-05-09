@@ -107,7 +107,10 @@ int main(int argc, char** argv)
         close(pty_master);
 
         chdir("/");
-        int rc = execve("/rxsh.a", NULL, NULL);
+        const char* args[2];
+        args[0] = "/bin/sh";
+        args[1] = 0;
+        int rc = execve("/bin/sh", args, NULL);
         printf("exec() :%i\n", rc);
         exit(22);
     }

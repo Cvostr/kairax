@@ -223,6 +223,8 @@ int pipe_file_close(struct inode *inode, struct file *file)
     else if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) 
     {
         p->nwritefds --;
+        // Будем читающих, чтобы вышли с EOF
+        scheduler_wake(&p->readb, INT_MAX);
     }
 
     // Будим наблюдающих

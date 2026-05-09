@@ -7,20 +7,23 @@
 #define REGION_LEN 512
 char region[REGION_LEN];
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) 
+{
+    int srcfd;
 
-    if (argc < 2) {
-        printf("Unspecified file to read\n");
-        return 1;
+    if (argc < 2) 
+    {
+        srcfd = STDIN_FILENO;
     }
+    else
+    {
+        char* src = argv[1];
+        srcfd = open(src, O_RDONLY, 0);
 
-    char* src = argv[1];
-
-    int srcfd = open(src, O_RDONLY, 0);
-
-    if (srcfd == -1) {
-        printf("cat: Can't open file '%s': %s\n", src, strerror(errno));
-        return 2;
+        if (srcfd == -1) {
+            printf("cat: Can't open file '%s': %s\n", src, strerror(errno));
+            return 2;
+        }
     }
 
     ssize_t readed = 0;
