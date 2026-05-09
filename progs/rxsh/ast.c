@@ -102,9 +102,11 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
                 if (tkn_type == TOKEN_CTRL_CHAR)
                 {
                     ch = tk->punct_val;
-                    if (ch == '>') {
+                    if (ch == '>') 
+                    {
                         // перенаправление
                         struct redirect *redir = malloc(sizeof(struct ast_node));
+                        redir->next = NULL;
                         if (node->redir_head == NULL) {
                             node->redir_head = redir;
                         } else {
@@ -112,9 +114,9 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
                         }
                         redir_last = redir;
 
-                        redir->fd = STDOUT_FILENO;
-
                         tk = ast_next_token(ctx);
+
+                        redir->fd = STDOUT_FILENO;
                         redir->fname = token_copy_str(tk);
                     }
                 }
