@@ -25,6 +25,7 @@ struct IO_FILE {
     uint32_t    _buf_size;  // Количество байт в буфере
     uint32_t    _buf_len;   // Размер выделенного буфера
     struct IO_FILE *_next;	// Связный список для всех FILE. используется в fflush(0)
+    pid_t       _popen_pid; 
     mtx_t       _lock;
 };
 

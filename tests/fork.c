@@ -24,6 +24,7 @@ void first() {
 
 int main(int argc, char** argv) 
 {
+    char msgbuf[100];
     int flag = 0;
     if ((flag = setjmp(buf)) == 0)
         first();                // when executed, setjmp returned 0
@@ -76,7 +77,6 @@ int main(int argc, char** argv)
         fflush(stdout);
         return 0;
     } else {
-        char msgbuf[100];
         memset(msgbuf, 0, 100);
         read(pipefds[0], msgbuf, 100);
         printf("Message from child: %s\n", msgbuf);
@@ -87,10 +87,31 @@ int main(int argc, char** argv)
         waitpid(r, &status, 0);
     }
 
+    close(pipefds[0]);
+    close(pipefds[1]);
+
     int shell_present = system(NULL);
     printf("system(NULL) result is %i\n", shell_present);
 
-    system("ls -la");
+    system("ls -la /dev");
+
+    sleep(1);
+
+    printf("TEST: popen(\"r\") \n");
+    FILE *pop = popen("date", "r");
+    if (pop == NULL)
+    {
+        printf("popen failed\n");
+        return 1;
+    }
+
+    while (!feof(pop))
+    {
+        ssize_t readed = fread(msgbuf, 1, 100, pop);
+        printf("readed %i bytes: %s\n", readed, msgbuf);
+    }
+
+    pclose(pop);
 
     return 0;
 }

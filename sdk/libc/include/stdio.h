@@ -96,6 +96,9 @@ int getchar();
 char *fgets(char *s, int size, FILE *stream);
 char *fgets_unlocked(char *s, int size, FILE *stream);
 
+FILE *popen(const char *command, const char *type);
+int pclose(FILE *stream);
+
 #ifdef __cplusplus
 }
 #endif

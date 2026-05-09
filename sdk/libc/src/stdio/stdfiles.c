@@ -10,6 +10,7 @@ static FILE __stderr = {
     ._fileno = 2,
     ._buffer = NULL,
     ._next = NULL,
+    ._popen_pid = 0,
     ._lock = {.type = mtx_plain, .lock = 0}
 };
 
@@ -19,6 +20,7 @@ static FILE __stdout = {
     ._buffer = stdout_buffer,
     ._buf_len = STDIO_BUFFER_LENGTH,
     ._next = NULL,
+    ._popen_pid = 0,
     ._lock = {.type = mtx_plain, .lock = 0}
 };
 
@@ -28,6 +30,7 @@ static FILE __stdin = {
     ._buffer = stdin_buffer,
     ._buf_len = STDIO_BUFFER_LENGTH,
     ._next = NULL,
+    ._popen_pid = 0,
     ._lock = {.type = mtx_plain, .lock = 0}
 };
 
