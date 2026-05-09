@@ -12,7 +12,7 @@ sudo cp ./rm/rm.a /mnt/kxvol/bin/rm
 sudo cp ./rmdir/rmdir.a /mnt/kxvol/bin/rmdir
 sudo cp ./netctl/netctl.a /mnt/kxvol/bin/netctl
 sudo cp ./kill/kill.a /mnt/kxvol/bin/kill
-sudo cp ./rxsh/rxsh.a /mnt/kxvol
+sudo cp ./rxsh/rxsh.a /mnt/kxvol/bin/sh
 sudo cp ./env/env.a /mnt/kxvol/bin/env
 sudo cp ./shutdown/shutdown.a /mnt/kxvol/bin/shutdown
 sudo cp ./modctl/modctl.a /mnt/kxvol/bin/modctl
@@ -38,3 +38,7 @@ sudo cp ./wc/wc.a /mnt/kxvol/bin/wc
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo
 sudo chmod g+s /mnt/kxvol/bin/sudo
+
+# временное для удобства
+sudo ln -s /bin/sh /mnt/kxvol/rxsh.a
+sudo ln -s /bin/sh /mnt/kxvol/rxsh   
