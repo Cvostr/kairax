@@ -77,6 +77,11 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         } 
         else 
         {
+            if ((ai_flags & AI_NUMERICSERV) == AI_NUMERICSERV)
+            {
+                return EAI_NONAME;
+            }
+
             // TODO: поиск по названию?
             return -EAI_SERVICE;
         }
@@ -112,6 +117,12 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
             memcpy(&ipaddr->sin_addr, &inet_addr, 4);
             return 0;
         }
+    }
+
+    // Переходим к DNS resolve
+    if ((ai_flags & AI_NUMERICHOST) == AI_NUMERICHOST)
+    {
+        return EAI_NONAME;
     }
 
     // заполнение структуры с адресом
