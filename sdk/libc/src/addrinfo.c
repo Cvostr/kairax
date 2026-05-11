@@ -107,6 +107,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 
             // Заполнение структуры
             new->ai_family = AF_INET;
+            new->ai_socktype = ai_socktype;
             new->ai_canonname = ((void*) new) + sizeof(struct addrinfo);
             new->ai_addrlen = sizeof(struct sockaddr_in);
             new->ai_addr = ((void*)new) + sizeof(struct addrinfo);
@@ -142,6 +143,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     // Формируем вопросы
     char* dst = nsreq + sizeof(DNS_HEADER);
 
+    // Запрос A записи, если IPv4 разрешен
     if (ai_family == AF_INET || ai_family == AF_UNSPEC)
     {
         question_sz = ns_form_question(dst, node, TYPE_A, CLASS_IN);
@@ -150,6 +152,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         total_questions ++;
     }
 
+    // Запрос AAAA записи, если IPv6 разрешен
     if (ai_family == AF_INET6 || ai_family == AF_UNSPEC)
     {
         question_sz = ns_form_question(dst, node, TYPE_AAAA, CLASS_IN);
@@ -271,6 +274,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 
         // Заполнение структуры
         new->ai_family = resp_ai_family;
+        new->ai_socktype = ai_socktype;
         new->ai_canonname = ((void*) new) + sizeof(struct addrinfo);
         strcpy(new->ai_canonname, tempname);
         new->ai_addrlen = sock_struct_size;
