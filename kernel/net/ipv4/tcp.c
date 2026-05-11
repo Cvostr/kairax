@@ -198,6 +198,7 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
 
         // Ставим статус подключен
         sock->state = SOCKET_STATE_CONNECTED;
+        sock_data->was_connected = TRUE;
 
         // Разбудить ожидающих приема
         scheduler_wake(&sock_data->rx_blk, 1);
@@ -694,13 +695,14 @@ int	sock_tcp4_connect(struct socket* sock, struct sockaddr* saddr, int sockaddr_
         return -EINVAL;
     }
 
+    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
     struct sockaddr_in* inetaddr = (struct sockaddr_in*) saddr;
 
-    if (sock->state != SOCKET_STATE_UNCONNECTED) {
+    // Если соединение активно или раньше было активно
+    if (sock_data->was_connected == TRUE) 
+    {
         return -EISCONN;
     }
-
-    struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
     if (tcp_ip4_alloc_dynamic_port(sock) == 0)
     {
@@ -894,7 +896,11 @@ int	sock_tcp4_accept(struct socket *sock, struct socket **newsock, struct sockad
     // Добавить в список клиентских сокетов
     tcp_ip4_listener_add(sock, client_sock);
 
+    // Установка статуса - подключено
     client_sock->state = SOCKET_STATE_CONNECTED;
+    client_sockdata->was_connected = TRUE;
+    
+    // Возвращаем адрес 
     *newsock = client_sock;
     
     kfree(conn_request);
@@ -950,17 +956,26 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
 #ifdef TCP_LOG_SOCK_RECV
     printk("tcp: recv()\n");
 #endif
-    if (sock->state != SOCKET_STATE_CONNECTED) {
-        return -ENOTCONN;
-    }
 
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
+
+    // Здесь проверяем факт того, было ли когда-либо установлено соединение?
+    // даже если сейчас соединение уже разорвано
+    if (sock_data->was_connected == 0)
+    {
+        return -ENOTCONN;
+    }
 
     // Разработчики могут использовать recv() с нулевой длиной для проверки состояния сокета,
     // При этом ничего не читаем
     // проверим, не приходил ли RST
     if (len == 0)
     {
+        if (sock->state != SOCKET_STATE_CONNECTED) 
+        {
+            return -ENOTCONN;
+        }
+
         // Пришел RST
         if (sock_data->is_rst) 
         {
@@ -994,6 +1009,12 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
             return -ECONNRESET;
         }
 
+        if ((sock->state != SOCKET_STATE_CONNECTED))
+        {
+            // Все данные считаны и сокет закрыт пиром через FIN
+            return 0;
+        }
+
         // Ожидание пакета
         if (scheduler_sleep_on(&sock_data->rx_blk) == WAKE_SIGNAL)
         {
@@ -1005,12 +1026,6 @@ ssize_t sock_tcp4_recvfrom(struct socket* sock, void* buf, size_t len, int flags
         acquire_spinlock(&sock_data->rx_queue_lock);
         rcv_buffer = list_head(&sock_data->rx_queue);
         release_spinlock(&sock_data->rx_queue_lock);
-
-        if ((sock->state != SOCKET_STATE_CONNECTED) && rcv_buffer == NULL)
-        {
-            // Все данные считаны и сокет закрыт пиром через FIN
-            return 0;
-        }
     }
 
     // Считаем нагрузку из пакета
@@ -1159,7 +1174,7 @@ int sock_tcp4_close(struct socket* sock)
         sock_data->shut_wr = TRUE;
 
         // Очищаем очередь приема
-        // Hаз мы тут, значит все приложения закрыли сокет
+        // Раз мы тут, значит все приложения закрыли сокет
         // И никому эти данные уже не нужны
         tcp_ip4_sock_drop_recv_buffer(sock_data);
 
@@ -1253,14 +1268,20 @@ short sock_tcp4_poll(struct socket *sock, struct file *file, struct poll_ctl *nc
     short poll_mask = 0;
     struct tcp4_socket_data* sock_data = (struct tcp4_socket_data*) sock->data;
 
+    // Соединение было успешно установлено, а потом полностью закрыто
+    int disconnected = (sock_data->was_connected == TRUE) && (sock->state == SOCKET_STATE_UNCONNECTED);
+
     poll_wait(nctl, file, &sock_data->rx_poll_wq);
 
     if ((sock->state == SOCKET_STATE_LISTEN) && (sock_data->accept_queue.head != NULL))
         return POLLIN | POLLRDNORM;
 
+    // Сокет полностью закрыт или
     // Запись закрыта с обеих сторон - HUP
-    if ((sock_data->shut_rd == TRUE) && (sock_data->shut_wr == TRUE))
+    if (disconnected || ((sock_data->shut_rd == TRUE) && (sock_data->shut_wr == TRUE)))
+    {
         poll_mask |= POLLHUP;
+    }
 
     // Пришел FIN
     if (sock_data->shut_rd == TRUE)

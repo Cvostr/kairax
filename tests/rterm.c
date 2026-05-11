@@ -9,6 +9,7 @@
 #include "stdlib.h"
 #include "sys/wait.h"
 #include "termios.h"
+#include "string.h"
 
 #define SERV_PORT 23
 
@@ -126,6 +127,12 @@ int main(int argc, char** argv)
         if (got == 0) 
         {
             printf("Client disconnected!\n");
+            alive = 0;
+            break;
+        }
+        else if (got < 0)
+        {
+            printf("Error in client: %s!\n", strerror(errno));
             alive = 0;
             break;
         }
