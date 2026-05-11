@@ -145,3 +145,7 @@ cd ..
 cd wc
 make
 cd ..
+
+cd nc
+make
+cd ..

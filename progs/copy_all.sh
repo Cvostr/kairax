@@ -34,6 +34,7 @@ sudo cp ./realpath/realpath.a /mnt/kxvol/bin/realpath
 sudo cp ./df/df.a /mnt/kxvol/bin/df
 sudo cp ./ps/ps.a /mnt/kxvol/bin/ps
 sudo cp ./wc/wc.a /mnt/kxvol/bin/wc
+sudo cp ./nc/nc.a /mnt/kxvol/bin/nc
 
 sudo cp ./sudo/sudo.a /mnt/kxvol/bin/sudo
 sudo chmod u+s /mnt/kxvol/bin/sudo
