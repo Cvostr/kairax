@@ -600,6 +600,9 @@ int tcp_ip4_fin(struct tcp4_socket_data* sock_data)
     // Добавить заголовок TCP к буферу запроса
     net_buffer_add_front(synrq, &pkt, TCP_HEADER_LEN);
 
+    // добавим ghost byte
+    sock_data->sn += 1;
+
     // Попытка отправить запрос на завершение
     int rc = ip4_send(synrq, route, checksum_struct.dest, IPV4_PROTOCOL_TCP);
     net_buffer_free(synrq);

@@ -165,33 +165,27 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     char nsresp[256];
     ssize_t ns_response_len = 0;
 
-    if (ai_socktype == SOCK_DGRAM || ai_socktype == 0)
+    // Сокет и отправка DNS запроса
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
+    { 
+        return EAI_SYSTEM;    
+    } 
+
+    sendto(sockfd, (const char *) nsreq, total_req_sz, 
+        0, (const struct sockaddr *) &dnssrv_addr,  
+            sizeof(dnssrv_addr)); 
+
+    int resp_addr_len = sizeof(dnssrv_addr);
+    ns_response_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
+            0, (struct sockaddr *) &dnssrv_addr, 
+            &resp_addr_len); 
+
+    if (ns_response_len < 0)
     {
-        if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
-        { 
-            return EAI_SYSTEM;    
-        } 
-
-        sendto(sockfd, (const char *) nsreq, total_req_sz, 
-            0, (const struct sockaddr *) &dnssrv_addr,  
-                sizeof(dnssrv_addr)); 
-
-        int resp_addr_len = sizeof(dnssrv_addr);
-        ns_response_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
-                0, (struct sockaddr *) &dnssrv_addr, 
-                &resp_addr_len); 
-
-        if (ns_response_len < 0)
-        {
-            return EAI_SYSTEM;
-        }
-
-        close(sockfd);
+        return EAI_SYSTEM;
     }
-    else
-    {
-        return EAI_SOCKTYPE;
-    }
+
+    close(sockfd);
 
     DNS_HEADER* nsresp_header = (DNS_HEADER*) nsresp;
     
