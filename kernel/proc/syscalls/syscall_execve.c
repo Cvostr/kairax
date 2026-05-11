@@ -292,6 +292,10 @@ next:
         rc = process_load_arguments(process, envc, envpk, &envpm, 1);
     }
 
+    // Освободить память под временные двумерные массивы аргументов и окружения
+    free_twodim(argvk, argc);
+    free_twodim(envpk, envc);
+
     // Формируем auxiliary вектор
     aux_v[1].type = AT_EXECFD;
     aux_v[1].ival = fd;
@@ -312,18 +316,17 @@ next:
     struct thread* thr = process->threads->head->element;
     thread_recreate_on_execve(thr, &main_thr_info);
 	
+    // На всякий случай сразу обновим адрес стека пользователя в CPU Local
+    set_user_stack_ptr(thr->stack_ptr);
+
+    // Получение контекста для выхода из системного вызова
     syscall_frame_t* syscall_frame = (syscall_frame_t*) this_core->kernel_stack;
     syscall_frame = syscall_frame - 1;
-
+    // Обновим адрес возврата на стартовый IP динамического линковщика
     syscall_frame->rcx = (uint64_t) loader_start_ip;
-    set_user_stack_ptr(thr->stack_ptr);
 
     // Освободить память под aux
     kfree(aux_v);
-
-    // Освободить память под временные двумерные массивы аргументов и окружения
-    free_twodim(argvk, argc);
-    free_twodim(envpk, envc);
 
     return 0;
 }

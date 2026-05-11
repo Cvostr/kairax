@@ -28,6 +28,8 @@
 #include "cpu/cpu_local_x64.h"
 #endif
 
+#define BOOTSHELL_OS_DEBUG
+
 void cd(const char* path) 
 {         
     sys_set_working_dir(path);
@@ -127,6 +129,7 @@ void bootshell_process_cmd(char* cmdline)
         int result = vfs_unmount(args[1]);
         printk("Unmount result %i\n", -result);
     }
+#ifdef BOOTSHELL_OS_DEBUG
     if(strcmp(cmd, "dentry") == 0) {
         dentry_debug_tree();
     }
@@ -135,6 +138,33 @@ void bootshell_process_cmd(char* cmdline)
     }
     if(strcmp(cmd, "ps") == 0) {
         plist_debug();
+    }
+    if(strcmp(cmd, "fds") == 0) {
+        pid_t pid = atoi(args[1]);
+        struct process* proc = process_get_by_id(pid);
+
+        if (proc->type != OBJECT_TYPE_PROCESS) {
+            printk("Not a process!\n");
+            goto exit;
+        }
+
+        for (int i = 0; i < MAX_DESCRIPTORS; i ++)
+        {
+            struct file *fi = proc->fds[i];
+            if (fi != NULL)
+            {
+                ino_t ino = 0;
+                mode_t mode = 0;
+                struct inode *ind = fi->inode;
+                if (ind != NULL)
+                {
+                    ino = ind->inode;
+                    mode = ind->mode;
+                }
+
+                printk("%i: inode %i mode %i\n", i, ino, mode);
+            }
+        }
     }
     if(strcmp(cmd, "ctx") == 0) {
         pid_t pid = atoi(args[1]);
@@ -167,6 +197,7 @@ void bootshell_process_cmd(char* cmdline)
         printf("\n");
 #endif    
     }
+#endif
     if(strcmp(cmd, "kill") == 0) {
         pid_t pid = atoi(args[1]);
         int rc = sys_send_signal(pid, SIGKILL);

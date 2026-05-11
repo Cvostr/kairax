@@ -3,8 +3,9 @@
 %define MULTIBOOT_HEADER_TAG_END  0x0
 %define MAGIC_BOOTLOADER_MB2      0x36d76289
 
-%define MULTIBOOT_HEADER_TAG_FRAMEBUFFER  5
-%define MULTIBOOT_HEADER_TAG_OPTIONAL 1
+%define MULTIBOOT_HEADER_TAG_FRAMEBUFFER    5
+%define MULTIBOOT_HEADER_TAG_MODULE_ALIGN   6
+%define MULTIBOOT_HEADER_TAG_OPTIONAL       1
 
 bits 32
 
@@ -26,6 +27,11 @@ framebuffer_tag_start:
     dd 768
     dd 32
 framebuffer_tag_end:
+
+align 8
+    dw MULTIBOOT_HEADER_TAG_MODULE_ALIGN ; type
+    dw 0x1
+    dd 0x8
 
 align 8
     dw MULTIBOOT_HEADER_TAG_END ; type

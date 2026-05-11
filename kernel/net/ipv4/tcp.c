@@ -255,10 +255,6 @@ void tcp_ip4_destroy(struct socket* sock)
 
     sock->state = SOCKET_STATE_UNCONNECTED;
 
-    // TODO: должно происходить только при освобождении inode
-    // Очищаем очередь приема
-    tcp_ip4_sock_drop_recv_buffer(sock_data);
-
     // Если закрываемый сокет - дочерний сокет от сервера
     // То надо удалить его из этого серверного сокета 
     if (sock_data->listener != NULL) 
@@ -1161,6 +1157,12 @@ int sock_tcp4_close(struct socket* sock)
         // Сразу закрываем и чтение и запись
         sock_data->shut_rd = TRUE;
         sock_data->shut_wr = TRUE;
+
+        // Очищаем очередь приема
+        // Hаз мы тут, значит все приложения закрыли сокет
+        // И никому эти данные уже не нужны
+        tcp_ip4_sock_drop_recv_buffer(sock_data);
+
         // Мы не сокет-слушатель. Запускаем graceful shutdown
         sock_tcp4_shutdown_sequense(sock);
     }
