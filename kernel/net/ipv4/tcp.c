@@ -238,6 +238,9 @@ int tcp_ip4_handle(struct net_buffer* nbuffer)
         // Чтобы они могли сразу выйти с ошибкой
         scheduler_wake(&sock_data->rx_blk, INT_MAX);
 
+        // Будим наблюдающих
+        poll_wakeall(&sock_data->rx_poll_wq);
+
         //printk("RST \n");
     } 
     else if (is_ack) 
@@ -265,6 +268,9 @@ void tcp_ip4_destroy(struct socket* sock)
         tcp_ip4_listener_remove(sock_data->listener, sock);
         return;
     }
+
+    // Будим наблюдающих, чтобы они могли узнать о том, что сокет закрыт
+    poll_wakeall(&sock_data->rx_poll_wq);
 
     // Освободить порт
     // Если ссылок больше не останется, то сокет будет уничтожен

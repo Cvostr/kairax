@@ -1084,11 +1084,8 @@ exit:
 
 struct aml_node *aml_op_word(struct aml_ctx *ctx)
 {
-    uint32_t tmp;
     struct aml_node *node = aml_make_node(INTEGER);
-    node->int_value = aml_ctx_get_byte(ctx);
-    tmp = aml_ctx_get_byte(ctx);
-    node->int_value |= tmp << 8;
+    node->int_value = aml_ctx_get_word(ctx);
     aml_acquire_node(node);
     return node;
 }
