@@ -324,6 +324,18 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 	}
 }
 
+void xhci_portsc_wr1c(struct xhci_port_regs *port_regs, uint32_t status)
+{
+	volatile uint32_t portsc = port_regs->status;
+
+	portsc &= ~(XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_WRC | XHCI_PORTSC_OCC | 
+            XHCI_PORTSC_PRC  | XHCI_PORTSC_PLC | XHCI_PORTSC_CEC | XHCI_PORTSC_PED);
+
+	portsc |= status;
+
+	port_regs->status = portsc;
+}
+
 int xhci_controller_poweron(struct xhci_controller* controller, uint8_t port_id)
 {
 	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
@@ -360,7 +372,7 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	}
 
 	// Очистить флаги статуса
-	port_regs->status |= (XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC | XHCI_PORTSC_PLC);
+	xhci_portsc_wr1c(port_regs, XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC | XHCI_PORTSC_PLC);
 
 	// Получить текущий PLS
 	uint16_t port_link_state = (port_regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
@@ -408,14 +420,14 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	uint32_t pstatus = port_regs->status;
 	pstatus |= (XHCI_PORTSC_PRC | XHCI_PORTSC_WRC | XHCI_PORTSC_CSC | XHCI_PORTSC_PEC);
 	// TODO: нужно ли?
-	pstatus &= (~XHCI_POSRTSC_PED);
+	pstatus &= (~XHCI_PORTSC_PED);
 	port_regs->status = pstatus;
 
 	wait_active_ms(3);
 
 	// This case could happen when the port has been reset after
     // a device disconnect event, and no device has connected since.
-	if ((port_regs->status & XHCI_POSRTSC_PED) == 0)
+	if ((port_regs->status & XHCI_PORTSC_PED) == 0)
 	{
 		return FALSE;
 	}

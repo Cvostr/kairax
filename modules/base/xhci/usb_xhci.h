@@ -22,7 +22,7 @@
 
 // Port Status
 #define XHCI_PORTSC_CCS			(1) 		// Current Connect Status
-#define XHCI_POSRTSC_PED		(1 << 1) 	// Port Enabled-Disabled
+#define XHCI_PORTSC_PED			(1 << 1) 	// Port Enabled-Disabled
 #define XHCI_PORTSC_OCA			(1 << 3) 	// Overcurrent Active
 #define XHCI_PORTSC_PORTRESET	(1 << 4)
 #define XHCI_PORTSC_PORTPOWER	(1 << 9)
@@ -30,7 +30,7 @@
 #define XHCI_PORTSC_CSC			(1 << 17)	// Connect Status Change
 #define XHCI_PORTSC_PEC			(1 << 18)	// Port Enable Disable Change
 #define XHCI_PORTSC_WRC			(1 << 19)	// Warm Port Reset Change
-#define XHCI_PORTSC_OOC			(1 << 20)	// Over Current Change
+#define XHCI_PORTSC_OCC			(1 << 20)	// Over Current Change
 #define XHCI_PORTSC_PRC			(1 << 21)	// Port Reset Change
 #define XHCI_PORTSC_PLC			(1 << 22)	// Port Link State Change
 #define XHCI_PORTSC_CEC			(1 << 23)	// Port Config Error Change
@@ -153,6 +153,8 @@ struct xhci_port_regs {
 	uint32_t link_info;
 	uint32_t lpm_control;
 } PACKED;
+
+void xhci_portsc_wr1c(struct xhci_port_regs *port_regs, uint32_t status);
 
 struct xhci_op_config {
 	uint32_t max_device_slots_enabled         	: 8;
