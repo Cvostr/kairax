@@ -57,6 +57,7 @@ void tty_init()
     tty_slave_fops.close = slave_file_close;
     tty_slave_fops.read = slave_file_read;
     tty_slave_fops.write = slave_file_write;
+    tty_slave_fops.poll = pty_slave_poll;
     tty_slave_fops.ioctl = tty_ioctl;
 }
 
@@ -235,6 +236,31 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
     return pipe_read(p_pty->master_to_slave, buffer, count, 0);
 }
 
+short pty_slave_poll(struct file *file, struct poll_ctl *pctl)
+{
+    short poll_mask = 0;
+
+    struct pty *p_pty = (struct pty *) file->private_data;
+
+    struct pipe* slave_to_master = (struct pipe*) p_pty->slave_to_master;
+    struct pipe* master_to_slave = (struct pipe*) p_pty->master_to_slave;
+
+    poll_wait(pctl, file, &slave_to_master->poll_wq);
+    poll_wait(pctl, file, &master_to_slave->poll_wq);
+
+    // доступность чтения
+    if ((master_to_slave->read_pos < master_to_slave->write_pos))
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // доступность записи
+    if ((slave_to_master->write_pos < slave_to_master->read_pos + PIPE_SIZE))
+        poll_mask |= (POLLOUT | POLLWRNORM);
+
+    // TODO: Отслеживать закрытие через POLLHUP 
+    
+    return poll_mask;
+}
+
 int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
     struct process* process = cpu_get_current_thread()->process;
@@ -381,7 +407,6 @@ void pty_remove_last_char(struct pty* p_pty)
 void pty_flush(struct pty* p_pty)
 {
     // Записать буфер в slave
-    p_pty->buffer[p_pty->buffer_pos++] = '\n';
     pipe_write(p_pty->master_to_slave, p_pty->buffer, p_pty->buffer_pos);
     // Сброс позиции буфера
     p_pty->buffer_pos = 0;
@@ -483,16 +508,24 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 
                 continue;
             }
+
+            // EOF
+            if ((first_char == p_pty->control_characters[VEOF]))
+            {
+                pty_flush(p_pty);
+                // TODO: EOF в PIPE
+                continue;
+            }
         }
 
         char EOL = p_pty->control_characters[VEOL];
 
-        if (first_char == '\r')
+        if (first_char == CR)
         {
             // пока что CR просто выводим, не добавляя в буфер
             tty_output_write(p_pty, &first_char, 1);
         }
-        else if ((EOL != 0 && first_char == EOL) || (first_char == '\n'))
+        else if ((EOL != 0 && first_char == EOL) || (first_char == LF))
         {
             // Нажата кнопка enter
             if ((p_pty->lflag & ECHO) == ECHO)
@@ -501,7 +534,9 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
                 tty_output_write(p_pty, crlf, 2);
             }
 
-            // Отправить в терминал
+            // Добавить введенный символ в буфер
+            pty_linebuffer_append(p_pty, first_char);
+            // Отправить в терминал 
             pty_flush(p_pty);
         } 
         else if (first_char <= 31 || first_char == 127)
@@ -518,6 +553,10 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 
             // Эхо в терминал CR + LF
             tty_output_write(p_pty, crlf, 2);
+
+            // Добавить LF (TODO: скорее всего этого тут не должно быть)
+            pty_linebuffer_append(p_pty, LF);
+            // Сбросить вывод
             pty_flush(p_pty);
         }
         else
@@ -529,6 +568,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             }
             else
             {
+                // Сразу отправить символ в канал
                 pipe_write(p_pty->master_to_slave, &first_char, sizeof(char));
             }
                 

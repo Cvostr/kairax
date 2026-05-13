@@ -150,6 +150,8 @@ struct winsize {
 #define NAK         0x15
 #define SUB         032
 #define ETB         0x17
+#define CR          '\r'
+#define LF          '\n'
 
 struct pty;
 
@@ -181,6 +183,8 @@ ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, lo
 ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 // Закрытие со стороны приложения
 int slave_file_close(struct inode *inode, struct file *file);
+
+short pty_slave_poll(struct file *file, struct poll_ctl *pctl);
 
 int tty_ioctl(struct file* file, uint64_t request, uint64_t arg);
 
