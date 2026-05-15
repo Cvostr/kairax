@@ -80,6 +80,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/timegm.o \
 				obj/ctype.o \
 				obj/dirent.o \
+				obj/scandir.o \
 				obj/spawn.o \
 				obj/sched.o \
 				obj/termios.o \

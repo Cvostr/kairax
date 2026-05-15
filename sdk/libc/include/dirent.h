@@ -48,6 +48,11 @@ int dirfd(DIR *dirp);
 
 void rewinddir(DIR *d);
 
+int scandir(const char *dirp,
+            struct dirent ***namelist,
+            int (*filter)(const struct dirent *),
+            int (*compar)(const struct dirent **, const struct dirent **));
+
 #ifdef __cplusplus
 }
 #endif
