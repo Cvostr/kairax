@@ -48,7 +48,7 @@ struct tmpfs_instance {
 void tmpfs_free_inode(struct tmpfs_inode* inode);
 
 void tmpfs_init();
-void tmpfs_instance_remove_inode(struct tmpfs_instance *inst, ino_t index);
+int tmpfs_instance_remove_inode(struct tmpfs_instance *inst, ino_t index);
 ino_t tmpfs_instance_add_inode(struct tmpfs_instance *inst, struct tmpfs_inode* inode, ino_t index);
 struct inode* tmpfs_inode_to_vfs_inode(struct tmpfs_instance *inst, struct tmpfs_inode* inode, ino_t ino_num);
 struct tmpfs_dentry* tmpfs_make_dentry(uint64_t inode, const char *name, int type);

@@ -86,11 +86,11 @@ ino_t tmpfs_instance_add_inode(struct tmpfs_instance *inst, struct tmpfs_inode* 
     return index;
 }
 
-void tmpfs_instance_remove_inode(struct tmpfs_instance *inst, ino_t index)
+int tmpfs_instance_remove_inode(struct tmpfs_instance *inst, ino_t index)
 {
     if (index >= inst->inodes_allocated)
     {
-        return NULL;
+        return -ENOENT;
     }
 
     struct tmpfs_inode *node = inst->inodes[index]; 
@@ -101,6 +101,8 @@ void tmpfs_instance_remove_inode(struct tmpfs_instance *inst, ino_t index)
         inst->inodes[index] = NULL;
         inst->inodes_num --;
     }
+
+    return 0;
 }
 
 struct inode* tmpfs_inode_to_vfs_inode(struct tmpfs_instance *inst, struct tmpfs_inode* inode, ino_t ino_num)

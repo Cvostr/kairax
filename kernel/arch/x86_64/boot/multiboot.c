@@ -38,7 +38,7 @@ int parse_mb2_tags(taglist_t *tags, size_t* total_size)
             kernel_boot_info.command_line = (char*) tag->data;
             break;
         case MBOOT2_MODULE:
-            module_t* mod = tag->data;
+            module_t* mod = (module_t*) tag->data;
             size_t modsize = mod->mod_end - mod->mod_start;
             modsize = align(modsize, PAGE_SIZE);
             // Даем временную защиту области памяти, в которую загружен модуль
@@ -78,7 +78,7 @@ int mb2_load_modules(taglist_t *tags)
         switch(tag->type)
         {
         case MBOOT2_MODULE:
-            module_t* mod = tag->data;
+            module_t* mod = (module_t*) tag->data;
             size_t modsize = mod->mod_end - mod->mod_start;
             size_t mod_pages = modsize / PAGE_SIZE; //align(modsize, PAGE_SIZE) / PAGE_SIZE;
 

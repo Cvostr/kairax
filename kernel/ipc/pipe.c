@@ -16,7 +16,7 @@ struct file_operations pipe_fops_write = {
     .poll = pipe_poll
 };
 
-struct pipe* new_pipe(size_t size)
+struct pipe* new_pipe()
 {
     struct pipe* pipe = (struct pipe*) kmalloc(sizeof(struct pipe)); 
     if (pipe == NULL) {

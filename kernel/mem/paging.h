@@ -38,7 +38,7 @@ uint64_t vm_get_physical_addr(struct vm_table* table, uint64_t addr);
 
 void* arch_new_vm_table();
 void* arch_clone_kernel_vm_table();
-void arch_destroy_vm_table();
+void arch_destroy_vm_table(void *arch_table);
 
 int arch_vm_map(void* arch_table, uint64_t vaddr, uint64_t physaddr, int prot);
 void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page);
