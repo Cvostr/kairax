@@ -39,6 +39,8 @@ struct proc_sigact
     sigset_t sigmask;
 };
 
+struct futex;
+
 struct process {
     // Тип объекта
     int                 type;
@@ -86,8 +88,8 @@ struct process {
     char*               tls;
     size_t              tls_size;
     // futex
-    void*               futex_list_head;
-    void*               futex_list_tail;
+    struct futex        *futex_list_head;
+    struct futex        *futex_list_tail;
     spinlock_t          futex_list_lock;
     // Карта адресного пространства
     list_t*             mmap_ranges;

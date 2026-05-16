@@ -41,6 +41,7 @@
 #include "drivers/char/input/keyboard.h"
 #include "drivers/char/input/mouse.h"
 #include "net/net.h"
+#include "ipc/local_socket.h"
 #include "misc/kterm/kterm.h"
 #include "misc/kterm/vgaterm.h"
 #include "kairax/intctl.h"
@@ -187,6 +188,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	random_init();
 	zero_init();
 	null_init();
+	local_sock_init();
 	net_init();
 
 	procfs_init_kernel_cmdline(P2V(kboot_info->command_line));

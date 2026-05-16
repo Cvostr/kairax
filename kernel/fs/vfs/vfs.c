@@ -98,7 +98,7 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
     return 0;
 }
 
-int vfs_unmount(char* mount_path)
+int vfs_unmount(const char *mount_path)
 {
     struct dentry* den = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
     

@@ -1,5 +1,6 @@
 #include "thread_scheduler.h"
 #include "cpu/cpu_local_x64.h"
+#include "intctl.h"
 
 void init_scheduler()
 {

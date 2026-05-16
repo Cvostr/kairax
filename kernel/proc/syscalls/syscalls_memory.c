@@ -28,7 +28,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     if (shared_private_mask == (MAP_SHARED | MAP_PRIVATE) ||
         shared_private_mask == 0) 
     {
-        return -EINVAL;
+        return (void*)-EINVAL;
     }
 
     if ((flags & MAP_ANONYMOUS) == 0) 
@@ -36,7 +36,7 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
         // offset должен быть выровнен
         if ((offset % PAGE_SIZE) > 0)
         {
-            return -EINVAL;
+            return (void*)-EINVAL;
         }
 
         // Найдем файл по дескриптору
@@ -52,13 +52,13 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
             inode_type != INODE_FLAG_CHARDEVICE
         ) 
         {
-            return -EACCES;
+            return (void*)-EACCES;
         }
 
         // Файл должен быть доступен для чтения
         if (file_allow_read(file) == FALSE)
         {
-            return -EACCES;
+            return (void*)-EACCES;
         }
 
         // Если есть флаг SHARED и у запрашивается разрешение на запись в регион памяти,
@@ -68,11 +68,11 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
             file_allow_write(file) == FALSE
         )
         {
-            return -EACCES;
+            return (void*)-EACCES;
         }
 
         if (file->ops->mmap == NULL) {
-            return -ENODEV;
+            return (void*)-ENODEV;
         }
     }
 
@@ -83,13 +83,13 @@ void* sys_memory_map(void* address, uint64_t length, int protection, int flags, 
     // получилось ли выделить память?
     if (address == NULL)
     {
-        return -ENOMEM;
+        return (void*)-ENOMEM;
     }
 
     // Сформировать регион
     struct mmap_range* range = new_mmap_region();
     if (range == NULL) {
-        return -ENOMEM;
+        return (void*)-ENOMEM;
     }
     
     range->base = (uint64_t) address;

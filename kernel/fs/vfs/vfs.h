@@ -13,7 +13,7 @@ void vfs_init();
 
 int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname);
 
-int vfs_unmount(char* mount_path);
+int vfs_unmount(const char *mount_path);
 
 struct superblock* vfs_get_mounted_partition(const char* mount_path);
 
