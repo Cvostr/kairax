@@ -186,6 +186,8 @@ int fat_read_directory_cluster( struct fat_instance* inst,
 
 int fat_calc_free_clusters(struct fat_instance* inst, uint32_t *free_clusters);
 
+void fat_free_instance(struct fat_instance* instance);
+
 // Вызывается VFS при монтировании
 struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb);
 

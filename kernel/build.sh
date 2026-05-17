@@ -6,7 +6,8 @@ mkdir bin
 x64_SRC=./arch/x86_64
 KAIRAX_PATH=./kairax
 GCC_DEFINES="-D__LITTLE_ENDIAN__ -DX86_64"
-GCC_ARGS="$GCC_DEFINES -nostdlib -m64 -c -nostdinc -I$KAIRAX_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
+GCC_WARNINGS="-Wno-error=int-conversion -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration"
+GCC_ARGS="$GCC_DEFINES $GCC_WARNINGS -nostdlib -m64 -c -nostdinc -I$KAIRAX_PATH -I$RAXLIB_PATH/ -I./ -I$x64_SRC/ -I$x64_SRC/base/stdc -I$x64_SRC/base -ffreestanding -mcmodel=kernel -fno-pic -mno-red-zone -fno-omit-frame-pointer -nostartfiles -static"
 NASM_ARGS="-felf64 -i$x64_SRC"
 
 nasm $NASM_ARGS $x64_SRC/boot/start.asm -o ./bin/start.o

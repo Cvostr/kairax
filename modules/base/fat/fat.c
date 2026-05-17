@@ -167,7 +167,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     memset(instance->bpb, 0, bsize);
 
     // Считать BPB
-    if (partition_read(drive, 0, 1, instance->bpb) != 0)
+    if (partition_read(drive, 0, 1, (char *) instance->bpb) != 0)
     {
         printk("FAT: Error reading BPB!\n");
         fat_free_instance(instance);
@@ -251,7 +251,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         instance->eoc_value = FAT32_EOC;
         // Чтение структуры FSINFO32
         instance->fsinfo32 = kmalloc(bsize);
-        if (partition_read(drive, bpb->ext_32.filesystem_info, 1, instance->fsinfo32) != 0)
+        if (partition_read(drive, bpb->ext_32.filesystem_info, 1, (char *) instance->fsinfo32) != 0)
         {
             printk("FAT: Error reading FSINFO32!\n");
             fat_free_instance(instance);
