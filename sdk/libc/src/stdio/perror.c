@@ -33,6 +33,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(ESPIPE, "Illegal seek"),
     DEFINE_ERROR(EROFS, "Read-only file system"),
     DEFINE_ERROR(EPIPE, "Broken pipe"),
+    DEFINE_ERROR(EDOM, "Math argument out of domain of func"),
     DEFINE_ERROR(ERANGE, "Math result not representable"),
     DEFINE_ERROR(ENOSYS, "Function not implemented"),
     DEFINE_ERROR(ENOTEMPTY, "Directory not empty"),

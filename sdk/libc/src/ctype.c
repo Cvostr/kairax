@@ -5,6 +5,11 @@ int isspace(int c)
 	return c == ' ' || c == '\n' || c == '\r' || c == '\v' || c == '\t' || c == '\f';
 }
 
+int isblank(int c)
+{
+	return c == ' ' || c == '\t';
+}
+
 int isdigit(int c)
 {
 	return ((unsigned int) c - '0') < 10;
@@ -53,5 +58,10 @@ int isascii(int c)
 
 int toascii(int c) 
 {
-	return (c&0x7f);
+	return (c & 0x7f);
 }
+
+int iscntrl(int c) 
+{
+    return c < 32 || c == 127;
+}	
