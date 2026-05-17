@@ -43,7 +43,7 @@ int creat(const char *filepath, mode_t mode);
 
 int openat(int dirfd, const char *filepath, int flags, int mode);
 
-int open(const char *filepath, int flags, int mode);
+int open(const char *filepath, int flags, ...);
 
 int fcntl(int fd, int cmd, ...);
 

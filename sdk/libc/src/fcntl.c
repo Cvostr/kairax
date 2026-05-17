@@ -13,8 +13,18 @@ int openat(int dirfd, const char* filepath, int flags, int mode)
     __set_errno(syscall_open_file(dirfd, filepath, flags, mode));
 }
 
-int open(const char* filepath, int flags, int mode)
+int open(const char* filepath, int flags, ...)
 {
+    mode_t mode = 0;
+
+    if ((flags & O_CREAT)) 
+    {
+        va_list args;
+        va_start(args, flags);
+        mode = va_arg(args, mode_t);
+        va_end(args);
+    }
+
     __set_errno(syscall_open_file(AT_FDCWD, filepath, flags, mode));
 }
 

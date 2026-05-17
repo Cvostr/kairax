@@ -7,6 +7,7 @@ __BEGIN_DECLS
 
 extern int isspace(int c);
 extern int isdigit(int c);
+extern int isxdigit(int c);
 extern int toupper(int c);
 extern int tolower(int c);
 extern int isalpha(int c);

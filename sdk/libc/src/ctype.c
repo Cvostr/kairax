@@ -15,6 +15,11 @@ int isdigit(int c)
 	return ((unsigned int) c - '0') < 10;
 }
 
+int isxdigit(int c)
+{
+	return isdigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
 int isalpha(int c)
 {
 	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ? 1 : 0);

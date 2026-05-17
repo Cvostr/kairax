@@ -65,7 +65,7 @@ int main(int argc, char** argv)
             sockfamily = AF_INET;
             ping_addr_size = sizeof(struct sockaddr_in);
             ping_addr = malloc(sizeof(struct sockaddr_in));   
-            struct sockaddr_in *paddr = ping_addr;
+            struct sockaddr_in *paddr = (struct sockaddr_in *) ping_addr;
             paddr->sin_family = AF_INET;
             paddr->sin_port = htons(0);
             paddr->sin_addr.s_addr = ip4_addr;
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
             {
                 case AF_INET:
                     netaddr = malloc(INET_ADDRSTRLEN);
-                    struct sockaddr_in *paddr = ping_addr;
+                    struct sockaddr_in *paddr = (struct sockaddr_in *) ping_addr;
                     inet_ntop(ping_addr->sa_family, &paddr->sin_addr, netaddr, INET_ADDRSTRLEN);
                     break;
                 default:

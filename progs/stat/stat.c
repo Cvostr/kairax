@@ -90,7 +90,7 @@ int main(int argc, char** argv)
         openflags |= (O_NOFOLLOW | O_PATH);
     }
 
-    fd = open(file, openflags, 0);
+    fd = open(file, openflags);
     if (fd == -1) 
     {
         printf("stat: Can't open file %s: %s\n", file, strerror(errno));
