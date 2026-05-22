@@ -56,6 +56,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/string.o \
 				obj/strtok.o \
 				obj/strings.o \
+				obj/wchar.o \
 				obj/strerror.o \
 				obj/unistd.o \
 				obj/utime.o \

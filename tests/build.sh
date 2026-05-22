@@ -60,3 +60,6 @@ ld $LD_ARGS -o bin/poll.a obj/poll.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerr
 
 gcc $ARGS shm.c -o obj/shm.o
 ld $LD_ARGS -o bin/shm.a obj/shm.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
+gcc $ARGS wchar.c -o obj/wchar.o
+ld $LD_ARGS -o bin/wchar.a obj/wchar.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno

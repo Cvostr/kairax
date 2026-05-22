@@ -14,7 +14,11 @@
 #define STREAM_ROUNDS 200
 
 int client();
-int server();
+int server(int mode, int deletesock);
+int incorrect_type();
+int _socketpair();
+int dgram_client();
+int dgram_server();
 
 int main(int argc, char** argv)
 {
@@ -81,7 +85,7 @@ int main(int argc, char** argv)
         exit(0);
     }
 
-    rc = dgram_server(srv_mode, deletesock);
+    rc = dgram_server();
     waitpid(client_pid, &clrc, 0);
 
     return rc;

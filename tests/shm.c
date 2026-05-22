@@ -4,11 +4,12 @@
 #include "fcntl.h"
 #include "stdio.h"
 #include "errno.h"
+#include "sys/wait.h"
 
 #define SHM_NAME "/my_shared_memory"
 #define SHM_SIZE 4096 // 4KB
 
-void _writer()
+int _writer()
 {
  int shm_fd;
     void *ptr;
@@ -56,7 +57,7 @@ void _writer()
     return 0;
 }
 
-void reader()
+int reader()
 {
     int shm_fd;
     void *ptr;
