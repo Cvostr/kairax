@@ -49,6 +49,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/realpath.o \
 				obj/stdlib/mktemp.o \
 				obj/netinet/in.o \
+				obj/netinet/in_constants.o \
 				obj/arpa/inet.o \
 				obj/arpa/inet_ntop.o \
 				obj/arpa/inet_pton.o \

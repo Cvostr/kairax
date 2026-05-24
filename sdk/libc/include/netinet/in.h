@@ -65,6 +65,11 @@ extern uint16_t htons (uint16_t hshort);
 #define IP_TTL		2
 #define IP_HDRINCL	3
 
+#define IN6ADDR_ANY_INIT {{{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }}}
+#define IN6ADDR_LOOPBACK_INIT {{{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }}}
+extern const struct in6_addr in6addr_any;
+extern const struct in6_addr in6addr_loopback;
+
 #ifdef __cplusplus
 }
 #endif

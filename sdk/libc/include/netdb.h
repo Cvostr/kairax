@@ -46,8 +46,9 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type);
 #define EAI_AGAIN -10
 #define EAI_SYSTEM -11
 
-#define AI_NUMERICHOST 1
-#define AI_NUMERICSERV 8
+#define AI_NUMERICHOST  1
+#define AI_PASSIVE	    2
+#define AI_NUMERICSERV  8
 
 struct addrinfo {
     int     ai_flags;

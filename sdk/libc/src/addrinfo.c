@@ -36,6 +36,53 @@ const char* gai_strerror(int error)
     return "Unknown DNS error";
 }
 
+struct addrinfo *__make_addrinfo(int family, int socktype, char *canonname, size_t addrlen)
+{
+    size_t namelen = (canonname == NULL ? 0 : strlen(canonname) + 1);
+    size_t total_struct_size = sizeof(struct addrinfo) + namelen + addrlen;
+
+    struct addrinfo* new = malloc(total_struct_size);
+    if (new == NULL)
+    {
+        return NULL;
+    }
+
+    memset(new, 0, total_struct_size);
+
+    // Заполнение структуры
+    new->ai_family = family;
+    new->ai_socktype = socktype;
+    
+    if (canonname != NULL)
+    {
+        new->ai_canonname = ((void*) new) + sizeof(struct addrinfo);
+        strcpy(new->ai_canonname, canonname);
+    }
+    else
+    {
+        new->ai_canonname = NULL;
+    }
+
+    new->ai_addrlen = addrlen;
+    new->ai_addr = ((void*)new) + sizeof(struct addrinfo) + namelen;
+
+    return new;
+}
+
+void __addrinfo_chain_append(struct addrinfo **res, struct addrinfo **root, struct addrinfo **current, struct addrinfo *elem)
+{
+    if (*root == NULL) {
+        *root = elem;
+        *res = *root;
+    }
+
+    if (*current != NULL) {
+        (*current)->ai_next = elem;
+    }
+
+    *current = elem;
+}
+
 int getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)
 {
     int i;
@@ -51,6 +98,13 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     int ai_socktype = (hints != NULL) ? hints->ai_socktype : 0;
     int ai_protocol = (hints != NULL) ? hints->ai_protocol : 0; 
     int ai_flags = (hints != NULL) ? hints->ai_flags : 0; 
+    int is_passive = (ai_flags & AI_PASSIVE) == AI_PASSIVE;
+
+    // Для хранения состояния цепочки
+    struct addrinfo* root = NULL;
+    struct addrinfo* current = NULL;
+
+    struct addrinfo* new;
 
     // по умолчанию, если service = NULL, то порт = 0
     uint16_t sock_port = 0;
@@ -59,11 +113,6 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     if (!(ai_family == AF_INET || ai_family == AF_INET6 || ai_family == AF_UNSPEC))
     {
         return EAI_FAMILY;
-    }
-
-    if (node == NULL)
-    {
-        return EAI_NONAME;
     }
 
     if (service != NULL)
@@ -88,6 +137,52 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         }
     }
 
+    // Обработаем сценарий, если node = NULL
+    if (node == NULL)
+    {
+        // service должен быть обязательно указан, а AI_NUMERICHOST должен отсутствовать
+        if (service == NULL || (ai_flags & AI_NUMERICHOST) == AI_NUMERICHOST)
+        {
+            return EAI_NONAME;
+        }
+
+        if (ai_family == AF_INET || ai_family == AF_UNSPEC)
+        {
+            new = __make_addrinfo(AF_INET, ai_socktype, NULL, sizeof(struct sockaddr_in));
+            if (new == NULL)
+            {
+                return EAI_MEMORY;
+            }
+
+            __addrinfo_chain_append(res, &root, &current, new);
+
+            // Заполнение структуры адреса
+            struct sockaddr_in *ipaddr = (struct sockaddr_in *) new->ai_addr;
+            ipaddr->sin_family = AF_INET;
+            ipaddr->sin_port = sock_port;
+            ipaddr->sin_addr.s_addr = is_passive ? INADDR_ANY : INADDR_LOOPBACK;
+        }
+
+        if (ai_family == AF_INET6 || ai_family == AF_UNSPEC)
+        {
+            new = __make_addrinfo(AF_INET6, ai_socktype, NULL, sizeof(struct sockaddr_in6));
+            if (new == NULL)
+            {
+                return EAI_MEMORY;
+            }
+
+            __addrinfo_chain_append(res, &root, &current, new);
+
+            // Заполнение структуры адреса
+            struct sockaddr_in6 *ipaddr = (struct sockaddr_in6 *) new->ai_addr;
+            ipaddr->sin6_family = AF_INET6;
+            ipaddr->sin6_port = sock_port;
+            memcpy(&ipaddr->sin6_addr, is_passive ? &in6addr_any : &in6addr_loopback, 16);
+        }
+
+        return 0;
+    }
+
     if (ai_family == AF_INET || ai_family == AF_UNSPEC)
     {
         // Если IPv4 или не указано, попробуем считать node как адрес IPv4
@@ -95,28 +190,20 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         if (inet_aton(node, &inet_addr) != 0)
         {
             // в node указали ip адрес 
-            // считаем суммарный размер одной структуры addrinfo
-            total_struct_sz = sizeof(struct addrinfo) + sizeof(struct sockaddr_in); 
-
-            struct addrinfo* new = malloc(total_struct_sz);
+            new = __make_addrinfo(AF_INET, ai_socktype, NULL, sizeof(struct sockaddr_in));
             if (new == NULL)
             {
-                return -EAI_MEMORY;
+                return EAI_MEMORY;
             }
-            memset(new, 0, total_struct_sz);
-            *res = new;
 
-            // Заполнение структуры
-            new->ai_family = AF_INET;
-            new->ai_socktype = ai_socktype;
-            new->ai_canonname = NULL;
-            new->ai_addrlen = sizeof(struct sockaddr_in);
-            new->ai_addr = ((void*)new) + sizeof(struct addrinfo);
-
+            // Заполнение структуры адреса
             struct sockaddr_in *ipaddr = (struct sockaddr_in *) new->ai_addr;
             ipaddr->sin_family = AF_INET;
             ipaddr->sin_port = sock_port;
             memcpy(&ipaddr->sin_addr, &inet_addr, 4);
+
+            *res = new;
+
             return 0;
         }
     }
@@ -225,9 +312,6 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         resp_current += len;
     }
 
-    struct addrinfo* root = NULL;
-    struct addrinfo* current = NULL;
-
     // Обработаем ответы
     for (i = 0; i < resp_answers; i ++)
     {
@@ -256,30 +340,15 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
                 break;
         }
 
-        // считаем суммарный размер одной структуры addrinfo
-        total_struct_sz = sizeof(struct addrinfo) + (namelen + 1) + sock_struct_size; 
 
-        struct addrinfo* new = malloc(total_struct_sz);
+        new = __make_addrinfo(resp_ai_family, ai_socktype, tempname, sock_struct_size);
+            
         if (new == NULL)
         {
             return EAI_MEMORY;
         }
-        memset(new, 0, total_struct_sz);
-        if (root == NULL) {
-            root = new;
-        }
-        if (current != NULL) {
-            current->ai_next = new;
-        }
-        current = new;
 
-        // Заполнение структуры
-        new->ai_family = resp_ai_family;
-        new->ai_socktype = ai_socktype;
-        new->ai_canonname = ((void*) new) + sizeof(struct addrinfo);
-        strcpy(new->ai_canonname, tempname);
-        new->ai_addrlen = sock_struct_size;
-        new->ai_addr = ((void*)new) + sizeof(struct addrinfo) + (namelen + 1);
+        __addrinfo_chain_append(res, &root, &current, new);
 
         switch (ntohs(answ->type))
         {
@@ -297,8 +366,6 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
                 break;
         }
     }
-
-    *res = root;
 
     return 0;
 }
