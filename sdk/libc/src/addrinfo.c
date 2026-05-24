@@ -52,6 +52,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     int ai_protocol = (hints != NULL) ? hints->ai_protocol : 0; 
     int ai_flags = (hints != NULL) ? hints->ai_flags : 0; 
 
+    // по умолчанию, если service = NULL, то порт = 0
     uint16_t sock_port = 0;
 
     // Проверка ai_family
@@ -62,7 +63,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 
     if (node == NULL)
     {
-        return -EAI_NONAME;
+        return EAI_NONAME;
     }
 
     if (service != NULL)
@@ -83,7 +84,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
             }
 
             // TODO: поиск по названию?
-            return -EAI_SERVICE;
+            return EAI_SERVICE;
         }
     }
 
@@ -108,7 +109,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
             // Заполнение структуры
             new->ai_family = AF_INET;
             new->ai_socktype = ai_socktype;
-            new->ai_canonname = ((void*) new) + sizeof(struct addrinfo);
+            new->ai_canonname = NULL;
             new->ai_addrlen = sizeof(struct sockaddr_in);
             new->ai_addr = ((void*)new) + sizeof(struct addrinfo);
 
@@ -261,7 +262,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         struct addrinfo* new = malloc(total_struct_sz);
         if (new == NULL)
         {
-            return -EAI_MEMORY;
+            return EAI_MEMORY;
         }
         memset(new, 0, total_struct_sz);
         if (root == NULL) {

@@ -8,5 +8,12 @@ int main(int argc, char **argv)
 
     printf("wcslen=%i wcscmp1=%i wcscmp2=%i\n", wcslen(str), wcscmp(str, str), wcscmp(str, str2));
     printf("pos of A=%i pos of П=%i ptr of 6=%p\n", wcschr(str, L'A') - str, wcschr(str, L'П') - str, wcschr(str, L'6'));
+
+
+    wchar_t buffer[30];
+    wcscpy(buffer, L"Hello ");
+    wcscat(buffer, L"World!\n");
+    printf("wcscat result %s wcslen %i", buffer, wcslen(buffer));
+
     return 0;
 }
