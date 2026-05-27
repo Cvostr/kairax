@@ -144,7 +144,26 @@ void ast_exec_func(struct ast_node* node, struct ast_exec_ctx *ctx)
             struct redirect *redir_curr = node->redir_head;
             while (redir_curr != NULL)
             {
-                int fd = open(redir_curr->fname, O_CREAT | O_WRONLY, 0666);
+                int mode;
+                switch (redir_curr->type)
+                {
+                case IN:
+                    mode = O_RDONLY;
+                    break;
+                case OUT:
+                    mode = O_WRONLY | O_CREAT;
+                    break;
+                case APPEND:
+                    mode = O_WRONLY | O_CREAT | O_APPEND;
+                    break;
+                case INOUT:
+                    mode = O_RDWR | O_CREAT;
+                    break;
+                default:
+                    break;
+                }
+
+                int fd = open(redir_curr->fname, mode, 0666);
                 if (fd == -1) {
                     printf("rxsh: %s: %s", redir_curr->fname, strerror(errno));
                     _exit(127);

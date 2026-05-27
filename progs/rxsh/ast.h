@@ -14,9 +14,17 @@ enum ast_node_type
     AST_NODE_PIPE
 };
 
+enum redirect_type {
+    IN,
+    OUT,
+    APPEND,
+    INOUT
+}; 
+
 struct redirect {
     struct redirect *next;
     int fd;
+    enum redirect_type type;
     char *fname;
 };
 

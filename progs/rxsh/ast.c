@@ -116,7 +116,26 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
 
                         tk = ast_next_token(ctx);
 
+                        redir->type = OUT;
                         redir->fd = STDOUT_FILENO;
+                        redir->fname = token_copy_str(tk);
+                    } 
+                    else if (ch == '<') 
+                    {
+                        // перенаправление
+                        struct redirect *redir = malloc(sizeof(struct ast_node));
+                        redir->next = NULL;
+                        if (node->redir_head == NULL) {
+                            node->redir_head = redir;
+                        } else {
+                            redir_last->next = redir;
+                        }
+                        redir_last = redir;
+
+                        tk = ast_next_token(ctx);
+
+                        redir->type = IN;
+                        redir->fd = STDIN_FILENO;
                         redir->fname = token_copy_str(tk);
                     }
                 }

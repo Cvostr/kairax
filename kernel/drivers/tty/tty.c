@@ -31,6 +31,10 @@ struct pty {
     struct pipe* master_to_slave;
     struct pipe* slave_to_master;
 
+    int slave_is_eof;
+    int slave_closed;
+    int master_closed;
+
     // Для случаев, когда master - не файл, а устройство
     void* owner;
     pty_output_write_func_t output_routine;
@@ -99,6 +103,14 @@ int master_file_close(struct inode *inode, struct file *file)
     printk("tty: master close()\n");
 #endif
     struct pty *p_pty = (struct pty *) file->private_data;
+    
+    // помечаем master как закрытый
+    p_pty->master_closed = TRUE;
+    // Будем читающих, чтобы вышли с EOF
+    scheduler_wake(&p_pty->master_to_slave->readb, INT_MAX);
+    // Будим наблюдающих за slave
+    poll_wakeall(&p_pty->master_to_slave->poll_wq);
+    
     free_pty(p_pty);
     return 0;
 }
@@ -109,6 +121,10 @@ int slave_file_close(struct inode *inode, struct file *file)
     printk("tty: slave close()\n");
 #endif
     struct pty *p_pty = (struct pty *) file->private_data;
+
+    // помечаем slave как закрытый
+    p_pty->slave_closed = TRUE;
+
     free_pty(p_pty);
     return 0;
 }
@@ -233,7 +249,65 @@ ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, lo
 ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    return pipe_read(p_pty->master_to_slave, buffer, count, 0);
+    struct pipe *pipe = p_pty->master_to_slave;
+
+    size_t i;
+    int nonblock = file->flags & FILE_FLAG_NONBLOCK;
+
+    acquire_spinlock(&pipe->lock);
+
+    while (pipe->read_pos == pipe->write_pos) 
+    {
+        // Было ли нажато EOF? (Обычно ^D)
+        if (p_pty->slave_is_eof == TRUE)
+        {
+            // EOF
+            i = 0;
+            p_pty->slave_is_eof = FALSE;
+            goto exit;
+        }
+
+        // Был ли закрыт master?
+        if (p_pty->master_closed == TRUE)
+        {
+            // EOF
+            i = 0;
+            goto exit;
+        }
+
+        if (nonblock == 1) {
+            i = 0;
+            goto exit_wake_writers;
+        }
+
+        // Нечего читать - засыпаем
+        release_spinlock(&pipe->lock);
+        if (scheduler_sleep_on(&pipe->readb) == 1)
+        {
+            // Нас разбудили сигналом - выходим
+            return -EINTR;
+        }
+
+        acquire_spinlock(&pipe->lock);
+    }
+
+    for (i = 0; i < count; i ++) {
+
+        if (pipe->read_pos == pipe->write_pos)
+            break;
+            
+        buffer[i] = pipe->buffer[pipe->read_pos++ % PIPE_SIZE];
+    }
+
+exit_wake_writers:
+    // Пробуждаем записывающих
+    scheduler_wake(&pipe->writeb, INT_MAX);
+
+    poll_wakeall(&pipe->poll_wq);
+
+exit:
+    release_spinlock(&pipe->lock);
+    return i;
 }
 
 short pty_slave_poll(struct file *file, struct poll_ctl *pctl)
@@ -256,7 +330,9 @@ short pty_slave_poll(struct file *file, struct poll_ctl *pctl)
     if ((slave_to_master->write_pos < slave_to_master->read_pos + PIPE_SIZE))
         poll_mask |= (POLLOUT | POLLWRNORM);
 
-    // TODO: Отслеживать закрытие через POLLHUP 
+    // Если master закрыт, то POLLHUP
+    if (p_pty->master_closed == TRUE)
+        poll_mask |= POLLHUP;
     
     return poll_mask;
 }
@@ -404,12 +480,15 @@ void pty_remove_last_char(struct pty* p_pty)
     }
 }
 
-void pty_flush(struct pty* p_pty)
+int pty_flush(struct pty* p_pty)
 {
+    int temp_pos = p_pty->buffer_pos;
     // Записать буфер в slave
     pipe_write(p_pty->master_to_slave, p_pty->buffer, p_pty->buffer_pos);
     // Сброс позиции буфера
     p_pty->buffer_pos = 0;
+
+    return temp_pos;
 }
 
 // Дисциплина линии при записи в master со стороны терминала
@@ -512,8 +591,12 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             // EOF
             if ((first_char == p_pty->control_characters[VEOF]))
             {
-                pty_flush(p_pty);
-                // TODO: EOF в PIPE
+                int flushed = pty_flush(p_pty); 
+                if (flushed == 0)
+                {
+                    // Если буфер ввода пустой, то сразу EOF
+                    p_pty->slave_is_eof = TRUE;
+                }
                 continue;
             }
         }

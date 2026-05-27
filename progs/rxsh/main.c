@@ -43,7 +43,13 @@ int main(int argc, char** argv)
 
     while (1) {
         printcwd();
-        fgets(cmd, 100, stdin);
+        char *r = fgets(cmd, 100, stdin);
+        if (r == NULL)
+        {
+            printf("exit\n");
+            _exit(0);
+        }
+
         cmd_process();
     }
     return 0;
