@@ -7,10 +7,6 @@ GCC_BUILD_DIR="gcc-build"
 GCC_BRANCH="releases/gcc-13-kairax"
 GCC_REPO="https://github.com/Cvostr/gcc-kairax.git"
 
-export KAIRAX_SYSROOT=~/kairax1/root
-export KAIRAX_TOOLCHAIN=~/kairax1/toolchain
-export KAIRAX_PREFIX=~/kairax1/prefix
-
 # Создадим корневую директорию для сборки toolchain, если отсутствует
 if [ ! -d $KAIRAX_TOOLCHAIN ]; then
     mkdir -p $KAIRAX_TOOLCHAIN

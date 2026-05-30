@@ -115,6 +115,12 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
         return EAI_FAMILY;
     }
 
+    // Проверка ai_socktype
+    if (ai_socktype != 0 && ai_socktype != SOCK_STREAM && ai_family != SOCK_DGRAM)
+    {
+        return EAI_SOCKTYPE;
+    }
+
     if (service != NULL)
     {
         char* endptr;

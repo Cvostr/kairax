@@ -12,7 +12,7 @@ char* inet_fmt_ipv6(const void* src, char* buf)
 
     for (int i = 0; i < 8; i ++)
     {
-        short cur = ntohs(ip[i]);
+        unsigned short cur = ntohs(ip[i]);
 
         // Добавляем слово, если оно не 0
         if (cur != 0)

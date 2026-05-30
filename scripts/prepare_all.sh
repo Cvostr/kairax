@@ -2,6 +2,7 @@
 
 set -e
 
+export KAIRAX_PREFIX=~/kairax1/prefix
 export KAIRAX_SYSROOT=~/kairax1/root
 export KAIRAX_TOOLCHAIN=~/kairax1/toolchain
 
