@@ -32,6 +32,15 @@ void client_send_thread()
     while (alive)
     {
         int got = read(pty_master, buffer, sizeof(buffer));
+        if (got == 0)
+        {
+            //printf("MASTER EOF\n");
+            alive = 0;
+            shutdown(client_sock, SHUT_RD);
+            shutdown(client_sock, SHUT_WR);
+            break;
+        }
+
         send(client_sock, buffer, got, 0);
     }
 
@@ -88,6 +97,8 @@ int main(int argc, char** argv)
         close(client_sock);
     }
 
+    //printf("Master %i slave %i\n", pty_master, pty_slave);
+
     // Убрать ICRNL
     struct termios tmi;
     tcgetattr(pty_slave, &tmi);
@@ -115,6 +126,8 @@ int main(int argc, char** argv)
         printf("exec() :%i\n", rc);
         exit(22);
     }
+
+    close(pty_slave);
 
     pid_t read_thread = create_thread(client_send_thread, NULL);
 
@@ -183,7 +196,6 @@ int main(int argc, char** argv)
     printf("Process finished with status %i\n", status);
 
     close(pty_master);
-    close(pty_slave);
 
     return 0;    
 }

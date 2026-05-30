@@ -124,6 +124,8 @@ int slave_file_close(struct inode *inode, struct file *file)
 
     // помечаем slave как закрытый
     p_pty->slave_closed = TRUE;
+    // Будем читающих, чтобы вышли с EOF
+    scheduler_wake(&p_pty->slave_to_master->readb, INT_MAX);
 
     free_pty(p_pty);
     return 0;
@@ -236,7 +238,57 @@ ssize_t master_file_write (struct file* file, const char* buffer, size_t count, 
 ssize_t master_file_read(struct file* file, char* buffer, size_t count, loff_t offset)
 {
     struct pty *p_pty = (struct pty *) file->private_data;
-    return pipe_read(p_pty->slave_to_master, buffer, count, 0);
+    struct pipe *pipe = p_pty->slave_to_master;
+
+    size_t i;
+    int nonblock = file->flags & FILE_FLAG_NONBLOCK;
+
+    acquire_spinlock(&pipe->lock);
+
+    while (pipe->read_pos == pipe->write_pos) 
+    {
+        // Был ли закрыт slave?
+        if (p_pty->slave_closed == TRUE)
+        {
+            // EOF
+            i = 0;
+            goto exit;
+        }
+
+        if (nonblock == 1) 
+        {
+            i = 0;
+            goto exit_wake_writers;
+        }
+
+        // Нечего читать - засыпаем
+        release_spinlock(&pipe->lock);
+        if (scheduler_sleep_on(&pipe->readb) == 1)
+        {
+            // Нас разбудили сигналом - выходим
+            return -EINTR;
+        }
+
+        acquire_spinlock(&pipe->lock);
+    }
+
+    for (i = 0; i < count; i ++) {
+
+        if (pipe->read_pos == pipe->write_pos)
+            break;
+            
+        buffer[i] = pipe->buffer[pipe->read_pos++ % PIPE_SIZE];
+    }
+
+exit_wake_writers:
+    // Пробуждаем записывающих
+    scheduler_wake(&pipe->writeb, INT_MAX);
+
+    poll_wakeall(&pipe->poll_wq);
+
+exit:
+    release_spinlock(&pipe->lock);
+    return i;
 }
 
 ssize_t slave_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)

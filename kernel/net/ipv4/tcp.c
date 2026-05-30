@@ -1249,7 +1249,8 @@ int	sock_tcp4_shutdown(struct socket *sock, int how)
         sock_data->shut_rd = TRUE;
         // Пробуждаем всех, пусть считают что осталось
         scheduler_wake(&sock_data->rx_blk, INT_MAX);
-        // TODO: Надо ли будить наблюдателей?
+        // Будим наблюдающих
+        poll_wakeall(&sock_data->rx_poll_wq);
     }
 
     if (shut_write == TRUE)

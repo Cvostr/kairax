@@ -144,6 +144,7 @@ void process_free_resources(struct process* process)
     for (i = 0; i < MAX_DESCRIPTORS; i ++) {
         if (process->fds[i] != NULL) {
             struct file* fil = process->fds[i];
+            process->fds[i] = NULL;
             file_close(fil);
         }
     }

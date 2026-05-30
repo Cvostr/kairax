@@ -155,6 +155,7 @@ void bootshell_process_cmd(char* cmdline)
             {
                 ino_t ino = 0;
                 mode_t mode = 0;
+                int refs = fi->refs.counter;
                 struct inode *ind = fi->inode;
                 if (ind != NULL)
                 {
@@ -162,7 +163,7 @@ void bootshell_process_cmd(char* cmdline)
                     mode = ind->mode;
                 }
 
-                printk("%i: inode %i mode %i\n", i, ino, mode);
+                printk("%i: inode %i mode %i refs %i\n", i, ino, mode, refs);
             }
         }
     }
