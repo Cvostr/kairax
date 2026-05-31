@@ -2,6 +2,11 @@ CFLAGS=-nostdlib -nostdinc -ffreestanding -D__LITTLE_ENDIAN__ -std=c99 -fPIC -I.
 CC=gcc
 ASM=nasm
 SRC_DIR=src
+
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/lib
+INCLUDEDIR ?= $(PREFIX)/include
+
 OBJ_DIRS =  obj \
 			obj/stdio \
 			obj/stdlib \
@@ -92,6 +97,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/poll.o \
 				obj/err.o \
 				obj/strftime.o \
+				obj/stack_chk.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \
 				obj/threads/thrd.o \
@@ -119,3 +125,12 @@ obj/%.o: $(SRC_DIR)/%.c
 
 obj/%.o: $(SRC_DIR)/%.asm
 	$(ASM) -felf64 $< -o $@
+
+
+install: libc errno
+	mkdir -p $(BINDIR)
+	cp libc.so $(BINDIR)/
+	cp liberrno.a $(BINDIR)/
+	
+	mkdir -p $(INCLUDEDIR)
+	cp -r ./include/* $(INCLUDEDIR)/

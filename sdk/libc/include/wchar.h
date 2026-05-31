@@ -24,6 +24,8 @@ wchar_t *wcscpy(wchar_t *dest, const wchar_t *src);
 wchar_t* wcschr(const wchar_t *wcs, wchar_t wc);
 wchar_t *wcscat(wchar_t *dest, const wchar_t *src);
 int wcsncmp(const wchar_t *s1, const wchar_t *s2, size_t n);
+wchar_t *wmemcpy(wchar_t *dest, const wchar_t *src, size_t n);
+wchar_t *wmemchr(const wchar_t *s, wchar_t c, size_t n);
 
 __END_DECLS
 

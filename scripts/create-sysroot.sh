@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ ! -d $KAIRAX_SYSROOT ]; then
     echo "Creating sysroot in $KAIRAX_SYSROOT"
     mkdir -p $KAIRAX_SYSROOT
@@ -12,3 +14,9 @@ if [ ! -d $KAIRAX_SYSROOT ]; then
     mkdir -p $KAIRAX_SYSROOT/usr/include
     mkdir -p $KAIRAX_SYSROOT/usr/lib
 fi
+
+cd ../sdk/libc
+make PREFIX=$KAIRAX_SYSROOT/usr/ install
+
+cd ../crt
+make PREFIX=$KAIRAX_SYSROOT/usr/ install
