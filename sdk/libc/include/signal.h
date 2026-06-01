@@ -94,6 +94,7 @@ int killpg(pid_t pgrp, int sig) __THROW;
 
 int sigaddset(sigset_t *set, int sig) __THROW;
 int sigdelset(sigset_t *set, int sig) __THROW;
+int sigismember(const sigset_t *set, int sig) __THROW;
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __THROW;
 int sigpending(sigset_t *set) __THROW;
 

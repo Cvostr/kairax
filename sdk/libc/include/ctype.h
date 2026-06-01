@@ -14,6 +14,7 @@ extern int isalpha(int c);
 extern int isalnum(int c);
 extern int isblank(int c);
 extern int iscntrl(int c);
+extern int isprint(int c);
 
 extern int isupper (int c);
 extern int islower (int c);

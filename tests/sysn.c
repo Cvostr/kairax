@@ -328,6 +328,13 @@ int main(int argc, char** argv, char** envp) {
         return 1;
     }
 
+    sigset_t testset;
+    sigemptyset(&testset);
+    sigaddset(&testset, 2);
+    sigaddset(&testset, 4);
+    printf("sigismember %i %i %i %i\n", 
+        sigismember(&testset, 1), sigismember(&testset, 2), sigismember(&testset, 3), sigismember(&testset, 4));
+
     if (argc > 1 && strcmp(argv[1], "loop") == 0)
     {
         while (1)

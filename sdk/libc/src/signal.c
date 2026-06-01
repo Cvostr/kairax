@@ -45,6 +45,16 @@ int sigdelset(sigset_t *set, int sig)
     return 0; 
 }
 
+int sigismember(const sigset_t *set, int sig)
+{
+    if ((sig < 1)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return (*set & (1ULL << sig)) > 0;
+}
+
 int sigfillset(sigset_t *set) 
 {
 	memset(set, 0xFF, sizeof(sigset_t));

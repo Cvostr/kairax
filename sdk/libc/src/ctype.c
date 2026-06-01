@@ -56,6 +56,11 @@ int islower (int c)
   	return (x >= 'a' && x <= 'z');
 }
 
+int isprint(int c)
+{
+	return c >= 0x20 && c <= 0x7E;
+}
+
 int isascii(int c) 
 {
     return (unsigned int)c < 128u;
