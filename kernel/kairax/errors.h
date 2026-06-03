@@ -34,6 +34,7 @@
 #define	EEXIST		                17
 #define ENODEV		                19
 #define EINVAL                      ERROR_INVALID_VALUE
+#define ENOTTY		                25
 #define	ESPIPE		                29
 #define EROFS		                30
 #define EPIPE		                32

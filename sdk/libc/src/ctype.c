@@ -61,6 +61,16 @@ int isprint(int c)
 	return c >= 0x20 && c <= 0x7E;
 }
 
+int isgraph(int c)
+{
+	return c >= 0x21 && c <= 0x7E;
+}
+
+int ispunct(int c)
+{
+	return isgraph(c) && !isalnum(c);
+}
+
 int isascii(int c) 
 {
     return (unsigned int)c < 128u;

@@ -29,6 +29,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EISDIR, "Is a directory"),
     DEFINE_ERROR(EINVAL, "Invalid argument"),
     DEFINE_ERROR(EMFILE, "Too many open files"),
+    DEFINE_ERROR(ENOTTY, "Not a typewriter"),
     DEFINE_ERROR(ENOSPC, "No space left on device"),
     DEFINE_ERROR(ESPIPE, "Illegal seek"),
     DEFINE_ERROR(EROFS, "Read-only file system"),
