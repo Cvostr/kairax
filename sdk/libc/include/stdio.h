@@ -27,6 +27,7 @@ extern FILE *stderr;
 
 FILE *fopen(const char *restrict filename, const char *restrict mode);
 FILE *fdopen(int fd, const char* restrict mode);
+FILE *freopen(const char *pathname, const char *mode, FILE *stream);
 
 size_t fwrite(const void *src, size_t size, size_t count, FILE *f);
 size_t fwrite_unlocked(const void *src, size_t size, size_t count, FILE *f);

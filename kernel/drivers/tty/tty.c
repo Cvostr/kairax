@@ -393,6 +393,7 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
     struct process* process = cpu_get_current_thread()->process;
     struct pty *p_pty = (struct pty *) file->private_data;
+    struct pipe *pipe = NULL;
 
     struct termios* tmios;
     switch (request) {
@@ -450,6 +451,32 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             memcpy(p_pty->control_characters, tmios->c_cc, sizeof(cc_t) * CCSNUM);
 
             // todo: implement returning termios
+            break;
+        case TCFLSH:
+            switch (arg)
+            {
+                // TODO: race condition???
+                case TCIFLUSH:
+                    // выбрасываем то, что master записал, но slave не прочитал
+                    pipe = p_pty->master_to_slave;
+                    pipe->write_pos = pipe->read_pos; 
+                    break;
+                case TCOFLUSH:
+                    // выбрасываем то, что slave записал, но master не прочитал
+                    pipe = p_pty->slave_to_master;
+                    pipe->write_pos = pipe->read_pos; 
+                    break;
+                case TCIOFLUSH:
+                    // выбрасываем то, что master записал, но slave не прочитал
+                    pipe = p_pty->master_to_slave;
+                    pipe->write_pos = pipe->read_pos; 
+                    // выбрасываем то, что slave записал, но master не прочитал
+                    pipe = p_pty->slave_to_master;
+                    pipe->write_pos = pipe->read_pos; 
+                    break;
+                default:
+                    return -EINVAL;
+            }
             break;
 
         default:

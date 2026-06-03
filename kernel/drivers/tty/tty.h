@@ -70,6 +70,7 @@ typedef unsigned int	tcflag_t;
 #define VEOL2	16
 
 // c_cflag
+#define CSTOPB	0000100
 #define CREAD	0000200
 #define PARENB	0000400
 #define PARODD	0001000
@@ -135,6 +136,7 @@ struct winsize {
 #define TCSETSW		0x5403 // TCSADRAIN
 #define TCSETSF		0x5404 // TCSAFLUSH
 #define TIOCSPGRP	0x5410
+#define TCFLSH		0x540B
 #define TIOCGPGRP	0x540F
 #define TIOCSTI		0x5412
 
@@ -142,6 +144,11 @@ struct winsize {
 #define TIOCSWINSZ  0x5414
 
 #define TIOCNOTTY	0x5422
+
+// tcflush()
+#define TCIFLUSH	0
+#define TCOFLUSH	1
+#define TCIOFLUSH	2
 
 #define ETX         3
 #define EOT         0x4

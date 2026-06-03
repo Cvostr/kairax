@@ -18,6 +18,11 @@ int tcsetattr(int fd, int optional_actions, struct termios *termios_p)
     return -1;
 }
 
+int tcflush(int fd, int queue_selector)
+{
+    return ioctl(fd, TCFLSH, queue_selector);
+}
+
 void cfmakeraw(struct termios *t)
 {
     t->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);

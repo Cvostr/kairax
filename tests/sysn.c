@@ -172,6 +172,13 @@ int main(int argc, char** argv, char** envp) {
         return 0;
     }
 
+    if (argc > 1 && strcmp(argv[1], "freopen") == 0)
+    {
+        freopen("/tmp/freopen", "w", stdout);
+        printf("Test %i\n", 33333);
+        return 0;
+    }
+
     if (argc > 1 && strcmp(argv[1], "mktmp") == 0)
     {
         int i;

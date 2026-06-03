@@ -120,3 +120,54 @@ FILE *fdopen(int fd, const char* restrict mode)
 
     return __fdopen(fd, uflags);
 }
+
+// https://pubs.opengroup.org/onlinepubs/9799919799/functions/freopen.html
+FILE *freopen(const char *pathname, const char *mode, FILE *stream)
+{
+    if (stream == NULL)
+    {
+        // судя по тому, что POSIX ничего не пишет об этом
+        // считаем, что допускается неопределенное поведение
+        // но мы всё равно проверим, муахаха
+        errno = EINVAL;
+        return NULL; 
+    }
+
+    if (pathname == NULL)
+    {
+        // по POSIX в таком случае просто меняем режим файла
+        // TODO: попробовать сделать
+        errno = EINVAL;
+        return NULL; 
+    }
+
+    // сбрасываем буфер, на результат не обращаем внимания
+    fflush_unlocked(stream);
+
+    // Закрываем файловый дескриптор, на результат также не обращаем внимания
+    close(stream->_fileno);
+
+    // очищаем флаги режима и, самое главное, сбрасываем ошибки
+    stream->_flags = 0;
+
+    int flags = compute_flags(mode);
+    stream->_fileno = open(pathname, flags);
+    
+    if (stream->_fileno == -1) 
+    {
+        return NULL;
+    }
+
+    switch (flags & 3) {
+        case O_RDWR:
+            stream->_flags |= FSTREAM_CANWRITE;
+        case O_RDONLY:
+            stream->_flags |= (FSTREAM_CANREAD | FSTREAM_INPUT);
+            break;
+        case O_WRONLY:
+            stream->_flags |= FSTREAM_CANWRITE;
+            break;
+    }
+
+    return stream;
+}

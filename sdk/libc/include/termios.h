@@ -83,9 +83,11 @@ typedef unsigned int	tcflag_t;
 #define OFDEL	    0000200
 
 // c_cflag
+#define CSTOPB	0000100
 #define CREAD	0000200
 #define PARENB	0000400
 #define PARODD	0001000
+#define CLOCAL	0004000
 #define CBAUD	0010017
 #define CBAUDEX 0010000
 // Скорости
@@ -131,6 +133,11 @@ typedef unsigned int	tcflag_t;
 #define FLUSHO	0010000
 #define IEXTEN	0100000
 
+// tcflush()
+#define TCIFLUSH	0
+#define TCOFLUSH	1
+#define TCIOFLUSH	2
+
 struct termios {
     tcflag_t c_iflag;		/* input mode flags */
     tcflag_t c_oflag;		/* output mode flags */
@@ -152,6 +159,8 @@ speed_t cfgetospeed(const struct termios *termios_p) __THROW;
 speed_t cfgetispeed(const struct termios *termios_p) __THROW;
 
 int cfsetospeed(struct termios *termios_p, speed_t speed) __THROW;
+
+int tcflush(int fd, int queue_selector) __THROW;
 
 __END_DECLS
 
