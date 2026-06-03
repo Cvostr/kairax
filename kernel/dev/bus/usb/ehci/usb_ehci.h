@@ -310,6 +310,7 @@ uint16_t ehci_read16(struct ehci_controller* cntrl, off_t offset);
 uint32_t ehci_read32(struct ehci_controller* cntrl, off_t offset);
 
 uint32_t ehci_op_read32(struct ehci_controller* cntrl, off_t offset);
+void ehci_op_write32(struct ehci_controller* cntrl, off_t offset, uint32_t value);
 
 int ehci_reset(struct ehci_controller* cntrl);
 

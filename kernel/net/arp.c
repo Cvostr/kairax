@@ -5,6 +5,7 @@
 #include "list/list.h"
 #include "sync/spinlock.h"
 #include "mem/kheap.h"
+#include "proc/thread_scheduler.h"
 
 struct arp_v4_cache_entry {
     uint32_t    addr;

@@ -390,7 +390,7 @@ ssize_t procfs_self_readlink(struct inode* inode, char* pathbuf, size_t pathbufl
 
     ssize_t written = sprintf(buff, sizeof(buff), "%i", process->pid);
 
-    ssize_t result = MIN(pathbuf, written);
+    ssize_t result = MIN(pathbuflen, written);
     memcpy(pathbuf, buff, result);
 
     return result;
