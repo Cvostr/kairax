@@ -2,6 +2,7 @@
 #include "cpuid.h"
 #include "string.h"
 #include "dev/acpi/acpi.h"
+#include "dev/hpet/hpet.h"
 
 int cpu_get_info(struct cpu* cpuinf)
 {

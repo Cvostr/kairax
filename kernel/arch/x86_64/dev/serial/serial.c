@@ -1,5 +1,6 @@
 #include "serial.h"
 #include "io.h"
+#include "cpu/cpu.h"
 #include "drivers/tty/tty.h"
 #include "mem/kheap.h"
 #include "fs/devfs/devfs.h"
@@ -183,10 +184,10 @@ void serial_init()
 	struct process* serial_process = create_new_process(NULL);
 	process_set_name(serial_process, "serial port proc");
 
-    struct thread* serial_first_thr = create_kthread(serial_process, serial_thread_handler, COM1);
+    struct thread* serial_first_thr = create_kthread(serial_process, serial_thread_handler, (void *) COM1);
     scheduler_add_thread(serial_first_thr);
 
-    struct thread* serial_sec_thr = create_kthread(serial_process, serial_thread_handler, COM2);
+    struct thread* serial_sec_thr = create_kthread(serial_process, serial_thread_handler, (void *) COM2);
     scheduler_add_thread(serial_sec_thr);
 
     
@@ -226,7 +227,7 @@ int serial_cfg_port(int id, uint16_t offset, int speed, int csize, int parity, i
 
         // На реальных машинах может потребоваться ожидание, пока данные дойдут
         // Если будут проблемы - увеличить время ожидания
-        hpet_sleep(1);
+        wait_active_ms(1);
 
         // Принимаем байт и сравниваем с тем, что послали
         uint8_t recvd = inb(offset + 0);

@@ -3,7 +3,9 @@
 #include "kairax/kstdlib.h"
 #include "kairax/stdio.h"
 #include "string.h"
+#include "proc/thread.h"
 #include "proc/process.h"
+#include "cpu/cpu_local.h"
 #include "mem/vm_area.h"
 #include "mem/kheap.h"
 #include "mod/module_stor.h"
@@ -370,4 +372,26 @@ ssize_t procfs_kernel_cmdline_read(struct file* file, char* buffer, size_t count
     ssize_t readed = procfs_read_string(__procfs_kernel_cmdline, strlen(__procfs_kernel_cmdline), buffer, count, offset);
     file->pos += readed;
     return readed;
+}
+
+ssize_t procfs_self_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
+{
+    char buff[20];
+    struct process *process; 
+    struct thread *thread;
+    
+    thread = cpu_get_current_thread();
+    if (thread == NULL)
+        return 0;
+
+    process = thread->process;
+    if (process == NULL)
+        return 0;
+
+    ssize_t written = sprintf(buff, sizeof(buff), "%i", process->pid);
+
+    ssize_t result = MIN(pathbuf, written);
+    memcpy(pathbuf, buff, result);
+
+    return result;
 }
