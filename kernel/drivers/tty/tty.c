@@ -75,6 +75,8 @@ void tty_fill_ccs(cc_t *control_characters)
     control_characters[VWERASE] = ETB;
     control_characters[VEOF] = EOT;
     control_characters[VEOL] = 0;   // по умолчанию не указываем
+    control_characters[VMIN] = 1; 
+    control_characters[VTIME] = 0; 
 }
 
 void free_pty(struct pty* p_pty)
@@ -303,12 +305,20 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
     struct pty *p_pty = (struct pty *) file->private_data;
     struct pipe *pipe = p_pty->master_to_slave;
 
-    size_t i;
+    size_t i = 0;
+    size_t min = 1; // для режима по умолчанию достаточно 1 байта
     int nonblock = file->flags & FILE_FLAG_NONBLOCK;
+
+    // Если мы не в канонiчном режиме, то учитываем значение VMIN
+    if ((p_pty->lflag & ICANON) == 0)
+    {
+        min = p_pty->control_characters[VMIN];
+    }
 
     acquire_spinlock(&pipe->lock);
 
-    while (pipe->read_pos == pipe->write_pos) 
+    // пока в буфере не появилось min байт
+    while ((pipe->write_pos - pipe->read_pos) < min) 
     {
         // Было ли нажато EOF? (Обычно ^D)
         if (p_pty->slave_is_eof == TRUE)

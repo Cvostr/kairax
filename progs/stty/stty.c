@@ -6,6 +6,8 @@
 #include "string.h"
 #include "fcntl.h"
 #include "ctype.h"
+#include "stdint.h"
+#include "stdlib.h"
 
 struct baud_table {
 	const char *str;
@@ -125,7 +127,7 @@ int print_state()
     printf("speed %s baud; ", speed_str);
 
     struct winsize wsize;
-    ioctl(TTY_FD, TIOCGWINSZ, &wsize);
+    ioctl(TTY_FD, TIOCGWINSZ, (uint64_t) &wsize);
     printf("rows %d; columns %d;\n", wsize.ws_row, wsize.ws_col);
 
     print_cc(&tmi, "intr", VINTR);
@@ -143,6 +145,9 @@ int print_state()
     print_cc(&tmi, "werase", VWERASE);
     print_cc(&tmi, "lnext", VLNEXT);
     print_cc(&tmi, "discard", VDISCARD);
+    // VMIN, VTIME - просто число
+    printf("%s = %i; ", "min", tmi.c_cc[VMIN]);
+    printf("%s = %i; ", "time", tmi.c_cc[VTIME]);
     printf("\n");
     //print_cc(&tmi, "min", VLNEXT);
     //print_cc(&tmi, "min", VLNEXT);
@@ -151,6 +156,7 @@ int print_state()
     print_flag(tmi.c_cflag, "parenb", PARENB);
     print_flag(tmi.c_cflag, "parodd", PARODD);
     print_csize(tmi.c_cflag);
+    print_flag(tmi.c_cflag, "cstopb", CSTOPB);
     print_flag(tmi.c_cflag, "cread", CREAD);
     printf("\n");
 
@@ -233,6 +239,36 @@ void set_csize(tcflag_t *flag, const char *flagname, char *arg, int flagbit)
     {
         *flag &= ~(CSIZE);
         *flag |= flagbit;
+    }
+}
+
+
+void set_cc_int(cc_t *c_cc, char *chrname, int chrid, char** argv, int *argpos)
+{   
+    char *endptr;
+    char* arg1 = argv[*argpos];
+    char* arg2 = NULL;
+
+    if (strcmp(arg1, chrname) == 0)
+    {
+        (*argpos) ++;
+        arg2 = argv[*argpos];
+
+        if (arg2 == NULL)
+        {
+            return;
+        }
+
+        int ival = strtol(arg2, &endptr, 10);
+        
+        if (*endptr == '\0') 
+        {
+            c_cc[chrid] = ival;
+        }
+        else
+        {
+            printf("stty: Invalid integer value %s\n", arg2);
+        }
     }
 }
 
@@ -345,7 +381,7 @@ int main(int argc, char** argv)
         if (strcmp(arg, "size") == 0)
         {
             struct winsize wsize;
-            ioctl(TTY_FD, TIOCGWINSZ, &wsize);
+            ioctl(TTY_FD, TIOCGWINSZ, (uint64_t) &wsize);
             printf("%d %d\n", wsize.ws_row, wsize.ws_col);
             continue;
         }
@@ -365,6 +401,7 @@ int main(int argc, char** argv)
 
         handle_flag(&tmi.c_cflag, "parenb", arg, PARENB);
         handle_flag(&tmi.c_cflag, "parodd", arg, PARODD);
+        handle_flag(&tmi.c_cflag, "cstopb", arg, CSTOPB);
         handle_flag(&tmi.c_cflag, "cread", arg, CREAD);
         set_csize(&tmi.c_cflag, "cs5", arg, CS5);
         set_csize(&tmi.c_cflag, "cs6", arg, CS6);
@@ -410,6 +447,8 @@ int main(int argc, char** argv)
         set_cc(tmi.c_cc, "rprnt", VREPRINT, argv, &arg_i);
         set_cc(tmi.c_cc, "werase", VWERASE, argv, &arg_i);
         set_cc(tmi.c_cc, "lnext", VLNEXT, argv, &arg_i);
+        set_cc_int(tmi.c_cc, "min", VMIN, argv, &arg_i);
+        set_cc_int(tmi.c_cc, "time", VTIME, argv, &arg_i);
     }
 
     tcsetattr(TTY_FD, TCSADRAIN, &tmi);
