@@ -38,4 +38,6 @@ _start:
 
 section .data
 __environ: dq 0
+environ equ __environ 
 global __environ
+global environ

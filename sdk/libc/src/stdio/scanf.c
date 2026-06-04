@@ -37,6 +37,17 @@ int scanf(const char *format, ...)
     return n;
 }
 
+int fscanf(FILE *stream, const char *format, ...) 
+{
+    va_list args;
+    va_start(args, format);
+    int n = vfscanf(stream, format, args);
+    va_end (args);
+    
+    return n;
+}
+
+
 int vfscanf(FILE *stream, const char *format, va_list args)
 {
     struct arg_scanf farg = { (void*)stream, (int(*)(void*))fgetc, NULL};
