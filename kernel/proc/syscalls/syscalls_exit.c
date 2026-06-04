@@ -13,8 +13,14 @@ void exit_process(int code)
     process->code = code;
 
     // Безопасно останавливаем работу других потоков, если они были
-    for (size_t i = 0; i < list_size(process->threads); i ++) {
+    for (size_t i = 0; i < list_size(process->threads); i ++) 
+    {
         struct thread* thread = list_get(process->threads, i);
+
+        // Удаляем таймер для alarm из списка
+        // Он вполне мог там застрять, если процесс завершается до того, как сработает alarm
+        unregister_event_timer(&thread->alarm_timer);
+
         if (thread != thr) 
         {
             thread_prepare_for_kill(thread);
@@ -60,6 +66,10 @@ void sys_exit_thread(int code)
 
     // Уничтожить данные потока
     thread_clear_stack_tls(thr);
+
+    // Удаляем таймер для alarm из списка
+    // Он вполне мог там застрять, если процесс завершается до того, как сработает alarm
+    unregister_event_timer(&thr->alarm_timer);
 
     // Данная операция должна выполниться атомарно
     disable_interrupts();

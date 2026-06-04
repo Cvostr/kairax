@@ -132,6 +132,9 @@ void  process_remove_thread(struct process* process, struct thread* thread);
 
 void process_free_resources(struct process* process);
 
+// Единая функция для завершения всего процесса и всех его потоков, Переводит процесс в состояние зомби
+// Вызывается самим завершающимся процессом
+// code - значение, которое будет установлено в status codeзавершенного процесса
 void exit_process(int code);
 
 void process_acquire(struct process* process);
