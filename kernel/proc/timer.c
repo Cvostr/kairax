@@ -50,15 +50,22 @@ void timer_handle()
 
             timespec_sub(&ev_timer->when, &offset);
 
-            if (timespec_is_zero(&ev_timer->when)) {
-                //scheduler_wakeup_intrusive(&ev_timer->wait_head, &ev_timer->wait_tail, NULL, INT_MAX);
-                
+            if (timespec_is_zero(&ev_timer->when)) 
+            {
                 struct thread* thr = ev_timer->wait_head;
                 if (thr) 
                 {
-                    thr->timer = NULL;
-                    thr->wake_reason = WAKE_TIMER;
-                    scheduler_wakeup1(thr);
+                    if (ev_timer->sig == TRUE)
+                    {
+                        thr->timer = NULL;
+                        thread_send_signal(thr, SIGALRM);
+                    }
+                    else
+                    {
+                        thr->timer = NULL;
+                        thr->wake_reason = WAKE_TIMER;
+                        scheduler_wakeup1(thr);
+                    }
                 }
                 
                 ev_timer->alarmed = 1;
@@ -75,11 +82,12 @@ struct event_timer* new_event_timer()
     if (timer == NULL) {
         return NULL;
     }
+
     memset(timer, 0, sizeof(struct event_timer));
     return timer;
 }
 
-struct event_timer* register_event_timer(struct timespec duration)
+struct event_timer* create_and_register_event_timer(struct timespec duration)
 {
     struct event_timer* timer = new_event_timer();
     if (timer == NULL) {
@@ -87,9 +95,7 @@ struct event_timer* register_event_timer(struct timespec duration)
     }
     timer->when = duration;
 
-    acquire_spinlock(&timers_lock);
-    list_add(timers_list, timer);
-    release_spinlock(&timers_lock);
+    register_event_timer(timer);
 
     return timer;
 }
@@ -105,6 +111,13 @@ int sleep_on_timer(struct event_timer* timer)
 {   
     bind_to_timer(timer);
     return scheduler_sleep1();
+}
+
+void register_event_timer(struct event_timer* timer)
+{
+    acquire_spinlock(&timers_lock);
+    list_add(timers_list, timer);
+    release_spinlock(&timers_lock);
 }
 
 void unregister_event_timer(struct event_timer* timer)

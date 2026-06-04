@@ -3,6 +3,7 @@
 
 #include "kairax/types.h"
 #include "process.h"
+#include "timer.h"
 
 #define DEFAULT_STACK_SIZE (4096 * 100)
 #define MAX_STACK_SIZE DEFAULT_STACK_SIZE
@@ -49,6 +50,7 @@ struct thread {
     struct thread*      prev;
     struct thread*      next;
 
+    struct event_timer  alarm_timer;
     int                 wake_reason;
     int                 balance_forbidden;
     int                 killing;

@@ -144,7 +144,7 @@ int futex_wait(struct process* process, void* futex, int val, const struct times
     if (timeout != NULL)
     {
         // Создаем объект таймера
-        timer = register_event_timer(*timeout);
+        timer = create_and_register_event_timer(*timeout);
         
         // Привязываем текущий поток к таймеру
         bind_to_timer(timer);

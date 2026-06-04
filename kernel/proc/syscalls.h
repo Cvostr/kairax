@@ -79,8 +79,8 @@ int sys_execve(const char *filename, char *const argv [], char *const envp[]);
 void sys_exit_thread(int code);
 
 int sys_sleep(time_t tv_sec, long int tv_nsec);
-
 int sys_pause();
+unsigned int sys_alarm(unsigned int seconds);
 
 void* sys_memory_map(void* address, uint64_t length, int protection, int flags, int fd, off_t offset);
 

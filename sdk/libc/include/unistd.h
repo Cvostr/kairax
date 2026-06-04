@@ -61,6 +61,8 @@ int rmdir(const char *path);
 int usleep(unsigned long useconds);
 unsigned int sleep(unsigned int seconds);
 
+unsigned int alarm(unsigned int seconds) __THROW;
+
 int pause(void) __THROW;
 
 off_t lseek(int fd, off_t offset, int whence);

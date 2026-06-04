@@ -130,6 +130,11 @@ int pause(void)
     __set_errno(syscall_pause());
 }
 
+unsigned int alarm(unsigned int seconds) 
+{
+    return syscall_alarm(seconds);
+}
+
 char* getcwd(char* buf, size_t size)
 {
     int rc = syscall_get_working_dir(buf, size);

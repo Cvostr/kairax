@@ -38,6 +38,11 @@ void inthandler(int arg)
 	}
 }
 
+void alarmhandler(int arg)
+{
+    printf("alarm signal handled with arg %i\n", arg);
+}
+
 void segfaulthandle(int arg)
 {
     printf("SIGSEGV handled\n");
@@ -176,6 +181,16 @@ int main(int argc, char** argv, char** envp) {
     {
         freopen("/tmp/freopen", "w", stdout);
         printf("Test %i\n", 33333);
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "alarm") == 0)
+    {
+        signal(SIGALRM, alarmhandler);
+
+        alarm(3);
+        int rc = usleep(10000000);
+        printf("usleep(10s) returned code %i errno %i", rc, errno);
         return 0;
     }
 

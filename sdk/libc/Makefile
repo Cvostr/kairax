@@ -94,6 +94,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/termios.o \
 				obj/netdb.o \
 				obj/addrinfo.o \
+				obj/locale.o \
 				obj/getopt.o \
 				obj/poll.o \
 				obj/err.o \

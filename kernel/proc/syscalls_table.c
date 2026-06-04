@@ -29,6 +29,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x21, sys_dup2),
     DEFINE_SYSCALL(0x22, sys_pause),
     DEFINE_SYSCALL(0x23, sys_sleep),
+    DEFINE_SYSCALL(0x25, sys_alarm),
     DEFINE_SYSCALL(0x27, sys_get_process_id),
     DEFINE_SYSCALL(0x29, sys_socket),
     DEFINE_SYSCALL(0x2A, sys_connect),

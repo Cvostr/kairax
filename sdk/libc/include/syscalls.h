@@ -29,6 +29,7 @@ extern int syscall_setpgid(int pid, int pgid);
 extern long long syscall_getpgid(int pid);
 extern long syscall_thread_get_id();
 extern int syscall_sleep(long long sec, long long nsec);
+extern unsigned int syscall_alarm(unsigned int seconds);
 extern int syscall_pause();
 extern int syscall_select(int n, void *readfds, void *writefds, void *exceptfds, void *timeout);
 extern int syscall_poll(void *ufds, unsigned long nfds, int timeout);

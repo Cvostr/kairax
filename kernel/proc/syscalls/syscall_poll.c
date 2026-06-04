@@ -94,7 +94,7 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
             ts.tv_sec = timeout / 1000;
             ts.tv_nsec = (timeout % 1000) * 1000000;
             // Объект таймера
-            timer = register_event_timer(ts);
+            timer = create_and_register_event_timer(ts);
             if (timer == NULL) {
                 rc = -ENOMEM;
                 goto exit;

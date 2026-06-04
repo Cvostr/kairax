@@ -126,7 +126,7 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
             ts.tv_sec = timeout->tv_sec;
             ts.tv_nsec = timeout->tv_usec * 1000;
             // Объект таймера
-            timer = register_event_timer(ts);
+            timer = create_and_register_event_timer(ts);
             if (timer == NULL) {
                 rc = -ENOMEM;
                 goto exit;
