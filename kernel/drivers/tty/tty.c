@@ -498,8 +498,6 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 
 char crlf[2] = {'\r', '\n'};
 char remove[3] = {'\b', ' ', '\b'};
-char ETX_ECHO[2] = {'^', 'C'};
-char FS_ECHO[2] = {'^', '\\'};
 
 ssize_t tty_output_write(struct pty* p_pty, unsigned char* buffer, size_t size)
 {
@@ -565,7 +563,7 @@ void pty_remove_last_char(struct pty* p_pty)
     if (p_pty->buffer_pos > 0) {
         p_pty->buffer_pos--;
         // BKSP + SPACE + BKSP
-        pipe_write(p_pty->slave_to_master, remove, sizeof(remove));
+        tty_output_write(p_pty, remove, sizeof(remove));
     }
 }
 

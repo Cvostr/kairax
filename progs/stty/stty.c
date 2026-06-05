@@ -79,6 +79,10 @@ void print_cc(struct termios *tm, char* charname, int chr)
     {
         strcpy(printable, "<undef>");
     }
+    else if (ch == 0x7F)
+    {
+        strcpy(printable, "^?");
+    }
     else
     {
         printable[0] = '^';
