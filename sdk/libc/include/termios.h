@@ -11,18 +11,6 @@ typedef unsigned int	tcflag_t;
 
 #define CCSNUM 32
 
-#define ISIG	0000001
-#define ICANON	0000002
-#define XCASE	0000004
-#define ECHO	0000010
-#define ECHOE	0000020
-#define ECHOK	0000040
-#define ECHONL	0000100
-#define NOFLSH	0000200
-#define ECHOCTL	0001000
-#define ECHOPRT	0002000
-#define ECHOKE	0004000
-
 // Terminal Special Characters (c_cc)
 #define VINTR	0
 #define VQUIT	1

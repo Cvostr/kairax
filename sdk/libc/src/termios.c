@@ -11,7 +11,7 @@ int tcsetattr(int fd, int optional_actions, struct termios *termios_p)
 {
     if (optional_actions < 3)
     {
-        ioctl(fd, TCSETS + optional_actions, (unsigned long long) termios_p);
+        return ioctl(fd, TCSETS + optional_actions, (unsigned long long) termios_p);
     }
 
     errno = EINVAL;
@@ -30,6 +30,8 @@ void cfmakeraw(struct termios *t)
     t->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
     t->c_cflag &= ~(CSIZE);
     t->c_cflag |= CS8;
+    t->c_cc[VMIN] = 1;
+    t->c_cc[VTIME] = 0;
 }
 
 speed_t cfgetospeed(const struct termios *termios_p) 
@@ -45,7 +47,7 @@ speed_t cfgetispeed(const struct termios *termios_p)
 int cfsetospeed(struct termios *termios_p, speed_t speed)
 {
     if ((speed & (speed_t)~CBAUD) != 0 && (speed < B57600 || speed > B460800)) {
-        errno=EINVAL;
+        errno = EINVAL;
         return -1;
     }
 

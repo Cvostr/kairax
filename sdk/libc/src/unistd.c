@@ -6,6 +6,7 @@
 #include "termios.h"
 #include "sys/ioctl.h"
 #include "sys/mman.h"
+#include "stdlib.h"
 #include "string.h"
 
 pid_t fork(void)
@@ -243,6 +244,11 @@ pid_t tcgetpgrp(int fd)
 int tcsetpgrp(int fd, pid_t pgrp)
 {
     return ioctl(fd, TIOCSPGRP, (unsigned long long) &pgrp);
+}
+
+char* getlogin(void) 
+{
+    return getenv("LOGNAME");
 }
 
 void _exit(int status)

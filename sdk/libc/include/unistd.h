@@ -87,6 +87,8 @@ int isatty(int fd);
 pid_t tcgetpgrp(int fd) __THROW;
 int tcsetpgrp(int fd, pid_t pgrp) __THROW;
 
+char* getlogin(void) __THROW;
+
 void _exit(int status);
 
 void* sbrk(int len);
