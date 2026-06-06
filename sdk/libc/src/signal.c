@@ -79,7 +79,11 @@ int sigpending(sigset_t *set)
 
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
-    __set_errno(syscall_sigaction(signum, act, oldact, sizeof(sigset_t)));
+    struct sigaction sact;
+    memcpy(&sact, act, sizeof(struct sigaction));
+    sact.sa_flags |= 0x04000000;
+    sact.sa_restorer = __sig_trampoline;
+    __set_errno(syscall_sigaction(signum, &sact, oldact, sizeof(sigset_t)));
 }
 
 sighandler_t signal(int signum, sighandler_t action)

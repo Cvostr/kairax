@@ -17,7 +17,7 @@ void kterm_session_process(struct terminal_session* session)
 			case '\n':
 				console_lf(session->console);
 				break;
-			case '\033':
+			case ESC:
 				kterm_process_esc_sequence(session);
 				break;
 			default:

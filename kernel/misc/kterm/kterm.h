@@ -8,6 +8,8 @@
 
 #define DEFAULT_FOREGROUND_COLOR {.r = 170, .g = 170, .b = 170}
 
+#define ESC         0x1B    //(\033)
+
 struct kterm_color {
 	unsigned char r;
 	unsigned char g;

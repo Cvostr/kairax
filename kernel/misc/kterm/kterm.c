@@ -103,10 +103,10 @@ void kterm_tty_master_read_routine(struct terminal_session* session)
 	}
 }
 
-char ARROW_UP[] = {'^', '[', '[', 'A'};
-char ARROW_DOWN[] = {'^', '[', '[', 'B'};
-char ARROW_LEFT[] = {'^', '[', '[', 'D'};
-char ARROW_RIGHT[] = {'^', '[', '[', 'C'};
+char ARROW_UP[] = {ESC, '[', 'A'};
+char ARROW_DOWN[] = {ESC, '[', 'B'};
+char ARROW_LEFT[] = {ESC, '[', 'D'};
+char ARROW_RIGHT[] = {ESC, '[', 'C'};
 
 void kterm_main()
 {
