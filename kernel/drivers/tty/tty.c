@@ -690,12 +690,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 
         char EOL = p_pty->control_characters[VEOL];
 
-        if (first_char == CR)
-        {
-            // пока что CR просто выводим, не добавляя в буфер
-            tty_output_write(p_pty, &first_char, 1);
-        }
-        else if ((EOL != 0 && first_char == EOL) || (first_char == LF))
+        if ((EOL != 0 && first_char == EOL) || (first_char == LF))
         {
             // Нажата кнопка enter
             if ((p_pty->lflag & ECHO) == ECHO)
@@ -709,7 +704,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             // Отправить в терминал 
             pty_flush(p_pty);
         } 
-        else if (first_char <= 31 || first_char == 127)
+        else if ((first_char <= 31 || first_char == 127) && first_char != CR)
         {
             if ((p_pty->lflag & ECHO) == ECHO && (p_pty->lflag & ECHOCTL) == ECHOCTL)
             {
