@@ -143,7 +143,7 @@ struct pty* new_tty()
     memset(p_pty, 0, sizeof(struct pty));
 
     // Установить флаги по умолчанию
-    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
+    p_pty->lflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | IEXTEN);
     p_pty->oflag = (OPOST | ONLCR);
     p_pty->cflag = (CREAD | CS8 | B38400);
     p_pty->iflag = ICRNL;

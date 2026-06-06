@@ -60,7 +60,7 @@ extern int syscall_protect_memory(void* address, unsigned long long length, int 
 extern int syscall_process_unmap_memory(void* address, unsigned long long length);
 extern void syscall_process_exit(int status);
 extern int syscall_poweroff(int cmd);
-extern long long int syscall_wait(long int pid, int* status, int options);
+extern int syscall_wait(int pid, int* status, int options);
 extern int syscall_get_time_epoch(void *tv);
 extern int syscall_set_time_epoch(const void *tv);
 extern int syscall_futex(int* addr, int op, int val, const void* timeout);
