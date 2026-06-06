@@ -711,11 +711,14 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
         } 
         else if (first_char <= 31 || first_char == 127)
         {
-            // Вывод управляющего символа в формате ^C
-            char chr = '^';
-            tty_output_write(p_pty, &chr, sizeof(chr));
-            chr = 'A' + first_char - 1;
-            tty_output_write(p_pty, &chr, sizeof(chr));
+            if ((p_pty->lflag & ECHO) == ECHO && (p_pty->lflag & ECHOCTL) == ECHOCTL)
+            {
+                // Вывод управляющего символа в формате ^C
+                char chr = '^';
+                tty_output_write(p_pty, &chr, sizeof(chr));
+                chr = 'A' + first_char - 1;
+                tty_output_write(p_pty, &chr, sizeof(chr));
+            }
 
             // Сброс позиции буфера
             p_pty->buffer_pos = 0;

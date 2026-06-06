@@ -80,10 +80,15 @@ int sigpending(sigset_t *set)
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
     struct sigaction sact;
-    memcpy(&sact, act, sizeof(struct sigaction));
-    sact.sa_flags |= 0x04000000;
-    sact.sa_restorer = __sig_trampoline;
-    __set_errno(syscall_sigaction(signum, &sact, oldact, sizeof(sigset_t)));
+    
+    if (act != NULL)
+    {
+        memcpy(&sact, act, sizeof(struct sigaction));
+        sact.sa_flags |= 0x04000000;
+        sact.sa_restorer = __sig_trampoline;
+    }
+
+    __set_errno(syscall_sigaction(signum, act != NULL ? &sact : NULL, oldact, sizeof(sigset_t)));
 }
 
 sighandler_t signal(int signum, sighandler_t action)

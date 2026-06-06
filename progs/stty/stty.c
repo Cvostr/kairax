@@ -9,6 +9,16 @@
 #include "stdint.h"
 #include "stdlib.h"
 
+#define ETX         3
+#define EOT         0x4
+#define FS          0x1C
+#define BS         '\b'
+#define NAK         0x15
+#define SUB         032
+#define ETB         0x17
+#define CR          '\r'
+#define LF          '\n'
+
 struct baud_table {
 	const char *str;
 	speed_t val;
@@ -371,6 +381,26 @@ int main(int argc, char** argv)
             tmi.c_iflag |= ICRNL | BRKINT;
 			tmi.c_oflag |= OPOST;
 			tmi.c_lflag |= ISIG | ICANON;
+            continue;
+        }
+
+        if (strcmp(arg, "sane") == 0)
+        {
+            // Установить флаги по умолчанию
+            tmi.c_cflag = (ISIG | ICANON | ECHO | ECHOE | ECHOK | IEXTEN);
+            tmi.c_oflag = (OPOST | ONLCR);
+            tmi.c_cflag = (CREAD | CS8 | B38400);
+            tmi.c_iflag = ICRNL;
+            tmi.c_cc[VINTR] = ETX;
+            tmi.c_cc[VQUIT] = FS;
+            tmi.c_cc[VERASE] = BS;
+            tmi.c_cc[VKILL] = NAK;
+            tmi.c_cc[VSUSP] = SUB;
+            tmi.c_cc[VWERASE] = ETB;
+            tmi.c_cc[VEOF] = EOT;
+            tmi.c_cc[VEOL] = 0;   // по умолчанию не указываем
+            tmi.c_cc[VMIN] = 1; 
+            tmi.c_cc[VTIME] = 0; 
             continue;
         }
 
