@@ -7,6 +7,8 @@
 #include "sys/ioctl.h"
 #include "signal.h"
 #include "getopt.h"
+#include "termios.h"
+#include "errno.h"
 
 int trace = 0;
 char curdir[512];
@@ -17,6 +19,31 @@ void printcwd();
 void cmd_process();
 
 // https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_03
+
+void sigint_handler(int sig) {
+    // Do nothing or set a global volatile flag
+}
+
+ssize_t readline(char *dest, size_t max)
+{
+    dest[0] = '\0';
+    ssize_t res = read(STDIN_FILENO, dest, max - 1);
+    switch (res)
+    {
+    case 0:
+        // EOF
+        printf("exit\n");
+        _exit(0);
+        break;
+    case -1:
+        return -1;
+    default:
+        dest[res] = '\0';
+        break;
+    }
+
+    return res;
+}
 
 int main(int argc, char** argv)
 {
@@ -36,18 +63,32 @@ int main(int argc, char** argv)
     setpgid(0, 0);
     ioctl(0, TIOCSPGRP, getpgid(0));
 
+/*
     sigset_t ss;
     sigemptyset(&ss);
     sigaddset(&ss, SIGINT);
     sigprocmask(SIG_BLOCK, &ss, NULL);
+*/
 
-    while (1) {
+    struct sigaction sa;
+    sa.sa_handler = sigint_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("Error registering sigaction");
+        exit(EXIT_FAILURE);
+    }
+
+    while (1) 
+    {
         printcwd();
-        char *r = fgets(cmd, 100, stdin);
-        if (r == NULL)
+        
+        ssize_t len = readline(cmd, sizeof(cmd));
+        if (len == -1)
         {
-            printf("exit\n");
-            _exit(0);
+            if (errno == EINTR)
+                printf("\n");
         }
 
         cmd_process();

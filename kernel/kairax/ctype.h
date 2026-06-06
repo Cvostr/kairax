@@ -7,4 +7,6 @@ int isdigit(int character);
 
 int isspace(int c);
 
+int iscntrl(int c);
+
 #endif

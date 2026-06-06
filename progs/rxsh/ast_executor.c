@@ -24,6 +24,24 @@ void ast_execute_node(struct ast_node* node, struct ast_exec_ctx *ctx);
 void ast_exec_func(struct ast_node* node, struct ast_exec_ctx *ctx);
 void ast_exec_pipe(struct ast_node* node, struct ast_exec_ctx *ctx);
 
+void print_status(int status)
+{
+    if (WIFSIGNALED(status)) {
+        int sig = WTERMSIG(status);
+        switch (sig) {
+            case SIGABRT:
+                printf("Aborted\n");
+                break;
+            case SIGSEGV:
+                printf("Segmentation fault\n");
+                break;
+            case SIGINT:
+                printf("\n");
+                break;
+        }
+    }
+}
+
 void ast_execute(struct ast_node* node)
 {       
     struct ast_exec_ctx sender_ctx;
@@ -53,6 +71,7 @@ void ast_execute_node(struct ast_node* node, struct ast_exec_ctx *ctx)
 void ast_exec_pipe(struct ast_node* node, struct ast_exec_ctx *ctx)
 {
     int proc_status;
+    pid_t waited_pid;
     int pipefd[2];
     int rc = pipe(pipefd);
     if (rc == -1)
@@ -79,11 +98,24 @@ void ast_exec_pipe(struct ast_node* node, struct ast_exec_ctx *ctx)
     ast_execute_node(node->pipe.receiver, &receiver_ctx);
     close(pipefd[0]);
 
-    waitpid(sender_ctx.child, &proc_status, 0);
-    //printf("Sender Status %i\n", proc_status);
+    while (1)
+    {
+        waited_pid = waitpid(sender_ctx.child, &proc_status, 0);
+        if (!(waited_pid == -1 && errno == EINTR))
+        {
+            break;
+        }
+    }
 
-    waitpid(receiver_ctx.child, &proc_status, 0);
-    //printf("Status %i\n", proc_status);
+    while (1)
+    {
+        waited_pid = waitpid(receiver_ctx.child, &proc_status, 0);
+        if (!(waited_pid == -1 && errno == EINTR))
+        {
+            break;
+        }
+    }
+    print_status(proc_status);
 }
 
 void ast_exec_func(struct ast_node* node, struct ast_exec_ctx *ctx)
@@ -200,18 +232,18 @@ void ast_exec_func(struct ast_node* node, struct ast_exec_ctx *ctx)
             if (ctx->nowait == 0)
             {
                 int status = 0;
-                waitpid(pid, &status, 0);
-                if (WIFSIGNALED(status)) {
-                    int sig = WTERMSIG(status);
-                    switch (sig) {
-                        case SIGABRT:
-                            printf("Aborted\n");
-                            break;
-                        case SIGSEGV:
-                            printf("Segmentation fault\n");
-                            break;
+                pid_t waited_pid;
+
+                while (1)
+                {
+                    waited_pid = waitpid(pid, &status, 0);
+                    if (!(waited_pid == -1 && errno == EINTR))
+                    {
+                        break;
                     }
                 }
+
+                print_status(status);
             }
         }
     }

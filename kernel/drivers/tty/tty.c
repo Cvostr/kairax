@@ -578,10 +578,17 @@ int pty_flush(struct pty* p_pty)
     return temp_pos;
 }
 
+void pty_canon_clear(struct pty* p_pty)
+{
+    // Сброс позиции буфера
+    p_pty->buffer_pos = 0;
+}
+
 // Дисциплина линии при записи в master со стороны терминала
 void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
 {
     size_t i = 0;
+    int append = 1;
     while (i < count) 
     {
         char first_char = buffer[i++];
@@ -624,14 +631,25 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             if (first_char == p_pty->control_characters[VINTR])
             {
                 sys_send_signal_pg(p_pty->foreground_pg, SIGINT);
+                // очищаем canonical буфер
+                pty_canon_clear(p_pty);
+                // для сигналов не добавляем управляющий символ в slave
+                append = FALSE;
             }
             else if (first_char == p_pty->control_characters[VQUIT])
             {
                 sys_send_signal_pg(p_pty->foreground_pg, SIGQUIT);
+                // очищаем canonical буфер
+                pty_canon_clear(p_pty);
+                // для сигналов не добавляем управляющий символ в slave
+                append = FALSE;
             }
             else if (first_char == p_pty->control_characters[VSUSP])
             {
-                
+                // очищаем canonical буфер
+                pty_canon_clear(p_pty);
+                // для сигналов не добавляем управляющий символ в slave
+                append = FALSE;
             }
         }
 
@@ -704,46 +722,40 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             // Отправить в терминал 
             pty_flush(p_pty);
         } 
-        else if ((first_char <= 31 || first_char == 127) && first_char != CR)
-        {
-            if ((p_pty->lflag & ECHO) == ECHO && (p_pty->lflag & ECHOCTL) == ECHOCTL)
-            {
-                // Вывод управляющего символа в формате ^C
-                char chr = '^';
-                tty_output_write(p_pty, &chr, sizeof(chr));
-                chr = 'A' + first_char - 1;
-                tty_output_write(p_pty, &chr, sizeof(chr));
-            }
-
-            // Сброс позиции буфера
-            p_pty->buffer_pos = 0;
-            memset(p_pty->buffer, 0, PTY_LINE_MAX_BUFFER_SIZE);
-
-            // Эхо в терминал CR + LF
-            tty_output_write(p_pty, crlf, 2);
-
-            // Добавить LF (TODO: скорее всего этого тут не должно быть)
-            pty_linebuffer_append(p_pty, LF);
-            // Сбросить вывод
-            pty_flush(p_pty);
-        }
         else
         {
-            if ((p_pty->lflag & ICANON) == ICANON) 
+            if (iscntrl(first_char))
             {
-                // Добавить символ в буфер
-                pty_linebuffer_append(p_pty, first_char);
+                if ((p_pty->lflag & ECHO) == ECHO && (p_pty->lflag & ECHOCTL) == ECHOCTL)
+                {
+                    // Вывод управляющего символа в формате ^C
+                    char chr = '^';
+                    tty_output_write(p_pty, &chr, sizeof(chr));
+                    chr = 'A' + first_char - 1;
+                    tty_output_write(p_pty, &chr, sizeof(chr));
+                }
             }
             else
             {
-                // Сразу отправить символ в канал
-                pipe_write(p_pty->master_to_slave, &first_char, sizeof(char));
+                // Эхо на консоль
+                if ((p_pty->lflag & ECHO) == ECHO) 
+                {
+                    tty_output(p_pty, first_char);
+                }
             }
-                
-            // Эхо на консоль
-            if ((p_pty->lflag & ECHO) == ECHO) 
+
+            if (append == TRUE)
             {
-                tty_output(p_pty, first_char);
+                if ((p_pty->lflag & ICANON) == ICANON) 
+                {
+                    // Добавить символ в буфер
+                    pty_linebuffer_append(p_pty, first_char);
+                }
+                else
+                {
+                    // Сразу отправить символ в канал
+                    pipe_write(p_pty->master_to_slave, &first_char, sizeof(char));
+                }
             }
         }
     }

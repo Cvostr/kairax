@@ -14,3 +14,8 @@ int isspace(int c)
 {
 	return c == ' ';
 }
+
+int iscntrl(int c) 
+{
+    return c < 32 || c == 127;
+}
