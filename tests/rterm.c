@@ -102,7 +102,9 @@ int main(int argc, char** argv)
     // Убрать ICRNL
     struct termios tmi;
     tcgetattr(pty_slave, &tmi);
+    // telnet всегда посылает CRLF, делаем так, чтобы не было CR и превращения CR в LF
     tmi.c_iflag &= ~ICRNL;
+    tmi.c_iflag |= IGNCR;
     tcsetattr(pty_slave, TCSADRAIN, &tmi);
 
     pid_t forkret = fork();
