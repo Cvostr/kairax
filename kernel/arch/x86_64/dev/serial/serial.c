@@ -63,6 +63,7 @@ struct serial_state
 
 int serial_init_port(int id, uint16_t offset);
 int serial_file_ioctl(struct file* file, uint64_t request, uint64_t arg);
+short serial_file_poll(struct file *file, struct poll_ctl *pctl);
 ssize_t serial_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t serial_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 
@@ -70,11 +71,12 @@ struct file_operations serial_fops =
 {
     .read = serial_file_read,
     .write = serial_file_write,
-    .ioctl = serial_file_ioctl
+    .ioctl = serial_file_ioctl,
+    .poll = serial_file_poll
 };
 
 #define MAX_SERIAL_PORTS    8
-struct serial_state* serial_ports[MAX_SERIAL_PORTS];
+struct serial_state* serial_ports[MAX_SERIAL_PORTS] = {0};
 
 void serial_write(uint16_t port_offset, char a)
 {
@@ -353,4 +355,11 @@ int serial_file_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
     struct serial_state *state = file->inode->private_data;
     return file_ioctl(state->slave, request, arg);
+}
+
+short serial_file_poll(struct file *file, struct poll_ctl *pctl)
+{
+    struct serial_state *state = file->inode->private_data;
+    struct file *slave = state->slave;
+    return slave->ops->poll(slave, pctl);
 }

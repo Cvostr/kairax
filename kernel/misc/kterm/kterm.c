@@ -343,6 +343,8 @@ char keyboard_get_key_ascii_normal(char keycode)
         return '-';
     case KRXK_ENTER:
         return '\n';
+	case KRXK_ESCAPE:
+		return ESC;
     case KRXK_BKSP:
         return '\b';
     case KRXK_SPACE:
