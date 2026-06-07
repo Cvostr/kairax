@@ -45,6 +45,7 @@ struct terminal_session* new_kterm_session(int create_console)
 	memset(session, 0, sizeof(struct terminal_session));
 	struct kterm_color foreground_color = DEFAULT_FOREGROUND_COLOR;
 	session->foreground_color = foreground_color;
+	session->G0 = CHARTABLE_DEFAULT;
 
 	// Создать TTY
 	sys_create_pty(&session->master, &session->slave);

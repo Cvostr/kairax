@@ -10,6 +10,7 @@
 #include "stdlib.h"
 #include <termios.h>
 #include "threads.h"
+#include "syscalls.h"
 
 char buff[220];
 static struct termios old, current;
@@ -191,6 +192,12 @@ int main(int argc, char** argv, char** envp) {
         alarm(3);
         int rc = usleep(10000000);
         printf("usleep(10s) returned code %i errno %i", rc, errno);
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "exit_thr") == 0)
+    {
+        syscall_thread_exit(12);
         return 0;
     }
 

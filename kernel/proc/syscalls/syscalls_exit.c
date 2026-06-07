@@ -64,6 +64,12 @@ void sys_exit_thread(int code)
 
     thr->code = MAKEEXITCODE(code);
 
+    // Если это последний поток, то убиваем уже весь процесс
+    if (list_size(process->threads) == 1)
+    {
+        exit_process(thr->code);
+    }
+
     // Уничтожить данные потока
     thread_clear_stack_tls(thr);
 

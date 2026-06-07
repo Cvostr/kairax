@@ -20,7 +20,16 @@ void kterm_session_process(struct terminal_session* session)
 			case ESC:
 				kterm_process_esc_sequence(session);
 				break;
+			case 0x0E:
+				//printk("G1 activated\n");
+				session->G1_active = TRUE;
+				break;
+			case 0x0F:
+				//printk("G0 activated\n");
+				session->G1_active = FALSE;
+				break;
 			default:
+				char chartable = session->G1_active ? session->G1 : session->G0;
 				console_print_char(session->console, c,
 				 	session->foreground_color.r,
 				 	session->foreground_color.g,
@@ -54,6 +63,24 @@ void kterm_process_esc_sequence(struct terminal_session* session)
 		case 'E':
 			console_cr(session->console);
 			console_lf(session->console);
+			break;
+		case '(':
+			session->G0 = kterm_session_next_char(session);
+			//printk("GO set to %c \n", session->G0);
+			break;
+		case ')':
+			session->G1 = kterm_session_next_char(session);
+			//printk("G1 set to %c \n", session->G1);
+			break;
+		case '=':
+			session->keypad_app_mode = TRUE;
+			//printk("Enabled app mode\n");
+			break;
+		case '>':
+			session->keypad_app_mode = FALSE;
+			break;
+		default:
+			printk("Unknown ESC chr %i (%c)\n", seqchr, seqchr);
 			break;
 	}
 }

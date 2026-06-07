@@ -10,6 +10,9 @@
 
 #define ESC         0x1B    //(\033)
 
+#define CHARTABLE_DEFAULT 'B'
+#define CHARTABLE_GRAPHICS '0'
+
 struct kterm_color {
 	unsigned char r;
 	unsigned char g;
@@ -28,6 +31,10 @@ struct terminal_session {
 	int buffer_size;
 	int buffer_pos;
 
+	char G0;
+	char G1;
+	int G1_active;
+	int keypad_app_mode;	// \033=
 	struct kterm_color foreground_color;
 };
 
