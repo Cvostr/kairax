@@ -11,6 +11,7 @@
 #include <termios.h>
 #include "threads.h"
 #include "syscalls.h"
+#include "sched.h"
 
 char buff[220];
 static struct termios old, current;
@@ -199,6 +200,23 @@ int main(int argc, char** argv, char** envp) {
     {
         syscall_thread_exit(12);
         return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "getcpu") == 0)
+    {
+        int cpu = sched_getcpu();
+        printf("cpu %i\n", cpu);
+
+        while (1)
+        {
+            int new = sched_getcpu();
+            if (new != cpu)
+            {
+                printf("cpu changed to %i\n", new);
+            }
+
+            cpu = new;
+        }
     }
 
     if (argc > 1 && strcmp(argv[1], "mktmp") == 0)

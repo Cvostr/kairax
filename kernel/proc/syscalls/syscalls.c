@@ -21,6 +21,24 @@ int sys_not_implemented()
     return -ERROR_WRONG_FUNCTION;
 }
 
+int sys_getcpu(unsigned int *cpu, unsigned int *node)
+{
+    struct process* process = cpu_get_current_thread()->process;
+
+    if (cpu != NULL)
+        VALIDATE_USER_POINTER_PROTECTION(process, cpu, sizeof(unsigned int), PAGE_PROTECTION_WRITE_ENABLE);
+    if (node != NULL)
+        VALIDATE_USER_POINTER_PROTECTION(process, node, sizeof(unsigned int), PAGE_PROTECTION_WRITE_ENABLE);
+
+    if (cpu != NULL)
+        *cpu = cpu_get_id();
+
+    if (node != NULL)
+        *node = 0;  // TODO: пока не поддерживаем NUMA
+
+    return 0;
+}
+
 int sys_yield()
 {
     struct thread* thr = cpu_get_current_thread();

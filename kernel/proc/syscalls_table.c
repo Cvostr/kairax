@@ -91,6 +91,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0xCA, sys_futex),
 
     DEFINE_SYSCALL(0x118, sys_set_fdate),
+    DEFINE_SYSCALL(0x135, sys_getcpu),
 
     // Не POSIX вызовы
     DEFINE_SYSCALL(0x2FE, sys_abspath),

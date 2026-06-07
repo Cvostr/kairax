@@ -145,6 +145,8 @@ struct statfs;
 int sys_statfs(const char *path, struct statfs *buf);
 int sys_fstatfs(int fd, struct statfs *buf);
 
+int sys_getcpu(unsigned int *cpu, unsigned int *node);
+
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
