@@ -107,10 +107,10 @@ void kterm_session_process_csi(struct terminal_session* session)
 		switch (chr) {
 			case '0' ... '9':
 				number = number * 10 + (chr - '0');
-				break;
 			break;
 			case 0x40 ... 0x7E:
 				terminateChar = chr;
+				// не делаем break намеренно чтобы добавить последний аргумент 
 			case ';':
 				if (argc < CSI_MAX_ARGS) {
 					args[argc ++] = number;
@@ -144,7 +144,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 	};
 
     switch (terminateChar) {
-        case SGR :
+        case SGR:
 			for (int i = 0; i < argc; i ++) {
 				switch (args[i]) {
 					case 0:
@@ -171,5 +171,27 @@ void kterm_session_process_csi(struct terminal_session* session)
 					printk("Unknown DECSED mode %i\n", mode);
 			}
 			break;
+		case 'H':
+			session->console->console_col = args[1];
+    		session->console->console_lines = args[0];
+			break;
+		case 'A':
+			session->console->console_lines -= args[0];
+			break;
+		case 'B':
+			session->console->console_lines += args[0];
+			break;
+		case 'C':
+			session->console->console_col += args[0];
+			break;
+		case 'D':
+			session->console->console_col -= args[0];
+			break;
+		case 'r':
+		case 'h':
+			// TODO: implement
+			break;
+		default:
+			printk("Unknown CSI terminate chr (%c)\n", terminateChar);
     }
 }

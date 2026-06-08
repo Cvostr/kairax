@@ -116,6 +116,8 @@ void kterm_main()
 	kterm_sessions[0] = session;
 	session->console = current_console;
 
+	char ESC_SEQ[3];
+
 	while (1) 
 	{
 		short keycode_ext = keyboard_get_key();
@@ -138,30 +140,33 @@ void kterm_main()
 					current_session->shift_hold = (state == 0);
 					break;
 				case KRXK_UP:
-					if (state == 0) 
-					{
-						sys_write_file(current_session->master, ARROW_UP, sizeof(ARROW_UP));
-					}
-					break;
 				case KRXK_DOWN:
-					if (state == 0) 
-					{
-						sys_write_file(current_session->master, ARROW_DOWN, sizeof(ARROW_DOWN));
-					}
-					break;
 				case KRXK_LEFT:
-					if (state == 0) 
-					{
-						sys_write_file(current_session->master, ARROW_LEFT, sizeof(ARROW_LEFT));
-					}
-					break;
 				case KRXK_RIGHT:
 					if (state == 0) 
 					{
-						sys_write_file(current_session->master, ARROW_RIGHT, sizeof(ARROW_RIGHT));
+						ESC_SEQ[0] = ESC;
+						ESC_SEQ[1] = current_session->keypad_app_mode ? 'O' : '[';
+
+						switch (keycode)
+						{
+							case KRXK_UP:
+								ESC_SEQ[2] = 'A';
+								break;
+							case KRXK_DOWN:
+								ESC_SEQ[2] = 'B';
+								break;
+							case KRXK_LEFT:
+								ESC_SEQ[2] = 'D';
+								break;
+							case KRXK_RIGHT:
+								ESC_SEQ[2] = 'C';
+								break;
+						}
+
+						sys_write_file(current_session->master, ESC_SEQ, 3);
 					}
 					break;
-
 				default:
 					if (state == 0) 
 					{
