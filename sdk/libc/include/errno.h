@@ -43,8 +43,10 @@ int* __errno_location();
 #define EPIPE		                32
 #define EDOM		                33
 #define ERANGE                      34
+#define ENAMETOOLONG	            36
 #define	ENOSYS		                38
 #define ENOTEMPTY                   39
+#define ELOOP		                40
 #define EOVERFLOW	                75
 #define ENOTSOCK                    88
 #define EDESTADDRREQ	            89

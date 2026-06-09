@@ -51,6 +51,7 @@ typedef void (*sighandler_t)(int);
 
 __BEGIN_DECLS
 
+typedef int sig_atomic_t;
 typedef unsigned long sigset_t;
 
 union __sigval

@@ -38,7 +38,9 @@
 #define	ESPIPE		                29
 #define EROFS		                30
 #define EPIPE		                32
+#define ENAMETOOLONG	            36
 #define ENOSYS		                38
+#define ELOOP		                40
 #define	ENOSPC                      ERROR_NO_SPACE
 #define ENOTEMPTY                   ERROR_NOT_EMPTY
 #define ENOTSOCK                    ERROR_NOT_SOCKET

@@ -36,8 +36,10 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(EPIPE, "Broken pipe"),
     DEFINE_ERROR(EDOM, "Math argument out of domain of func"),
     DEFINE_ERROR(ERANGE, "Math result not representable"),
+    DEFINE_ERROR(ENAMETOOLONG, "File name too long"),
     DEFINE_ERROR(ENOSYS, "Function not implemented"),
     DEFINE_ERROR(ENOTEMPTY, "Directory not empty"),
+    DEFINE_ERROR(ELOOP, "Too many symbolic links encountered"),
     // ...
     DEFINE_ERROR(EOVERFLOW, "Value too large for defined data type"),
     // ...
