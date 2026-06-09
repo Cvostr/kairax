@@ -1,7 +1,8 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H
 
-#define __set_errno(x) long ret = x; if (ret < 0) { errno = -ret; ret = -1; } return ret
+#define __set_errno(x) errno = (x)
+#define __sys_ret_set_errno(x) long ret = x; if (ret < 0) { errno = -ret; ret = -1; } return ret
 
 int* __errno_location();
 

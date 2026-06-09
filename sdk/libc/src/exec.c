@@ -13,7 +13,7 @@ extern char** __environ;
 
 int execve(const char *filename, char *const argv [], char *const envp[])
 {
-    __set_errno(syscall_execve(filename, argv, envp));
+    __sys_ret_set_errno(syscall_execve(filename, argv, envp));
 }
 
 int execv(const char *file, char *const argv[])

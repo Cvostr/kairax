@@ -10,7 +10,7 @@ int creat(const char *filepath, mode_t mode)
 
 int openat(int dirfd, const char* filepath, int flags, int mode)
 {
-    __set_errno(syscall_open_file(dirfd, filepath, flags, mode));
+    __sys_ret_set_errno(syscall_open_file(dirfd, filepath, flags, mode));
 }
 
 int open(const char* filepath, int flags, ...)
@@ -25,7 +25,7 @@ int open(const char* filepath, int flags, ...)
         va_end(args);
     }
 
-    __set_errno(syscall_open_file(AT_FDCWD, filepath, flags, mode));
+    __sys_ret_set_errno(syscall_open_file(AT_FDCWD, filepath, flags, mode));
 }
 
 int fcntl(int fd, int cmd, ...)
@@ -41,7 +41,7 @@ int fcntl(int fd, int cmd, ...)
         default: {
 
             void* arg = va_arg(va, void*);
-            __set_errno(syscall_fcntl(fd, cmd, arg));
+            __sys_ret_set_errno(syscall_fcntl(fd, cmd, arg));
         }
     }
 }

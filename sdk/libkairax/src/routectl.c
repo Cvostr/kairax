@@ -14,5 +14,5 @@ int RouteAdd4(struct RouteInfo4* route)
 
 int Route4(int action, uint32_t arg, struct RouteInfo4* route)
 {
-    __set_errno( syscall_routectl(4, action, arg, route));
+    __sys_ret_set_errno( syscall_routectl(4, action, arg, route));
 }

@@ -20,4 +20,16 @@ typedef int           wchar_t;
 typedef __WINT_TYPE__ wint_t;
 #endif
 
+// Скорее всего GCC не объявит max_align_t сам, сделаем это за него для C11/C++11 и новее
+#if (defined (__STDC_VERSION__) && __STDC_VERSION__ >= 201112L) || (defined(__cplusplus) && __cplusplus >= 201103L)
+#ifndef _GCC_MAX_ALIGN_T
+#define _GCC_MAX_ALIGN_T
+typedef struct 
+{
+    long long _align_long __attribute__((__aligned__(__alignof__(long long))));
+    long double _align_double __attribute__((__aligned__(__alignof__(long double))));
+} max_align_t;
+#endif
+#endif
+
 #endif

@@ -11,22 +11,22 @@
 
 pid_t fork(void)
 {
-    __set_errno(syscall_fork());
+    __sys_ret_set_errno(syscall_fork());
 }
 
 pid_t vfork(void)
 {
-    __set_errno(syscall_vfork());
+    __sys_ret_set_errno(syscall_vfork());
 }
 
 int dup(int oldfd)
 {
-    __set_errno(syscall_dup(oldfd));
+    __sys_ret_set_errno(syscall_dup(oldfd));
 }
 
 int dup2(int oldfd, int newfd)
 {
-    __set_errno(syscall_dup2(oldfd, newfd));
+    __sys_ret_set_errno(syscall_dup2(oldfd, newfd));
 }
 
 void* sbrk(int len)
@@ -39,32 +39,32 @@ void* sbrk(int len)
 
 uid_t getuid(void)
 {
-    __set_errno(syscall_getuid());
+    __sys_ret_set_errno(syscall_getuid());
 }
 
 uid_t geteuid(void)
 {
-    __set_errno(syscall_geteuid());
+    __sys_ret_set_errno(syscall_geteuid());
 }
 
 int setuid(uid_t uid)
 {
-    __set_errno(syscall_setuid(uid));
+    __sys_ret_set_errno(syscall_setuid(uid));
 }
 
 gid_t getgid(void)
 {
-    __set_errno(syscall_getgid());
+    __sys_ret_set_errno(syscall_getgid());
 }
 
 gid_t getegid(void)
 {
-    __set_errno(syscall_getegid());
+    __sys_ret_set_errno(syscall_getegid());
 }
 
 int setgid(gid_t gid)
 {
-    __set_errno(syscall_setgid(gid));
+    __sys_ret_set_errno(syscall_setgid(gid));
 }
 
 pid_t getpid(void)
@@ -84,12 +84,12 @@ pid_t gettid(void)
 
 int setpgid(pid_t pid, pid_t pgid)
 {
-    __set_errno(syscall_setpgid(pid, pgid));
+    __sys_ret_set_errno(syscall_setpgid(pid, pgid));
 }
 
 pid_t getpgid(pid_t pid)
 {
-    __set_errno(syscall_getpgid(pid));
+    __sys_ret_set_errno(syscall_getpgid(pid));
 }
 
 int setpgrp(void)
@@ -104,12 +104,12 @@ pid_t getpgrp(void)
 
 int truncate(const char *path, off_t length)
 {
-    __set_errno(syscall_truncate(path, length));
+    __sys_ret_set_errno(syscall_truncate(path, length));
 }
 
 int ftruncate(int fd, off_t length)
 {
-    __set_errno(syscall_ftruncate(fd, length));
+    __sys_ret_set_errno(syscall_ftruncate(fd, length));
 }
 
 unsigned int sleep(unsigned int seconds)
@@ -128,7 +128,7 @@ int usleep(unsigned long useconds)
 
 int pause(void)
 {
-    __set_errno(syscall_pause());
+    __sys_ret_set_errno(syscall_pause());
 }
 
 unsigned int alarm(unsigned int seconds) 
@@ -149,37 +149,37 @@ char* getcwd(char* buf, size_t size)
 
 int chdir(const char* path)
 {
-    __set_errno(syscall_set_working_dir(path));
+    __sys_ret_set_errno(syscall_set_working_dir(path));
 }
 
 int pipe(int pipefd[2])
 {
-    __set_errno(syscall_create_pipe(pipefd, 0));
+    __sys_ret_set_errno(syscall_create_pipe(pipefd, 0));
 }
 
 int pipe2(int pipefd[2], int flags)
 {
-    __set_errno(syscall_create_pipe(pipefd, flags));
+    __sys_ret_set_errno(syscall_create_pipe(pipefd, flags));
 }
 
 int close(int fd)
 {
-    __set_errno(syscall_close(fd));
+    __sys_ret_set_errno(syscall_close(fd));
 }
 
 int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
 {
-    __set_errno(syscall_linkat(AT_FDCWD, oldpath, newdirfd, newpath, flags));
+    __sys_ret_set_errno(syscall_linkat(AT_FDCWD, oldpath, newdirfd, newpath, flags));
 }
 
 int link(const char *oldpath, const char *newpath)
 {
-    __set_errno(syscall_linkat(AT_FDCWD, oldpath, AT_FDCWD, newpath, 0));
+    __sys_ret_set_errno(syscall_linkat(AT_FDCWD, oldpath, AT_FDCWD, newpath, 0));
 }
 
 int symlinkat(const char *target, int newdirfd, const char *linkpath)
 {
-    __set_errno(syscall_symlinkat(target, newdirfd, linkpath));
+    __sys_ret_set_errno(syscall_symlinkat(target, newdirfd, linkpath));
 }
 
 int symlink(const char *target, const char *linkpath)
@@ -189,7 +189,7 @@ int symlink(const char *target, const char *linkpath)
 
 ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize)
 {
-    __set_errno(syscall_readlinkat(dirfd, pathname, buf, bufsize));
+    __sys_ret_set_errno(syscall_readlinkat(dirfd, pathname, buf, bufsize));
 }
 
 ssize_t readlink(const char *path, char *buf, size_t bufsize)
@@ -199,27 +199,27 @@ ssize_t readlink(const char *path, char *buf, size_t bufsize)
 
 int unlink(const char* path)
 {
-    __set_errno(syscall_unlink(AT_FDCWD, path, 0));
+    __sys_ret_set_errno(syscall_unlink(AT_FDCWD, path, 0));
 }
 
 int rmdir(const char *path)
 {
-    __set_errno(syscall_rmdir(path));
+    __sys_ret_set_errno(syscall_rmdir(path));
 }
 
 off_t lseek(int fd, off_t offset, int whence)
 {
-    __set_errno(syscall_file_seek(fd, offset, whence));
+    __sys_ret_set_errno(syscall_file_seek(fd, offset, whence));
 }
 
 ssize_t read(int fd, char* buffer, size_t size)
 {
-    __set_errno(syscall_read(fd, buffer, size));
+    __sys_ret_set_errno(syscall_read(fd, buffer, size));
 }
 
 ssize_t write(int fd, const char* buffer, size_t size)
 {
-    __set_errno(syscall_write(fd, buffer, size));
+    __sys_ret_set_errno(syscall_write(fd, buffer, size));
 }
 
 int isatty(int fd)
@@ -244,6 +244,12 @@ pid_t tcgetpgrp(int fd)
 int tcsetpgrp(int fd, pid_t pgrp)
 {
     return ioctl(fd, TIOCSPGRP, (unsigned long long) &pgrp);
+}
+
+char *ttyname(int fd)
+{
+    static char obuf[20];
+    return obuf;
 }
 
 char* getlogin(void) 
@@ -275,7 +281,7 @@ int access(const char *name, int mode)
 
 int faccessat(int dirfd, const char *pathname, int mode, int flags)
 {
-    __set_errno(syscall_faccessat(dirfd, pathname, mode, flags));
+    __sys_ret_set_errno(syscall_faccessat(dirfd, pathname, mode, flags));
 }
 
 void swab(const void *src, void *dest, ssize_t n)

@@ -4,5 +4,5 @@
 
 int poll(struct pollfd *ufds, nfds_t nfds, int timeout)
 {
-    __set_errno(syscall_poll(ufds, nfds, timeout));
+    __sys_ret_set_errno(syscall_poll(ufds, nfds, timeout));
 }

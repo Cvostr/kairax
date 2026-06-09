@@ -13,7 +13,7 @@ int raise(int sig)
 
 int kill(pid_t pid, int sig)
 {
-    __set_errno(syscall_kill(pid, sig));
+    __sys_ret_set_errno(syscall_kill(pid, sig));
 }
 
 int killpg(pid_t pgrp, int sig)
@@ -69,12 +69,12 @@ int sigemptyset(sigset_t *set)
 
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-    __set_errno(syscall_sigprocmask(how, set, oldset, sizeof(sigset_t)));
+    __sys_ret_set_errno(syscall_sigprocmask(how, set, oldset, sizeof(sigset_t)));
 }
 
 int sigpending(sigset_t *set)
 {
-    __set_errno(syscall_sigpending(set, sizeof(sigset_t)));
+    __sys_ret_set_errno(syscall_sigpending(set, sizeof(sigset_t)));
 }
 
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
@@ -88,7 +88,7 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
         sact.sa_restorer = __sig_trampoline;
     }
 
-    __set_errno(syscall_sigaction(signum, act != NULL ? &sact : NULL, oldact, sizeof(sigset_t)));
+    __sys_ret_set_errno(syscall_sigaction(signum, act != NULL ? &sact : NULL, oldact, sizeof(sigset_t)));
 }
 
 sighandler_t signal(int signum, sighandler_t action)

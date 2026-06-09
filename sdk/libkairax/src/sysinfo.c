@@ -4,20 +4,20 @@
 
 int KxGetKernelString(char* buffer, size_t buffersz)
 {
-    __set_errno(syscall_sysinfo(SYSINFO_KERNEL_INFO_STR, buffer, buffersz));
+    __sys_ret_set_errno(syscall_sysinfo(SYSINFO_KERNEL_INFO_STR, buffer, buffersz));
 }
 
 int KxGetMeminfo(struct meminfo* info)
 {
-    __set_errno(syscall_sysinfo(SYSINFO_MEMORY, info, sizeof(struct meminfo)));
+    __sys_ret_set_errno(syscall_sysinfo(SYSINFO_MEMORY, info, sizeof(struct meminfo)));
 }
 
 int KxGetSysStat(struct sysstat* stat)
 {
-    __set_errno(syscall_sysinfo(SYSINFO_SYSSTAT, stat, sizeof(struct sysstat)));
+    __sys_ret_set_errno(syscall_sysinfo(SYSINFO_SYSSTAT, stat, sizeof(struct sysstat)));
 }
 
 int KxGetCpuInfo(struct cpuinfo* cpu)
 {
-    __set_errno(syscall_sysinfo(SYSINFO_CPUINFO, cpu, sizeof(struct cpuinfo)));
+    __sys_ret_set_errno(syscall_sysinfo(SYSINFO_CPUINFO, cpu, sizeof(struct cpuinfo)));
 }

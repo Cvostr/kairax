@@ -5,5 +5,5 @@
 
 int ioctl(int fd, uint64_t request, uint64_t arg)
 {
-    __set_errno(syscall_ioctl(fd, request, arg));
+    __sys_ret_set_errno(syscall_ioctl(fd, request, arg));
 }

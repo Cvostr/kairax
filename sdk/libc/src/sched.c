@@ -5,12 +5,12 @@
 
 int sched_yield (void)
 {
-    __set_errno(syscall_sched_yield());
+    __sys_ret_set_errno(syscall_sched_yield());
 }
 
 int getcpu(unsigned int *cpu, unsigned int *node)
 {
-    __set_errno(syscall_getcpu(cpu, node));
+    __sys_ret_set_errno(syscall_getcpu(cpu, node));
 }
 
 int sched_getcpu(void)

@@ -33,7 +33,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz)
 {
-    __set_errno(syscall_set_time_epoch(tv));
+    __sys_ret_set_errno(syscall_set_time_epoch(tv));
 }
 
 time_t time(time_t *t)
@@ -62,7 +62,7 @@ int stime(time_t *t)
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
     int rc = syscall_sleep(req->tv_sec, req->tv_nsec);
-    __set_errno(rc);
+    __sys_ret_set_errno(rc);
 }
 
 // TODO: test!

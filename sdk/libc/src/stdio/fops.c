@@ -143,5 +143,5 @@ int remove(const char* filename)
 
 int rename(const char *oldpath, const char *newpath)
 {
-    __set_errno(syscall_rename(AT_FDCWD, oldpath, AT_FDCWD, newpath));
+    __sys_ret_set_errno(syscall_rename(AT_FDCWD, oldpath, AT_FDCWD, newpath));
 }

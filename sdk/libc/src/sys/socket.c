@@ -5,32 +5,32 @@
 
 int socket(int domain, int type, int protocol)
 {
-    __set_errno(syscall_socket(domain, type, protocol));
+    __sys_ret_set_errno(syscall_socket(domain, type, protocol));
 }
 
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-    __set_errno(syscall_bind(sockfd, addr, addrlen));
+    __sys_ret_set_errno(syscall_bind(sockfd, addr, addrlen));
 }
 
 int listen(int sockfd, int backlog)
 {
-    __set_errno(syscall_listen(sockfd, backlog));
+    __sys_ret_set_errno(syscall_listen(sockfd, backlog));
 }
 
 int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen)
 {
-    __set_errno(syscall_setsockopt(s, level, optname, optval, optlen));
+    __sys_ret_set_errno(syscall_setsockopt(s, level, optname, optval, optlen));
 }
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
-    __set_errno(syscall_accept(sockfd, addr, addrlen));
+    __sys_ret_set_errno(syscall_accept(sockfd, addr, addrlen));
 }
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-    __set_errno(syscall_connect(sockfd, addr, addrlen));
+    __sys_ret_set_errno(syscall_connect(sockfd, addr, addrlen));
 }
 
 int send(int sockfd, const void* buf, size_t n, int flags)
@@ -40,7 +40,7 @@ int send(int sockfd, const void* buf, size_t n, int flags)
 
 int sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen)
 {
-    __set_errno(syscall_sendto(sockfd, msg, len, flags, to, tolen));
+    __sys_ret_set_errno(syscall_sendto(sockfd, msg, len, flags, to, tolen));
 }
 
 ssize_t recv(int sockfd, void* buf, size_t len, int flags)
@@ -50,25 +50,25 @@ ssize_t recv(int sockfd, void* buf, size_t len, int flags)
 
 ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen)
 {
-    __set_errno(syscall_recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
+    __sys_ret_set_errno(syscall_recvfrom(sockfd, buf, len, flags, src_addr, addrlen));
 }
 
 int shutdown(int sockfd, int how)
 {
-    __set_errno(syscall_shutdown(sockfd, how));
+    __sys_ret_set_errno(syscall_shutdown(sockfd, how));
 }
 
 int getpeername(int s, struct sockaddr *name, socklen_t *namelen)
 {
-    __set_errno(syscall_getpeername(s, name, namelen));
+    __sys_ret_set_errno(syscall_getpeername(s, name, namelen));
 }
 
 int getsockname(int s, struct sockaddr *name, socklen_t *namelen)
 {
-    __set_errno(syscall_getsockname(s, name, namelen));
+    __sys_ret_set_errno(syscall_getsockname(s, name, namelen));
 }
 
 int socketpair(int domain, int type, int protocol, int sv[2])
 {
-    __set_errno(syscall_socketpair(domain, type, protocol, sv));
+    __sys_ret_set_errno(syscall_socketpair(domain, type, protocol, sv));
 }

@@ -11,20 +11,20 @@ int syscall_setdomainname(const char *name, size_t len);
 
 int gethostname(char *name, size_t len)
 {
-    __set_errno(syscall_sysinfo(SYSINFO_HOSTNAME, name, len));
+    __sys_ret_set_errno(syscall_sysinfo(SYSINFO_HOSTNAME, name, len));
 }
 
 int sethostname(const char *name, size_t len)
 {
-    __set_errno(syscall_sethostname(name, len));
+    __sys_ret_set_errno(syscall_sethostname(name, len));
 }
 
 int getdomainname(char *name, size_t len)
 {
-    __set_errno(syscall_sysinfo(SYSINFO_DOMAINNAME, name, len));
+    __sys_ret_set_errno(syscall_sysinfo(SYSINFO_DOMAINNAME, name, len));
 }
 
 int setdomainname(const char *name, size_t len)
 {
-    __set_errno(syscall_setdomainname(name, len));
+    __sys_ret_set_errno(syscall_setdomainname(name, len));
 }
