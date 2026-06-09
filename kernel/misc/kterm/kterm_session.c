@@ -1,6 +1,7 @@
 #include "kterm.h"
 #include "proc/syscalls.h"
 #include "stdio.h"
+#include "ctype.h"
 
 void kterm_session_process(struct terminal_session* session)
 {
@@ -30,6 +31,8 @@ void kterm_session_process(struct terminal_session* session)
 				break;
 			default:
 				char chartable = session->G1_active ? session->G1 : session->G0;
+				//if (chartable == CHARTABLE_GRAPHICS)
+				//	return;
 				console_print_char(session->console, c,
 				 	session->foreground_color.r,
 				 	session->foreground_color.g,
@@ -107,7 +110,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 		switch (chr) {
 			case '0' ... '9':
 				number = number * 10 + (chr - '0');
-			break;
+				break;
 			case 0x40 ... 0x7E:
 				terminateChar = chr;
 				// не делаем break намеренно чтобы добавить последний аргумент 
@@ -164,6 +167,9 @@ void kterm_session_process_csi(struct terminal_session* session)
 		case DECSED:
 			int mode = args[0];
 			switch (mode) {
+				case 0:
+					console_clear_to_end(session->console);
+					break;
 				case 2:
 					console_clear(session->console);
 					break;
@@ -172,8 +178,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 			}
 			break;
 		case 'H':
-			session->console->console_col = args[1];
-    		session->console->console_lines = args[0];
+			console_set_cursor_pos(session->console, args[0], args[1]);
 			break;
 		case 'A':
 			session->console->console_lines -= args[0];

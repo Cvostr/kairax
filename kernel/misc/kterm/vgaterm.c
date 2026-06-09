@@ -169,12 +169,16 @@ struct vgaconsole* console_init()
 void console_print_char(struct vgaconsole* vgconsole, char chr, unsigned char r, unsigned char g, unsigned char b)
 {
     acquire_spinlock(&console_lock);
-    if (chr == ' ') {
-        surface_draw_rect(vgconsole, XOFFSET + vgconsole->console_col * COL_SIZE,
-                        YOFFSET + vgconsole->console_lines * LINE_SIZE, 
-                        LETTER_SIZE * 8,
-                        LETTER_SIZE * 8, 0, 0, 0);
-    } else {
+    
+    // Стираем с экрана предыдущий символ, если он был 
+    surface_draw_rect(vgconsole, XOFFSET + vgconsole->console_col * COL_SIZE,
+            YOFFSET + vgconsole->console_lines * LINE_SIZE, 
+            LETTER_SIZE * 8,
+            LETTER_SIZE * 8, 0, 0, 0);
+
+    // Рисуем новый символ, если это не пробел
+    if (chr != ' ') 
+    {
         surface_draw_char(vgconsole, chr,
             XOFFSET + vgconsole->console_col * COL_SIZE,
             YOFFSET + vgconsole->console_lines * LINE_SIZE,
@@ -213,12 +217,29 @@ void console_lf(struct vgaconsole* vgconsole)
     console_scroll(vgconsole);
 }
 
+void console_set_cursor_pos(struct vgaconsole* vgconsole, int row, int col)
+{
+    vgconsole->console_col = col;
+    vgconsole->console_lines = row;
+}
+
 void console_clear(struct vgaconsole* vgconsole)
 {
     vgconsole->console_col = 0;
     vgconsole->console_lines = 0;
 
     memset(vgconsole->double_buffer, 0, vgconsole->console_buffer_size);
+    vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
+}
+
+void console_clear_to_end(struct vgaconsole* vgconsole)
+{
+    size_t x = XOFFSET + vgconsole->console_col * COL_SIZE;
+    size_t y = YOFFSET + vgconsole->console_lines * LINE_SIZE;
+
+    uint32_t fb_offset = y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
+    uint8_t* fb_addr = vgconsole->double_buffer + fb_offset;
+    memset(fb_addr, 0, vgconsole->console_buffer_size - fb_offset);
     vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
 }
 
