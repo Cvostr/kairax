@@ -2,6 +2,7 @@
 #include "proc/syscalls.h"
 #include "stdio.h"
 #include "ctype.h"
+#include "string.h"
 
 void kterm_session_process(struct terminal_session* session)
 {
@@ -36,7 +37,10 @@ void kterm_session_process(struct terminal_session* session)
 				console_print_char(session->console, c,
 				 	session->foreground_color.r,
 				 	session->foreground_color.g,
-				 	session->foreground_color.b);
+				 	session->foreground_color.b,
+					session->background_color.r,
+					session->background_color.g,
+					session->background_color.b);
 		}
 	}
 }
@@ -86,6 +90,24 @@ void kterm_process_esc_sequence(struct terminal_session* session)
 			printk("Unknown ESC chr %i (%c)\n", seqchr, seqchr);
 			break;
 	}
+}
+
+void kterm_session_reset_default_colors(struct terminal_session* session)
+{
+	struct kterm_color foreground_color = DEFAULT_FOREGROUND_COLOR;
+	session->foreground_color = foreground_color;
+	session->background_color.r = 0;
+	session->background_color.g = 0;
+	session->background_color.b = 0;
+}
+
+void kterm_session_swap_colors(struct terminal_session* session)
+{
+	struct kterm_color temp;
+	memcpy(&temp, &session->foreground_color, sizeof(struct kterm_color));
+
+	memcpy(&session->foreground_color, &session->background_color, sizeof(struct kterm_color));
+	memcpy(&session->background_color, &temp, sizeof(struct kterm_color));
 }
 
 // https://en.wikipedia.org/wiki/ANSI_escape_code#CSI
@@ -151,14 +173,22 @@ void kterm_session_process_csi(struct terminal_session* session)
 			for (int i = 0; i < argc; i ++) {
 				switch (args[i]) {
 					case 0:
-						struct kterm_color foreground_color = DEFAULT_FOREGROUND_COLOR;
-						session->foreground_color = foreground_color;
+						kterm_session_reset_default_colors(session);
 						break;
 					case 30 ... 37:
 						session->foreground_color = colors[args[i] - 30];
 						break;
 					case 90 ... 97:
 						session->foreground_color = colors[args[i] - 82];
+						break;
+					case 1:
+						// TODO: Bold
+						break;
+					case 7:
+						kterm_session_swap_colors(session);
+						break;
+					default:
+						printk("Unknown SGR arg %i\n", args[i]);
 						break;
 				}
 			}

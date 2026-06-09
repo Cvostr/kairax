@@ -7,6 +7,7 @@
 #define KTERM_SESSION_BUFFER_SIZE 128
 
 #define DEFAULT_FOREGROUND_COLOR {.r = 170, .g = 170, .b = 170}
+#define DEFAULT_BACKGROUND_COLOR {.r = 0, .g = 0, .b = 0}
 
 #define ESC         0x1B    //(\033)
 
@@ -36,6 +37,7 @@ struct terminal_session {
 	int G1_active;
 	int keypad_app_mode;	// \033=
 	struct kterm_color foreground_color;
+	struct kterm_color background_color;
 };
 
 char keyboard_get_key_ascii(int shifted, char keycode);

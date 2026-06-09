@@ -43,8 +43,7 @@ struct terminal_session* new_kterm_session(int create_console)
 {
 	struct terminal_session* session = kmalloc(sizeof(struct terminal_session));
 	memset(session, 0, sizeof(struct terminal_session));
-	struct kterm_color foreground_color = DEFAULT_FOREGROUND_COLOR;
-	session->foreground_color = foreground_color;
+	kterm_session_reset_default_colors(session);
 	session->G0 = CHARTABLE_DEFAULT;
 
 	// Создать TTY

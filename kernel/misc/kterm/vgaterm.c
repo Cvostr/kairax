@@ -166,7 +166,9 @@ struct vgaconsole* console_init()
     //BUFFER_LINES = vga_get_height() / LINE_SIZE;
 }
 
-void console_print_char(struct vgaconsole* vgconsole, char chr, unsigned char r, unsigned char g, unsigned char b)
+void console_print_char(struct vgaconsole* vgconsole, char chr, 
+    unsigned char r, unsigned char g, unsigned char b,
+    unsigned char br, unsigned char bg, unsigned char bb)
 {
     acquire_spinlock(&console_lock);
     
@@ -174,7 +176,7 @@ void console_print_char(struct vgaconsole* vgconsole, char chr, unsigned char r,
     surface_draw_rect(vgconsole, XOFFSET + vgconsole->console_col * COL_SIZE,
             YOFFSET + vgconsole->console_lines * LINE_SIZE, 
             LETTER_SIZE * 8,
-            LETTER_SIZE * 8, 0, 0, 0);
+            LETTER_SIZE * 8, br, bg, bb);
 
     // Рисуем новый символ, если это не пробел
     if (chr != ' ') 
@@ -193,6 +195,7 @@ void console_print_char(struct vgaconsole* vgconsole, char chr, unsigned char r,
         console_cr(vgconsole);
         console_lf(vgconsole);
     }
+
     release_spinlock(&console_lock);    
 }
 
