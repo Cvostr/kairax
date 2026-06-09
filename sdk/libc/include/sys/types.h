@@ -1,6 +1,8 @@
 #ifndef _BITS_TYPES_H
 #define _BITS_TYPES_H
 
+#include <stddef.h>
+
 typedef unsigned char		u_char;
 typedef unsigned short		u_short;
 typedef unsigned short		ushort;

@@ -122,6 +122,12 @@ int fsetpos(FILE *stream, fpos_t *pos)
     return 0;
 }
 
+// нестандартная функция, в headers добавляться не должна
+void __fseterr(FILE *stream)
+{
+    stream->_flags |= FSTREAM_ERROR;   
+}
+
 void clearerr_unlocked(FILE *stream)
 {
     stream->_flags &= ~(FSTREAM_ERROR | FSTREAM_EOF);
