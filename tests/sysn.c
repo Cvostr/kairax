@@ -12,6 +12,7 @@
 #include "threads.h"
 #include "syscalls.h"
 #include "sched.h"
+#include "sys/resource.h"
 
 char buff[220];
 static struct termios old, current;
@@ -122,12 +123,17 @@ void signthrd()
     
 int main(int argc, char** argv, char** envp) {
 
+    int rc;
     int counter = 0;
     printf("PID : %i\n", getpid());
     printf("PPID : %i\n", getppid());
     
     getcwd(buff, 220);
     printf("CWD : %s\n", buff);
+
+    struct rlimit rl;
+    rc = getrlimit(RLIMIT_NOFILE, &rl);
+    printf("getrlimit rc %i, nofile = %i\n", rc, rl.rlim_max);
 
     printf("ENVS : ENVP %p\n", envp);
     if (envp) {
@@ -276,7 +282,7 @@ int main(int argc, char** argv, char** envp) {
 
     int fd = open("/bugaga.txt", O_RDWR, 0);
     printf("BEFORE READ POS %i\n", lseek(fd, 0, SEEK_CUR));
-    int rc = read(fd, buff, 119);
+    rc = read(fd, buff, 119);
     printf("AFTER READ POS %i\n", lseek(fd, 0, SEEK_CUR));
     lseek(fd, 100, SEEK_SET);
     printf("AFTER SEEK POS %i\n", lseek(fd, 0, SEEK_CUR));

@@ -80,7 +80,7 @@ extern unsigned long long int syscall_get_ticks_count();
 extern int syscall_create_pty(int *master_fd, int *slave_fd);
 extern int syscall_sched_yield();
 extern int syscall_getcpu(unsigned int *cpu, unsigned int *node);
-
+extern int syscall_getrlimit(int resource, void *rlim);
 // --- SOCKET ---
 extern int syscall_socket(int domain, int type, int protocol);
 extern int syscall_bind(int sockfd, const void *addr, unsigned int addrlen);

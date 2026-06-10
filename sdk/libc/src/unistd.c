@@ -248,6 +248,7 @@ int tcsetpgrp(int fd, pid_t pgrp)
 
 char *ttyname(int fd)
 {
+    // TODO: implement
     static char obuf[20];
     return obuf;
 }

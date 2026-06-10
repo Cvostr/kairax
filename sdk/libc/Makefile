@@ -83,6 +83,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/sys/uio.o \
 				obj/sys/select.o \
 				obj/sys/statfs.o \
+				obj/sys/resource.o \
 				obj/time.o \
 				obj/gmtime_r.o \
 				obj/timegm.o \

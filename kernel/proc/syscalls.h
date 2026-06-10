@@ -147,6 +147,9 @@ int sys_fstatfs(int fd, struct statfs *buf);
 
 int sys_getcpu(unsigned int *cpu, unsigned int *node);
 
+struct rlimit;
+int sys_getrlimit(int resource, struct rlimit *rlim);
+
 // ---- SOCKETS ---------
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
