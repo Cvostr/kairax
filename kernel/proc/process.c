@@ -544,6 +544,22 @@ exit:
     return rc;
 }
 
+void process_set_workdir(struct process *process, struct dentry *dir)
+{
+    acquire_spinlock(&process->pwd_lock);
+    // Закрываем старый файл, если был
+    if (process->pwd) 
+    {
+        dentry_close(process->pwd);
+    }
+
+    // Увеличиваем счетчик ссылок и сохраняем
+    dentry_open(dir);
+    process->pwd = dir;
+
+    release_spinlock(&process->pwd_lock);
+}
+
 void process_add_mmap_region(struct process* process, struct mmap_range* region)
 {
     acquire_spinlock(&process->mmap_lock);

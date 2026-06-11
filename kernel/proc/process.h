@@ -173,6 +173,8 @@ int process_add_file_at(struct process* process, struct file* file, int fd);
 // Понижает счетчик ссылок файла
 int process_close_file(struct process* process, int fd);
 
+void process_set_workdir(struct process *process, struct dentry *dir);
+
 void process_add_mmap_region(struct process* process, struct mmap_range* region);
 
 // Получить объект региона памяти по адресу

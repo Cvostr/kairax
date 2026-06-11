@@ -35,6 +35,7 @@ extern int syscall_select(int n, void *readfds, void *writefds, void *exceptfds,
 extern int syscall_poll(void *ufds, unsigned long nfds, int timeout);
 extern int syscall_get_working_dir(char* buffer, unsigned long long size);
 extern int syscall_set_working_dir(const char* path);
+extern int syscall_fchdir(int fd); 
 extern int syscall_fdstat(int dirfd, const char* filepath, void* stat_buffer, int flags);
 extern long long int syscall_file_seek(int fd, long int offset, int whence);
 extern int syscall_create_pipe(int* dirfd, int flags);

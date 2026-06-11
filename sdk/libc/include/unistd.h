@@ -79,6 +79,7 @@ ssize_t readlink(const char *path, char *buf, size_t bufsize) __THROW;
 char* getcwd(char* buf, size_t size);
 
 int chdir(const char* path);
+int fchdir(int fd); 
 
 int pipe(int pipefd[2]);
 int pipe2(int pipefd[2], int flags);

@@ -68,6 +68,7 @@ DEFINE_SYSCALL syscall_fcntl,       0x48
 DEFINE_SYSCALL syscall_truncate,    0x4C
 DEFINE_SYSCALL syscall_ftruncate,   0x4D
 DEFINE_SYSCALL syscall_readdir,     0x4E
+DEFINE_SYSCALL syscall_fchdir,      0x51
 DEFINE_SYSCALL syscall_rename,      0x52
 DEFINE_SYSCALL syscall_rmdir,       0x54
 DEFINE_SYSCALL syscall_linkat,      0x56

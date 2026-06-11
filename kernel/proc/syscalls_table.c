@@ -55,6 +55,7 @@ void* syscalls_table[MAX_SYSCALLS + 1] = {
     DEFINE_SYSCALL(0x4E, sys_readdir),
     DEFINE_SYSCALL(0x4F, sys_get_working_dir),
     DEFINE_SYSCALL(0x50, sys_set_working_dir),
+    DEFINE_SYSCALL(0x51, sys_fchdir),
     DEFINE_SYSCALL(0x52, sys_rename),
     DEFINE_SYSCALL(0x53, sys_mkdir),
     DEFINE_SYSCALL(0x54, sys_rmdir),

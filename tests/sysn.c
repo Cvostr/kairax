@@ -197,7 +197,7 @@ int main(int argc, char** argv, char** envp) {
         signal(SIGALRM, alarmhandler);
 
         alarm(3);
-        int rc = usleep(10000000);
+        rc = usleep(10000000);
         printf("usleep(10s) returned code %i errno %i", rc, errno);
         return 0;
     }
@@ -205,6 +205,17 @@ int main(int argc, char** argv, char** envp) {
     if (argc > 1 && strcmp(argv[1], "exit_thr") == 0)
     {
         syscall_thread_exit(12);
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "fchdir") == 0)
+    {
+        int fd = open("/proc", O_RDONLY | O_DIRECTORY, 0);
+        rc = fchdir(fd);
+        printf("fchdir(%i) rc = %i, errno %i\n", fd, rc, errno);
+        char cwd[20];
+        getcwd(cwd, 20);
+        printf("getcwd after fchdir %s\n", cwd);
         return 0;
     }
 

@@ -68,17 +68,53 @@ int sys_set_working_dir(const char* buffer)
         return -EACCES;
     }
     
-    acquire_spinlock(&process->pwd_lock);
-    // Закрываем старый файл, если был
-    if (process->pwd) {
-        dentry_close(process->pwd);
-    }
-
-    // Увеличиваем счетчик ссылок и сохраняем
-    dentry_open(new_workdir);
-    process->pwd = new_workdir;
-
-    release_spinlock(&process->pwd_lock);
+    // непосредственно, сама установка домашней директории
+    process_set_workdir(process, new_workdir);
 
     return 0;
+}
+
+int sys_fchdir(int fd)
+{   
+    int rc = 0;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
+
+    // Получить файл с увеличением счетчика ссылок
+    struct file* file = process_get_file_ex(process, fd, TRUE);
+    if (file == NULL) 
+    {
+        return -ERROR_BAD_FD;
+    }
+
+    struct inode *inode = file->inode;
+    struct dentry *dentr = file->dentry;
+
+    // inode и dentry обязательны
+    if (inode == NULL || dentr == NULL)
+    {
+        rc = -ERROR_NOT_A_DIRECTORY;
+        goto exit;
+    }
+
+    // проверим, что это директория
+    if ((file->flags & FILE_OPEN_FLAG_DIRECTORY) == 0) 
+    {
+        rc = -ERROR_NOT_A_DIRECTORY;
+        goto exit;
+    }
+
+    // inode директории должно иметь права на исполнение
+    if (inode_check_perm(inode, process->euid, process->egid, S_IXUSR, S_IXGRP, S_IXOTH) == 0)
+    {
+        rc = -EACCES;
+        goto exit;
+    }
+
+    // непосредственно, сама установка домашней директории
+    process_set_workdir(process, dentr);
+
+exit:
+    file_close(file);
+    return rc;
 }

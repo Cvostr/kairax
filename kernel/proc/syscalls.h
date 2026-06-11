@@ -61,6 +61,7 @@ int sys_pipe(int* pipefd, int flags);
 
 int sys_get_working_dir(char* buffer, size_t size);
 int sys_set_working_dir(const char* buffer);
+int sys_fchdir(int fd); 
 
 pid_t sys_get_process_id();
 pid_t sys_get_parent_process_id();

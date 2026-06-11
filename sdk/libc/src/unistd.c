@@ -152,6 +152,11 @@ int chdir(const char* path)
     __sys_ret_set_errno(syscall_set_working_dir(path));
 }
 
+int fchdir(int fd)
+{
+    __sys_ret_set_errno(syscall_fchdir(fd));
+}
+
 int pipe(int pipefd[2])
 {
     __sys_ret_set_errno(syscall_create_pipe(pipefd, 0));
