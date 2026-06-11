@@ -55,6 +55,7 @@ struct elf_rela {
 #define ELF_DT_STRSZ        10
 
 // EMT64/AMD64 Relocation types 
+#define R_X86_64_64         1
 #define R_X86_64_COPY       5
 #define R_X86_64_JUMP_SLOT  7
 #define R_X86_64_RELATIVE   8

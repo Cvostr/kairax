@@ -1,5 +1,6 @@
 #include "wchar.h"
 #include "stdio.h"
+#include <wctype.h>
 
 int main(int argc, char **argv) 
 {
@@ -13,7 +14,11 @@ int main(int argc, char **argv)
     wchar_t buffer[30];
     wcscpy(buffer, L"Hello ");
     wcscat(buffer, L"World!\n");
-    printf("wcscat result %s wcslen %i", buffer, wcslen(buffer));
+    printf("wcscat result %s wcslen %i\n", buffer, wcslen(buffer));
+
+    printf("wc: upper =%p space=%p, ollds=%p\n", wctype("upper"), wctype("space"), wctype("ollds"));
+    wctype_t uppert = wctype("upper");
+    printf("upper(A)=%i, upper(a)=%i\n", iswctype(L'A', uppert), iswctype(L'b', uppert));
 
     return 0;
 }

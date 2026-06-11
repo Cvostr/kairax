@@ -317,6 +317,9 @@ void process_relocations(struct object_data* obj_data)
         char* name = NULL;
 
         switch (relocation_type) {
+            case R_X86_64_64:
+                *value = obj_data->base + sym->value + rela->addend;
+                break;
             case R_X86_64_RELATIVE:
                 // Прибавить смещение
                 *value += obj_data->base;

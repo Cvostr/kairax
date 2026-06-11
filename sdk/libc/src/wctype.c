@@ -1,4 +1,5 @@
 #include "wctype.h"
+#include "string.h"
 
 int iswblank(wint_t c)
 {
@@ -29,4 +30,37 @@ int iswprint(wint_t c)
 {
     // TODO: уточнить
 	return c >= 0x20 && c <= 0x7E;
+}
+
+struct { 
+    const char* name;
+    wctype_t func;
+} types[] = 
+{
+    { "blank", iswblank },
+    { "cntrl", iswcntrl },
+    { "digit", iswdigit },
+    { "print", iswprint },
+    { "space", iswspace },
+    { "upper", iswupper },
+};
+
+wctype_t wctype(const char* name)
+{
+    size_t elements = sizeof(types) / sizeof(types[0]);
+
+    for (size_t i = 0; i < elements; i++)
+    {
+        if (strcmp(name, types[i].name) == 0)
+        {
+            return types[i].func;
+        }
+    }
+
+    return (wctype_t)0;
+}
+
+int iswctype(wint_t wc, wctype_t desc)
+{
+    return desc(wc);
 }
