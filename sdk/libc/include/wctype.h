@@ -11,6 +11,7 @@ int iswdigit(wint_t c);
 int iswspace(wint_t c);
 int iswupper(wint_t c);
 int iswprint(wint_t c);
+int iswcntrl(wint_t c);
 
 __END_DECLS
 

@@ -20,6 +20,11 @@ int iswupper(wint_t c)
     return (c >= 'A' && c <= 'Z');
 }
 
+int iswcntrl(wint_t c)
+{
+    return ((unsigned int)c) < 32u || c == 127;
+}
+
 int iswprint(wint_t c)
 {
     // TODO: уточнить

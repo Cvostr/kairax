@@ -59,6 +59,10 @@ int cnd_wait(cnd_t* cond, mtx_t* mutex);
 int cnd_timedwait(cnd_t* restrict cond, mtx_t* restrict mutex, const struct timespec* restrict time_point);
 void cnd_destroy(cnd_t* cond);
 
+typedef int once_flag;
+#define ONCE_FLAG_INIT 0
+void call_once(once_flag* flag, void (*func)(void));
+
 #ifdef __cplusplus
 }
 #endif
