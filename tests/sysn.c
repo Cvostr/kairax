@@ -12,6 +12,7 @@
 #include "threads.h"
 #include "syscalls.h"
 #include "sched.h"
+#include "libgen.h"
 #include "sys/resource.h"
 
 char buff[220];
@@ -205,6 +206,46 @@ int main(int argc, char** argv, char** envp) {
     if (argc > 1 && strcmp(argv[1], "exit_thr") == 0)
     {
         syscall_thread_exit(12);
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "basename") == 0)
+    {
+        char buffer[100];
+        printf("basename("") = %s basename(NULL) = %s\n", basename(""), basename(NULL));
+        strcpy(buffer, "/proc/");
+        printf("basename(/proc/) = %s\n", basename(buffer));
+        strcpy(buffer, "/proc/cmdline");
+        printf("basename(/proc/cmdline) = '%s'\n", basename(buffer));
+        strcpy(buffer, "file.txt");
+        printf("basename(file.txt) = '%s'\n", basename(buffer));
+        strcpy(buffer, "/");
+        printf("basename(/) = '%s'\n", basename(buffer));
+        strcpy(buffer, "//");
+        printf("basename(//) = '%s'\n", basename(buffer));
+        strcpy(buffer, "/usr/lib//");
+        printf("basename(/usr/lib//) = '%s'\n", basename(buffer));
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "dirname") == 0)
+    {
+        char buffer[100];
+        printf("dirname("") = %s dirname(NULL) = %s\n", dirname(""), dirname(NULL));
+        strcpy(buffer, "/proc/");
+        printf("dirname(/proc/) = %s\n", dirname(buffer));
+        strcpy(buffer, "/proc/cmdline");
+        printf("dirname(/proc/cmdline) = '%s'\n", dirname(buffer));
+        strcpy(buffer, "file.txt");
+        printf("dirname(file.txt) = '%s'\n", dirname(buffer));
+        strcpy(buffer, "/");
+        printf("dirname(/) = '%s'\n", dirname(buffer));
+        strcpy(buffer, "//");
+        printf("dirname(//) = '%s'\n", dirname(buffer));
+        strcpy(buffer, "/usr/lib//");
+        printf("dirname(/usr/lib//) = '%s'\n", dirname(buffer));
+        strcpy(buffer, "/usr/lib/libc.so");
+        printf("dirname(/usr/lib/libc.so) = '%s'\n", dirname(buffer));
         return 0;
     }
 
