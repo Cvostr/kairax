@@ -249,6 +249,13 @@ int main(int argc, char** argv, char** envp) {
         return 0;
     }
 
+    if (argc > 1 && strcmp(argv[1], "execl") == 0)
+    {
+        rc = execl("/bin/ls", "ls", "-l", "-a", NULL);
+        printf("execl res %i errno %i\n", rc, errno);
+        return 0;
+    }
+
     if (argc > 1 && strcmp(argv[1], "fchdir") == 0)
     {
         int fd = open("/proc", O_RDONLY | O_DIRECTORY, 0);

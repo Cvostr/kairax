@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "limits.h"
+#include "stdarg.h"
 
 extern char** __environ;
 
@@ -73,4 +74,38 @@ int execvp(const char *file, char *const argv[])
     } 
 
     return -1;
+}
+
+int execl(const char *path, const char* arg, ...)
+{
+    va_list ap, copy;
+    int rc;
+    size_t nargs = 0;
+    va_start(ap, arg);
+    va_copy(copy, ap);
+
+    while (va_arg(copy, char*))
+        nargs++;
+    va_end(copy);
+
+    char **argv = malloc((nargs + 2) * sizeof(char *));
+    if (argv == NULL)
+    {
+        va_end(ap);
+        errno = ENOMEM;
+        return -1;
+    }
+
+    argv[0] = arg;
+    argv[nargs + 1] = NULL;
+    for (size_t i = 0; i < nargs; i ++)
+        argv[i + 1] = va_arg(ap, char*);
+    
+    va_end(ap);
+
+    rc = execve(path, argv, __environ);
+
+    // если мы сюда попали, значит произошла ошибка в execve
+    free(argv);
+    return rc;
 }
