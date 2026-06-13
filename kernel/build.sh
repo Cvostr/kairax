@@ -84,7 +84,6 @@ gcc $GCC_ARGS dev/device_drivers.c -o ./bin/device_drivers.o
 gcc $GCC_ARGS dev/device_man.c -o ./bin/device_man.o
 gcc $GCC_ARGS dev/bus/pci/pci.c -o ./bin/pci.o
 gcc $GCC_ARGS dev/bus/usb/usb.c -o ./bin/usb.o
-#gcc $GCC_ARGS dev/bus/usb/ehci/usb_ehci.c -o ./bin/usb_ehci.o
 gcc $GCC_ARGS dev/interrupts.c -o ./bin/interrupts.o
 gcc $GCC_ARGS dev/type/nic.c -o ./bin/nic.o
 gcc $GCC_ARGS dev/type/audio_endpoint.c -o ./bin/audio_endpoint.o
