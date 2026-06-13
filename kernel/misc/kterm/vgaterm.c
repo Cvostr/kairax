@@ -361,8 +361,14 @@ void console_set_cursor_pos(struct vgaconsole* vgconsole, int row, int col)
 
 void console_cursor_move(struct vgaconsole* vgconsole, int dx, int dy)
 {
-    vgconsole->console_col += dx;
-    vgconsole->console_lines += dy;
+    int newx = vgconsole->console_col + dx; 
+    int newy = vgconsole->console_lines + dy;
+
+    if (newx < 0) newx = 0;
+    if (newy < 0) newy = 0;
+
+    vgconsole->console_col = newx;
+    vgconsole->console_lines = newy;
 }
 
 void console_clear(struct vgaconsole* vgconsole)

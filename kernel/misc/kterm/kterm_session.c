@@ -221,10 +221,10 @@ void kterm_session_process_csi(struct terminal_session* session)
 				console_set_cursor_pos(session->console, args[0] - 1, args[1] - 1);
 			break;
 		case 'A':
-			session->console->console_lines -= args[0];
+			console_cursor_move(session->console, 0, -args[0]);
 			break;
 		case 'B':
-			session->console->console_lines += args[0];
+			console_cursor_move(session->console, 0, args[0]);
 			break;
 		case 'C':
 			console_cursor_move(session->console, args[0], 0);
