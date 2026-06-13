@@ -52,7 +52,7 @@ struct terminal_session* new_kterm_session(int create_console)
 	// Установить для tty настоящие размеры окна
 	struct tty_winsize wsize;
 	wsize.ws_row = 39;
-	wsize.ws_col = 65;
+	wsize.ws_col = 67;
     sys_ioctl(session->master, TIOCSWINSZ, (uint64_t) &wsize);
 
 	struct file *slave_file = process_get_file(kterm_process, session->slave);

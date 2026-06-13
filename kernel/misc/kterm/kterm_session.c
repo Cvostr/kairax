@@ -213,8 +213,12 @@ void kterm_session_process_csi(struct terminal_session* session)
 					printk("Unknown DECSED mode %i\n", mode);
 			}
 			break;
+		case 'f':
 		case 'H':
-			console_set_cursor_pos(session->console, args[0], args[1]);
+			if (argc == 0)
+				console_set_cursor_pos(session->console, 0, 0);
+			else// if (argc == 2)
+				console_set_cursor_pos(session->console, args[0] - 1, args[1] - 1);
 			break;
 		case 'A':
 			session->console->console_lines -= args[0];
@@ -223,10 +227,10 @@ void kterm_session_process_csi(struct terminal_session* session)
 			session->console->console_lines += args[0];
 			break;
 		case 'C':
-			session->console->console_col += args[0];
+			console_cursor_move(session->console, args[0], 0);
 			break;
 		case 'D':
-			session->console->console_col -= args[0];
+			console_cursor_move(session->console, -args[0], 0);
 			break;
 		case 'l':
 			//printk("SCI l with arg %i\n", args[0]);

@@ -26,6 +26,7 @@ void console_clear(struct vgaconsole* vgconsole);
 // очистить экран от курсора до конца
 void console_clear_to_end(struct vgaconsole* vgconsole);
 void console_set_cursor_pos(struct vgaconsole* vgconsole, int row, int col);
+void console_cursor_move(struct vgaconsole* vgconsole, int dx, int dy);
 
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b);
 void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b);
