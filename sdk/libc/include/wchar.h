@@ -3,6 +3,7 @@
 
 #include <sys/cdefs.h>
 #include <stddef.h>
+#include "types/wint_t.h"
 
 __BEGIN_DECLS
 

@@ -27,6 +27,8 @@
 #define SSIZE_MIN   LONG_MIN
 #define SSIZE_MAX   LONG_MAX
 
+#define NAME_MAX	255
 #define PATH_MAX    4096 
+#define PIPE_BUF	4096
 
 #endif

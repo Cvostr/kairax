@@ -8,6 +8,7 @@
 #include "sys/mman.h"
 #include "stdlib.h"
 #include "string.h"
+#include "limits.h"
 
 pid_t fork(void)
 {
@@ -278,6 +279,27 @@ long sysconf(int name)
 
     errno = ENOSYS;
     return -1;
+}
+
+long pathconf(const char *path, int name)
+{
+    return fpathconf(-1, name);
+}
+
+long fpathconf(int fd, int name)
+{
+    switch (name) 
+    {
+		case _PC_PATH_MAX:
+			return PATH_MAX;
+        case _PC_NAME_MAX:
+            return NAME_MAX;
+        case _PC_PIPE_BUF:
+            return PIPE_BUF;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
 }
 
 int access(const char *name, int mode)

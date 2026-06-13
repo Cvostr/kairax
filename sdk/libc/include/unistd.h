@@ -102,6 +102,12 @@ void* sbrk(int len);
 #define _SC_PAGESIZE 5
 long sysconf(int name);
 
+#define _PC_PATH_MAX 1
+#define _PC_NAME_MAX 2
+#define _PC_PIPE_BUF 3
+long pathconf(const char *path, int name);
+long fpathconf(int fd, int name);
+
 int gethostname(char *name, size_t len) __THROW;
 int sethostname(const char *name, size_t len) __THROW;
 
