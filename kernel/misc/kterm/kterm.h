@@ -20,6 +20,14 @@ struct kterm_color {
 	unsigned char b;
 };
 
+#define TIOCSWINSZ  0x5414
+struct tty_winsize {
+    unsigned short ws_row;
+    unsigned short ws_col;
+    unsigned short ws_xpixel;
+    unsigned short ws_ypixel;
+};
+
 struct terminal_session {
 	int master;
 	int slave;

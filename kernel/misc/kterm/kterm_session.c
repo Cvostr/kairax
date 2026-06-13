@@ -34,7 +34,7 @@ void kterm_session_process(struct terminal_session* session)
 				char chartable = session->G1_active ? session->G1 : session->G0;
 				//if (chartable == CHARTABLE_GRAPHICS)
 				//	return;
-				console_print_char(session->console, c,
+				console_print_char(session->console, chartable == CHARTABLE_GRAPHICS, c,
 				 	session->foreground_color.r,
 				 	session->foreground_color.g,
 				 	session->foreground_color.b,
@@ -178,8 +178,14 @@ void kterm_session_process_csi(struct terminal_session* session)
 					case 30 ... 37:
 						session->foreground_color = colors[args[i] - 30];
 						break;
+					case 40 ... 47:
+						session->background_color = colors[args[i] - 40];
+						break;
 					case 90 ... 97:
 						session->foreground_color = colors[args[i] - 82];
+						break;
+					case 100 ... 107:
+						session->background_color = colors[args[i] - 92];
 						break;
 					case 1:
 						// TODO: Bold
@@ -222,8 +228,13 @@ void kterm_session_process_csi(struct terminal_session* session)
 		case 'D':
 			session->console->console_col -= args[0];
 			break;
-		case 'r':
+		case 'l':
+			//printk("SCI l with arg %i\n", args[0]);
+			break;
 		case 'h':
+			//printk("SCI h with arg %i\n", args[0]);
+			break;
+		case 'r':
 			// TODO: implement
 			break;
 		default:

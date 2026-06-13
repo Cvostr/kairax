@@ -32,7 +32,7 @@ static int print_console_func(const char* data, size_t length, void* arg)
 {
 	const unsigned char* bytes = (const unsigned char*) data;
 	for (size_t i = 0; i < length; i++)
-		console_print_char(current_console, bytes[i], 170, 170, 170, 0, 0, 0);
+		console_print_char(current_console, 0, bytes[i], 170, 170, 170, 0, 0, 0);
 	return 1;
 }
 

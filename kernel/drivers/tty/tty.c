@@ -401,7 +401,8 @@ short pty_slave_poll(struct file *file, struct poll_ctl *pctl)
 
 int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
 {
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
     struct pty *p_pty = (struct pty *) file->private_data;
     struct pipe *pipe = NULL;
 
@@ -425,7 +426,10 @@ int tty_ioctl(struct file* file, uint64_t request, uint64_t arg)
             break;
         case TIOCSWINSZ:
             // Обновить размер окна
-            VALIDATE_USER_POINTER(process, arg, sizeof(struct winsize))
+            if (thread->is_userspace)
+            {
+                VALIDATE_USER_POINTER(process, arg, sizeof(struct winsize))
+            }
             memcpy(&p_pty->winsz, (struct winsize*) arg, sizeof(struct winsize));
             sys_send_signal_pg(p_pty->foreground_pg, SIGWINCH);
             break;
