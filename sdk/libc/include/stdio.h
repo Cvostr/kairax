@@ -63,6 +63,7 @@ int rename(const char *oldpath, const char *newpath);
 
 void perror(const char *s);
 
+#define P_tmpdir "/tmp"
 FILE* tmpfile(void);
 
 int fseek(FILE *stream, long offset, int whence);

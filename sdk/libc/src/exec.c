@@ -96,7 +96,7 @@ int execl(const char *path, const char* arg, ...)
         return -1;
     }
 
-    argv[0] = arg;
+    argv[0] = (char*) arg;
     argv[nargs + 1] = NULL;
     for (size_t i = 0; i < nargs; i ++)
         argv[i + 1] = va_arg(ap, char*);
@@ -106,6 +106,40 @@ int execl(const char *path, const char* arg, ...)
     rc = execve(path, argv, __environ);
 
     // если мы сюда попали, значит произошла ошибка в execve
+    free(argv);
+    return rc;
+}
+
+int execlp(const char *file, const char *arg, ...)
+{
+    va_list ap, copy;
+    int rc;
+    size_t nargs = 0;
+    va_start(ap, arg);
+    va_copy(copy, ap);
+
+    while (va_arg(copy, char*))
+        nargs++;
+    va_end(copy);
+
+    char **argv = malloc((nargs + 2) * sizeof(char *));
+    if (argv == NULL)
+    {
+        va_end(ap);
+        errno = ENOMEM;
+        return -1;
+    }
+
+    argv[0] = (char*) arg;
+    argv[nargs + 1] = NULL;
+    for (size_t i = 0; i < nargs; i ++)
+        argv[i + 1] = va_arg(ap, char*);
+    
+    va_end(ap);
+
+    rc = execvp(file, argv);
+
+    // если мы сюда попали, значит произошла ошибка в execvp
     free(argv);
     return rc;
 }

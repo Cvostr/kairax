@@ -26,6 +26,16 @@ int iswcntrl(wint_t c)
     return ((unsigned int)c) < 32u || c == 127;
 }
 
+int iswgraph(wint_t c)
+{
+    return c >= 0x21 && c <= 0x7E;
+}
+
+int iswxdigit(wint_t c)
+{
+    return iswdigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
 int iswprint(wint_t c)
 {
     // TODO: уточнить
@@ -40,9 +50,11 @@ struct {
     { "blank", iswblank },
     { "cntrl", iswcntrl },
     { "digit", iswdigit },
+    { "graph", iswgraph },
     { "print", iswprint },
     { "space", iswspace },
     { "upper", iswupper },
+    { "xdigit", iswxdigit },
 };
 
 wctype_t wctype(const char* name)

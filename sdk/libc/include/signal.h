@@ -48,6 +48,7 @@ typedef void (*sighandler_t)(int);
 #define SA_SIGINFO	    0x00000004
 #define SA_RESTORER	    0x04000000
 #define SA_NODEFER	    0x40000000
+#define SA_RESETHAND	0x80000000
 
 __BEGIN_DECLS
 

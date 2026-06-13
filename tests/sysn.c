@@ -256,6 +256,13 @@ int main(int argc, char** argv, char** envp) {
         return 0;
     }
 
+    if (argc > 1 && strcmp(argv[1], "execlp") == 0)
+    {
+        rc = execlp("ls", "ls", "-l", "-a", NULL);
+        printf("execlp res %i errno %i\n", rc, errno);
+        return 0;
+    }
+
     if (argc > 1 && strcmp(argv[1], "fchdir") == 0)
     {
         int fd = open("/proc", O_RDONLY | O_DIRECTORY, 0);

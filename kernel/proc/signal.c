@@ -76,12 +76,21 @@ void process_handle_signals(int caller, void* frame)
     thread->pending_signals &= ~(1ULL << signal);
 
     struct proc_sigact* sigact = &process->sigactions[signal];
+    sighandler_t handler = sigact->handler;
 
-    if (sigact->handler == SIG_IGN)
+    // сбрасываем поведение сигнала если есть SA_RESETHAND
+    if (sigact->flags & SA_RESETHAND)
+    {
+        sigact->handler = SIG_DFL;
+        sigact->flags = 0;
+        sigact->sigmask = 0;
+    }
+
+    if (handler == SIG_IGN)
     {
         ;
     } 
-    else if (sigact->handler == SIG_DFL)
+    else if (handler == SIG_DFL)
     {
         // Действие по умолчанию
         int sigdefault = signals_table[signal];
