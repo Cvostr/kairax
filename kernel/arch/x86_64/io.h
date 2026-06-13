@@ -1,7 +1,7 @@
 #ifndef _IO_H
 #define _IO_H
 
-#include "types.h"
+#include "kairax/types.h"
 
 static inline void outl(uint16_t port, uint32_t val)
 {

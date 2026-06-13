@@ -20,6 +20,7 @@
 #include "dev/cmos/cmos.h"
 #include "dev/acpi/acpi.h"
 #include "dev/device_man.h"
+#include "dev/bus/usb/usb.h"
 #include "drivers/storage/partitions/storage_partitions.h"
 
 #include "fs/vfs/vfs.h"

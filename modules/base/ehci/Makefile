@@ -3,14 +3,10 @@ CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector -Wn
 CFLAGS=-c $(CWARN) $(CINCL) -mno-red-zone
 COMPILER=gcc
 
-all: nvme.o nvme_ns.o
-	ld -r nvme.o nvme_ns.o -o nvme.ko
+all: ehci.ko
 
-nvme.o: nvme.c
-	$(COMPILER) $(CFLAGS) nvme.c -o nvme.o
-
-nvme_ns.o: nvme_ns.c
-	$(COMPILER) $(CFLAGS) nvme_ns.c -o nvme_ns.o
+ehci.ko: usb_ehci.c
+	$(COMPILER) $(CFLAGS) usb_ehci.c -o ehci.ko
 
 clean:
 	find . -name "*.ko" -type f -delete

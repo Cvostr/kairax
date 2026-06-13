@@ -20,6 +20,10 @@ cd xhci
 make
 cd ..
 
+cd ehci
+make
+cd ..
+
 cd usb_mass
 make
 cd ..

@@ -17,6 +17,7 @@ cp modules/base/nvme/nvme.ko isofiles/boot/
 cp modules/base/ahci/ahci.ko isofiles/boot/
 cp modules/base/fat/fat.ko isofiles/boot/
 cp modules/base/xhci/xhci.ko isofiles/boot/
+cp modules/base/ehci/ehci.ko isofiles/boot/
 cp modules/base/hid/usb_hid.ko isofiles/boot/
 cp modules/base/usb_mass/usb_mass.ko isofiles/boot/
 

@@ -1,7 +1,7 @@
 #ifndef _PROCESS_LIST_H
 #define _PROCESS_LIST_H
 
-#include "types.h"
+#include "kairax/types.h"
 #include "fs/vfs/dentry.h"
 
 #define MAX_PROCESSES 3000
