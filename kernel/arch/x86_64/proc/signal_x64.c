@@ -14,6 +14,13 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
     uint64_t new_stackptr;
 
     struct proc_sigact* sigact = &process->sigactions[signum];
+    sighandler_t handler = sigact->handler;
+
+    // сбрасываем поведение сигнала если есть SA_RESETHAND
+    if (sigact->flags & SA_RESETHAND)
+    {
+        sigaction_reset(sigact);
+    }
 
     // Переключим страницу заранее, так как будем заполнять стек данными
     if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
@@ -71,7 +78,7 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
 
         // Заполняем возврат
         syscall_frame->rdi = signum;
-        syscall_frame->rcx = sigact->handler;
+        syscall_frame->rcx = handler;
 
         // Устанавливаем стек
         syscall_frame->rbp = new_stackptr;
@@ -101,7 +108,7 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
 
         // Заполняем возврат
         old_frame->rdi = signum;
-        old_frame->rip = sigact->handler;
+        old_frame->rip = handler;
 
         // Устанавливаем стек
         old_frame->rsp = new_stackptr;
@@ -157,7 +164,7 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
 
         // Заполняем возврат
         old_frame->rdi = signum;
-        old_frame->rip = sigact->handler;
+        old_frame->rip = handler;
 
         // Устанавливаем стек
         old_frame->rsp = new_stackptr;

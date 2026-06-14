@@ -39,6 +39,8 @@ struct proc_sigact
     sigset_t sigmask;
 };
 
+void sigaction_reset(struct proc_sigact *action);
+
 struct futex;
 
 struct process {

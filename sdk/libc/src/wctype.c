@@ -36,6 +36,16 @@ int iswxdigit(wint_t c)
     return iswdigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
+int iswalpha(wint_t c)
+{
+	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ? 1 : 0);
+}
+
+int iswalnum(wint_t c)
+{
+	return iswdigit(c) || iswalpha(c);
+}
+
 int iswprint(wint_t c)
 {
     // TODO: уточнить
@@ -62,6 +72,8 @@ struct {
 } types[] = 
 {
     { "blank", iswblank },
+    { "alpha", iswalpha },
+    { "alnum", iswalnum },
     { "cntrl", iswcntrl },
     { "digit", iswdigit },
     { "graph", iswgraph },

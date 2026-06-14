@@ -19,9 +19,11 @@ struct terminal_session* current_session = NULL;
 
 #define ETX 3
 #define EOT 0x4
+#define SI 	0xF
 #define FS  28
 #define NAK 0x15
 #define ETB 0x17
+#define CAN	0x18
 
 void kterm_process_start()
 {
@@ -198,6 +200,14 @@ void kterm_main()
 									break;
 								case 'h':
 									chr = '\b';
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'o':
+									chr = SI;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'x':
+									chr = CAN;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 								case 'd':

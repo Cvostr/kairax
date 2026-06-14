@@ -46,6 +46,13 @@ int signals_table[SIGNALS] = {
 extern void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame);
 extern void arch_exit_process_from_handler(int exit_code, int caller, void* frame);
 
+void sigaction_reset(struct proc_sigact *action)
+{
+    action->handler = SIG_DFL;
+    action->flags = 0;
+    action->sigmask = 0;
+}
+
 void process_handle_signals(int caller, void* frame)
 {
     struct thread* thread = cpu_get_current_thread();
@@ -77,14 +84,6 @@ void process_handle_signals(int caller, void* frame)
 
     struct proc_sigact* sigact = &process->sigactions[signal];
     sighandler_t handler = sigact->handler;
-
-    // сбрасываем поведение сигнала если есть SA_RESETHAND
-    if (sigact->flags & SA_RESETHAND)
-    {
-        sigact->handler = SIG_DFL;
-        sigact->flags = 0;
-        sigact->sigmask = 0;
-    }
 
     if (handler == SIG_IGN)
     {

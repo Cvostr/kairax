@@ -16,6 +16,8 @@ int iswupper(wint_t c);
 int iswprint(wint_t c);
 int iswcntrl(wint_t c);
 int iswxdigit(wint_t c); 
+int iswalpha(wint_t c);
+int iswalnum(wint_t c);
 
 wint_t towlower(wint_t c);
 wint_t towupper(wint_t c);
