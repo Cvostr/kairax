@@ -23,12 +23,17 @@ void *memmove (void *__dest, const void *__src, size_t __n)
 
 	if (dest > src && dest - src < __n) {
 
-		for (i = __n - 1; i >= 0; i--)
-			dest[i] = src[i];
+        dest += (__n - 1);
+        src += (__n - 1);
 
+        while (__n--) 
+        {
+            *dest-- = *src--;
+        }
+        
 		return __dest;
 	}
-	if (src > dest && src - dest < __n) {
+	else if (src > dest && src - dest < __n) {
 
 		for (i = 0; i < __n; i++)
 			dest[i] = src[i];
@@ -303,4 +308,10 @@ char *strpbrk(const char *s, const char *accept)
     }
 
     return NULL;
+}
+
+int strcoll(const char *s1, const char* s2)
+{
+    // TODO: Учитывать локаль!!!
+    return strcmp(s1, s2);
 }

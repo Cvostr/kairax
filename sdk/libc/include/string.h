@@ -71,6 +71,8 @@ char *strerror(int errnum);
 
 char *strpbrk(const char *s, const char *accept) __THROW;
 
+int strcoll(const char *s1, const char* s2);
+
 __END_DECLS
 
 #endif
