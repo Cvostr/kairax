@@ -202,6 +202,10 @@ void kterm_main()
 									chr = '\b';
 									sys_write_file(current_session->master, &chr, 1);
 									break;
+								case 'j':
+									chr = '\n';
+									sys_write_file(current_session->master, &chr, 1);
+									break;
 								case 'o':
 									chr = SI;
 									sys_write_file(current_session->master, &chr, 1);
@@ -363,7 +367,7 @@ char keyboard_get_key_ascii_normal(char keycode)
     case KRXK_MINUS:
         return '-';
     case KRXK_ENTER:
-        return '\n';
+        return '\r';
 	case KRXK_ESCAPE:
 		return ESC;
     case KRXK_BKSP:

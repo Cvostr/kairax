@@ -119,6 +119,7 @@ void kterm_session_swap_colors(struct terminal_session* session)
 
 void kterm_session_process_csi(struct terminal_session* session)
 {
+	int mode;
 	int args[CSI_MAX_ARGS];
 	int argc = 0;
 	int questionSign = 0;
@@ -201,7 +202,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 
             break;
 		case DECSED:
-			int mode = args[0];
+			mode = args[0];
 			switch (mode) {
 				case 0:
 					console_clear_to_end(session->console);
@@ -211,6 +212,21 @@ void kterm_session_process_csi(struct terminal_session* session)
 					break;
 				default:
 					printk("Unknown DECSED mode %i\n", mode);
+			}
+			break;
+		case 'K':
+			mode = args[0];
+			switch (mode)
+			{
+			case 0:
+				console_clear_line_to_end(session->console);
+				break;
+			case 1:
+				console_clear_line_to_begin(session->console);
+				break;
+			default:
+				printk("Unknown DECSEL mode %i\n", mode);
+				break;
 			}
 			break;
 		case 'f':

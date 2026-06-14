@@ -391,6 +391,28 @@ void console_clear_to_end(struct vgaconsole* vgconsole)
     vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
 }
 
+void console_clear_line_to_end(struct vgaconsole* vgconsole)
+{
+    for (int i = vgconsole->console_col; i < BUFFER_LINE_LENGTH; i ++)
+    {
+        surface_draw_rect(vgconsole, XOFFSET + i * COL_SIZE,
+            YOFFSET + vgconsole->console_lines * LINE_SIZE, 
+            LETTER_SIZE * 8,
+            LETTER_SIZE * 8, 0, 0, 0);
+    }
+}
+
+void console_clear_line_to_begin(struct vgaconsole* vgconsole)
+{
+    for (int i = 0; i < vgconsole->console_col; i ++)
+    {
+        surface_draw_rect(vgconsole, XOFFSET + i * COL_SIZE,
+            YOFFSET + vgconsole->console_lines * LINE_SIZE, 
+            LETTER_SIZE * 8,
+            LETTER_SIZE * 8, 0, 0, 0);
+    }
+}
+
 void console_scroll(struct vgaconsole* vgconsole)
 {
 	if (vgconsole->console_lines >= BUFFER_LINES) {
