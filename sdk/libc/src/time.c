@@ -88,3 +88,9 @@ time_t mktime(struct tm *timeptr)
 {
     return timegm(timeptr);
 }
+
+clock_t clock(void)
+{
+    // TODO: implement!!
+    return 0;
+}

@@ -25,6 +25,8 @@ int stime(time_t *t);
 
 int nanosleep(const struct timespec *req, struct timespec *rem);
 
+clock_t clock(void);
+
 __END_DECLS
 
 #endif

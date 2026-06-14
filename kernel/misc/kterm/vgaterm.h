@@ -31,6 +31,9 @@ void console_cursor_move(struct vgaconsole* vgconsole, int dx, int dy);
 void console_clear_line_to_end(struct vgaconsole* vgconsole);
 void console_clear_line_to_begin(struct vgaconsole* vgconsole);
 
+void console_del_chars(struct vgaconsole* vgconsole, uint32_t chars);
+
+void surface_copy(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t nx, uint32_t ny, uint32_t width, uint32_t height);
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b);
 void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b);
 void surface_draw_char(struct vgaconsole* vgconsole, uint8_t chartable[][8], char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale);

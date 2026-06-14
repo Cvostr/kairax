@@ -19,8 +19,10 @@ struct terminal_session* current_session = NULL;
 
 #define ETX 3
 #define EOT 0x4
+#define VT	0xB
 #define SI 	0xF
 #define FS  28
+#define DC4	0x14
 #define NAK 0x15
 #define ETB 0x17
 #define CAN	0x18
@@ -208,6 +210,14 @@ void kterm_main()
 									break;
 								case 'o':
 									chr = SI;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'k':
+									chr = VT;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 't':
+									chr = DC4;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 								case 'x':

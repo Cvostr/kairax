@@ -117,6 +117,7 @@ void kterm_session_swap_colors(struct terminal_session* session)
 #define SGR 'm'
 #define DECSED 'J'
 
+
 void kterm_session_process_csi(struct terminal_session* session)
 {
 	int mode;
@@ -237,16 +238,25 @@ void kterm_session_process_csi(struct terminal_session* session)
 				console_set_cursor_pos(session->console, args[0] - 1, args[1] - 1);
 			break;
 		case 'A':
+			if (argc == 0 || args[0] == 0) args[0] = 1;
 			console_cursor_move(session->console, 0, -args[0]);
 			break;
 		case 'B':
+			if (argc == 0 || args[0] == 0) args[0] = 1;
 			console_cursor_move(session->console, 0, args[0]);
 			break;
 		case 'C':
+			if (argc == 0 || args[0] == 0) args[0] = 1;
 			console_cursor_move(session->console, args[0], 0);
 			break;
 		case 'D':
+			if (argc == 0 || args[0] == 0) args[0] = 1;
 			console_cursor_move(session->console, -args[0], 0);
+			break;
+		case 'P':
+			// если аргументов не было или аргумент равен 0, считаем его как 1
+			if (argc == 0 || args[0] == 0) args[0] = 1;
+			console_del_chars(session->console, args[0]);
 			break;
 		case 'l':
 			//printk("SCI l with arg %i\n", args[0]);

@@ -44,6 +44,8 @@ int fclose(FILE *stream)
     }
     
     free(stream);
+
+    return 0;
 }
 
 long ftell(FILE *stream)

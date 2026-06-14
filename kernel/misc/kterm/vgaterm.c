@@ -450,6 +450,25 @@ void console_backspace(struct vgaconsole* vgconsole, int chars)
 	}
 }
 
+void console_del_chars(struct vgaconsole* vgconsole, uint32_t chars)
+{
+    if (chars == 0)
+        return;
+        
+    for (uint32_t i = 0; i < chars; i ++)
+    {
+        surface_copy(vgconsole, 
+            vgconsole->console_col + i + 1, vgconsole->console_lines, 
+            vgconsole->console_col + i, vgconsole->console_lines, 
+            LETTER_SIZE, LETTER_SIZE);
+    }
+
+    surface_draw_rect(vgconsole, XOFFSET + (vgconsole->console_col + chars) * COL_SIZE,
+            YOFFSET + vgconsole->console_lines * LINE_SIZE, 
+            LETTER_SIZE * 8,
+            LETTER_SIZE * 8, 0, 0, 0);
+}
+
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)
 {
     vga_draw_pixel(x, y, r, g, b);
@@ -469,6 +488,18 @@ void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uin
     for (uint32_t i = 0; i < height; i++) {
         for (uint32_t j = 0; j < width; j++) {
             surface_draw_pixel(vgconsole, j + x, i + y, r, g, b);
+        }
+    }
+}
+
+void surface_copy(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t nx, uint32_t ny, uint32_t width, uint32_t height)
+{
+    for (uint32_t i = 0; i < height; i++) 
+    {
+        for (uint32_t j = 0; j < width; j++) 
+        {
+            uint8_t* fb_addr = vgconsole->double_buffer + y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
+            surface_draw_pixel(vgconsole, j + nx, i + ny, fb_addr[0], fb_addr[1], fb_addr[2]);
         }
     }
 }
