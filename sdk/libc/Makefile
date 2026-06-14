@@ -53,6 +53,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdlib/bsearch.o \
 				obj/stdlib/realpath.o \
 				obj/stdlib/mktemp.o \
+				obj/stdlib/wcs.o \
 				obj/netinet/in.o \
 				obj/netinet/in_constants.o \
 				obj/arpa/inet.o \
@@ -63,6 +64,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/strtok.o \
 				obj/strings.o \
 				obj/wchar.o \
+				obj/wcharconv.o \
 				obj/wctype.o \
 				obj/strerror.o \
 				obj/unistd.o \

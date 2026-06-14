@@ -53,6 +53,8 @@ int mkstemp(char *template);
 char* mkdtemp(char *template);
 char* mktemp(char *template);
 
+const char *getprogname(void);
+
 extern void exit(int status);
 void _Exit(int status);
 extern void abort();
@@ -63,6 +65,9 @@ extern char *getenv(const char *name);
 extern int setenv(const char *name, const char *value, int overwrite);
 extern int unsetenv(const char *name);
 extern int putenv(char *string);
+
+int wctomb(char *s, wchar_t wc);
+size_t wcstombs(char *dest, const wchar_t *src, size_t dsize);
 
 __END_DECLS
 

@@ -39,6 +39,9 @@ struct file_operations maps_fops = {
 struct inode_operations cwd_iops = {
     .readlink = procfs_cwd_readlink
 };
+struct inode_operations exe_iops = {
+    .readlink = procfs_exe_readlink
+};
 
 #define ALL_READ (S_IRGRP | S_IRUSR | S_IROTH)
 #define PROCDIR_INODEMODE   (0555 | INODE_TYPE_DIRECTORY)
@@ -47,7 +50,8 @@ static const struct procfs_procdir_dentry procfs_dentries[] = {
     {.name = "cmdline", .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &cmdline_fops},
     {.name = "status",  .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &status_fops},
     {.name = "maps",    .dentry_type = DT_REG,  .inode_mode = ALL_READ | INODE_TYPE_FILE, .fops = &maps_fops},
-    {.name = "cwd",     .dentry_type = DT_LNK,  .inode_mode = ALL_READ | INODE_FLAG_SYMLINK, .iops = &cwd_iops}
+    {.name = "cwd",     .dentry_type = DT_LNK,  .inode_mode = ALL_READ | INODE_FLAG_SYMLINK, .iops = &cwd_iops},
+    {.name = "exe",     .dentry_type = DT_LNK,  .inode_mode = ALL_READ | INODE_FLAG_SYMLINK, .iops = &exe_iops}
 };
 #define NPROCDENTRIES (sizeof(procfs_dentries) / sizeof(struct procfs_procdir_dentry)) 
 

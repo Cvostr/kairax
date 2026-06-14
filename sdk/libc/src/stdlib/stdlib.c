@@ -65,3 +65,9 @@ void _Exit(int status)
 {
 	_exit(status);
 }
+
+const char *getprogname(void)
+{
+	// TODO: implement
+	return "?";
+}

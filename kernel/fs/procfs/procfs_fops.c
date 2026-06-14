@@ -227,6 +227,32 @@ exit:
     return result;
 }
 
+ssize_t procfs_exe_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
+{
+    ssize_t result = 0;
+    size_t required_size = 0;
+    ino_t inode_num = inode->inode;
+    pid_t pid = 0;
+    int fileid = 0;
+    procfs_decodeino(inode_num, &pid, &fileid);
+
+    struct process *proc = process_get_by_id(pid);
+    if (proc == NULL)
+        return -ENOENT;
+    
+    if (proc->type != OBJECT_TYPE_PROCESS)
+    {
+        result = -EINVAL;
+        goto exit;
+    }
+
+    result = procfs_read_string(proc->name, strlen(proc->name), pathbuf, pathbuflen, 0);
+
+exit:
+    free_process(proc);
+    return result;
+}
+
 int procfs_fill_mount_str(struct superblock* sb, char *out, size_t len)
 {
     size_t reqd_size = 0;

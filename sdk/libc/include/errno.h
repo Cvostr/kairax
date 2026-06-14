@@ -49,6 +49,7 @@ int* __errno_location();
 #define ENOTEMPTY                   39
 #define ELOOP		                40
 #define EOVERFLOW	                75
+#define EILSEQ		                84
 #define ENOTSOCK                    88
 #define EDESTADDRREQ	            89
 #define EPROTOTYPE                  91

@@ -1,6 +1,7 @@
 #include "wchar.h"
 #include "stdio.h"
 #include <wctype.h>
+#include "stdlib.h"
 
 int main(int argc, char **argv) 
 {
@@ -19,6 +20,23 @@ int main(int argc, char **argv)
     printf("wc: upper =%p space=%p, ollds=%p\n", wctype("upper"), wctype("space"), wctype("ollds"));
     wctype_t uppert = wctype("upper");
     printf("upper(A)=%i, upper(a)=%i\n", iswctype(L'A', uppert), iswctype(L'b', uppert));
+
+
+    char mbsb[5];
+    mbsb[4] = 0;
+    size_t len = wctomb(mbsb, L'F');
+    printf("F=%s\n", mbsb);
+    len = wctomb(mbsb, L'П');
+    printf("П=%s\n", mbsb);
+
+    char wcbuf[60];
+    wcstombs(wcbuf, L"Привет, мир!", sizeof(wcbuf));
+    printf("Converted to UTF-8 Russian string: %s\n", wcbuf);
+    len = wcstombs(wcbuf, L"Привет, мир! АБВГДЕЗЗЫ", 11);
+    printf("Converted to UTF-8 Russian truncated string: %s, its len %i\n", wcbuf, len);
+    len = wcstombs(NULL, L"Привет, мир!", 10);
+    printf("wcstombs with NULL dest. result len %i\n", len);
+
 
     return 0;
 }

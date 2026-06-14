@@ -42,6 +42,20 @@ int iswprint(wint_t c)
 	return c >= 0x20 && c <= 0x7E;
 }
 
+wint_t towlower(wint_t c)
+{
+    if ('A' <= c && c <= 'Z')
+    	c += 'a' - 'A';
+  	return c;
+}
+
+wint_t towupper(wint_t c)
+{
+	if ('a' <= c && c <= 'z')
+    	c += 'A' - 'a';
+  	return c;
+}
+
 struct { 
     const char* name;
     wctype_t func;

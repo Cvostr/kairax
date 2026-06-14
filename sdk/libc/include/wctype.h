@@ -17,6 +17,9 @@ int iswprint(wint_t c);
 int iswcntrl(wint_t c);
 int iswxdigit(wint_t c); 
 
+wint_t towlower(wint_t c);
+wint_t towupper(wint_t c);
+
 wctype_t wctype(const char *name);
 int iswctype(wint_t wc, wctype_t desc);
 

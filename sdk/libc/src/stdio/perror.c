@@ -43,6 +43,7 @@ char* __errors_descriptions[] = {
     // ...
     DEFINE_ERROR(EOVERFLOW, "Value too large for defined data type"),
     // ...
+    DEFINE_ERROR(EILSEQ, "Illegal byte sequence"),
     DEFINE_ERROR(ENOTSOCK, "Socket operation on non-socket"),
     DEFINE_ERROR(EDESTADDRREQ, "Destination address required"),
     DEFINE_ERROR(EPROTOTYPE, "Protocol wrong type for socket"),
