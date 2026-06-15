@@ -2,6 +2,16 @@
 #include "errno.h"
 #include "string.h"
 
+static mbstate_t __mbs_internal;
+
+int mbsinit(const mbstate_t *ps)
+{
+    // намеренно проверяем только по __value, так как mbrtowc опирается на __count
+    // и если __count не равен 0, то считает это незавершенной последовательностью
+    // и не очищает состояние
+    return ps == NULL || ps->__value == 0;
+}
+
 size_t wcrtomb(char *s, wchar_t wc, mbstate_t *ps)
 {
     size_t res;
@@ -38,6 +48,121 @@ size_t wcrtomb(char *s, wchar_t wc, mbstate_t *ps)
     }
 
     return res;
+}
+
+// https://man7.org/linux/man-pages/man3/mbrtowc.3.html
+size_t mbrtowc(wchar_t *pwc, const char *s, size_t n, mbstate_t *ps)
+{
+    unsigned char c; 
+    unsigned char mask;
+    unsigned int sequence_len;
+    size_t i;
+
+    if (ps == NULL)
+    {
+        // если не указано, используем общее состояние
+        // не потокобезопасно!!!
+        ps = &__mbs_internal;
+    }
+
+    // third case
+    if (s == NULL)
+    {
+        if (ps->__count > 0)
+        {
+            errno = EILSEQ;
+            return (size_t) -1;
+        }
+        else
+        {
+            ps->__count = 0;
+            ps->__value = 0;
+            return 0;
+        }
+    }
+    
+    if (n == 0) 
+    {
+        // нам нечего дальше делать, если строка не передана
+        // считаем это как "неполная строка"
+        return (size_t) -2;
+    }
+
+    for (i = 0; i < n; i ++)
+    {
+        c = (unsigned char) s[i];
+
+        // проверим, не является ли символ началом последовательности?
+        if ((c & 0xC0) != 0x80) 
+        {
+            // символ начинает последовательность
+            if (ps->__count > 0)
+            {
+                // если count > 0, при этом началась новая последовательность - значит что то не так
+                errno = EILSEQ;
+                return (size_t) -1;
+            }
+
+            // посчитаем длину последовательности и маску для первого символа
+            if ((c & 0x80) == 0) {
+                sequence_len = 1;
+                mask = 0x7F;
+            } else if ((c & 0xE0) == 0xC0) {
+                sequence_len = 2;
+                mask = 0x3F;
+            } else if ((c & 0xF0) == 0xE0) {
+                sequence_len = 3;
+                mask = 0x0F;
+            } else if ((c & 0xF8) == 0xF0) {
+                sequence_len = 4;
+                mask = 0x07;
+            } else {
+                //printf("invalid length prefix on byte %i\n", c);
+                errno = EILSEQ;
+                return (size_t) -1;
+            }
+
+            ps->__count = sequence_len;
+        }
+        else
+        {
+            // для остальных символов маска одинаковая
+            mask = 0x3F;
+        }
+
+        // добавить байт к результирующему символу
+        ps->__value <<= 6;
+        ps->__value |= (c & mask);
+
+        ps->__count--;
+
+        // закончили считывание символа
+        if (ps->__count == 0)
+            break;
+    }
+
+    // Обработали все символы из исходной строки, но последовательность не завершена
+    // значит не хватило данных
+    if (ps->__count > 0)
+    {
+        return (size_t) -2;
+    }
+
+    if (pwc != NULL)
+    {
+        *pwc = ps->__value;
+    }
+
+    if (ps->__value == 0)
+    {
+        // если это конец строки, то сбрасываем состояние и выходим
+        ps->__count = 0;
+        ps->__value = 0;
+        return 0;
+    }
+
+    ps->__value = 0;
+    return i + 1;
 }
 
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t dsize, mbstate_t *ps)

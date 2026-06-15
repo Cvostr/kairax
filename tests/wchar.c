@@ -2,9 +2,11 @@
 #include "stdio.h"
 #include <wctype.h>
 #include "stdlib.h"
+#include "string.h"
 
 int main(int argc, char **argv) 
 {
+    size_t i = 0;
     wchar_t *str = L"ABCDПривет!";
     wchar_t *str2 = L"ABCDПривет2!";
 
@@ -23,11 +25,11 @@ int main(int argc, char **argv)
 
 
     char mbsb[5];
-    mbsb[4] = 0;
+    memset(mbsb, 0, sizeof(mbsb));
     size_t len = wctomb(mbsb, L'F');
-    printf("F=%s\n", mbsb);
+    printf("F=%s, len=%i\n", mbsb, len);
     len = wctomb(mbsb, L'П');
-    printf("П=%s\n", mbsb);
+    printf("П=%s, len=%i\n", mbsb, len);
 
     char wcbuf[60];
     wcstombs(wcbuf, L"Привет, мир!", sizeof(wcbuf));
@@ -37,6 +39,34 @@ int main(int argc, char **argv)
     len = wcstombs(NULL, L"Привет, мир!", 10);
     printf("wcstombs with NULL dest. result len %i\n", len);
 
+    wchar_t wcsbuf[30];
+    mbstate_t mbstate;
+    memset(&mbstate, 0, sizeof(mbstate));
+    printf("mbsinit() after clear %i\n", mbsinit(&mbstate));
+
+    // 
+    memset(wcbuf, 0, sizeof(wcbuf));
+    len = mbrtowc(wcsbuf, "П", 3, &mbstate);
+    wctomb(wcbuf, wcsbuf[0]);
+    printf("П after mbrtowc(%i) + wctomb %s\n", len, wcbuf);
+
+    len = mbrtowc(wcsbuf, "F", 2, &mbstate);
+    printf("F after mbrtowc(%i) = %c\n", len, wcsbuf[0]);
+
+    char P_str[] = "П";
+    memset(wcbuf, 0, sizeof(wcbuf));
+    for (i = 0; i < 4; i ++)
+    {
+        len = mbrtowc(wcsbuf, P_str + i, 1, &mbstate);
+        wctomb(wcbuf, wcsbuf[0]);
+        printf("TRY %i, mbrtowc = %i\n", i, len);
+
+        if (len == (size_t) -2)
+            continue;
+        else
+            break;
+    }
+    printf("П after mbrtowc(%i) + wctomb %s\n", len, wcbuf);
 
     return 0;
 }

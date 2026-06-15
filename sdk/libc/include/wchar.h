@@ -20,7 +20,8 @@ __BEGIN_DECLS
 #endif
 
 typedef struct {
-    int dummy;
+    int __count;
+    wchar_t __value;
 } mbstate_t;
 
 size_t wcslen(const wchar_t *s);
@@ -32,7 +33,10 @@ int wcsncmp(const wchar_t *s1, const wchar_t *s2, size_t n);
 wchar_t *wmemcpy(wchar_t *dest, const wchar_t *src, size_t n);
 wchar_t *wmemchr(const wchar_t *s, wchar_t c, size_t n);
 
+int mbsinit(const mbstate_t *ps);
 size_t wcrtomb(char *s, wchar_t wc, mbstate_t *ps);
+size_t mbrtowc(wchar_t *pwc, const char *s, size_t n, mbstate_t *ps);
+
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t dsize, mbstate_t *ps);
 
 __END_DECLS
