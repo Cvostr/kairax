@@ -37,6 +37,7 @@ int mbsinit(const mbstate_t *ps);
 size_t wcrtomb(char *s, wchar_t wc, mbstate_t *ps);
 size_t mbrtowc(wchar_t *pwc, const char *s, size_t n, mbstate_t *ps);
 
+size_t mbsrtowcs(wchar_t *dest, const char **src, size_t dsize, mbstate_t *ps);
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t dsize, mbstate_t *ps);
 
 __END_DECLS

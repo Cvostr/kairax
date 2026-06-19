@@ -1,6 +1,7 @@
 #include "wchar.h"
 #include "errno.h"
 #include "string.h"
+#include "stdint.h"
 
 static mbstate_t __mbs_internal;
 
@@ -210,4 +211,36 @@ size_t wcsrtombs(char *dest, const wchar_t **src, size_t dsize, mbstate_t *ps)
     }
 
     return written;
+}
+
+size_t mbsrtowcs(wchar_t *dest, const char **src, size_t dsize, mbstate_t *ps)
+{
+    size_t i;
+    size_t wclen;
+
+    // если dest - NULL, то ограничения по размеру выходного буфера нет
+    if (dest == NULL)
+    {
+        dsize = UINT64_MAX;
+    }
+
+    for (i = 0; i < dsize; i++)
+    {
+        wclen = mbrtowc(dest == NULL ? NULL : &dest[i], *src, dsize - i, ps);
+
+        if (wclen == 0)
+        {
+            // встречен '\0' в исходной строке
+            break;
+        }
+        else if (wclen == (size_t) -1)
+        {
+            // ошибка
+            return -1;
+        }
+
+        (*src) += wclen;
+    }
+
+    return i;
 }

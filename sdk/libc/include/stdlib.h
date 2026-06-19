@@ -69,6 +69,7 @@ extern int putenv(char *string);
 int wctomb(char *s, wchar_t wc);
 int mbtowc(wchar_t *pwc, const char *s, size_t n);
 size_t wcstombs(char *dest, const wchar_t *src, size_t dsize);
+size_t mbstowcs(wchar_t *dest, const char *src, size_t dsize);
 
 __END_DECLS
 

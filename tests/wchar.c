@@ -68,5 +68,10 @@ int main(int argc, char **argv)
     }
     printf("П after mbrtowc(%i) + wctomb %s\n", len, wcbuf);
 
+    char mbsstring[] = "Привет, мир! 123";
+    mbstowcs(wcsbuf, mbsstring, sizeof(wcsbuf));
+    wcstombs(wcbuf, wcsbuf, sizeof(wcbuf));
+    printf("orig Str %s, after mbstowcs + wcstombs '%s'\n", mbsstring, wcbuf);
+
     return 0;
 }
