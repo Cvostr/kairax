@@ -56,6 +56,7 @@ void tty_init()
     tty_master_fops.close = master_file_close;
     tty_master_fops.write = master_file_write;
     tty_master_fops.read = master_file_read;
+    tty_master_fops.poll = pty_master_poll;
     tty_master_fops.ioctl = tty_ioctl;
 	
     tty_slave_fops.close = slave_file_close;
@@ -128,6 +129,8 @@ int slave_file_close(struct inode *inode, struct file *file)
     p_pty->slave_closed = TRUE;
     // Будем читающих, чтобы вышли с EOF
     scheduler_wake(&p_pty->slave_to_master->readb, INT_MAX);
+    // Будим наблюдающих за master
+    poll_wakeall(&p_pty->master_to_slave->poll_wq);
 
     free_pty(p_pty);
     return 0;
@@ -394,6 +397,33 @@ short pty_slave_poll(struct file *file, struct poll_ctl *pctl)
 
     // Если master закрыт, то POLLHUP
     if (p_pty->master_closed == TRUE)
+        poll_mask |= POLLHUP;
+    
+    return poll_mask;
+}
+
+short pty_master_poll(struct file *file, struct poll_ctl *pctl)
+{
+    short poll_mask = 0;
+
+    struct pty *p_pty = (struct pty *) file->private_data;
+
+    struct pipe* slave_to_master = (struct pipe*) p_pty->slave_to_master;
+    struct pipe* master_to_slave = (struct pipe*) p_pty->master_to_slave;
+
+    poll_wait(pctl, file, &slave_to_master->poll_wq);
+    poll_wait(pctl, file, &master_to_slave->poll_wq);
+
+    // доступность чтения
+    if ((slave_to_master->read_pos < slave_to_master->write_pos))
+        poll_mask |= (POLLIN | POLLRDNORM);
+
+    // доступность записи
+    if ((master_to_slave->write_pos < master_to_slave->read_pos + PIPE_SIZE))
+        poll_mask |= (POLLOUT | POLLWRNORM);
+
+    // Если master закрыт, то POLLHUP
+    if (p_pty->slave_closed == TRUE)
         poll_mask |= POLLHUP;
     
     return poll_mask;

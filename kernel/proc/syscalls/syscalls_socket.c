@@ -328,6 +328,11 @@ ssize_t sys_sendto(int sockfd, const void *msg, size_t len, int flags, const str
         goto exit;
     }
 
+    if (file->inode == NULL) {
+        rc = -ERROR_NOT_SOCKET;
+        goto exit;
+    }
+
     if ((file->inode->mode & INODE_FLAG_SOCKET) != INODE_FLAG_SOCKET) {
         rc = -ERROR_NOT_SOCKET;
         goto exit;

@@ -192,6 +192,7 @@ ssize_t slave_file_read(struct file* file, char* buffer, size_t count, loff_t of
 int slave_file_close(struct inode *inode, struct file *file);
 
 short pty_slave_poll(struct file *file, struct poll_ctl *pctl);
+short pty_master_poll(struct file *file, struct poll_ctl *pctl);
 
 int tty_ioctl(struct file* file, uint64_t request, uint64_t arg);
 
