@@ -46,6 +46,10 @@ struct terminal_session {
 	int keypad_app_mode;	// \033=
 	struct kterm_color foreground_color;
 	struct kterm_color background_color;
+
+	// сохраненное состояние
+	uint32_t saved_cursor_row;
+    uint32_t saved_cursor_col;
 };
 
 char keyboard_get_key_ascii(int shifted, char keycode);

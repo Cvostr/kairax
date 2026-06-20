@@ -10,6 +10,8 @@ struct vgaconsole {
 
     uint8_t *double_buffer;
     uint32_t console_buffer_size;
+
+    int autowrap;
 };
 
 struct vgaconsole* console_init();
@@ -37,5 +39,8 @@ void surface_copy(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b);
 void surface_draw_rect(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b);
 void surface_draw_char(struct vgaconsole* vgconsole, uint8_t chartable[][8], char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale);
+
+uint32 surface_get_rows();
+uint32 surface_get_cols();
 
 #endif

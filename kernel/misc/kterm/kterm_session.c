@@ -86,6 +86,13 @@ void kterm_process_esc_sequence(struct terminal_session* session)
 		case '>':
 			session->keypad_app_mode = FALSE;
 			break;
+		case '7':
+			session->saved_cursor_row = session->console->console_lines;
+			session->saved_cursor_col = session->console->console_col;
+			break;
+		case '8':
+			console_set_cursor_pos(session->console, session->saved_cursor_row, session->saved_cursor_col);
+			break;
 		default:
 			printk("Unknown ESC chr %i (%c)\n", seqchr, seqchr);
 			break;
@@ -117,6 +124,50 @@ void kterm_session_swap_colors(struct terminal_session* session)
 #define SGR 'm'
 #define DECSED 'J'
 
+void kterm_session_set_scroll_region(struct terminal_session* session, int argc, int args[])
+{
+	//printk("SCROLL args(%i) (%i %i)\n", argc, args[0], args[1]);
+	int top = args[0];
+	int bottom = args[1];
+
+	if (argc == 0)
+	{
+		top = 0; 
+		bottom = surface_get_rows();
+	} 
+	else if (argc == 1)
+	{
+		top = args[0];
+		bottom = surface_get_rows();
+	}
+
+	if (bottom == 0)
+		bottom = surface_get_rows();
+
+	console_set_cursor_pos(session->console, top - 1, 0);
+
+	// TODO: implement scrolling
+}
+
+void kterm_session_toggle(struct terminal_session* session, int argc, int args[], int dec, char terminate)
+{
+	// TODO: implement
+	if (dec == TRUE)
+	{
+		if (args[0] == 7)
+		{
+			session->console->autowrap = (terminate == 'h');
+			return;
+		} 
+		else if (args[0] == 25)
+		{
+			// TODO: implement hide cursor
+			return;
+		}
+	}
+
+	//printk("SCI %c DEC = %i with args(%i) (%i %i %i)\n", terminate, dec, argc, args[0], args[1], args[2]);
+}
 
 void kterm_session_process_csi(struct terminal_session* session)
 {
@@ -132,6 +183,9 @@ void kterm_session_process_csi(struct terminal_session* session)
 		char chr = kterm_session_next_char(session);
 
 		switch (chr) {
+			case '?':
+				questionSign = 1;
+				break;
 			case '0' ... '9':
 				number = number * 10 + (chr - '0');
 				break;
@@ -170,8 +224,15 @@ void kterm_session_process_csi(struct terminal_session* session)
 		{.r = 255, .g = 255, .b = 255},
 	};
 
-    switch (terminateChar) {
+    switch (terminateChar) 
+	{
         case SGR:
+			if (argc == 0)
+			{
+				kterm_session_reset_default_colors(session);
+				break;
+			}
+
 			for (int i = 0; i < argc; i ++) {
 				switch (args[i]) {
 					case 0:
@@ -203,7 +264,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 
             break;
 		case DECSED:
-			mode = args[0];
+			mode = (argc == 0) ? 0 : args[0];
 			switch (mode) {
 				case 0:
 					console_clear_to_end(session->console);
@@ -216,7 +277,7 @@ void kterm_session_process_csi(struct terminal_session* session)
 			}
 			break;
 		case 'K':
-			mode = args[0];
+			mode = (argc == 0) ? 0 : args[0];
 			switch (mode)
 			{
 			case 0:
@@ -234,7 +295,9 @@ void kterm_session_process_csi(struct terminal_session* session)
 		case 'H':
 			if (argc == 0)
 				console_set_cursor_pos(session->console, 0, 0);
-			else// if (argc == 2)
+			else if (argc == 1)
+				console_set_cursor_pos(session->console, args[0] - 1, 0);
+			else if (argc == 2)
 				console_set_cursor_pos(session->console, args[0] - 1, args[1] - 1);
 			break;
 		case 'A':
@@ -259,13 +322,11 @@ void kterm_session_process_csi(struct terminal_session* session)
 			console_del_chars(session->console, args[0]);
 			break;
 		case 'l':
-			//printk("SCI l with arg %i\n", args[0]);
-			break;
 		case 'h':
-			//printk("SCI h with arg %i\n", args[0]);
+			kterm_session_toggle(session, argc, args, questionSign, terminateChar);
 			break;
 		case 'r':
-			// TODO: implement
+			kterm_session_set_scroll_region(session, argc, args);
 			break;
 		default:
 			printk("Unknown CSI terminate chr (%c)\n", terminateChar);

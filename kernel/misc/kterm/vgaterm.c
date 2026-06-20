@@ -292,9 +292,21 @@ struct vgaconsole* console_init()
     vgconsl->double_buffer = kmalloc(vgconsl->console_buffer_size);
     memset(vgconsl->double_buffer, 0, vgconsl->console_buffer_size);
 
+    vgconsl->autowrap = TRUE;
+
     return vgconsl;
     //BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
     //BUFFER_LINES = vga_get_height() / LINE_SIZE;
+}
+
+uint32 surface_get_rows()
+{
+    return BUFFER_LINES;
+}
+
+uint32 surface_get_cols()
+{
+    return BUFFER_LINE_LENGTH;
 }
 
 void console_print_char(struct vgaconsole* vgconsole, int table, char chr, 
@@ -322,7 +334,21 @@ void console_print_char(struct vgaconsole* vgconsole, int table, char chr,
     vgconsole->console_col++;
 
     // Вышли ли за правую границу экрана? или символ переноса
-    if (vgconsole->console_col > BUFFER_LINE_LENGTH || chr == '\n') {
+    if (vgconsole->console_col > BUFFER_LINE_LENGTH) 
+    {
+        if (vgconsole->autowrap == TRUE)
+        {
+            console_cr(vgconsole);
+            console_lf(vgconsole);
+        }
+        else
+        {
+            vgconsole->console_col--;
+        }
+    }
+
+    // Если символ переноса
+    if (chr == '\n') {
         console_cr(vgconsole);
         console_lf(vgconsole);
     }
