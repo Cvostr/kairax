@@ -240,6 +240,7 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
 
 struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth)
 {
+    size_t namelen;
     struct dentry* current = p_parent;
 
     if (strlen(path) == 0)
@@ -260,19 +261,30 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, i
         if (slash_pos != NULL) 
         {
             // еще есть разделители /
-            strncpy(name_temp, path_temp, slash_pos - path_temp);
+            // длина имени файла между двумя /
+            namelen = slash_pos - path_temp;
+
+            // проверим посчитанную длину
+            // искать по дереву имеет смысл если она больше 0
+            // но при этом мы также должны игнорировать повторяющиеся подряд ////
+            if (namelen > 0)
+            {
+                // сформировать имя файла между /
+                strncpy(name_temp, path_temp, namelen);
+                // Поискать dentry с именем (флаги не передаются, так как участвуют только при поиске последнего звена)
+                current = resolve_next_dentry(current->sb, current, name_temp, 0, depth);
+
+                // Убедимся что это директория
+                if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
+                {
+                    // TODO: return ENOTDIR
+                    current = NULL;
+                    break;
+                }
+            }
+
             // Скипнуть /
             path_temp = slash_pos + 1;
-            // Поискать dentry с именем (флаги не передаются, так как участвуют только при поиске последнего звена)
-            current = resolve_next_dentry(current->sb, current, name_temp, 0, depth);
-
-            // Убедимся что это директория
-            if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
-            {
-                // TODO: return ENOTDIR
-                current = NULL;
-                break;
-            }
 
             continue;
         } 
