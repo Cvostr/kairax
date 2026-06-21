@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     pfds[0].revents = 0;
 
     pid = create_thread(thread_sockets, &fds[1]);
-    events = poll(&pfds, 1, -1);
+    events = poll(pfds, 1, -1);
     printf("got %i events. revents1 = %i\n", events, pfds[0].revents);
     waitpid(pid, &status,  0);
 
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
     pfds[0].revents = 0;
 
     pid = create_thread(thread_closefd, &localsockets[1]);
-    events = poll(&pfds, 1, -1);
+    events = poll(pfds, 1, -1);
     printf("got %i events. revents1 = %i\n", events, pfds[0].revents);
     waitpid(pid, &status,  0);
 

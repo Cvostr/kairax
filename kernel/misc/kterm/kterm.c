@@ -19,6 +19,7 @@ struct terminal_session* current_session = NULL;
 
 #define ETX 3
 #define EOT 0x4
+#define BEL	0x7
 #define VT	0xB
 #define SI 	0xF
 #define FS  28
@@ -55,8 +56,8 @@ struct terminal_session* new_kterm_session(int create_console)
 
 	// Установить для tty настоящие размеры окна
 	struct tty_winsize wsize;
-	wsize.ws_row = 39;
-	wsize.ws_col = 67;
+	wsize.ws_row = surface_get_rows();
+	wsize.ws_col = surface_get_cols();
     sys_ioctl(session->master, TIOCSWINSZ, (uint64_t) &wsize);
 
 	struct file *slave_file = process_get_file(kterm_process, session->slave);
@@ -186,6 +187,10 @@ void kterm_main()
 							switch (symbol) {
 								case 'c':
 									chr = ETX;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'g':
+									chr = BEL;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 								case '\\':

@@ -294,9 +294,10 @@ struct vgaconsole* console_init()
 
     vgconsl->autowrap = TRUE;
 
+    BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
+    BUFFER_LINES = vga_get_height() / LINE_SIZE;
+
     return vgconsl;
-    //BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
-    //BUFFER_LINES = vga_get_height() / LINE_SIZE;
 }
 
 uint32 surface_get_rows()
