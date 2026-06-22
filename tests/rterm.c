@@ -83,7 +83,7 @@ telnet_client_t *create_client(int clientsockfd)
         const char* args[2];
         args[0] = "/bin/sh";
         args[1] = 0;
-        int rc = execve("/bin/sh", args, NULL);
+        int rc = execve("/bin/sh", (char *const *) args, NULL);
         printf("exec() :%i\n", rc);
         exit(22);
     }
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
     printf("Server started on port %i\n", SERV_PORT);
 
     int clientaddr_len = sizeof(clientaddr);
-    int client_sock = accept(sockfd, &clientaddr, &clientaddr_len);
+    int client_sock = accept(sockfd, (struct sockaddr*) &clientaddr, &clientaddr_len);
 
     if (client_sock < 0) { 
         printf("server accept failed: %i\n", errno); 
@@ -258,7 +258,7 @@ int main(int argc, char** argv)
 
     // Посылаем байт в TTY чтобы разблокировать поток чтения
     char term_sym = 0x30;
-    rc = ioctl(client_state->pty_masterfd, TIOCSTI, &term_sym);
+    rc = ioctl(client_state->pty_masterfd, TIOCSTI, (uint64_t)&term_sym);
     if (rc != 0)
     {
         perror("ioctl(TIOCSTI)");

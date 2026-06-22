@@ -119,6 +119,8 @@ struct thread* create_thread(struct process* process, void* entry, void* arg1, i
 
     if (info) {
         thread_add_main_thread_info(thread, info);
+        ctx->rsp = (uint64_t) thread->stack_ptr;
+        ctx->rbp = (uint64_t) thread->stack_ptr;
     }
 
     return thread;
@@ -228,7 +230,5 @@ void thread_add_main_thread_info(struct thread* thread, struct main_thread_creat
         vm_memcpy(process->vmemory_table, stack_new_pos, &aux_cur->type, sizeof(uint64_t));
     }
 
-    thread_frame_t* ctx = (thread_frame_t*)thread->context;
-    ctx->rsp = (uint64_t)stack_new_pos;
     thread->stack_ptr = (void*) stack_new_pos;
 }
