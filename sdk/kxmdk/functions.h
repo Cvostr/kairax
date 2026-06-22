@@ -32,9 +32,11 @@ void process_set_name(struct process* process, const char* name);
 void thread_set_name(struct thread* thread, const char* name);
 
 void scheduler_add_thread(struct thread* thread);
+pid_t process_add_to_list(struct process* process);
 
 void eth_handle_frame(struct net_buffer* nbuffer);
 
 void wait_active_ms(uint64_t ms);
+int thread_sleep(time_t tv_sec, long int tv_nsec);
 
 #endif

@@ -230,5 +230,5 @@ void thread_add_main_thread_info(struct thread* thread, struct main_thread_creat
 
     thread_frame_t* ctx = (thread_frame_t*)thread->context;
     ctx->rsp = (uint64_t)stack_new_pos;
-    thread->stack_ptr = (void*) ctx->rsp;
+    thread->stack_ptr = (void*) stack_new_pos;
 }

@@ -133,6 +133,7 @@
 uint16_t xhci_get_device_max_initial_packet_size(uint8_t port_speed);
 // Преобразовать код ошибки xHCI в общий код ядра
 int xhci_map_completion_code(uint32_t transfer_code);
+enum usb_device_speed xhci_map_device_speed(uint8_t port_speed);
 
 struct xhci_cap_regs {
 	uint8_t caplen;
