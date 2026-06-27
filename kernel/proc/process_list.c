@@ -99,7 +99,7 @@ int process_list_send_signal_pg(pid_t pg, int signal)
 
             if (proc->process_group == pg)
             {
-                thread_send_signal(proc->main_thread, signal); 
+                process_send_signal(proc, signal);
             }
         }
     }

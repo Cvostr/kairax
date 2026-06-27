@@ -217,6 +217,8 @@ void arch_exit_process_from_handler(int exit_code, int caller, void* frame)
     }
 }
 
+extern void scheduler_exit(thread_frame_t* ctx);
+
 void arch_sigreturn()
 {
     struct thread* thr = cpu_get_current_thread();

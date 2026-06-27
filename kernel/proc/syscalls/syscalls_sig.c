@@ -31,6 +31,8 @@ int sys_send_signal_pg(pid_t group, int signal)
 
 int sys_send_signal(pid_t pid, int signal)
 {
+    int rc;
+
     if (signal < 0 || signal > SIGNALS) {
         return -EINVAL;
     }
@@ -43,25 +45,22 @@ int sys_send_signal(pid_t pid, int signal)
 
     struct process* proc = process_get_by_id(pid);
 
-    if (proc == NULL) {
+    if (proc == NULL) 
+    {
         return -ESRCH;
     }
 
-    struct thread* target = NULL;
-
-    if (proc->type == OBJECT_TYPE_PROCESS) {
-        target = proc->main_thread;
-    } else {
-        target = (struct thread*) proc;
-    }
-
-    if (target == NULL) {
-        free_process(proc);
-        return -ESRCH;
+    if (proc->type == OBJECT_TYPE_PROCESS) 
+    {
+        rc = process_send_signal(proc, signal);
+    } 
+    else 
+    {
+        rc = thread_send_signal((struct thread *) proc, signal);
     }
 
     free_process(proc);
-    return thread_send_signal(target, signal);
+    return rc;
 }
 
 int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigsetsize)

@@ -142,6 +142,10 @@ void exit_process(int code);
 void process_acquire(struct process* process);
 void free_process(struct process* process);
 
+// Отправить сигнал процессу
+// Сигнал дойдет до одного из потоков, функция сама решит до какого
+int process_send_signal(struct process* process, int signal);
+
 // Установить адрес конца памяти процесса
 uintptr_t        process_brk(struct process* process, uint64_t addr);
 

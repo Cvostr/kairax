@@ -518,7 +518,7 @@ int usb_cdc_device_probe(struct device *dev)
 	eth_dev->rx_data_buffer_phys = (uintptr_t) pmm_alloc(MTU, &eth_dev->rx_pages);
     eth_dev->rx_data_buffer = map_io_region(eth_dev->rx_data_buffer_phys, eth_dev->rx_pages * PAGE_SIZE);
 
-	struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
+	struct usb_msg* msg = new_usb_msg();
     msg->data = eth_dev->report_buffer_phys;
     msg->length = interrupt_max_packet_sz;
     msg->callback = usb_cdc_notify_handler;

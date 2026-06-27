@@ -9,6 +9,8 @@ acpi_header_t* acpi_dsdt;
 uint16_t SLP_TYPa;
 uint16_t SLP_TYPb;
 
+//#define AML_ENABLE
+
 int acpi_aml_is_struct_valid(uint8_t* struct_address)
 {
     return  (*(struct_address - 1) == 0x08 || (*(struct_address - 2) == 0x08 && *(struct_address - 1) == '\\')) &&
@@ -24,9 +26,11 @@ void acpi_parse_dsdt(acpi_header_t* dsdt)
     char* data_address = (char*)(dsdt + 1);
     uint32_t dsdt_size = dsdt->length;
 
+#ifdef AML_ENABLE
     int parse_rc = aml_parse(data_address, dsdt_size - sizeof(acpi_header_t));
     if (parse_rc != 0)
         printk("ACPI: AML parsing error %i", parse_rc);
+#endif
     
     int it = 0;
     

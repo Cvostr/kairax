@@ -181,7 +181,6 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	devfs_init();
 	tmpfs_init();
 	procfs_init();
-	usb_init();
 	tty_init();
 	serial_init();
 	keyboard_init();

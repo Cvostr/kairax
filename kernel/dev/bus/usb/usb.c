@@ -7,11 +7,6 @@
 
 //#define USB_LOG_BINTERFACE_NUM_PROBLEM
 
-void usb_init()
-{
-
-}
-
 struct usb_device* new_usb_device(struct usb_device_descriptor* descriptor, void* controller_device_data)
 {
     struct usb_device* result = kmalloc(sizeof(struct usb_device));

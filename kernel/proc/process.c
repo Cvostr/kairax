@@ -429,6 +429,12 @@ exit:
     return result;
 }
 
+int process_send_signal(struct process* process, int signal)
+{
+    struct thread *thr = process->main_thread;
+    return thread_send_signal(thr, signal);
+}
+
 void  process_remove_child(struct process* process, struct process* child)
 {
     acquire_spinlock(&process->children_lock);
