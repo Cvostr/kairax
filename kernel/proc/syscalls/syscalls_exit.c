@@ -34,6 +34,9 @@ void exit_process(int code)
     // Установить состояние zombie
     process->state = STATE_ZOMBIE;
 
+    // отправить SIGCHLD родителю
+    process_send_signal(parent_process, SIGCHLD);
+
     // Разбудить потоки, ждущие pid
     scheduler_wake(&parent_process->wait_blocker, INT_MAX);
 

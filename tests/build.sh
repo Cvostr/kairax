@@ -10,6 +10,9 @@ ld $LD_ARGS -o bin/sysc.a obj/sysc.o ../sdk/crt/entry.o -L../sdk/libc/ -L../sdk/
 gcc $ARGS sysn.c -o obj/sysn.o
 ld $LD_ARGS -o bin/sysn.a obj/sysn.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 
+gcc $ARGS sigs.c -o obj/sigs.o
+ld $LD_ARGS -o bin/sigs.a obj/sigs.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
+
 gcc $ARGS floattest.c -o obj/floattest.o
 ld $LD_ARGS -o bin/floattest.a obj/floattest.o ../sdk/crt/entry.o -L../sdk/libc/ -lc -lerrno
 

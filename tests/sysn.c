@@ -29,28 +29,9 @@ void initTermios()
     tcsetattr(0, TCSANOW, &current);
 }
 
-void inthandler(int arg)
-{
-    printf("signal handled with arg %i\n", arg);
-	printf("Terminate [y/n]?\n");
-	char r;
-	scanf("%c", &r);
-	printf("input: %c (%i)\n", r, r);
-    if (r == 'y')
-	{
-        exit(0);
-	}
-}
-
 void alarmhandler(int arg)
 {
     printf("alarm signal handled with arg %i\n", arg);
-}
-
-void segfaulthandle(int arg)
-{
-    printf("SIGSEGV handled\n");
-	exit(1);
 }
 
 void resetTermios(void) 
@@ -440,20 +421,6 @@ int main(int argc, char** argv, char** envp) {
         }
     }
 
-    sighandler_t hd = signal(SIGINT, inthandler);
-    if (hd == SIG_ERR)
-    {
-        perror("signal error");
-        return 1;
-    }
-
-    sigset_t testset;
-    sigemptyset(&testset);
-    sigaddset(&testset, 2);
-    sigaddset(&testset, 4);
-    printf("sigismember %i %i %i %i\n", 
-        sigismember(&testset, 1), sigismember(&testset, 2), sigismember(&testset, 3), sigismember(&testset, 4));
-
     if (argc > 1 && strcmp(argv[1], "loop") == 0)
     {
         while (1)
@@ -468,13 +435,6 @@ int main(int argc, char** argv, char** envp) {
             int ret = pause();
             printf("result %i should be %i\n", errno, EINTR);
         }
-    }
-
-    if (argc > 1 && strcmp(argv[1], "segv") == 0)
-    {
-        signal(SIGSEGV, segfaulthandle);
-        int *__ptr = 0;
-        *__ptr = 0;
     }
 
     int send = 343;

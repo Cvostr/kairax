@@ -119,7 +119,7 @@ pid_t sys_wait(pid_t id, int* status, int options)
     }
         
     *status = code;
-    result = id;
+    result = child->pid;
 
 exit:
     release_spinlock(&process->wait_lock);

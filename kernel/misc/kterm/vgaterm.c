@@ -463,7 +463,30 @@ void console_scroll(struct vgaconsole* vgconsole)
     uint32_t top = vgconsole->scroll_region_top;
     uint32_t bottom = vgconsole->scroll_region_bottom;
 
-    if (vgconsole->console_lines >= bottom) 
+    if (vgconsole->console_lines <= top) 
+    {    
+        vgconsole->console_lines = top;
+        
+        // сколько строк снизу останутся нетронутыми
+        uint32_t lines_left_below = (rows - bottom + 1);
+        // Перенести строки фреймбуффера вниз
+        // Куда копируем - на одну строку ниже чем верхняя граница
+        uint32_t dst_offset = (YOFFSET + (top + 1) * LINE_SIZE) * pitch;
+        // смещение, откуда копировать
+        int src_offset = (YOFFSET + top * LINE_SIZE) * pitch;
+        // копируемый размер, вычитаем верхнюю и нижнюю scroll границу
+        int to_copy = (vga_get_height() - YOFFSET - LINE_SIZE * (top + 1 + lines_left_below)) * pitch; 
+        memmove(vgconsole->double_buffer + dst_offset, vgconsole->double_buffer + src_offset, to_copy);
+
+        // Очистить первую строку
+        int pixel_lines = LINE_SIZE * pitch;
+        int offset = (YOFFSET + (top) * LINE_SIZE) * pitch;
+        memset(vgconsole->double_buffer + offset, 0, pixel_lines);
+
+        // Перерисовать экран
+        vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
+	}
+    else if (vgconsole->console_lines >= bottom) 
     {    
         vgconsole->console_lines = bottom - 1;
         
@@ -477,12 +500,12 @@ void console_scroll(struct vgaconsole* vgconsole)
         int to_copy = (vga_get_height() - YOFFSET - LINE_SIZE * (top + lines_left_below)) * pitch; 
         memcpy(vgconsole->double_buffer + dst_offset, vgconsole->double_buffer + src_offset, to_copy);
 
-
         // Очистить последнюю строку
         int pixel_lines = LINE_SIZE * pitch;
         int offset = (YOFFSET + (bottom - 1) * LINE_SIZE) * pitch;
         memset(vgconsole->double_buffer + offset, 0, pixel_lines);
 
+        // Перерисовать экран
         vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        
 	}
 }
