@@ -86,6 +86,12 @@ void kterm_process_esc_sequence(struct terminal_session* session)
 		case '>':
 			session->keypad_app_mode = FALSE;
 			break;
+		case 'M':
+			console_cursor_move_scroll(session->console, -1);
+			break;
+		case 'D':
+			console_cursor_move_scroll(session->console, 1);
+			break;
 		case '7':
 			session->saved_cursor_row = session->console->console_lines;
 			session->saved_cursor_col = session->console->console_col;
@@ -146,7 +152,7 @@ void kterm_session_set_scroll_region(struct terminal_session* session, int argc,
 
 	console_set_cursor_pos(session->console, top - 1, 0);
 
-	// TODO: implement scrolling
+	console_set_scroll_region(session->console, top - 1, bottom);
 }
 
 void kterm_session_toggle(struct terminal_session* session, int argc, int args[], int dec, char terminate)

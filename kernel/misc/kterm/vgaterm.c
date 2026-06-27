@@ -297,6 +297,9 @@ struct vgaconsole* console_init()
     BUFFER_LINE_LENGTH = vga_get_width() / COL_SIZE - 1;
     BUFFER_LINES = vga_get_height() / LINE_SIZE;
 
+    vgconsl->scroll_region_top = 0;
+    vgconsl->scroll_region_bottom = BUFFER_LINES;
+
     return vgconsl;
 }
 
@@ -308,6 +311,12 @@ uint32 surface_get_rows()
 uint32 surface_get_cols()
 {
     return BUFFER_LINE_LENGTH;
+}
+
+void console_set_scroll_region(struct vgaconsole* vgconsole, uint32_t top, uint32_t bottom)
+{
+    vgconsole->scroll_region_top = top;
+    vgconsole->scroll_region_bottom = bottom;
 }
 
 void console_print_char(struct vgaconsole* vgconsole, int table, char chr, 
@@ -378,6 +387,13 @@ void console_lf(struct vgaconsole* vgconsole)
     console_scroll(vgconsole);
 }
 
+void console_cursor_move_scroll(struct vgaconsole* vgconsole, int dy)
+{
+    vgconsole->console_lines += dy;
+    //printk("new pos %i  ", vgconsole->console_lines);
+    console_scroll(vgconsole);
+}
+
 void console_set_cursor_pos(struct vgaconsole* vgconsole, int row, int col)
 {
     if (row < 0) row = 0;
@@ -442,19 +458,29 @@ void console_clear_line_to_begin(struct vgaconsole* vgconsole)
 
 void console_scroll(struct vgaconsole* vgconsole)
 {
-	if (vgconsole->console_lines >= BUFFER_LINES) {
-        
-        vgconsole->console_lines--;
+    uint32_t pitch = vga_get_pitch(); //vga_get_width() * DOUBLEBUFFER_DEPTH_BYTES;
+    uint32 rows = surface_get_rows();
+    uint32_t top = vgconsole->scroll_region_top;
+    uint32_t bottom = vgconsole->scroll_region_bottom;
 
-        uint32_t pitch = vga_get_pitch(); //vga_get_width() * DOUBLEBUFFER_DEPTH_BYTES;
+    if (vgconsole->console_lines >= bottom) 
+    {    
+        vgconsole->console_lines = bottom - 1;
+        
+        // сколько строк снизу останутся нетронутыми
+        uint32_t lines_left_below = (rows - bottom + 1);
         // Перенести строки фреймбуффера вверх
-        int pixel_lines = (YOFFSET + LINE_SIZE) * pitch;
-        int to_copy = (vga_get_height() - YOFFSET - LINE_SIZE) * pitch;
-        memcpy(vgconsole->double_buffer + YOFFSET * pitch, vgconsole->double_buffer + pixel_lines, to_copy);
+        uint32_t dst_offset = (YOFFSET + top * LINE_SIZE) * pitch;
+        // смещение, откуда копировать
+        int src_offset = dst_offset + (LINE_SIZE) * pitch;
+        // копируемый размер, вычитаем верхнюю и нижнюю scroll границу
+        int to_copy = (vga_get_height() - YOFFSET - LINE_SIZE * (top + lines_left_below)) * pitch; 
+        memcpy(vgconsole->double_buffer + dst_offset, vgconsole->double_buffer + src_offset, to_copy);
+
 
         // Очистить последнюю строку
-        pixel_lines = LINE_SIZE * pitch;
-        int offset = (YOFFSET + (BUFFER_LINES - 1) * LINE_SIZE) * pitch;
+        int pixel_lines = LINE_SIZE * pitch;
+        int offset = (YOFFSET + (bottom - 1) * LINE_SIZE) * pitch;
         memset(vgconsole->double_buffer + offset, 0, pixel_lines);
 
         vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());        

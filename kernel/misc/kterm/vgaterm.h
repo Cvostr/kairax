@@ -12,6 +12,9 @@ struct vgaconsole {
     uint32_t console_buffer_size;
 
     int autowrap;
+
+    uint32_t scroll_region_top;
+    uint32_t scroll_region_bottom;
 };
 
 struct vgaconsole* console_init();
@@ -29,6 +32,8 @@ void console_clear(struct vgaconsole* vgconsole);
 void console_clear_to_end(struct vgaconsole* vgconsole);
 void console_set_cursor_pos(struct vgaconsole* vgconsole, int row, int col);
 void console_cursor_move(struct vgaconsole* vgconsole, int dx, int dy);
+void console_cursor_move_scroll(struct vgaconsole* vgconsole, int dy);
+void console_set_scroll_region(struct vgaconsole* vgconsole, uint32_t top, uint32_t bottom);
 
 void console_clear_line_to_end(struct vgaconsole* vgconsole);
 void console_clear_line_to_begin(struct vgaconsole* vgconsole);
