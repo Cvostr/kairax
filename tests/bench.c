@@ -5,6 +5,7 @@
 #include "time.h"
 #include "syscalls.h"
 #include "math.h"
+#include "process.h"
 
 void proc()
 {

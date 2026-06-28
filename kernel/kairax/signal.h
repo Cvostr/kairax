@@ -93,5 +93,6 @@ struct sigaction {
 #define CALLER_SYSCALL      3
 
 void process_handle_signals(int caller, void* frame);
+int process_send_signal_self(int signum);
 
 #endif

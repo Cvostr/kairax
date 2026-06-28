@@ -83,7 +83,7 @@ int sock_packet_raw_create (struct socket* sock)
 
 int sock_packet_raw_bind(struct socket* sock, const struct sockaddr *addr, socklen_t addrlen)
 {
-    struct packet_sockaddr_in* packet_addr = addr;
+    struct packet_sockaddr_in* packet_addr = (struct packet_sockaddr_in*) addr;
 
     if (addr->sa_family != AF_PACKET || addrlen != sizeof(struct packet_sockaddr_in))
     {

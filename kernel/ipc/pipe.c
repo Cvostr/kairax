@@ -6,13 +6,13 @@
 
 struct file_operations pipe_fops_read = {
     .read = pipe_file_read,
-    .close = pipe_file_close,
+    .close = pipe_file_close_read,
     .poll = pipe_poll
 };
 
 struct file_operations pipe_fops_write = {
     .write = pipe_file_write,
-    .close = pipe_file_close,
+    .close = pipe_file_close_write,
     .poll = pipe_poll
 };
 
@@ -36,10 +36,11 @@ struct pipe* new_pipe()
 
 void free_pipe(struct pipe* pipe)
 {
-    pipe->dead = 1;
-
-    pmm_free_page(V2P(pipe->buffer));
-    kfree(pipe);
+    if (atomic_dec_and_test(&pipe->ref_count)) 
+    {
+        pmm_free_page(V2P(pipe->buffer));
+        kfree(pipe);
+    }
 }
 
 int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, struct file* write_file)
@@ -75,13 +76,6 @@ int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, stru
 ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock)
 {
     size_t i;
-
-    // Канал уничтожен
-    if (pipe->dead == 1) 
-    {
-        // TODO : SIGPIPE
-        return -ESPIPE;
-    }
 
     acquire_spinlock(&pipe->lock);
 
@@ -132,16 +126,11 @@ exit:
 
 ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count)
 {
-    if (pipe->dead == 1) 
-    {
-        // TODO : SIGPIPE
-        return -ESPIPE;
-    }
-
     // Закрыты все читающие
-    if ((pipe->check_ends == 1 && pipe->nreadfds == 0))
+    if (pipe->check_ends == 1 && pipe->nreadfds == 0)
     {
-        // TODO : SIGPIPE
+        // Пробуем убить себя же сигналом
+        process_send_signal_self(SIGPIPE);
         return -EPIPE;
     }
 
@@ -212,27 +201,35 @@ ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, lof
     return pipe_write(p, buffer, count);
 }
 
-int pipe_file_close(struct inode *inode, struct file *file)
+int pipe_file_close_read(struct inode *inode, struct file *file)
 {
     struct pipe* p = (struct pipe*) file->private_data;
     
-    if (file->flags & FILE_OPEN_MODE_READ_ONLY) 
-    {
-        p->nreadfds --;
-    } 
-    else if (file->flags & FILE_OPEN_MODE_WRITE_ONLY) 
-    {
-        p->nwritefds --;
-        // Будем читающих, чтобы вышли с EOF
-        scheduler_wake(&p->readb, INT_MAX);
-    }
+    p->nreadfds --;
+    // намеренно никого не будим
 
     // Будим наблюдающих
     poll_wakeall(&p->poll_wq);
 
-    if (atomic_dec_and_test(&p->ref_count)) {
-        free_pipe(p);
-    }
+    // уменьшение ссылок на объект pipe
+    free_pipe(p);
+
+    return 0;
+}
+
+int pipe_file_close_write(struct inode *inode, struct file *file)
+{
+    struct pipe* p = (struct pipe*) file->private_data;
+    
+    p->nwritefds --;
+    // Будим читающих, чтобы вышли с EOF
+    scheduler_wake(&p->readb, INT_MAX);
+
+    // Будим наблюдающих
+    poll_wakeall(&p->poll_wq);
+
+    // уменьшение ссылок на объект pipe
+    free_pipe(p);
 
     return 0;
 }

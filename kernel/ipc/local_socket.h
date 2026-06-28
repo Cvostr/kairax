@@ -69,7 +69,7 @@ short sock_local_poll(struct socket *sock, struct file *file, struct poll_ctl *n
 
 int local_sock_create(struct socket* s, int type, int protocol);
 
-struct socket_data* new_local_socket(int type);
+struct local_socket* new_local_socket(int type);
 
 void local_sock_init();
 

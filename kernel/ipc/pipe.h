@@ -19,7 +19,6 @@ struct pipe {
     loff_t      write_pos;
     loff_t      read_pos;
 
-    int         dead;
     int         check_ends;
 
     int         nwritefds;
@@ -41,6 +40,8 @@ ssize_t pipe_write(struct pipe* pipe, const char* buffer, size_t count);
 short pipe_poll(struct file *file, struct poll_ctl *pctl);
 ssize_t pipe_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
 ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
-int pipe_file_close(struct inode *inode, struct file *file);
+
+int pipe_file_close_read(struct inode *inode, struct file *file);
+int pipe_file_close_write(struct inode *inode, struct file *file);
 
 #endif

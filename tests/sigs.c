@@ -22,6 +22,11 @@ void segfaulthandle(int arg)
 	exit(1);
 }
 
+void pipehandle(int arg)
+{
+    printf("SIGPIPE handled\n");
+}
+
 void chldhandle(int arg)
 {
     printf("SIGCHLD handled arg %i\n", arg);
@@ -52,6 +57,17 @@ int main(int argc, char** argv, char** envp)
         signal(SIGSEGV, segfaulthandle);
         int *__ptr = 0;
         *__ptr = 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "pipe") == 0)
+    {
+        signal(SIGPIPE, pipehandle);
+        int pipefds[2];
+        pipe(pipefds);
+        close(pipefds[0]);
+        char ch = 3;
+        ssize_t res = write(pipefds[1], &ch, 1);
+        printf("write to closed read end returned rc=%i, errno=%i\n", res, errno);
     }
 
     if (argc > 1 && strcmp(argv[1], "chld") == 0)

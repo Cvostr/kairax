@@ -53,6 +53,13 @@ void sigaction_reset(struct proc_sigact *action)
     action->sigmask = 0;
 }
 
+int process_send_signal_self(int signum)
+{
+    struct thread* thread = cpu_get_current_thread();
+    struct process* process = thread->process;
+    return process_send_signal(process, signum);
+}
+
 void process_handle_signals(int caller, void* frame)
 {
     struct thread* thread = cpu_get_current_thread();

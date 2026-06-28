@@ -837,7 +837,7 @@ int local_sock_create(struct socket* s, int type, int protocol)
             return -ERROR_INVALID_VALUE;
     }
 
-    s->data = new_local_socket(type);
+    s->data = (struct socket_data *) new_local_socket(type);
     if (s->data == NULL)
     {
         return -ENOMEM;
@@ -846,7 +846,7 @@ int local_sock_create(struct socket* s, int type, int protocol)
     return 0;
 }
 
-struct socket_data* new_local_socket(int type)
+struct local_socket* new_local_socket(int type)
 {
     struct local_socket* sock = kmalloc(sizeof(struct local_socket));
     if (sock == NULL)
