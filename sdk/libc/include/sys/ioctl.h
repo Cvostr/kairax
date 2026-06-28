@@ -25,6 +25,6 @@ struct winsize {
     unsigned short ws_ypixel;
 };
 
-int ioctl(int fd, uint64_t request, uint64_t arg);
+int ioctl(int fd, uint64_t request, ...);
 
 #endif

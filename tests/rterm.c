@@ -11,6 +11,7 @@
 #include "poll.h"
 #include "termios.h"
 #include "string.h"
+#include "pty.h"
 
 #define SERV_PORT 23
 
@@ -47,7 +48,7 @@ telnet_client_t *create_client(int clientsockfd)
     state->sockfd = clientsockfd;
     state->alive = 1;
 
-    rc = syscall_create_pty(&state->pty_masterfd, &pty_slavefd);
+    rc = openpty(&state->pty_masterfd, &pty_slavefd, NULL, NULL, NULL);
     if (rc != 0)
     {
         free(state);
@@ -258,7 +259,7 @@ int main(int argc, char** argv)
 
     // Посылаем байт в TTY чтобы разблокировать поток чтения
     char term_sym = 0x30;
-    rc = ioctl(client_state->pty_masterfd, TIOCSTI, (uint64_t)&term_sym);
+    rc = ioctl(client_state->pty_masterfd, TIOCSTI, &term_sym);
     if (rc != 0)
     {
         perror("ioctl(TIOCSTI)");

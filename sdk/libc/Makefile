@@ -103,6 +103,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/err.o \
 				obj/strftime.o \
 				obj/libgen.o \
+				obj/pty.o \
 				obj/stack_chk.o \
 				obj/threads/mtx.o \
 				obj/threads/cnd.o \

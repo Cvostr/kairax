@@ -141,7 +141,7 @@ int print_state()
     printf("speed %s baud; ", speed_str);
 
     struct winsize wsize;
-    ioctl(TTY_FD, TIOCGWINSZ, (uint64_t) &wsize);
+    ioctl(TTY_FD, TIOCGWINSZ, &wsize);
     printf("rows %d; columns %d;\n", wsize.ws_row, wsize.ws_col);
 
     print_cc(&tmi, "intr", VINTR);
@@ -415,7 +415,7 @@ int main(int argc, char** argv)
         if (strcmp(arg, "size") == 0)
         {
             struct winsize wsize;
-            ioctl(TTY_FD, TIOCGWINSZ, (uint64_t) &wsize);
+            ioctl(TTY_FD, TIOCGWINSZ, &wsize);
             printf("%d %d\n", wsize.ws_row, wsize.ws_col);
             continue;
         }

@@ -232,7 +232,7 @@ int isatty(int fd)
 {
     struct termios trm;
     int errno_saved = errno;
-    int istty = ioctl(fd, TCGETS, (unsigned long long) &trm) == 0;
+    int istty = ioctl(fd, TCGETS, &trm) == 0;
     errno = errno_saved;
 
     return istty;
@@ -241,7 +241,7 @@ int isatty(int fd)
 pid_t tcgetpgrp(int fd)
 {
     int result = -1;
-    if (ioctl(fd, TIOCGPGRP, (unsigned long long) &result) == -1)
+    if (ioctl(fd, TIOCGPGRP, &result) == -1)
         return -1;
 
     return result;
@@ -249,7 +249,7 @@ pid_t tcgetpgrp(int fd)
 
 int tcsetpgrp(int fd, pid_t pgrp)
 {
-    return ioctl(fd, TIOCSPGRP, (unsigned long long) &pgrp);
+    return ioctl(fd, TIOCSPGRP, &pgrp);
 }
 
 char *ttyname(int fd)
