@@ -222,9 +222,14 @@ extern void scheduler_exit(thread_frame_t* ctx);
 void arch_sigreturn()
 {
     struct thread* thr = cpu_get_current_thread();
-
-    thread_frame_t* old_frame = this_core->user_stack;
+    thread_frame_t old_frame;
+    
+    // чтобы не менять состояние в стеке процесса скопируем контекст сюда
+    memcpy(&old_frame, this_core->user_stack, sizeof(thread_frame_t));
+    // защищаемся от SROP чтобы остаться в userspace
+    old_frame.cs = GDT_BASE_USER_CODE_SEG | 0b11;
+    old_frame.ss = GDT_BASE_USER_DATA_SEG | 0b11;
 
     disable_interrupts();
-    scheduler_exit(old_frame);
+    scheduler_exit(&old_frame);
 }
