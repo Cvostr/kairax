@@ -78,14 +78,19 @@ int sys_pipe(int* pipefd, int flags)
     fdread = process_add_file(process, pread_file);
     if (fdread < 0)
     {
-        // TODO: implement
+        // просто закроем оба файла - pipe уничтожится автоматически
+        file_close(pread_file);
+        file_close(pwrite_file);
         return fdread;
     }
 
     fdwrite = process_add_file(process, pwrite_file);
     if (fdwrite < 0)
     {
-        // TODO: implement
+        // просто закроем оба файла - pipe уничтожится автоматически
+        // файл чтения уже добавлен, поэтому закрываем его уже у процесса
+        process_close_file(process, fdread);
+        file_close(pwrite_file);
         return fdwrite;
     }
 

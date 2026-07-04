@@ -55,8 +55,15 @@ int main(int argc, char** argv) {
 
     printf("Readed %i bytes!\n", total);
 
-    //close(fds[0]);
+    //errno = 0;
+    //rc = close(fds[0]);
+    //printf("close(fds[0]) errno %i\n", errno);
     //close(fds[1]);
+    
+    printf("FD overflow memory leak test\n");
+    while ((rc = pipe(fds)) == 0);
+    printf("terminated with errno %i\n", errno);
+    
 
     return 0;
 }

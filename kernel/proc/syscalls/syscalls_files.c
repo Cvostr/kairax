@@ -466,7 +466,9 @@ off_t sys_file_seek(int fd, off_t offset, int whence)
 
         if (file->inode != NULL) {
             if (((file->inode->mode & INODE_FLAG_PIPE) == INODE_FLAG_PIPE) ||
-                ((file->inode->mode & INODE_FLAG_SOCKET) == INODE_FLAG_SOCKET)) {
+                ((file->inode->mode & INODE_FLAG_SOCKET) == INODE_FLAG_SOCKET)) 
+            {
+                file_close(file);
                 return -ESPIPE;
             }
         }

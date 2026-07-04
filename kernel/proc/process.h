@@ -27,6 +27,7 @@
 
 typedef unsigned long long CLOEXEC_INT_TYPE;
 #define CLOEXEC_INT_SIZE    sizeof(CLOEXEC_INT_TYPE)
+#define CLOEXEC_FDS_IN_ONE  (CLOEXEC_INT_SIZE * 8)
 
 #define MAKESTOPCODE(sig) ((sig) << 8 | 0x7f)
 #define MAKETERMCODE(sig) ((sig) << 8 | sig)
@@ -84,7 +85,7 @@ struct process {
     spinlock_t          children_lock;
     // Указатели на открытые файловые дескрипторы
     struct file*        fds[MAX_DESCRIPTORS];
-    CLOEXEC_INT_TYPE    close_on_exec[MAX_DESCRIPTORS / CLOEXEC_INT_SIZE];
+    CLOEXEC_INT_TYPE    close_on_exec[MAX_DESCRIPTORS / CLOEXEC_FDS_IN_ONE];
     spinlock_t          fd_lock;
     // начальные данные для TLS
     char*               tls;
