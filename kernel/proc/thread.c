@@ -55,12 +55,18 @@ int thread_send_signal(struct thread* thread, int signal)
 
     sigset_t shifted = 1 << signal;
 
-    int blocked = (thread->process->blocked_signals & shifted) == shifted;
+    struct process *proc = thread->process;
+
+    int blocked = (proc->blocked_signals & shifted) == shifted;
     int nonmaskable = signal == SIGKILL || signal == SIGSTOP; 
 
     if (blocked && !nonmaskable) {
         return -1;
     }
+
+    struct proc_sigact* sigact = &proc->sigactions[signal];
+    if (sigact_should_discard(sigact, signal) == TRUE)
+        return 0;
 
     thread->pending_signals |= shifted;
 

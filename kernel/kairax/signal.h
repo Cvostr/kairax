@@ -94,5 +94,6 @@ struct sigaction {
 
 void process_handle_signals(int caller, void* frame);
 int process_send_signal_self(int signum);
+int sigact_should_discard(struct sigaction *action, int signal);
 
 #endif

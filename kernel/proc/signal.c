@@ -2,10 +2,11 @@
 #include "cpu/cpu_local.h"
 #include "syscalls.h"
 
-#define SIG_IGNORE 0
+#define SIG_IGNORE      0
 #define SIG_TERMINATE   1
 #define SIG_CORE        2
 #define SIG_STOP        3
+#define SIG_CONT        4
 
 #define DEFINE_SIGNAL(sig, type) [sig] = type
 
@@ -28,7 +29,7 @@ int signals_table[SIGNALS] = {
     DEFINE_SIGNAL(SIGTERM, SIG_TERMINATE),
     DEFINE_SIGNAL(SIGSTKFLT, SIG_TERMINATE),
     DEFINE_SIGNAL(SIGCHLD, SIG_IGNORE),
-    DEFINE_SIGNAL(SIGCONT, SIG_IGNORE),
+    DEFINE_SIGNAL(SIGCONT, SIG_CONT),
     DEFINE_SIGNAL(SIGSTOP, SIG_STOP),
     DEFINE_SIGNAL(SIGTSTP, SIG_STOP),
     DEFINE_SIGNAL(SIGTTIN, SIG_STOP),
@@ -51,6 +52,13 @@ void sigaction_reset(struct proc_sigact *action)
     action->handler = SIG_DFL;
     action->flags = 0;
     action->sigmask = 0;
+}
+
+int sigact_should_discard(struct sigaction *action, int signal)
+{
+    if (action->sa_handler == SIG_DFL && signals_table[signal] == SIG_IGNORE)
+        return TRUE;
+    return FALSE;
 }
 
 int process_send_signal_self(int signum)
