@@ -14,7 +14,7 @@
 #define VALIDATE_USER_POINTER(proc,base,len) if (process_is_userspace_region(proc,(uintptr_t)base,len,0) == 0) {return -EFAULT;}
 #define VALIDATE_USER_POINTER_PROTECTION(proc,base,len,prot) if (process_is_userspace_region(proc,(uintptr_t)base,len,prot) == 0) {return -EFAULT;}
 
-#define VALIDATE_USER_STRING(proc,str) if (process_is_userspace_string(proc,str) == 0) {return -EFAULT;}
+#define VALIDATE_USER_STRING(proc,str) if (process_is_userspace_string(proc,(uintptr_t)str) == 0) {return -EFAULT;}
 
 int sys_not_implemented();
 
@@ -155,7 +155,7 @@ int sys_getrlimit(int resource, struct rlimit *rlim);
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 int sys_listen(int sockfd, int backlog);
-int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags);
 int sys_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
 int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 

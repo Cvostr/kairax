@@ -79,6 +79,7 @@ int socket(int domain, int type, int protocol) __THROW;
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) __THROW;
 int listen(int sockfd, int backlog) __THROW;
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) __THROW;
+int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) __THROW;
 int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen) __THROW;
 int send(int fd, const void * buf, size_t n, int flags) __THROW;
 int sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen) __THROW;

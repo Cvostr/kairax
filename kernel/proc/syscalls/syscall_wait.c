@@ -106,6 +106,10 @@ pid_t sys_wait(pid_t id, int* status, int options)
     // Удалить процесс из списка
     process_remove_from_list(child);
 
+    // сохраним возращаемое значение как ID уничтожаемого объекта
+    result = child->pid;
+    *status = code;
+
     if (child->type == OBJECT_TYPE_PROCESS) {
         // Удалить процесс из списка потомков родителя
         process_remove_child(process, child);
@@ -117,9 +121,6 @@ pid_t sys_wait(pid_t id, int* status, int options)
         // Уничтожить объект потока
         thread_destroy(child);
     }
-        
-    *status = code;
-    result = child->pid;
 
 exit:
     release_spinlock(&process->wait_lock);

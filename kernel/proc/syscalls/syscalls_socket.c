@@ -4,11 +4,15 @@
 #include "ipc/socket.h"
 #include "mem/kheap.h"
 
-struct file* make_file_from_sock(struct socket* sock)
+struct file* make_file_from_sock(struct socket* sock, int nonblock)
 {
     struct file* fsock = new_file();
     fsock->inode = sock->inode;
     fsock->ops = sock->inode->file_ops;
+    // заранее сделаем файл неблокирующим, чтобы исключить race condition
+    if (nonblock == TRUE)
+        file_set_nonblock(fsock);
+
     inode_open(fsock->inode, 0);
     return fsock;
 }
@@ -36,7 +40,7 @@ int sys_socket(int domain, int type, int protocol)
     }
     
     // Создать файл из сокета
-    struct file* fsock = make_file_from_sock(sock);
+    struct file* fsock = make_file_from_sock(sock, nonblock);
 
     // Добавить к процессу
     rc = process_add_file(process, fsock);
@@ -45,12 +49,6 @@ int sys_socket(int domain, int type, int protocol)
         // destroy socket
         file_close(fsock);
         goto exit;
-    }
-
-    // Если настроено неблокирующее чтение, то добавим в флаги
-    if (nonblock == 1)
-    {
-        fsock->flags |= FILE_FLAG_NONBLOCK;
     }
 
     // Если передан флаг SOCK_CLOEXEC, надо взвести бит дескриптора
@@ -116,7 +114,7 @@ exit:
     return rc;
 }
 
-int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
     int rc = -1;
     struct socket* newsock = NULL;
@@ -148,7 +146,7 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     rc = socket_accept(sock, &newsock, addr, addrlen);
     if (rc == 0 && newsock != NULL) {
         // Создаем файл из сокета и добавляем
-        struct file* fsock = make_file_from_sock(newsock);
+        struct file* fsock = make_file_from_sock(newsock, (flags & SOCK_NONBLOCK) == SOCK_NONBLOCK);
         rc = process_add_file(process, fsock);
     }
 
@@ -419,8 +417,8 @@ int sys_socketpair(int domain, int type, int protocol, int sv[2])
     }
 
     // Создать файлы из сокетов
-    fsock1 = make_file_from_sock(sock1);
-    fsock2 = make_file_from_sock(sock2);
+    fsock1 = make_file_from_sock(sock1, nonblock);
+    fsock2 = make_file_from_sock(sock2, nonblock);
 
     // Добавить к процессу
     fd1 = process_add_file(process, fsock1);

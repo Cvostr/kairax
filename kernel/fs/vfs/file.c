@@ -52,6 +52,11 @@ void file_close(struct file* file)
     }
 }
 
+void file_set_nonblock(struct file* file)
+{
+    file->flags |= FILE_FLAG_NONBLOCK;
+}
+
 char* format_path(const char* path) 
 {
     char *result = strdup(path);

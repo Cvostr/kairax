@@ -74,6 +74,8 @@ int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, stru
 void file_acquire(struct file* file);
 void file_close(struct file* file);
 
+void file_set_nonblock(struct file* file);
+
 ssize_t file_read(struct file* file, size_t size, char* buffer);
 
 ssize_t file_write(struct file* file, size_t size, const char* buffer);

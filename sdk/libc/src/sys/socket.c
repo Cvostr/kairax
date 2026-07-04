@@ -25,7 +25,12 @@ int setsockopt(int s, int level, int optname, const void *optval, socklen_t optl
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
-    __sys_ret_set_errno(syscall_accept(sockfd, addr, addrlen));
+    return accept4(sockfd, addr, addrlen, 0);
+}
+
+int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
+{
+    __sys_ret_set_errno(syscall_accept(sockfd, addr, addrlen, flags));
 }
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
