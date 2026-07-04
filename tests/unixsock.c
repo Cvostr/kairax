@@ -121,7 +121,7 @@ int incorrect_type()
 	}
 
     char tt[2];
-    rc = sendto(clientsocket, tt, 2, 0, &serv_addr, sizeof(serv_addr));
+    rc = sendto(clientsocket, tt, 2, 0, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (rc == 0)
     {
         printf("Error: should fail, but rc is ok\n");
@@ -175,7 +175,7 @@ int server(int mode, int deletesock)
 
     struct sockaddr_un client_addr;
     int client_addr_len = sizeof(struct sockaddr_un);
-    int client_sock = accept(srv_sockfd, &client_addr, &client_addr_len);
+    int client_sock = accept(srv_sockfd, (struct sockaddr *) &client_addr, &client_addr_len);
     if (client_sock == -1) {
         perror("server: accept()");
         return 1;
@@ -217,7 +217,7 @@ int client()
 
     struct sockaddr_un peer_addr;
     socklen_t peer_addr_len = sizeof(peer_addr);
-    int rc = getpeername(clientsocket, &peer_addr, &peer_addr_len);
+    int rc = getpeername(clientsocket, (struct sockaddr *) &peer_addr, &peer_addr_len);
     if (rc != 0)
     {
         perror("getpeername()");
@@ -325,6 +325,11 @@ int _socketpair()
 
     int clrc = 0;
     waitpid(client_pid, &clrc, 0);
+
+    printf("FD overflow memory leak test\n");
+    while ((rc = socketpair(AF_UNIX, SOCK_STREAM, 0, socks)) == 0);
+    printf("terminated with errno %i\n", errno);
+
     return 0;
 }
 

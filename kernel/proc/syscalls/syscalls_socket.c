@@ -426,8 +426,9 @@ int sys_socketpair(int domain, int type, int protocol, int sv[2])
     fd1 = process_add_file(process, fsock1);
     if (fd1 < 0) 
     {
-        // TODO: destroy socket
+        // просто закроем оба файла - сокет уничтожится автоматически
         file_close(fsock1);
+        file_close(fsock2);
         rc = fd1;
         goto exit;
     }
@@ -436,7 +437,9 @@ int sys_socketpair(int domain, int type, int protocol, int sv[2])
     fd2 = process_add_file(process, fsock2);
     if (fd2 < 0) 
     {
-        // TODO: destroy socket
+        // просто закроем оба файла - сокет уничтожится автоматически
+        // файл первого сокет уже добавлен к процессу, поэтому закрываем его уже у процесса
+        process_close_file(process, fd1);
         file_close(fsock2);
         rc = fd2;
         goto exit;
