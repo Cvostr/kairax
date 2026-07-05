@@ -86,6 +86,9 @@ double rint(double x);
 
 double atan2(double x, double y) __THROW;
 
+double ldexp(double x, int exp);
+double frexp(double x, int *exp);
+
 __END_DECLS
 
 #endif

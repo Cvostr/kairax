@@ -97,6 +97,48 @@ pow:
     pop rbp
     ret
 
+global ldexp
+ldexp:
+    push rbp
+    mov rbp, rsp
+    ; копирование аргументов в ST(0), ST(1)
+    movsd [rbp - 0x8], xmm0
+    mov [rbp - 0xC], edi
+    fild dword [rbp - 0xC]
+    fld qword [rbp - 0x8]
+    ; ST(0) = ST(0) * 2 ^(ST(1))
+	fscale
+    ; ST(0) -> xmm0
+    fstp qword [rbp - 0x8]
+    movsd xmm0, [rbp - 0x8]
+
+    pop rbp
+	ret
+
+global frexp
+frexp:
+    push rbp
+    mov rbp, rsp
+    ; xmm0 -> ST(0)
+    movsd [rbp - 0x8], xmm0
+    fld qword [rbp - 0x8]
+    ; m -> ST(0), exp -> ST(1)
+    fxtract
+    ; ST(0) -> xmm0
+    fstp qword [rbp - 0x8]
+    movsd xmm0, [rbp - 0x8]
+    ; делим xmm0 на 2, чтобы соответствовать стандарту frexp
+    mov rax, 0x3fe0000000000000
+    movq xmm1, rax 
+    mulsd xmm0, xmm1
+    ; передаем экспоненту с увеличением на 1
+    fistp dword [rdi]
+    inc [rdi]
+
+    pop rbp
+    ret 
+
+
 global fmod
 fmod:
     push rbp

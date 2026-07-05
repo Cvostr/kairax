@@ -76,14 +76,18 @@ int main(int argc, char** argv)
     printf("acos(0) = %f acos(1) = %f acos(0.5) = %f\n", acos(0), acos(1), acos(0.5));
 
     printf("asin(0) = %f asin(1) = %f asin(0.5) = %f\n", asin(0), asin(1), asin(0.5));
+    printf("ldexp(2, 5) = %f. Should be 64!\n", ldexp(2, 5));
+    int exp;
+    double m = frexp(16.4, &exp);
+    printf("frexp(16.4) = %f, %i. Should be (0.512500, 5)\n", m, exp);
 
-    asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
+    //asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
 
     asm volatile ("mov $12, %rax");
     asm volatile ("movq %rax, %xmm1");
     asm volatile ("movq %rax, %xmm15");
 
-    pid_t pid = create_thread(thread433, 2);
+    pid_t pid = create_thread(thread433, (void*)2);
 
     sched_yield();
     int status = 0;
