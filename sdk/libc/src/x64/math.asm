@@ -160,3 +160,71 @@ fmod:
     movsd xmm0, [rbp - 0x8]
     pop rbp
     ret
+
+global log
+global logf
+global log2
+global log2f
+global log10
+global log10f
+logf:
+    push rbp
+    mov rbp, rsp
+    fldln2
+    jmp __logf
+
+log:
+    push rbp
+    mov rbp, rsp
+    fldln2
+    jmp __log
+
+log2f:
+    push rbp
+    mov rbp, rsp
+    fld1
+    jmp __logf
+
+log2:
+    push rbp
+    mov rbp, rsp
+    fld1
+    jmp __log
+
+log10:
+    push rbp
+    mov rbp, rsp
+    fldlg2
+    jmp __log
+
+log10f:
+    push rbp
+    mov rbp, rsp
+    fldlg2
+    jmp __logf
+
+__log:
+    ; xmm0 -> ST(0)
+    movsd [rbp - 0x8], xmm0
+    fld qword [rbp - 0x8]
+    ; 
+    fyl2x
+    ; ST(0) -> xmm0
+    fstp qword [rbp - 0x8]
+    movsd xmm0, [rbp - 0x8]
+
+    pop rbp
+	ret
+
+__logf:
+    ; xmm0 -> ST(0)
+    movss [rbp - 0x4], xmm0
+    fld dword [rbp - 0x4]
+    ; 
+    fyl2x
+    ; ST(0) -> xmm0
+    fstp dword [rbp - 0x4]
+    movss xmm0, [rbp - 0x4]
+
+    pop rbp
+	ret

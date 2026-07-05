@@ -7,6 +7,8 @@
 
 __BEGIN_DECLS
 
+#define CLOCKS_PER_SEC 1000000l
+
 int isleap(int year);
 
 struct tm* gmtime(const time_t* t);

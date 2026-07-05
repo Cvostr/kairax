@@ -62,6 +62,10 @@ __BEGIN_DECLS
 # define M_SQRT2l	1.414213562373095048801688724209698079L /* sqrt(2) */
 # define M_SQRT1_2l	0.707106781186547524400844362104849039L /* 1/sqrt(2) */
 
+#define HUGE_VAL  __builtin_huge_val()
+#define HUGE_VALF __builtin_huge_valf()
+#define HUGE_VALL __builtin_huge_vall()
+
 extern double fabs(double x);
 
 extern int isnan(double d);
@@ -75,6 +79,15 @@ double asin(double d) __THROW;
 double acos(double d) __THROW;
 double atan(double d) __THROW;
 
+double log(double x) __THROW;
+float logf(float x) __THROW;
+
+double log2(double x) __THROW;
+float log2f(float x) __THROW;
+
+double log10(double x) __THROW;
+float log10f(float x) __THROW;
+
 double floor(double x);
 double ceil(double x);
 
@@ -86,8 +99,8 @@ double rint(double x);
 
 double atan2(double x, double y) __THROW;
 
-double ldexp(double x, int exp);
-double frexp(double x, int *exp);
+double ldexp(double x, int exp) __THROW;
+double frexp(double x, int *exp) __THROW;
 
 __END_DECLS
 
