@@ -133,7 +133,7 @@ frexp:
     mulsd xmm0, xmm1
     ; передаем экспоненту с увеличением на 1
     fistp dword [rdi]
-    inc [rdi]
+    inc dword [rdi]
 
     pop rbp
     ret 
