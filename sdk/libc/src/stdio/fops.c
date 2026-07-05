@@ -135,6 +135,16 @@ void clearerr_unlocked(FILE *stream)
     stream->_flags &= ~(FSTREAM_ERROR | FSTREAM_EOF);
 }
 
+void flockfile(FILE* filehandle)
+{
+    mtx_lock(&filehandle->_lock);
+}
+
+void funlockfile(FILE* filehandle)
+{
+    mtx_unlock(&filehandle->_lock);
+}
+
 int remove(const char* filename) 
 {
     if (unlink(filename) != 0) 

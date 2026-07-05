@@ -46,6 +46,8 @@ int puts(const char*);
 #define getc(stream)    fgetc(stream)
 #define putc(c,stream)  fputc(c,stream)
 
+#define getc_unlocked(stream) fgetc_unlocked(stream)
+
 int fflush(FILE *stream);
 int fflush_unlocked(FILE *stream);
 
@@ -94,6 +96,7 @@ int sscanf(const char *str, const char *format, ...);
 int vsscanf(const char *str, const char *format, va_list args);
 
 int fgetc(FILE *f);
+int fgetc_unlocked(FILE *f);
 int getchar();
 
 char *fgets(char *s, int size, FILE *stream);
@@ -101,6 +104,9 @@ char *fgets_unlocked(char *s, int size, FILE *stream);
 
 FILE *popen(const char *command, const char *type);
 int pclose(FILE *stream);
+
+void flockfile(FILE* filehandle);
+void funlockfile(FILE* filehandle);
 
 #ifdef __cplusplus
 }

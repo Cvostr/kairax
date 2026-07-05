@@ -9,6 +9,15 @@ int getchar ()
 
 int fgetc(FILE *f)
 {
+    int tmp;
+    mtx_lock(&f->_lock);
+    tmp = fgetc_unlocked(f);
+    mtx_unlock(&f->_lock);
+    return tmp;
+}
+
+int fgetc_unlocked(FILE *f)
+{
     if ((f->_flags & FSTREAM_CANREAD) == 0) {
         // Запрет на чтение
         f->_flags |= FSTREAM_ERROR;
