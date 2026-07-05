@@ -228,3 +228,34 @@ __logf:
 
     pop rbp
 	ret
+
+global exp
+exp:
+    push rbp
+    mov rbp, rsp
+    fldl2e
+
+    ; xmm0 -> x
+    movsd [rbp - 0x8], xmm0
+    ; ST(0) * x -> ST(0)
+    fmul qword [rbp - 0x8]
+    
+    fld     st0
+	frndint
+	fld     st0
+	fsub    st2, st0
+
+    fstp    st0 
+    fxch    st1
+
+	f2xm1
+	fld1
+	faddp
+	fscale
+
+    ; ST(0) -> xmm0
+    fstp qword [rbp - 0x8]
+    movsd xmm0, [rbp - 0x8]
+
+    pop rbp
+	ret

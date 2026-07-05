@@ -88,6 +88,8 @@ float log2f(float x) __THROW;
 double log10(double x) __THROW;
 float log10f(float x) __THROW;
 
+double exp(double x) __THROW;
+
 double floor(double x);
 double ceil(double x);
 

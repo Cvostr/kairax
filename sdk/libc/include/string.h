@@ -19,6 +19,8 @@ extern void *memset (void *__s, int __c, size_t __n);
 /* Compare N bytes of S1 and S2.  */
 extern int memcmp (const void *__s1, const void *__s2, size_t __n);
 
+extern void* memchr(const void *s, int c, size_t n);
+
 /* Find the length of STRING, but scan at most MAXLEN characters.
    If no '\0' terminator is found in that many characters, return MAXLEN.  */
 extern size_t strnlen (const char *__string, size_t __maxlen);

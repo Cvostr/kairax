@@ -75,6 +75,21 @@ int memcmp (const void *__s1, const void *__s2, size_t __n)
 	return 0;
 }
 
+void* memchr(const void *s, int c, size_t n)
+{
+    const unsigned char *memstr = (unsigned char *) s;
+
+    for (size_t i = 0; i < n; i ++)
+    {
+        if (memstr[i] == c)
+        {
+            return (void*) &memstr[i];
+        }
+    }
+    
+    return NULL;
+}
+
 size_t strlen (const char *__s)
 {
     size_t size = 0;

@@ -77,14 +77,15 @@ int main(int argc, char** argv)
 
     printf("asin(0) = %f asin(1) = %f asin(0.5) = %f\n", asin(0), asin(1), asin(0.5));
     printf("ldexp(2, 5) = %f. Should be 64!\n", ldexp(2, 5));
-    int exp;
-    double m = frexp(16.4, &exp);
-    printf("frexp(16.4) = %f, %i. Should be (0.512500, 5)\n", m, exp);
+    int _exp;
+    double m = frexp(16.4, &_exp);
+    printf("frexp(16.4) = %f, %i. Should be (0.512500, 5)\n", m, _exp);
     printf("log(10) = %f, logf(10) = %f. Should be 2.302585\n", log(10), logf(10));
     printf("log2(10) = %f, log2f(10) = %f. Should be 3.321928\n", log2(10), log2f(10));
     printf("log10(10) = %f, log10f(10) = %f. Should be 1\n", log10(10), log10f(10));
+    printf("exp(2.302585) = %f. Should be 10, exp(4) = %f.\n", exp(2.302585093), exp(4));
 
-    //asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
+    asm volatile ("vshufpd $15, %ymm1, %ymm1, %ymm1;");
 
     asm volatile ("mov $12, %rax");
     asm volatile ("movq %rax, %xmm1");
