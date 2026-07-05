@@ -34,6 +34,11 @@ struct pipe* new_pipe()
     return pipe;
 }
 
+void acquire_pipe(struct pipe* pipe)
+{
+    atomic_inc(&pipe->ref_count);
+}
+
 void free_pipe(struct pipe* pipe)
 {
     if (atomic_dec_and_test(&pipe->ref_count)) 
@@ -48,6 +53,7 @@ int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, stru
     struct inode* ino = new_vfs_inode();
     ino->mode = INODE_FLAG_PIPE;
 
+    acquire_pipe(pipe);
     read_file->private_data = pipe;
     read_file->flags = flags | FILE_OPEN_MODE_READ_ONLY;
     read_file->pos = 0;
@@ -56,6 +62,7 @@ int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, stru
     read_file->ops = &pipe_fops_read;
     pipe->nreadfds++;
 
+    acquire_pipe(pipe);
     write_file->private_data = pipe;
     write_file->flags = flags | FILE_OPEN_MODE_WRITE_ONLY;
     write_file->pos = 0;
@@ -63,9 +70,6 @@ int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, stru
     write_file->inode = ino;
     write_file->ops = &pipe_fops_write;
     pipe->nwritefds++;
-
-    atomic_inc(&pipe->ref_count);
-    atomic_inc(&pipe->ref_count);
 
     inode_open(ino, 0);
     inode_open(ino, 0);

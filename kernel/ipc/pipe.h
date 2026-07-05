@@ -32,6 +32,7 @@ struct pipe {
 
 struct pipe* new_pipe();
 int pipe_create_files(struct pipe* pipe, int flags, struct file* read_file, struct file* write_file);
+void acquire_pipe(struct pipe* pipe);
 void free_pipe(struct pipe* pipe);
 
 ssize_t pipe_read(struct pipe* pipe, char* buffer, size_t count, int nonblock);

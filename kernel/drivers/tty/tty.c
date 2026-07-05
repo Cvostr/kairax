@@ -84,15 +84,9 @@ void free_pty(struct pty* p_pty)
 {
     if (atomic_dec_and_test(&p_pty->refs)) 
     {
-        if (atomic_dec_and_test(&p_pty->master_to_slave->ref_count)) 
-        {
-            free_pipe(p_pty->master_to_slave);
-        }
-
-        if (atomic_dec_and_test(&p_pty->slave_to_master->ref_count)) 
-        {
-            free_pipe(p_pty->slave_to_master);
-        }
+        free_pipe(p_pty->master_to_slave);
+        free_pipe(p_pty->slave_to_master);
+        
 #ifdef PTY_CLOSE_LOG
         printk("pty: free()\n");
 #endif
@@ -168,10 +162,10 @@ int tty_create(struct file **master, struct file **slave)
 
     // Создать каналы для ведущего и ведомого
     p_pty->master_to_slave = new_pipe();
-    atomic_inc(&p_pty->master_to_slave->ref_count);
+    acquire_pipe(p_pty->master_to_slave);
     
     p_pty->slave_to_master = new_pipe();
-    atomic_inc(&p_pty->slave_to_master->ref_count);
+    acquire_pipe(p_pty->slave_to_master);
 
     // Создать файловые дескрипторы
     struct file *fmaster = new_file();
