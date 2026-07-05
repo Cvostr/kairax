@@ -20,7 +20,7 @@ char *fgets_unlocked(char *s, int size, FILE *stream)
 
     for (i = 0; i < size - 1; i ++) 
     {
-        c = fgetc(stream);
+        c = fgetc_unlocked(stream);
 
         if (c == EOF) 
         {

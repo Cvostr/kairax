@@ -26,7 +26,7 @@ size_t fread_unlocked(void *buffer, size_t size, size_t count, FILE *f)
     }
 
     for (read = 0; read < len; read ++) {
-        rb = fgetc(f);
+        rb = fgetc_unlocked(f);
 
         if (rb == EOF) {
             return read / size;
