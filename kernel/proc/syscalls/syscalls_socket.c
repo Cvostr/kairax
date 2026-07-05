@@ -43,18 +43,12 @@ int sys_socket(int domain, int type, int protocol)
     struct file* fsock = make_file_from_sock(sock, nonblock);
 
     // Добавить к процессу
-    rc = process_add_file(process, fsock);
+    rc = process_add_file(process, fsock, cloexec);
     if (rc < 0) 
     {
         // destroy socket
         file_close(fsock);
         goto exit;
-    }
-
-    // Если передан флаг SOCK_CLOEXEC, надо взвести бит дескриптора
-    if (cloexec == 1) 
-    {
-        process_set_cloexec(process, rc, 1);
     }
 
 exit:
@@ -145,9 +139,10 @@ int sys_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
     
     rc = socket_accept(sock, &newsock, addr, addrlen);
     if (rc == 0 && newsock != NULL) {
-        // Создаем файл из сокета и добавляем
+        // Создаем файл из сокета
         struct file* fsock = make_file_from_sock(newsock, (flags & SOCK_NONBLOCK) == SOCK_NONBLOCK);
-        rc = process_add_file(process, fsock);
+        // добавляем его к процессу
+        rc = process_add_file(process, fsock, (flags & SOCK_CLOEXEC) == SOCK_CLOEXEC);
     }
 
 exit:
@@ -421,7 +416,7 @@ int sys_socketpair(int domain, int type, int protocol, int sv[2])
     fsock2 = make_file_from_sock(sock2, nonblock);
 
     // Добавить к процессу
-    fd1 = process_add_file(process, fsock1);
+    fd1 = process_add_file(process, fsock1, cloexec);
     if (fd1 < 0) 
     {
         // просто закроем оба файла - сокет уничтожится автоматически
@@ -432,7 +427,7 @@ int sys_socketpair(int domain, int type, int protocol, int sv[2])
     }
 
     // Добавить к процессу
-    fd2 = process_add_file(process, fsock2);
+    fd2 = process_add_file(process, fsock2, cloexec);
     if (fd2 < 0) 
     {
         // просто закроем оба файла - сокет уничтожится автоматически

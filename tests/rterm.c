@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     printf("Server started on port %i\n", SERV_PORT);
 
     int clientaddr_len = sizeof(clientaddr);
-    int client_sock = accept(sockfd, (struct sockaddr*) &clientaddr, &clientaddr_len);
+    int client_sock = accept4(sockfd, (struct sockaddr*) &clientaddr, &clientaddr_len, SOCK_CLOEXEC);
 
     if (client_sock < 0) { 
         printf("server accept failed: %i\n", errno); 

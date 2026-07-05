@@ -262,7 +262,7 @@ next:
     process->brk = 0;
 
     // Добавить файл к процессу
-    fd = process_add_file(process, exec_file);
+    fd = process_add_file(process, exec_file, FALSE);
 
     // Очистка информации о TLS
     kfree(process->tls);

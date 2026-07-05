@@ -477,14 +477,20 @@ exit:
     return result;
 }
 
-int process_add_file(struct process* process, struct file* file)
+int process_add_file(struct process* process, struct file* file, int cloexec)
 {
     int fd = -ERROR_TOO_MANY_OPEN_FILES;
 
     acquire_spinlock(&process->fd_lock);
 
-    for (int i = 0; i < MAX_DESCRIPTORS; i ++) {
-        if (process->fds[i] == NULL) {
+    for (int i = 0; i < MAX_DESCRIPTORS; i ++) 
+    {
+        if (process->fds[i] == NULL) 
+        {
+            // атомарный cloexec до назначения дескриптора
+            if (cloexec == TRUE)
+                process_set_cloexec(process, i, 1);
+
             process->fds[i] = file;
             file_acquire(file);
             fd = i;

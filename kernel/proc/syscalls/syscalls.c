@@ -49,6 +49,7 @@ int sys_pipe(int* pipefd, int flags)
 {
     int fdread, fdwrite;
     struct process* process = cpu_get_current_thread()->process;
+    int cloexec = (flags & O_CLOEXEC) == O_CLOEXEC;
     VALIDATE_USER_POINTER_PROTECTION(process, pipefd, sizeof(int) * 2, PAGE_PROTECTION_WRITE_ENABLE);
 
     struct pipe* ppe = new_pipe();
@@ -75,7 +76,7 @@ int sys_pipe(int* pipefd, int flags)
     pipe_create_files(ppe, flags, pread_file, pwrite_file);
 
     // Пробуем добавить файлы к процессу
-    fdread = process_add_file(process, pread_file);
+    fdread = process_add_file(process, pread_file, cloexec);
     if (fdread < 0)
     {
         // просто закроем оба файла - pipe уничтожится автоматически
@@ -84,7 +85,7 @@ int sys_pipe(int* pipefd, int flags)
         return fdread;
     }
 
-    fdwrite = process_add_file(process, pwrite_file);
+    fdwrite = process_add_file(process, pwrite_file, cloexec);
     if (fdwrite < 0)
     {
         // просто закроем оба файла - pipe уничтожится автоматически
@@ -122,8 +123,8 @@ int sys_create_pty(int *master_fd, int *slave_fd)
         return rc;
     }
 
-    *master_fd = process_add_file(process, master);
-    *slave_fd = process_add_file(process, slave);
+    *master_fd = process_add_file(process, master, FALSE);
+    *slave_fd = process_add_file(process, slave, FALSE);
 
     return rc;
 }
@@ -319,7 +320,7 @@ pid_t sys_create_process(int dirfd, const char* filepath, struct process_create_
     // -----------
 
     // Добавить файл к новому процессу
-    fd = process_add_file(new_process, file);
+    fd = process_add_file(new_process, file, FALSE);
 
     // Загрузка исполняемого файла
     size_t size = file->inode->size;

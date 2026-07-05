@@ -18,7 +18,7 @@ int sys_dup(int oldfd)
         return -ERROR_BAD_FD;
     }
 
-    return process_add_file(process, file);
+    return process_add_file(process, file, FALSE);
 }
 
 int sys_dup2(int oldfd, int newfd)

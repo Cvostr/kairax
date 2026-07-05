@@ -168,8 +168,9 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
 
 // Добавляет файл к процессу с первым свободным номером дескриптора
 // Повышает счетчик ссылок
+// Также атомарно устанавливает флаг O_CLOEXEC, если cloexec = TRUE
 // Возвращает номер дескриптора добавленного файла в этом процессе
-int process_add_file(struct process* process, struct file* file);
+int process_add_file(struct process* process, struct file* file, int cloexec);
 
 // Добавляет файл к процессу с указанным номером дескриптора
 // Если номер уже занят - производит замену с закрытием предыдущего файла
