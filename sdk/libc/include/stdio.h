@@ -67,6 +67,7 @@ void perror(const char *s);
 
 #define L_tmpnam 128
 #define P_tmpdir "/tmp"
+char *tmpnam(char *s);
 FILE* tmpfile(void);
 
 int fseek(FILE *stream, long offset, int whence);

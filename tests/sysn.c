@@ -287,10 +287,17 @@ int main(int argc, char** argv, char** envp) {
             mkdtemp(template_buf);
             printf("%i: %s\n", i, template_buf);
         }
+        printf("mktemp\n");
         for (i = 0; i < 25; i ++)
         {
             strcpy(template_buf, template);
             mktemp(template_buf);
+            printf("%i: %s\n", i, template_buf);
+        }
+        printf("tmpnam\n");
+        for (i = 0; i < 15; i ++)
+        {
+            tmpnam(template_buf);
             printf("%i: %s\n", i, template_buf);
         }
 
