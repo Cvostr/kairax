@@ -50,6 +50,18 @@ int fclose(FILE *stream)
 
 long ftell(FILE *stream)
 {
+    off_t pos = ftello(stream);
+    if ((long) pos != pos) 
+    {
+        errno = EOVERFLOW;
+        return -1;
+    }
+
+    return pos;
+}
+
+off_t ftello(FILE *stream)
+{
     off_t fdpos = 0;
     if ((stream->_flags & FSTREAM_ERROR == FSTREAM_ERROR) || (fdpos = lseek(stream->_fileno, 0, SEEK_CUR)) == -1) {
         return -1;
@@ -67,6 +79,17 @@ long ftell(FILE *stream)
 
 int fseek(FILE *stream, long offset, int whence)
 {
+    return fseeko(stream, offset, whence);
+}
+
+int	fseeko(FILE* stream, off_t offset, int whence)
+{
+    if (whence != SEEK_CUR && whence != SEEK_SET && whence != SEEK_END) 
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
     fflush(stream);
     stream->_buf_pos = 0;
     stream->_buf_size = 0;

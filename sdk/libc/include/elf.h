@@ -60,6 +60,7 @@ struct elf_rela {
 #define R_X86_64_JUMP_SLOT  7
 #define R_X86_64_RELATIVE   8
 #define R_X86_64_GLOB_DAT   6
+#define R_X86_64_TPOFF64    18
 
 // ST_BIND values
 #define STB_LOCAL       0

@@ -65,11 +65,14 @@ int rename(const char *oldpath, const char *newpath);
 
 void perror(const char *s);
 
+#define L_tmpnam 128
 #define P_tmpdir "/tmp"
 FILE* tmpfile(void);
 
 int fseek(FILE *stream, long offset, int whence);
+int	fseeko(FILE* stream, off_t offset, int whence);
 long ftell(FILE *stream);
+off_t ftello(FILE *stream);
 int fileno(FILE *stream);
 int feof(FILE *stream);
 int ferror(FILE *stream);
