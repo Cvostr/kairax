@@ -32,6 +32,12 @@ int fgetc_unlocked(FILE *f)
         f->_flags |= FSTREAM_INPUT;
     }
 
+    // если были возвращены некоторые символы через ungetc
+    if (f->_ungotten > 0)
+    {
+        return f->_ungetbuf[--f->_ungotten];
+    }
+
     if (f->_buf_pos >= f->_buf_size) {
         ssize_t rd = read(f->_fileno, f->_buffer, f->_buf_len);
 

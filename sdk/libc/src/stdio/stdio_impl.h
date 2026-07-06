@@ -16,6 +16,8 @@
 #define FSTREAM_ERROR 1
 #define FSTREAM_EOF 2
 
+#define UNGETC_BUFSZ    4
+
 struct IO_FILE {
     int         _flags;
     int         _fileno;
@@ -27,6 +29,9 @@ struct IO_FILE {
     struct IO_FILE *_next;	// Связный список для всех FILE. используется в fflush(0)
     pid_t       _popen_pid; 
     mtx_t       _lock;
+
+    unsigned char _ungetbuf[UNGETC_BUFSZ];
+    uint8_t _ungotten;
 };
 
 struct arg_printf {

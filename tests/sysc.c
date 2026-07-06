@@ -40,6 +40,7 @@ void thr2(int* val) {
 
 int main(int argc, char** argv) {
 
+    int readed = 0;
     printf("ARGS %i\n", argc);
     for(int i = 0; i < argc; i ++) {
         printf("%i : %s \n", i, argv[i]);
@@ -51,6 +52,33 @@ int main(int argc, char** argv) {
         memset(testmem, 0, 120);
         sprintf(testmem, "String in malloced memory %i %c", 12, 'a');
         printf("%s 0x%x 0x%p\n", testmem, testmem, testmem);
+    }
+
+    if (argc > 1 && strcmp(argv[1], "ungetc") == 0)
+    {
+        FILE* tsf = fopen("/tmp/ungetctest.txt", "w");
+        fwrite("HelloWorld!\n", 1, 12, tsf);
+        fclose(tsf);
+
+        tsf = fopen("/tmp/ungetctest.txt", "rb");
+        while ((readed = fread(buff, 1, 20, tsf)) > 0) {
+            for (int i = 0; i < readed; i ++) {
+                putchar(buff[i]);
+            }
+        }
+
+        printf("AFTER READ FTELL IS %i, EOF is %i\n", ftell(tsf), feof(tsf));
+        ungetc('S', tsf);
+        ungetc('A', tsf);
+        printf("AFTER 2 UNGETC FTELL IS %i, EOF is %i\n", ftell(tsf), feof(tsf));
+
+        while ((readed = fread(buff, 1, 20, tsf)) > 0) {
+            for (int i = 0; i < readed; i ++) {
+                putchar(buff[i]);
+            }
+        }
+
+        return 0;
     }
 
     char bf[100];
@@ -104,7 +132,7 @@ int main(int argc, char** argv) {
 
     pid_t pids[THREADS];
     for (int i = 0; i < THREADS; i ++) {
-        pids[i] = create_thread(thr2, i);
+        pids[i] = create_thread(thr2, (void*) i);
     }
 
     for (int i = 0; i < THREADS; i ++) {
@@ -122,13 +150,13 @@ int main(int argc, char** argv) {
         return 1;
     }
     char* buffer = malloc(20);
-    int readed = 0;
     while ((readed = fread(buffer, 1, 20, tsf)) > 0) {
         printf("FTELL IS %i\n", ftell(tsf));
         for (int i = 0; i < readed; i ++) {
             putchar(buffer[i]);
         }
     }
+
     fclose(tsf);
     tsf = fopen("bugaga.txt", "w");
     int written = fwrite("abab", 1, 4, tsf);

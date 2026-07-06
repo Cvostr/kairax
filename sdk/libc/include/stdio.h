@@ -99,6 +99,9 @@ int fgetc(FILE *f);
 int fgetc_unlocked(FILE *f);
 int getchar();
 
+int ungetc(int c, FILE *stream);
+int ungetc_unlocked(int c, FILE *stream);
+
 char *fgets(char *s, int size, FILE *stream);
 char *fgets_unlocked(char *s, int size, FILE *stream);
 

@@ -11,6 +11,7 @@ static FILE __stderr = {
     ._buffer = NULL,
     ._next = NULL,
     ._popen_pid = 0,
+    ._ungotten = 0,
     ._lock = {.type = mtx_plain, .lock = 0}
 };
 
@@ -21,6 +22,7 @@ static FILE __stdout = {
     ._buf_len = STDIO_BUFFER_LENGTH,
     ._next = NULL,
     ._popen_pid = 0,
+    ._ungotten = 0,
     ._lock = {.type = mtx_plain, .lock = 0}
 };
 
@@ -31,6 +33,7 @@ static FILE __stdin = {
     ._buf_len = STDIO_BUFFER_LENGTH,
     ._next = NULL,
     ._popen_pid = 0,
+    ._ungotten = 0,
     ._lock = {.type = mtx_plain, .lock = 0}
 };
 

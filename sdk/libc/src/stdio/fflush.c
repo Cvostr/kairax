@@ -64,6 +64,9 @@ int fflush_unlocked(FILE *stream)
 
         stream->_buf_pos = 0;
     }
+
+    // сброс состояния ungetc
+    stream->_ungotten = 0;
     
 	return 0;
 }

@@ -50,7 +50,7 @@ unsigned int sys_alarm(unsigned int seconds)
     alarm_timer = &thread->alarm_timer;
 
     // Для бОльшей стабильности всегда вытаскиваем таймер из списка
-    unregister_event_timer(&alarm_timer);
+    unregister_event_timer(alarm_timer);
 
     // сохранить оставшееся время
     remaining = alarm_timer->when.tv_sec;

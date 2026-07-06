@@ -57,7 +57,7 @@ long ftell(FILE *stream)
 
     ssize_t modifier = 0;
     if ((stream->_flags & FSTREAM_INPUT) == FSTREAM_INPUT) {
-        modifier = -(stream->_buf_size - stream->_buf_pos);
+        modifier = -(stream->_buf_size - stream->_buf_pos) - stream->_ungotten;
     } else {
         modifier = stream->_buf_pos;
     }
@@ -70,6 +70,7 @@ int fseek(FILE *stream, long offset, int whence)
     fflush(stream);
     stream->_buf_pos = 0;
     stream->_buf_size = 0;
+    stream->_ungotten = 0;
     stream->_flags &= ~FSTREAM_EOF;
     return lseek(stream->_fileno, offset, whence) == -1 ? -1 : 0;
 }
