@@ -111,6 +111,11 @@ int pclose(FILE *stream);
 void flockfile(FILE* filehandle);
 void funlockfile(FILE* filehandle);
 
+#define _IONBF 0
+#define _IOLBF 1
+#define _IOFBF 2
+int setvbuf(FILE *stream, char *buf, int mode, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

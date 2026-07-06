@@ -35,6 +35,7 @@ COMPILED_OBJS = obj/math.o \
 				obj/stdio/get.o \
 				obj/stdio/fgets.o \
 				obj/stdio/ungetc.o \
+				obj/stdio/setvbuf.o \
 				obj/stdio/popen.o \
 				obj/stdio/perror.o \
 				obj/stdio/tmpfile.o \

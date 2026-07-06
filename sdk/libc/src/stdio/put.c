@@ -72,8 +72,9 @@ int fputc_unlocked(int c, FILE *stream)
     // Запись в буфер
     stream->_buffer[stream->_buf_pos ++] = val;
 
-    if (c == '\n') {
-        // Встретили перенос строки - сбрасвыаем кэш
+    if (c == '\n' && ((stream->_flags & FSTREAM_LINEBUF) == FSTREAM_LINEBUF)) 
+    {
+        // Встретили перенос строки - сбрасываем кэш
         if(fflush_unlocked(stream) != 0) {
             stream->_flags |= FSTREAM_ERROR;
             return EOF;
