@@ -54,7 +54,11 @@ void loader() {
     }
 
     // Обработка перемещений
-    process_relocations(root);
+    if (process_relocations(root) != 0)
+    {
+        printf("linker: Failed processing relocations\n");
+        syscall_process_exit(130);
+    }
 
     // Закрыть файл
     syscall_close(fd);
@@ -239,6 +243,12 @@ struct object_data* load_object_data(char* data, int shared) {
 
             memcpy(obj_data->rela, data + sehentry->offset, sehentry->size);
             obj_data->rela_size = sehentry->size;
+        } else if (strcmp(section_name, ".tbss") == 0 && (sehentry->flags & SHF_TLS)) {
+            // Есть секция TLS BSS
+            obj_data->tls_size = sehentry->size;
+            //printf("TBSS size %i\n", obj_data->tls_size);
+        } else if (strcmp(section_name, ".tdata") == 0 && (sehentry->flags & SHF_TLS)) {
+            obj_data->tls_size = sehentry->size;
         }
     }
 
@@ -293,9 +303,10 @@ struct object_data* load_object_data(char* data, int shared) {
     return obj_data;
 }
 
-void process_relocations(struct object_data* obj_data)
+int process_relocations(struct object_data* obj_data)
 {
     size_t i;
+    int64_t tls_offset = 0;
 
     for (i = 0; i < obj_data->dependencies_count; i ++) {
         struct object_data* dependency = obj_data->dependencies[i];
@@ -333,7 +344,7 @@ void process_relocations(struct object_data* obj_data)
 
                 if (dep_symbol == NULL) {
                     printf("Can't find symbol %s\n", name);
-                    // todo : error
+                    return 1;
                 }
 
                 // Копировать
@@ -351,10 +362,32 @@ void process_relocations(struct object_data* obj_data)
             
                 if (dep_symbol == NULL) {
                     printf("Can't find symbol %s\n", name);
-                    // todo : error
+                    return 1;
                 }
 
                 *value = dep->base + dep_symbol->value;
+                break;
+            case R_X86_64_TPOFF64:
+                name = obj_data->dynstr + sym->name;
+
+                dep_symbol = look_for_symbol(obj_data, name, &dep, MODE_LOOK_IN_CURRENT);
+                if (dep_symbol == NULL) {
+                    dep_symbol = look_for_symbol(root, name, &dep, MODE_LOOK_IN_CURRENT | MODE_LOOK_IN_DEPS);
+                }
+            
+                if (dep_symbol == NULL) {
+                    printf("Can't find symbol %s\n", name);
+                    return 1;
+                }
+
+                // для TLS в x86-64 переменные лежат ПОЗАДИ Thread Pointer
+                int64_t tlsoff = tls_offset - obj_data->tls_size;
+                // увеличим tls_offset для следующего аналогичного перемещения
+                tls_offset += dep_symbol->size;
+
+                //printf("R_X86_64_TPOFF64 with name %s with size %i\n", name, dep_symbol->size);
+
+                *((int64_t*) value) = tlsoff + rela->addend;
                 break;
             default: {
                 printf("Unsupported symbol type %i, name: %s\n", relocation_type, name);
@@ -362,6 +395,8 @@ void process_relocations(struct object_data* obj_data)
             }
         }
     }
+
+    return 0;
 }
 
 int open_shared_object_file(const char* fname)

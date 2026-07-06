@@ -34,6 +34,8 @@ struct object_data {
     // Перемещения для GOT - PLT
     struct elf_rela*    plt_rela;
     uint64_t            plt_rela_size;
+
+    size_t              tls_size;
 };
 
 struct elf_symbol* look_for_symbol(struct object_data* root_obj, const char* name, struct object_data** obj, int mode);

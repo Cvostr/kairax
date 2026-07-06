@@ -75,6 +75,15 @@ struct elf_rela {
 #define STT_SECTION     3
 #define STT_FILE        4
 
+#define SHF_WRITE	     (1 << 0)
+#define SHF_ALLOC	     (1 << 1)
+#define SHF_EXECINSTR	 (1 << 2)
+#define SHF_MERGE	     (1 << 4)
+#define SHF_STRINGS	     (1 << 5)
+#define SHF_INFO_LINK	 (1 << 6)
+#define SHF_GROUP	     (1 << 9)
+#define SHF_TLS		     (1 << 10)
+
 // A_TYPE
 #define AT_NULL         0               
 #define AT_IGNORE       1
