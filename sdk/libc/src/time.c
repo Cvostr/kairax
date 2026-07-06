@@ -26,6 +26,11 @@ int isleap(int year)
     return (!(year % 4) && ((year % 100) || !(year % 400)));
 }
 
+double difftime(time_t time1, time_t time0)
+{
+    return (double)time1 - (double)time0;
+}
+
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
     return syscall_get_time_epoch(tv);
@@ -66,16 +71,21 @@ int nanosleep(const struct timespec *req, struct timespec *rem)
 }
 
 // TODO: test!
+struct tm *localtime_r(const time_t *timep, struct tm *result)
+{
+    time_t tmp = *timep;
+
+    struct timezone tz;
+    gettimeofday(NULL, &tz);
+    tmp += tz.tz_minuteswest * 60;
+
+    return gmtime_r(&tmp, result);
+}
+
 struct tm* localtime(const time_t* t)
 {
     static struct tm tmtmp;
-    time_t tmp = *t;
-
-    struct timezone tz;
-    gettimeofday(0, &tz);
-    tmp += tz.tz_minuteswest * 60;
-
-    return gmtime_r(&tmp, &tmtmp);
+    return localtime_r(t, &tmtmp);
 }
 
 struct tm* gmtime(const time_t* time)

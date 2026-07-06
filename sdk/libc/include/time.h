@@ -16,6 +16,7 @@ struct tm* gmtime_r(const time_t* t, struct tm* r);
 
 time_t timegm(struct tm *timeptr);
 
+struct tm *localtime_r(const time_t *timep, struct tm *result) __THROW;
 struct tm* localtime(const time_t* t) __THROW;
 
 time_t mktime(struct tm *timeptr);
@@ -24,6 +25,8 @@ size_t strftime(char *s, size_t max, const char *format, const struct tm *tm) __
 
 time_t time(time_t *t);
 int stime(time_t *t);
+
+double difftime(time_t time1, time_t time0) __THROW;
 
 int nanosleep(const struct timespec *req, struct timespec *rem);
 

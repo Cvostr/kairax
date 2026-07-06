@@ -16,7 +16,7 @@ static FILE __stderr = {
 };
 
 static FILE __stdout = {
-    ._flags = FSTREAM_CANWRITE,
+    ._flags = FSTREAM_CANWRITE | FSTREAM_STATICBUF,
     ._fileno = 1,
     ._buffer = stdout_buffer,
     ._buf_len = STDIO_BUFFER_LENGTH,
@@ -27,7 +27,7 @@ static FILE __stdout = {
 };
 
 static FILE __stdin = {
-    ._flags = FSTREAM_CANREAD | FSTREAM_INPUT,
+    ._flags = FSTREAM_CANREAD | FSTREAM_INPUT | FSTREAM_STATICBUF,
     ._fileno = 0,
     ._buffer = stdin_buffer,
     ._buf_len = STDIO_BUFFER_LENGTH,

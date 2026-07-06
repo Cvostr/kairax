@@ -39,7 +39,7 @@ int fclose(FILE *stream)
         }
     }
 
-    if (stream->_buffer) {
+    if (stream->_buffer && (stream->_flags & FSTREAM_STATICBUF) == 0) {
         free(stream->_buffer);
     }
     
