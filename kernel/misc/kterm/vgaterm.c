@@ -530,19 +530,21 @@ void console_del_chars(struct vgaconsole* vgconsole, uint32_t chars)
 {
     if (chars == 0)
         return;
-        
-    for (uint32_t i = 0; i < chars; i ++)
-    {
-        surface_copy(vgconsole, 
-            vgconsole->console_col + i + 1, vgconsole->console_lines, 
-            vgconsole->console_col + i, vgconsole->console_lines, 
-            LETTER_SIZE, LETTER_SIZE);
-    }
+    
+    uint32_t remain_chars = surface_get_cols() - vgconsole->console_col - chars;
 
+    surface_copy(vgconsole, 
+        XOFFSET + (vgconsole->console_col + chars) * COL_SIZE, 
+        YOFFSET + (vgconsole->console_lines) * LINE_SIZE, 
+        XOFFSET + vgconsole->console_col  * COL_SIZE, 
+        YOFFSET + vgconsole->console_lines * LINE_SIZE, 
+        COL_SIZE * remain_chars, LINE_SIZE);
+    /*
     surface_draw_rect(vgconsole, XOFFSET + (vgconsole->console_col + chars) * COL_SIZE,
             YOFFSET + vgconsole->console_lines * LINE_SIZE, 
             LETTER_SIZE * 8,
             LETTER_SIZE * 8, 0, 0, 0);
+            */
 }
 
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)
@@ -550,7 +552,6 @@ void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, ui
     vga_draw_pixel(x, y, r, g, b);
 
     if (vgconsole && vgconsole->double_buffer) {
-        uint32_t pitch = vga_get_width() * DOUBLEBUFFER_DEPTH_BYTES;
         // Запись в double buffer
         uint8_t* fb_addr = vgconsole->double_buffer + y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
         fb_addr[0] = r;
@@ -574,10 +575,12 @@ void surface_copy(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint32_t
     {
         for (uint32_t j = 0; j < width; j++) 
         {
-            uint8_t* fb_addr = vgconsole->double_buffer + y * vga_get_pitch() + x * DOUBLEBUFFER_DEPTH_BYTES;
+            uint8_t* fb_addr = vgconsole->double_buffer + (i + y) * vga_get_pitch() + (j + x) * DOUBLEBUFFER_DEPTH_BYTES;
             surface_draw_pixel(vgconsole, j + nx, i + ny, fb_addr[0], fb_addr[1], fb_addr[2]);
         }
     }
+
+    vga_draw(vgconsole->double_buffer, vga_get_height(), vga_get_width());   
 }
 
 void surface_draw_char(struct vgaconsole* vgconsole, uint8_t chartable[][8], char c, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, int vscale, int hscale)

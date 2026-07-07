@@ -51,6 +51,9 @@ int fclose(FILE *stream)
 long ftell(FILE *stream)
 {
     off_t pos = ftello(stream);
+    if (pos == -1)
+        return -1;
+
     if ((long) pos != pos) 
     {
         errno = EOVERFLOW;
