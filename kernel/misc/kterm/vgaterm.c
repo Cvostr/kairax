@@ -539,12 +539,15 @@ void console_del_chars(struct vgaconsole* vgconsole, uint32_t chars)
         XOFFSET + vgconsole->console_col  * COL_SIZE, 
         YOFFSET + vgconsole->console_lines * LINE_SIZE, 
         COL_SIZE * remain_chars, LINE_SIZE);
-    /*
-    surface_draw_rect(vgconsole, XOFFSET + (vgconsole->console_col + chars) * COL_SIZE,
-            YOFFSET + vgconsole->console_lines * LINE_SIZE, 
-            LETTER_SIZE * 8,
-            LETTER_SIZE * 8, 0, 0, 0);
-            */
+    
+    // стереть с правого края экрана
+    surface_draw_rect(vgconsole, 
+        XOFFSET + (surface_get_cols() - chars) * COL_SIZE,
+        YOFFSET + vgconsole->console_lines * LINE_SIZE, 
+        COL_SIZE * chars,
+        LINE_SIZE, 
+        0, 0, 0);
+            
 }
 
 void surface_draw_pixel(struct vgaconsole* vgconsole, uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b)

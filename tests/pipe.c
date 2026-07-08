@@ -5,6 +5,7 @@
 #include "sched.h"
 #include "errno.h"
 #include "sys/wait.h"
+#include "pty.h"
 
 int fds[2];
 
@@ -62,6 +63,10 @@ int main(int argc, char** argv) {
     
     printf("FD overflow memory leak test\n");
     while ((rc = pipe(fds)) == 0);
+    printf("terminated with errno %i\n", errno);
+
+    printf("FD TTY overflow memory leak test\n");
+    while ((rc = openpty(&fds[0], &fds[1], NULL, NULL, NULL)) == 0);
     printf("terminated with errno %i\n", errno);
     
 

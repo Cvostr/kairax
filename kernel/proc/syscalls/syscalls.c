@@ -107,6 +107,7 @@ int sys_create_pty(int *master_fd, int *slave_fd)
     int rc;
     struct file *master;
     struct file *slave;
+    int fdmaster, fdslave;
     struct thread* thread = cpu_get_current_thread();
     struct process* process = thread->process;
 
@@ -123,8 +124,28 @@ int sys_create_pty(int *master_fd, int *slave_fd)
         return rc;
     }
 
-    *master_fd = process_add_file(process, master, FALSE);
-    *slave_fd = process_add_file(process, slave, FALSE);
+    // Пробуем добавить файлы к процессу
+    fdmaster = process_add_file(process, master, FALSE);
+    if (fdmaster < 0)
+    {
+        // просто закроем оба файла - TTY уничтожится автоматически
+        file_close(master);
+        file_close(slave);
+        return fdmaster;
+    }
+
+    fdslave = process_add_file(process, slave, FALSE);
+    if (fdslave < 0)
+    {
+        // просто закроем оба файла - TTY уничтожится автоматически
+        // файл чтения уже добавлен, поэтому закрываем его уже у процесса
+        process_close_file(process, fdmaster);
+        file_close(slave);
+        return fdslave;
+    }
+
+    *master_fd = fdmaster;
+    *slave_fd = fdslave;
 
     return rc;
 }
