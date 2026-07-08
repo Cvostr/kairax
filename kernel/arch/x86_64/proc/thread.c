@@ -168,13 +168,13 @@ void thread_create_tls(struct thread* thread)
         // Вычислить адрес начала TLS
         thread->tls = mem_begin + aligned_mem_size - required_tls_size; 
         // Копировать данные TLS из процесса
-        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls, process->tls, process->tls_size);
+        vm_memcpy(process->vmemory_table, thread->tls, process->tls, process->tls_size);
 
         struct x64_uthread uthread;
         uthread.this = thread->tls + process->tls_size;
 
         // Копировать данные структуры
-        vm_memcpy(process->vmemory_table, (virtual_addr_t)thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
+        vm_memcpy(process->vmemory_table, thread->tls + process->tls_size, &uthread, sizeof(struct x64_uthread));
 
         // Сохранить структуру диапазона
         thread->tls_mapping = range;

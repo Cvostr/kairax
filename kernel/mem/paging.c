@@ -93,11 +93,11 @@ void vm_memset(struct vm_table* table, uint64_t addr, int val, size_t size)
     release_spinlock(&table->lock);
 }
 
-void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size)
+void vm_memcpy(struct vm_table* table, void *dst, void* src, size_t size)
 {
     acquire_spinlock(&table->lock);
 
-    arch_vm_memcpy(table->arch_table, dst, src, size);
+    arch_vm_memcpy(table->arch_table, (uint64_t) dst, src, size);
 
     release_spinlock(&table->lock);
 }

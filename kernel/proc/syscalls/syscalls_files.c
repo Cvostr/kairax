@@ -357,7 +357,7 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
 
         for (int i = 0; i < 2; i ++)
         {
-            struct timespec *t = &times[i];
+            const struct timespec *t = &times[i];
             long int nsec = t->tv_nsec;
 
             if (nsec == UTIME_NOW)
@@ -372,7 +372,7 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
                     return -EINVAL;
                 }
 
-                memcpy(&_times[i], &times[i], sizeof(struct timespec));
+                memcpy(&_times[i], t, sizeof(struct timespec));
             }
         }
     }

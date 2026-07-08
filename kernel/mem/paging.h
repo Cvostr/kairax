@@ -29,7 +29,7 @@ void vm_table_unmap_region(struct vm_table* table, uint64_t virtual_addr, uint64
 void vm_table_protect_region(struct vm_table* table, uint64_t virtual_addr, uint64_t length, int protection);
 
 void vm_memset(struct vm_table* table, uint64_t addr, int val, size_t size);
-void vm_memcpy(struct vm_table* table, uint64_t dst, void* src, size_t size);
+void vm_memcpy(struct vm_table* table, void *dst, void* src, size_t size);
 
 int vm_is_mapped(struct vm_table* table, uint64_t address);
 uint64_t vm_get_physical_addr(struct vm_table* table, uint64_t addr);

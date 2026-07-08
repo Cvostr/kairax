@@ -37,7 +37,7 @@ pid_t sys_wait(pid_t id, int* status, int options)
 
             if (!child) {
 
-                child = process_get_thread_by_id(process, id);
+                child = (struct process *) process_get_thread_by_id(process, id);
                 
                 if (!child) {
                     result = -ERROR_NO_CHILD;
@@ -117,9 +117,9 @@ pid_t sys_wait(pid_t id, int* status, int options)
         free_process(child);
     } else if (child->type == OBJECT_TYPE_THREAD) {
         // Удалить процесс из списка потоков процесса
-        process_remove_thread(process, child);
+        process_remove_thread(process, (struct thread*) child);
         // Уничтожить объект потока
-        thread_destroy(child);
+        thread_destroy((struct thread*) child);
     }
 
 exit:

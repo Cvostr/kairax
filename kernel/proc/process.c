@@ -192,10 +192,10 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
 
         // Записать адрес
         uint64_t addr = *args_mem + args_offset;
-        vm_memcpy(process->vmemory_table, *args_mem + pointers_offset, &addr, sizeof(uint64_t));
+        vm_memcpy(process->vmemory_table, (*args_mem + pointers_offset), &addr, sizeof(uint64_t));
 
         // Записать строку аргумента
-        vm_memcpy(process->vmemory_table, (uint64_t) (*args_mem + args_offset), argv[i], arg_len);
+        vm_memcpy(process->vmemory_table, (*args_mem + args_offset), argv[i], arg_len);
 
         // Увеличить смещения
         args_offset += arg_len;
@@ -205,7 +205,7 @@ int process_load_arguments(struct process* process, int argc, char** argv, char*
     if (add_null > 0)
     {
         uint64_t zero = 0;
-        vm_memcpy(process->vmemory_table, *args_mem + pointers_offset, &zero, sizeof(uint64_t));
+        vm_memcpy(process->vmemory_table, (*args_mem + pointers_offset), &zero, sizeof(uint64_t));
     }
 
     return 0;
