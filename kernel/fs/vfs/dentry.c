@@ -195,6 +195,7 @@ exit:
 
 struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char* name, int flags, int depth)
 {
+    int rc;
     // dentry из суперблока
     struct dentry* result = superblock_get_dentry(sb, parent, name);
 
@@ -230,9 +231,11 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
         ssize_t len = inode_readlink(result->d_inode, symlink_path, SYMLINK_PATH_BUFFER_MAX - 1); // -1 для учета терминирующего 0
         symlink_path[len] = 0;
         // Разрезолвить путь символьной ссылки (без NOFOLLOW, PATH)
-        result = vfs_dentry_traverse_path_ex(parent, symlink_path, 0, depth + 1);
+        rc = vfs_dentry_traverse_path_ex(parent, symlink_path, 0, depth + 1, &result);
         // Освоббодить память
         kfree(symlink_path);
+        if (rc != 0)
+            return NULL;
     }
 
     return result;

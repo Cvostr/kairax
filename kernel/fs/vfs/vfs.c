@@ -174,7 +174,10 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry**
 
 int vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, struct inode** inode, int flags)
 {
-    struct dentry* result_dentry = vfs_dentry_traverse_path_ex(parent, path, flags, 0);
+    struct dentry* result_dentry = NULL;
+    int rc = vfs_dentry_traverse_path_ex(parent, path, flags, 0, &result_dentry);
+    if (rc != 0)
+        return rc;
 
     if (result_dentry) 
     {
@@ -216,30 +219,40 @@ struct inode* vfs_fopen_parent(struct dentry* child)
 
 struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path, int flags)
 {
-    return vfs_dentry_traverse_path_ex(parent, path, flags, 0);
+    struct dentry *res = NULL;
+    int rc = vfs_dentry_traverse_path_ex(parent, path, flags, 0, &res);
+    if (rc != 0)
+        return NULL;
+    return res;
 }
 
-struct dentry* vfs_dentry_traverse_path_ex(struct dentry* parent, const char* path, int flags, int depth)
+int vfs_dentry_traverse_path_ex(struct dentry* parent, const char* path, int flags, int depth, struct dentry **out)
 {
-    if (path == NULL) {
-        return parent;
-    }
-
-    if (path[0] == '\0') {
+    struct dentry *res;
+    if (path == NULL || path[0] == '\0') 
+    {
         // Пустая строка пути - возвращаем родителя
-        return parent;
+        *out = parent;
+        return 0;
     }
 
     if (path[0] == '/') {
         // Путь абсолютный - ищем относительно корня
         parent = root_dentry;
         path++;
-    } else if (parent == NULL) {
+    } 
+    else if (parent == NULL) 
+    {
         // Путь не абсолютный и родитель не указан - нечего искать
-        return NULL;
+        return -ERROR_NO_FILE;
     }
 
-    return dentry_traverse_path(parent, path, flags, depth);
+    res = dentry_traverse_path(parent, path, flags, depth);
+    if (res == NULL)
+        return -ERROR_NO_FILE;
+
+    *out = res;
+    return 0;
 }
 
 void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
