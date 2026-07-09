@@ -22,7 +22,14 @@ struct superblock* vfs_get_mounted_sb(int index);
 //Функции файловой системы
 
 struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry** dentry);
-struct inode* vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, int flags);
+/// @brief Найти dentry и inode файла по пути относительно parent. При успехе увеличивает счетчик ссылок dentry и inode
+/// @param parent dentry, относительно которого ищем, если указан относительный путь. При NULL используется корень файловой системы
+/// @param path строка пути
+/// @param[out] dentry dentry найденного файла 
+/// @param[out] inode inode найденного файла
+/// @param flags флаги поиска
+/// @return код ошибки, при успехе 0
+int vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, struct inode** inode, int flags);
 
 struct inode* vfs_fopen_parent(struct dentry* child);
 

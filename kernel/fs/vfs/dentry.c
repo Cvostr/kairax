@@ -214,7 +214,7 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
         {
             if ((flags & O_PATH) == O_PATH)
             {
-                // O_NOFOLLOW | O_NOFOLLOW - вернем dentry самой ссылки
+                // O_NOFOLLOW | O_PATH - вернем dentry самой ссылки
                 return result;
             } 
             else 

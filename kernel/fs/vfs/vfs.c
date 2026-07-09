@@ -161,33 +161,42 @@ struct superblock* vfs_get_mounted_sb(int index)
 
 struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry** dentry)
 {
-    return vfs_fopen_ex(parent, path, dentry, 0);
+    int rc;
+    struct inode* result_inode = NULL;
+
+    rc = vfs_fopen_ex(parent, path, dentry, &result_inode, 0);
+
+    if (rc != 0)
+        return NULL;
+
+    return result_inode;
 }
 
-struct inode* vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, int flags)
+int vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, struct inode** inode, int flags)
 {
-    struct dentry* result_dentry = vfs_dentry_traverse_path(parent, path, flags);
+    struct dentry* result_dentry = vfs_dentry_traverse_path_ex(parent, path, flags, 0);
 
-    if (result_dentry) {
+    if (result_dentry) 
+    {
+        struct inode* result_inode = result_dentry->d_inode;
 
-        struct inode* result = result_dentry->d_inode;
-
-        if (result) {
-            // Увеличение счетчика, операции с ФС
-            inode_open(result, 0);
-
+        if (result_inode) 
+        {
             if (dentry) {
                 dentry_open(result_dentry);
                 *dentry = result_dentry;
             }
 
-            return result;
+            // Увеличение счетчика, операции с ФС
+            inode_open(result_inode, 0);
+            *inode = result_inode;
+            return 0;
         }
 
-        return NULL;
+        return -ERROR_NO_FILE;
     }
     
-    return NULL;
+    return -ERROR_NO_FILE;
 }
 
 struct inode* vfs_fopen_parent(struct dentry* child)
