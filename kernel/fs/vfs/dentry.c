@@ -193,13 +193,17 @@ exit:
     return result;
 }
 
-struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char* name, int flags, int depth)
+int resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char* name, int flags, int depth, struct dentry **out)
 {
-    int rc;
+    int rc = 0;
     // dentry из суперблока
     struct dentry* result = superblock_get_dentry(sb, parent, name);
 
-    if (result != NULL && ((result->d_inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK))
+    if (result == NULL)
+    {
+        return -ERROR_NO_FILE;
+    }
+    else if ((result != NULL) && ((result->d_inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK))
     {
         // Это символьная ссылка
 
@@ -207,8 +211,7 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
         if (depth == SYMLINK_MAX_DEPTH)
         {
             // Выйдем, чтобы не зациклиться и не переполнить стек
-            // TODO: ELOOP
-            return NULL;
+            return -ELOOP;
         }
 
         if (((flags & O_NOFOLLOW) == O_NOFOLLOW))
@@ -216,12 +219,12 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
             if ((flags & O_PATH) == O_PATH)
             {
                 // O_NOFOLLOW | O_PATH - вернем dentry самой ссылки
-                return result;
+                *out = result;
+                return 0;
             } 
             else 
             {
-                // TODO: ELOOP
-                return NULL;
+                return -ELOOP;
             }
         }
 
@@ -234,15 +237,18 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
         rc = vfs_dentry_traverse_path_ex(parent, symlink_path, 0, depth + 1, &result);
         // Освободить память
         kfree(symlink_path);
+        // при ошибке - выходим уже сейчас
         if (rc != 0)
-            return NULL;
+            return rc;
     }
 
-    return result;
+    *out = result;
+    return 0;
 }
 
 int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth, struct dentry **out)
 {
+    int rc;
     size_t namelen;
     struct dentry* current = p_parent;
 
@@ -252,15 +258,16 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
         return 0;
     }
 
+    if (p_parent == NULL)
+    {
+        return -ERROR_NO_FILE;
+    }
+
     char* path_temp = (char*)path;
     char* name_temp = kmalloc(strlen(path) + 1);
 
-    while (1) {
-        
-        if (current == NULL) {
-            break;
-        }
-
+    while (1) 
+    {
         // Получить позицию следующего разделителя
         char* slash_pos = strchr(path_temp, '/');
 
@@ -278,7 +285,12 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
                 // сформировать имя файла между /
                 strncpy(name_temp, path_temp, namelen);
                 // Поискать dentry с именем (флаги не передаются, так как участвуют только при поиске последнего звена)
-                current = resolve_next_dentry(current->sb, current, name_temp, 0, depth);
+                rc = resolve_next_dentry(current->sb, current, name_temp, 0, depth, &current);
+                if (rc != 0)
+                {
+                    kfree(name_temp);
+                    return rc;
+                }
 
                 // Убедимся что это директория
                 if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
@@ -298,17 +310,20 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
             // Больше нет разделителей /
             strncpy(name_temp, path_temp, strlen(path_temp));
             // Разрезолвить последний компонент пути
-            current = resolve_next_dentry(current->sb, current, name_temp, flags, depth);
+            rc = resolve_next_dentry(current->sb, current, name_temp, flags, depth, &current);
+            if (rc != 0)
+            {
+                kfree(name_temp);
+                return rc;
+            }
+
             break;
         }
     }
 
-    kfree(name_temp);
-
-    if (current == NULL)
-        return -ERROR_NO_FILE;
-
     *out = current;
+
+    kfree(name_temp);
     return 0;
 }
 

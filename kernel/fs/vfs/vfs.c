@@ -175,13 +175,15 @@ struct inode* vfs_fopen(struct dentry* parent, const char* path, struct dentry**
 int vfs_fopen_ex(struct dentry* parent, const char* path, struct dentry** dentry, struct inode** inode, int flags)
 {
     struct dentry* result_dentry = NULL;
+    struct inode* result_inode = NULL;
+
     int rc = vfs_dentry_traverse_path_ex(parent, path, flags, 0, &result_dentry);
     if (rc != 0)
         return rc;
 
     if (result_dentry) 
     {
-        struct inode* result_inode = result_dentry->d_inode;
+        result_inode = result_dentry->d_inode;
 
         if (result_inode) 
         {
@@ -235,7 +237,8 @@ int vfs_dentry_traverse_path_ex(struct dentry* parent, const char* path, int fla
         return 0;
     }
 
-    if (path[0] == '/') {
+    if (path[0] == '/') 
+    {
         // Путь абсолютный - ищем относительно корня
         parent = root_dentry;
         path++;
