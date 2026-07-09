@@ -41,7 +41,7 @@ int dentry_is_fs_busy(struct dentry* den, int is_root);
 
 struct dentry* dentry_get_child_with_name(struct dentry* parent, const char* child_name);
 
-struct dentry* dentry_traverse_path(struct dentry* p_dentry, const char* path, int flags, int depth);
+int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth, struct dentry **out);
 
 void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result);
 

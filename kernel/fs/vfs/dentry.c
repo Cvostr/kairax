@@ -232,7 +232,7 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
         symlink_path[len] = 0;
         // Разрезолвить путь символьной ссылки (без NOFOLLOW, PATH)
         rc = vfs_dentry_traverse_path_ex(parent, symlink_path, 0, depth + 1, &result);
-        // Освоббодить память
+        // Освободить память
         kfree(symlink_path);
         if (rc != 0)
             return NULL;
@@ -241,13 +241,16 @@ struct dentry* resolve_next_dentry(struct superblock* sb, struct dentry* parent,
     return result;
 }
 
-struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth)
+int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth, struct dentry **out)
 {
     size_t namelen;
     struct dentry* current = p_parent;
 
     if (strlen(path) == 0)
-        return p_parent;
+    {
+        *out = p_parent;
+        return 0;
+    }
 
     char* path_temp = (char*)path;
     char* name_temp = kmalloc(strlen(path) + 1);
@@ -280,9 +283,8 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, i
                 // Убедимся что это директория
                 if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
                 {
-                    // TODO: return ENOTDIR
-                    current = NULL;
-                    break;
+                    kfree(name_temp);
+                    return -ERROR_NOT_A_DIRECTORY;
                 }
             }
 
@@ -303,7 +305,11 @@ struct dentry* dentry_traverse_path(struct dentry* p_parent, const char* path, i
 
     kfree(name_temp);
 
-    return current;
+    if (current == NULL)
+        return -ERROR_NO_FILE;
+
+    *out = current;
+    return 0;
 }
 
 void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)

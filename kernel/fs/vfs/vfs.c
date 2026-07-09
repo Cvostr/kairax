@@ -228,7 +228,6 @@ struct dentry* vfs_dentry_traverse_path(struct dentry* parent, const char* path,
 
 int vfs_dentry_traverse_path_ex(struct dentry* parent, const char* path, int flags, int depth, struct dentry **out)
 {
-    struct dentry *res;
     if (path == NULL || path[0] == '\0') 
     {
         // Пустая строка пути - возвращаем родителя
@@ -247,12 +246,7 @@ int vfs_dentry_traverse_path_ex(struct dentry* parent, const char* path, int fla
         return -ERROR_NO_FILE;
     }
 
-    res = dentry_traverse_path(parent, path, flags, depth);
-    if (res == NULL)
-        return -ERROR_NO_FILE;
-
-    *out = res;
-    return 0;
+    return dentry_traverse_path(parent, path, flags, depth, out);
 }
 
 void vfs_dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)
