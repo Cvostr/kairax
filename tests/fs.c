@@ -286,5 +286,29 @@ int main(int argc, char** argv)
         return 29;
     }
 
+    printf("Test 15: Symlink loop\n");
+    rc = symlink("link_a", "link_b");
+    if (rc == -1) {
+        printf("Failed symlink(link_a, link_b)\n");
+        return 1;
+    }
+    rc = symlink("link_b", "link_a");
+    if (rc == -1) {
+        printf("Failed symlink(link_b, link_a)\n");
+        return 1;
+    }
+    fd = open("link_a", O_RDONLY);
+    if (fd != -1) {
+        printf("Successful open() of link loop, Something wrong\n", testfile2);
+        return 30;
+    }
+    if (errno != ELOOP) {
+        printf("Incorrect errno, expected %i, got %i\n", ELOOP, errno);
+        return 31;
+    }
+
+    unlink("link_a");
+    unlink("link_b");
+
     return 0;
 }
