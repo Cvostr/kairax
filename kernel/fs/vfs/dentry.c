@@ -288,8 +288,8 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
             // проверим посчитанную длину файла
             if (namelen > NAME_MAX)
             {
-                kfree(name_temp);
-                return -ENAMETOOLONG;
+                rc = -ENAMETOOLONG;
+                goto exit_error;
             }
             else if (namelen > 0)
             {
@@ -300,15 +300,14 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
                 rc = resolve_next_dentry(current->sb, current, name_temp, 0, depth, &current);
                 if (rc != 0)
                 {
-                    kfree(name_temp);
-                    return rc;
+                    goto exit_error;
                 }
 
                 // Убедимся что это директория
                 if (current != NULL && (current->flags & DENTRY_TYPE_DIRECTORY) == 0) 
                 {
-                    kfree(name_temp);
-                    return -ERROR_NOT_A_DIRECTORY;
+                    rc = -ERROR_NOT_A_DIRECTORY;
+                    goto exit_error;
                 }
             }
 
@@ -327,8 +326,8 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
             // проверить длину имени файла
             if (namelen > NAME_MAX)
             {
-                kfree(name_temp);
-                return -ENAMETOOLONG;
+                rc = -ENAMETOOLONG;
+                goto exit_error;
             }
 
             // копировать имя в буфер
@@ -337,18 +336,20 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
             rc = resolve_next_dentry(current->sb, current, name_temp, flags, depth, &current);
             if (rc != 0)
             {
-                kfree(name_temp);
-                return rc;
+                goto exit_error;
             }
 
             break;
         }
     }
 
+    // при успехе
+    rc = 0;
     *out = current;
 
+exit_error:
     kfree(name_temp);
-    return 0;
+    return rc;
 }
 
 void dentry_get_absolute_path(struct dentry* p_dentry, size_t* p_required_size, char* p_result)

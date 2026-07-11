@@ -908,11 +908,15 @@ int sys_mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
     split_path(pathname, &new_directory_path, &new_filename);
 
     // Открыть inode директории нового пути
-    parent_inode = vfs_fopen(dir_dentry, new_directory_path, &parent_dentry);
+    rc = vfs_fopen_ex(dir_dentry, new_directory_path, &parent_dentry, &parent_inode, 0);
+    if (rc != 0) {
+        goto exit;
+    }
 
     // выполнить операцию в ФС
     rc = inode_mknod(parent_inode, new_filename, mode);
     
+exit:
     INODE_CLOSE_SAFE(parent_inode)
     DENTRY_CLOSE_SAFE(parent_dentry)
     DENTRY_CLOSE_SAFE(dir_dentry)

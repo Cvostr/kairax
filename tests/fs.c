@@ -350,6 +350,13 @@ int main(int argc, char** argv)
         return 37;
     }
 
+    printf("Test 19: mknod() call with non existent parent dir\n");
+    rc = mknod("./nonexdir/pipe", S_IFIFO, 0);
+    if (rc == 0) {
+        printf("Successful mknod(%s, S_IFIFO, 0), errno = %i\n", "./nonexdir/pipe", errno);
+        return 38;
+    }
+
 
     return 0;
 }
