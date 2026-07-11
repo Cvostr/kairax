@@ -64,6 +64,7 @@ struct inode* superblock_get_inode(struct superblock* sb, uint64 inode)
 
     if (result != NULL)
     {
+        inode_setup_if_needed(result);
         superblock_add_inode(sb, result);
     }
 

@@ -27,7 +27,7 @@ struct inode_operations {
 };
 
 struct file_operations;
-
+	
 #define INODE_TYPE_MASK        0xF000
 #define INODE_TYPE_FILE        0x8000
 #define INODE_TYPE_DIRECTORY   0x4000
@@ -87,6 +87,7 @@ struct inode {
 struct inode* new_vfs_inode();
 
 int inode_check_perm(struct inode* ino, uid_t uid, gid_t gid, int ubit, int gbit, int obit);
+void inode_setup_if_needed(struct inode* node);
 
 void inode_open(struct inode* node, uint32_t flags);
 void inode_close(struct inode* node);

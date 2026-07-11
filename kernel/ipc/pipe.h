@@ -26,6 +26,7 @@ struct pipe {
 
     struct blocker readb;
     struct blocker writeb;
+    struct blocker connb;
 
     struct poll_wait_queue poll_wq;
 };
@@ -44,5 +45,10 @@ ssize_t pipe_file_write(struct file* file, const char* buffer, size_t count, lof
 
 int pipe_file_close_read(struct inode *inode, struct file *file);
 int pipe_file_close_write(struct inode *inode, struct file *file);
+
+/// --------- Для именованных каналов ------------
+void inode_setup_namedpipe_fops(struct inode *inode);
+int pipe_bootstrap_open(struct inode *inode, struct file *file);
+int pipe_namedfile_close(struct inode *inode, struct file *file);
 
 #endif

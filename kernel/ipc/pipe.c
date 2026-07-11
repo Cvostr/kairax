@@ -16,6 +16,19 @@ struct file_operations pipe_fops_write = {
     .poll = pipe_poll
 };
 
+/// --------- Для именованных каналов ------------
+struct file_operations pipe_bootstrap_fops = {
+    .open = pipe_bootstrap_open
+};
+
+struct file_operations namedpipe_fops = {
+    .read = pipe_file_read,
+    .write = pipe_file_write,
+    .close = pipe_namedfile_close,
+    .poll = pipe_poll
+};
+/// ---------------------------------------------
+
 struct pipe* new_pipe()
 {
     struct pipe* pipe = (struct pipe*) kmalloc(sizeof(struct pipe)); 
@@ -234,6 +247,101 @@ int pipe_file_close_write(struct inode *inode, struct file *file)
 
     // уменьшение ссылок на объект pipe
     free_pipe(p);
+
+    return 0;
+}
+
+/// --------- Для именованных каналов ------------
+void inode_setup_namedpipe_fops(struct inode *inode)
+{
+    inode->file_ops = &pipe_bootstrap_fops;
+}
+
+int pipe_bootstrap_open(struct inode *inode, struct file *file)
+{
+    struct pipe *pipe;
+    int read = file_allow_read(file);
+    int write = file_allow_write(file);
+
+    acquire_spinlock(&inode->spinlock);
+
+    if (inode->private_data == NULL)
+    {
+        pipe = new_pipe();
+        pipe->check_ends = 1;
+        acquire_pipe(pipe);
+        inode->private_data = pipe;
+    }
+    else
+    {
+        pipe = inode->private_data;
+    }
+
+    release_spinlock(&inode->spinlock);
+
+    // добавить pipe к файлу - дескриптору с увеличением счетчика ссылок
+    acquire_pipe(pipe);
+    file->private_data = pipe;
+    // нагло подменяем структуру операций для уже созданного file
+    file->ops = &namedpipe_fops;
+
+    if (read == TRUE)
+        pipe->nreadfds ++;
+    if (write == TRUE)
+        pipe->nwritefds ++;
+
+    if ((read == TRUE && pipe->nwritefds == 0) || (write == TRUE && pipe->nreadfds == 0))
+    {
+        // компаньон еще не присоединен
+        if (scheduler_sleep_on(&pipe->connb) == WAKE_SIGNAL)
+        {
+            // Нас разбудили сигналом - выходим
+            // ничего не закрываем, не сбрасываем, не уменьшаем
+            // так как после возврата файл закроется, а операции уже переопределены
+            // всё, что нужно, будет сделано в pipe_namedfile_close
+            return -EINTR;
+        }
+    } 
+    else
+    {
+        // Будим ожидающих подключения
+        scheduler_wake(&pipe->connb, INT_MAX);
+    }
+
+    return 0;
+}
+
+int pipe_namedfile_close(struct inode *inode, struct file *file)
+{
+    struct pipe* p = (struct pipe*) file->private_data;
+ 
+    int read = file_allow_read(file);
+    int write = file_allow_write(file);
+
+    if (write == TRUE)
+    {
+        p->nwritefds --;
+        // Будим читающих, чтобы вышли с EOF
+        scheduler_wake(&p->readb, INT_MAX);
+    }
+
+    if (read == TRUE)
+    {
+        p->nreadfds --;
+        // намеренно никого не будим
+    }
+
+    // Будим наблюдающих
+    poll_wakeall(&p->poll_wq);
+
+    // уменьшение ссылок на объект pipe
+    free_pipe(p);
+
+    if (p->nwritefds == 0 && p->nreadfds == 0)
+    {
+        inode->private_data = NULL;
+        free_pipe(p);
+    }
 
     return 0;
 }

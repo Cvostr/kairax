@@ -3,6 +3,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "superblock.h"
+#include "ipc/pipe.h"
 
 struct inode* new_vfs_inode()
 {
@@ -62,6 +63,14 @@ int inode_check_perm(struct inode* ino, uid_t uid, gid_t gid, int ubit, int gbit
     }
 
     return (ino->mode & obit) == obit;
+}
+
+void inode_setup_if_needed(struct inode* node)
+{
+    if ((node->mode & INODE_TYPE_MASK) == INODE_FLAG_PIPE)
+    {
+        inode_setup_namedpipe_fops(node);
+    }
 }
 
 int inode_chmod(struct inode* node, uint32_t mode)
