@@ -107,12 +107,13 @@ int sys_close_file(int fd)
 int sys_mkdir(int dirfd, const char* path, int mode)
 {
     int rc = -1;
-    struct dentry* dir_dentry = NULL;
+    struct dentry* root_dir_dentry = NULL;
+    struct inode* dir_inode = NULL;
     struct process* process = cpu_get_current_thread()->process;
     VALIDATE_USER_STRING(process, path)
 
     // Получить dentry, относительно которой создать папку
-    rc = process_get_relative_direntry1(process, dirfd, path, &dir_dentry);
+    rc = process_get_relative_direntry1(process, dirfd, path, &root_dir_dentry);
     if (rc != 0) {
         return rc;
     }
@@ -127,15 +128,23 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     split_path(formatted_path, &directory_path, &filename);
 
     // Открываем inode директории
-    struct inode* dir_inode = vfs_fopen(dir_dentry, directory_path, NULL);
-
-    if (directory_path) {
-        kfree(directory_path);
+    rc = vfs_fopen_ex(root_dir_dentry, directory_path, NULL, &dir_inode, 0);
+    if (rc != 0)
+    {
+        // ошибка открытия inode
+        goto exit;
     }
 
     if (dir_inode == NULL) {
         // Отсутствует полный путь к директории
         rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+
+    // Проверим, что это директория
+    if ((dir_inode->mode & INODE_TYPE_MASK) != INODE_TYPE_DIRECTORY) 
+    {
+        rc = -ERROR_NOT_A_DIRECTORY;
         goto exit;
     }
 
@@ -145,7 +154,10 @@ int sys_mkdir(int dirfd, const char* path, int mode)
     inode_close(dir_inode);
 
 exit:
-    DENTRY_CLOSE_SAFE(dir_dentry);
+    if (directory_path)
+        kfree(directory_path);
+
+    DENTRY_CLOSE_SAFE(root_dir_dentry);
     kfree(formatted_path);
     return rc;
 }
@@ -612,9 +624,15 @@ int sys_rmdir(const char* path)
     // Проверить адрес строки пути файла
     VALIDATE_USER_STRING(process, path)
 
-    // Получить удаляемую inode и dentry относительно рабочей директории
     struct dentry* target_dentry = NULL;
-    struct inode* target_inode = vfs_fopen(process->pwd, path, &target_dentry);
+    struct inode* target_inode = NULL;
+
+    // Получить удаляемую inode и dentry относительно рабочей директории
+    rc = vfs_fopen_ex(process->pwd, path, &target_dentry, &target_inode, 0);
+    if (rc != 0)
+    {
+        return rc;
+    }
 
     // не нашли файл, который нужно удалить
     if (target_inode == NULL || target_dentry == NULL) {

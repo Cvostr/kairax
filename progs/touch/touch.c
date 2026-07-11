@@ -39,13 +39,13 @@ int main(int argc, char** argv)
             fd = open(filpath, O_WRONLY | O_CREAT | O_APPEND, 0666);
             if (fd < 0)
             {
-                printf("touch: error creating file '%s': %s", filpath, strerror(errno));
+                printf("touch: error creating file '%s': %s\n", filpath, strerror(errno));
                 return 1;
             }
         } 
         else
         {
-            printf("touch: error opening file '%s': %s", filpath, strerror(errno));
+            printf("touch: error opening file '%s': %s\n", filpath, strerror(errno));
             return 1;
         }
     }

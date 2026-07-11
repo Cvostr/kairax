@@ -2,6 +2,7 @@
 #include "errno.h"
 #include "unistd.h"
 #include "sys/stat.h"
+#include "string.h"
 
 int main(int argc, char** argv) {
 
@@ -9,7 +10,7 @@ int main(int argc, char** argv) {
     int rc = mkdir(path, 0777);
 
     if (rc == -1) {
-        printf("Can't create directory %s, error : %i", path, errno);
+        printf("Can't create directory %s : %s\n", path, strerror(errno));
     }
 
     return 0;
