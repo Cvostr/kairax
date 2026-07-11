@@ -120,6 +120,9 @@ int sys_mkdir(int dirfd, const char* path, int mode)
 
     // Форматировать путь + дублировать путь
     char *formatted_path = format_path(path); 
+    if (formatted_path == NULL) {
+        return -ENOMEM;
+    }
 
     char* directory_path = NULL;
     char* filename = NULL;

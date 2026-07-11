@@ -310,5 +310,46 @@ int main(int argc, char** argv)
     unlink("link_a");
     unlink("link_b");
 
+    printf("Test 16: Open too long path\n");
+    char *bigpath = malloc(8192);
+    memset(bigpath, '9', 8192);
+    bigpath[8191] = 0;
+    rc = open(bigpath, O_RDONLY);
+    if (rc != -1) {
+        printf("Successful open() with O_EXCL of %s, Something wrong\n", testfile);
+        return 32;
+    }
+    if (errno != ENAMETOOLONG) {
+        printf("Incorrect errno(), expected %i, got %i\n", ENAMETOOLONG, errno);
+        return 33;
+    }
+
+    free(bigpath);
+
+    printf("Test 17: Open path with too long file name component\n");
+    char *longfileinmid = "/bin/12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890/123";
+    rc = open(longfileinmid, O_RDONLY);
+    if (rc != -1) {
+        printf("Successful open() with O_EXCL of %s, Something wrong\n", testfile);
+        return 34;
+    }
+    if (errno != ENAMETOOLONG) {
+        printf("Incorrect errno(), expected %i, got %i\n", ENAMETOOLONG, errno);
+        return 35;
+    }
+
+    printf("Test 18: Open path with too long file name component\n");
+    char *longfileinend = "/bin/12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+    rc = open(longfileinend, O_RDONLY);
+    if (rc != -1) {
+        printf("Successful open() with O_EXCL of %s, Something wrong\n", testfile);
+        return 36;
+    }
+    if (errno != ENAMETOOLONG) {
+        printf("Incorrect errno(), expected %i, got %i\n", ENAMETOOLONG, errno);
+        return 37;
+    }
+
+
     return 0;
 }

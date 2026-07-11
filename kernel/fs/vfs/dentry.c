@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "inode.h"
 #include "vfs.h"
+#include "kairax/limits.h"
 
 #define SYMLINK_MAX_DEPTH 9
 #define SYMLINK_PATH_BUFFER_MAX 512
@@ -249,13 +250,20 @@ int resolve_next_dentry(struct superblock* sb, struct dentry* parent, const char
 int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, int depth, struct dentry **out)
 {
     int rc;
-    size_t namelen;
+    size_t pathlen, namelen;
     struct dentry* current = p_parent;
 
-    if (strlen(path) == 0)
+    pathlen = strlen(path); 
+
+    // проверка длины всего пути
+    if (pathlen == 0)
     {
         *out = p_parent;
         return 0;
+    }
+    else if (pathlen > PATH_MAX)
+    {
+        return -ENAMETOOLONG;
     }
 
     if (p_parent == NULL)
@@ -264,7 +272,7 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
     }
 
     char* path_temp = (char*)path;
-    char* name_temp = kmalloc(strlen(path) + 1);
+    char* name_temp = kmalloc(pathlen + 1);
 
     while (1) 
     {
@@ -277,11 +285,15 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
             // длина имени файла между двумя /
             namelen = slash_pos - path_temp;
 
-            // проверим посчитанную длину
-            // искать по дереву имеет смысл если она больше 0
-            // но при этом мы также должны игнорировать повторяющиеся подряд ////
-            if (namelen > 0)
+            // проверим посчитанную длину файла
+            if (namelen > NAME_MAX)
             {
+                kfree(name_temp);
+                return -ENAMETOOLONG;
+            }
+            else if (namelen > 0)
+            {
+                // искать по дереву имеет смысл если длина файла больше 0
                 // сформировать имя файла между /
                 strncpy(name_temp, path_temp, namelen);
                 // Поискать dentry с именем (флаги не передаются, так как участвуют только при поиске последнего звена)
@@ -300,6 +312,9 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
                 }
             }
 
+            // если namelen = 0, то значит что в пути подряд идут несколько ///
+            // это допустимо, просто пропускаем их
+
             // Скипнуть /
             path_temp = slash_pos + 1;
 
@@ -308,7 +323,16 @@ int dentry_traverse_path(struct dentry* p_parent, const char* path, int flags, i
         else 
         {
             // Больше нет разделителей /
-            strncpy(name_temp, path_temp, strlen(path_temp));
+            namelen = strlen(path_temp);
+            // проверить длину имени файла
+            if (namelen > NAME_MAX)
+            {
+                kfree(name_temp);
+                return -ENAMETOOLONG;
+            }
+
+            // копировать имя в буфер
+            strncpy(name_temp, path_temp, namelen);
             // Разрезолвить последний компонент пути
             rc = resolve_next_dentry(current->sb, current, name_temp, flags, depth, &current);
             if (rc != 0)

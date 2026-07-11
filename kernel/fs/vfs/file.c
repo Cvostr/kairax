@@ -2,6 +2,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "vfs.h"
+#include "kairax/limits.h"
 
 int file_allow_read(struct file* file)
 {
@@ -60,6 +61,9 @@ void file_set_nonblock(struct file* file)
 char* format_path(const char* path) 
 {
     char *result = strdup(path);
+    if (result == NULL)
+        return NULL;
+
     if (result[strlen(path) - 1] == '/')
         result[strlen(path) - 1] = '\0';
 
@@ -91,12 +95,24 @@ int mkfile(struct dentry* dir, const char* path, int mode)
     int rc = 0;
     char* directory_path = NULL;
     char* filename = NULL;
+    struct inode* dir_inode = NULL;
 
     // Разделить путь на путь директории имя файла
     split_path(path, &directory_path, &filename);
 
+    if (strlen(filename) > NAME_MAX)
+    {
+        // Слишком длинное имя создаваемого файла
+        rc = -ENAMETOOLONG;
+        goto exit;
+    }
+
     // Открываем inode директории
-    struct inode* dir_inode = vfs_fopen(dir, directory_path, NULL);
+    rc = vfs_fopen_ex(dir, directory_path, NULL, &dir_inode, 0);
+    if (rc != 0)
+    {
+        goto exit;
+    }
 
     if (dir_inode == NULL) 
     {

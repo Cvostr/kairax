@@ -158,12 +158,11 @@ char *strdup (const char *__s)
 	}
 	
     char* str = kmalloc(strsize + 1);
-    str[strsize] = '\0';
-
     if (str == NULL) {
         return NULL;
     }
 
+	str[strsize] = '\0';
     return memcpy(str, __s, strsize);
 }
 

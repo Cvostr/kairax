@@ -13,7 +13,7 @@
 int trace = 0;
 char curdir[512];
 char hostname[256];
-char cmd[256];
+char cmd[512];
 
 void printcwd();
 void cmd_process();
