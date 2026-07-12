@@ -74,8 +74,9 @@ mode_t umask(mode_t mask);
 
 int mkdir(const char* dirpath, int mode);
 
-int mknod(const char *path, mode_t mode, dev_t dev);
-int mknodat (int dirfd, const char *path, mode_t mode, dev_t dev);
+int mknod(const char *path, mode_t mode, dev_t dev) __THROW;
+int mknodat(int dirfd, const char *path, mode_t mode, dev_t dev) __THROW;
+int mkfifo(const char *path, mode_t mode) __THROW;
 
 int utimensat(int fd, const char* path, const struct timespec times[2], int flag);
 

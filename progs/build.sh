@@ -10,6 +10,10 @@ cd mkdir
 make
 cd ..
 
+cd mkfifo
+make
+cd ..
+
 cd cat
 make 
 cd ..

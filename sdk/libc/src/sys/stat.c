@@ -54,6 +54,11 @@ int mknodat (int dirfd, const char *path, mode_t mode, dev_t dev)
     __sys_ret_set_errno(syscall_mknodat(dirfd, path, mode, dev));
 }
 
+int mkfifo(const char *path, mode_t mode)
+{
+    return mknod(path, (mode_t) (mode | S_IFIFO), 0);
+}
+
 int utimensat(int fd, const char* path, const struct timespec times[2], int flag)
 {
     __sys_ret_set_errno(syscall_set_fdate(fd, path, times, flag));

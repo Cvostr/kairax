@@ -5,6 +5,7 @@ sudo cp ./dynloader/loader.elf /mnt/kxvol
 sudo cp ./cat/cat.a /mnt/kxvol/bin/cat
 sudo cp ./echo/echo.a /mnt/kxvol/bin/echo
 sudo cp ./mkdir/mkdir.a /mnt/kxvol/bin/mkdir
+sudo cp ./mkfifo/mkfifo.a /mnt/kxvol/bin/mkfifo
 sudo cp ./date/date.a /mnt/kxvol/bin/date
 sudo cp ./pwd/pwd.a /mnt/kxvol/bin/pwd
 sudo cp ./mv/mv.a /mnt/kxvol/bin/mv
