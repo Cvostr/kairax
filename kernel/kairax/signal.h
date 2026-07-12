@@ -94,6 +94,7 @@ struct sigaction {
 
 int sigaddset(sigset_t *set, int sig);
 int sigcopyset(sigset_t *dst, sigset_t *set);
+int sigorset(sigset_t *dest, const sigset_t *left, const sigset_t *right);
 
 void process_handle_signals(int caller, void* frame);
 int process_send_signal_self(int signum);

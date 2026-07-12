@@ -3,14 +3,12 @@
 #include "unistd.h"
 #include "sys/stat.h"
 #include "errno.h"
-#include "process.h"
 #include "arpa/inet.h"
-#include "signal.h"
+#include <signal.h>
 #include "string.h"
 #include "stdlib.h"
 #include <termios.h>
 #include "threads.h"
-#include "syscalls.h"
 #include "sched.h"
 #include "libgen.h"
 #include "sys/resource.h"
@@ -78,6 +76,7 @@ void chldhandle(int arg)
 void inthandler(int arg)
 {
     printf("signal handled with arg %i\n", arg);
+    raise(SIGFPE);
 	printf("Terminate [y/n]?\n");
 	char r;
 	scanf("%c", &r);
@@ -90,11 +89,17 @@ void inthandler(int arg)
 
 int main(int argc, char** argv, char** envp) 
 {
+    int nodefer = 0;
     if (argc > 1 && strcmp(argv[1], "segv") == 0)
     {
         signal(SIGSEGV, segfaulthandle);
         int *__ptr = 0;
         *__ptr = 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "nodefer") == 0)
+    {
+        nodefer = 1;
     }
 
     if (argc > 1 && strcmp(argv[1], "srop") == 0)
@@ -134,8 +139,13 @@ int main(int argc, char** argv, char** envp)
         printf("Created process %i\n", ch);
     }
 
-    sighandler_t hd = signal(SIGINT, inthandler);
-    if (hd == SIG_ERR)
+    struct sigaction sact, oldact;
+    sact.sa_flags = nodefer == 1 ? SA_NODEFER : 0;
+    sact.sa_handler = inthandler;
+    sigemptyset(&sact.sa_mask);
+    sigaddset(&sact.sa_mask, SIGFPE);
+
+    if (sigaction(SIGINT, &sact, &oldact) != 0)
     {
         perror("signal error");
         return 1;
@@ -147,6 +157,11 @@ int main(int argc, char** argv, char** envp)
     sigaddset(&testset, 4);
     printf("sigismember %i %i %i %i\n", 
     sigismember(&testset, 1), sigismember(&testset, 2), sigismember(&testset, 3), sigismember(&testset, 4));
+
+    sigset_t ss;
+    sigemptyset(&ss);
+    sigaddset(&ss, SIGHUP);
+    sigprocmask(SIG_BLOCK, &ss, NULL);
 
     while (1)
     {

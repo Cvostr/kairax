@@ -10,6 +10,7 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
 {
     struct process* process = thr->process;
 
+    sigset_t oldsigmask;
     uint64_t old_stackptr;
     uint64_t new_stackptr;
 
@@ -17,6 +18,18 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
     // сохраняем параметры обработчика, так как они могут быть обнулены через SA_RESETHAND
     sighandler_t handler = sigact->handler;
     int sigflags = sigact->flags;
+
+    // сохраняем старую маску блокированных сигналов, чтобы потом ее восстановить в sigreturn
+    sigcopyset(&oldsigmask, &thr->blocked_signals);
+
+    // добавляем к маске блокированных маску из sigaction
+    sigorset(&thr->blocked_signals, &thr->blocked_signals, &sigact->sigmask);
+
+    // если не указан NODEFER, блокируем этот сигнал на всё время выполнения обработчика
+    if ((sigflags & SA_NODEFER) == 0)
+    {
+        sigaddset(&thr->blocked_signals, signum);
+    }
 
     // сбрасываем поведение сигнала если есть SA_RESETHAND
     if (sigflags & SA_RESETHAND)
@@ -32,16 +45,6 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
     else if (process->vmemory_table == NULL) {
         // Процесс завершается
         return;
-    }
-
-    // сохраняем старую маску блокированных сигналов, чтобы потом ее восстановить в sigreturn
-    sigset_t oldsigmask;
-    sigcopyset(&oldsigmask, &thr->blocked_signals);
-
-    // если не указан NODEFER, блокируем этот сигнал на всё время выполнения обработчика
-    if ((sigflags & SA_NODEFER) == 0)
-    {
-        sigaddset(&thr->blocked_signals, signum);
     }
 
     if (caller == CALLER_SYSCALL)

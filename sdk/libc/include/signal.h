@@ -13,6 +13,8 @@ typedef void (*sighandler_t)(int);
 #define SIG_IGN ((sighandler_t)1L)
 #define SIG_ERR ((sighandler_t)-1L)
 
+typedef sighandler_t sig_t;
+
 #define NSIG         32
 
 #define SIGHUP          1

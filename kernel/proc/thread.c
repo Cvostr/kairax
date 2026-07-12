@@ -61,7 +61,7 @@ int thread_send_signal(struct thread* thread, int signal)
     int nonmaskable = signal == SIGKILL || signal == SIGSTOP; 
 
     if (blocked && !nonmaskable) {
-        return -1;
+        return 0;
     }
 
     struct proc_sigact* sigact = &proc->sigactions[signal];

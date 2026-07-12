@@ -71,6 +71,12 @@ int sigcopyset(sigset_t *dst, sigset_t *set)
     return 0;
 }
 
+int sigorset(sigset_t *dest, const sigset_t *left, const sigset_t *right)
+{
+    *dest = *left | *right;
+    return 0;
+}
+
 int sigact_should_discard(struct sigaction *action, int signal)
 {
     if (action->sa_handler == SIG_DFL && signals_table[signal] == SIG_IGNORE)
