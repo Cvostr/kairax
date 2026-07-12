@@ -15,6 +15,7 @@ struct x64_uthread {
 };
 
 void thread_create_tls(struct thread* thread);
+void thread_add_main_thread_info(struct thread* thread, struct main_thread_create_info* info);
 
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg)
 {

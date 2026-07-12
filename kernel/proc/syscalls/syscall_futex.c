@@ -10,7 +10,7 @@
 
 struct futex {
     atomic_t    refs;
-    uintptr_t   futex;
+    void        *futex;
     struct blocker blocker;
 
     struct futex *prev;
@@ -77,7 +77,7 @@ int futex_intrusive_remove(struct futex** head, struct futex** tail, struct fute
     return 0;
 }
 
-struct futex* process_get_futex(struct process* process, uintptr_t futex_addr)
+struct futex* process_get_futex(struct process* process, void *futex_addr)
 {
     struct futex* result = NULL;
     acquire_spinlock(&process->futex_list_lock);

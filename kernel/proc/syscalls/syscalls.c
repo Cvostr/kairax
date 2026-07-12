@@ -211,24 +211,22 @@ exit:
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
     struct process* process = cpu_get_current_thread()->process;
-
-    struct thread* thread = create_thread(process, entry_ptr, arg, stack_size, NULL);
-    if (thread == NULL) {
-        return -ENOMEM;
-    }
-
-    // Добавить в список и назначить pid
-    process_add_to_list(thread);
-
-    if (thread == NULL) {
-        return -1;
-    }
+    struct thread* thread;
 
     if (stack_size > MAX_STACK_SIZE) 
     {
         stack_size = MAX_STACK_SIZE;
     }
 
+    // попытка создать объект потока
+    thread = create_thread(process, entry_ptr, arg, stack_size, NULL);
+    if (thread == NULL) {
+        return -ENOMEM;
+    }
+
+    // Добавить в список и назначить pid
+    process_add_to_list((struct thread *) thread);
+    // добавить к планировщику
     scheduler_add_thread(thread);
 
     return thread->id;

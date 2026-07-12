@@ -109,7 +109,7 @@ uint64_t arch_expand_kernel_mem(uint64_t size)
 	}
     
     // На всякий случай зануляем выделенную память
-    memset(temp, 0, size);
+    memset((void *) temp, 0, size);
 
     return temp;
 }
