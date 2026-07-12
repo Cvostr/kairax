@@ -92,6 +92,9 @@ struct sigaction {
 #define CALLER_INTERRUPT    2
 #define CALLER_SYSCALL      3
 
+int sigaddset(sigset_t *set, int sig);
+int sigcopyset(sigset_t *dst, sigset_t *set);
+
 void process_handle_signals(int caller, void* frame);
 int process_send_signal_self(int signum);
 int sigact_should_discard(struct sigaction *action, int signal);

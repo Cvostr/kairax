@@ -67,7 +67,6 @@ struct process {
     gid_t               gid;
     gid_t               egid;
     // Сигналы
-    sigset_t            blocked_signals;
     uintptr_t           sighandle_trampoline;
     struct proc_sigact  sigactions[SIGNALS];
     // Адрес, после которого загружен код программы и линковщика

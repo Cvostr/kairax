@@ -69,22 +69,23 @@ int sys_sigprocmask(int how, const sigset_t * set, sigset_t *oldset, size_t sigs
         return -EINVAL;
     }
 
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread *thread = cpu_get_current_thread();
+    struct process* process = thread->process;
     VALIDATE_USER_POINTER(process, set, sigsetsize)
     if (oldset != NULL) {
         VALIDATE_USER_POINTER(process, oldset, sigsetsize)
-        *oldset = process->blocked_signals;
+        *oldset = thread->blocked_signals;
     }
 
     switch (how) {
         case SIG_SETMASK:
-            process->blocked_signals = *set;
+            thread->blocked_signals = *set;
             break;
         case SIG_BLOCK:
-            process->blocked_signals |= *set;
+            thread->blocked_signals |= *set;
             break;
         case SIG_UNBLOCK:
-            process->blocked_signals &= ~(*set);
+            thread->blocked_signals &= ~(*set);
             break;
         default:
             return -ERROR_INVALID_VALUE;

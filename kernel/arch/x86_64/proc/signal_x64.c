@@ -14,10 +14,12 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
     uint64_t new_stackptr;
 
     struct proc_sigact* sigact = &process->sigactions[signum];
+    // сохраняем параметры обработчика, так как они могут быть обнулены через SA_RESETHAND
     sighandler_t handler = sigact->handler;
+    int sigflags = sigact->flags;
 
     // сбрасываем поведение сигнала если есть SA_RESETHAND
-    if (sigact->flags & SA_RESETHAND)
+    if (sigflags & SA_RESETHAND)
     {
         sigaction_reset(sigact);
     }
@@ -30,6 +32,16 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
     else if (process->vmemory_table == NULL) {
         // Процесс завершается
         return;
+    }
+
+    // сохраняем старую маску блокированных сигналов, чтобы потом ее восстановить в sigreturn
+    sigset_t oldsigmask;
+    sigcopyset(&oldsigmask, &thr->blocked_signals);
+
+    // если не указан NODEFER, блокируем этот сигнал на всё время выполнения обработчика
+    if ((sigflags & SA_NODEFER) == 0)
+    {
+        sigaddset(&thr->blocked_signals, signum);
     }
 
     if (caller == CALLER_SYSCALL)
@@ -71,6 +83,11 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
         save_frame->cs = GDT_BASE_USER_CODE_SEG | 0b11;
         save_frame->ss = GDT_BASE_USER_DATA_SEG | 0b11;
 
+        // Кладем в стек старую маску блокированных сигналов, 
+        // чтобы восстановить ее при выходе из обработчика в sigreturn
+        new_stackptr -= sizeof(sigset_t);
+        *((sigset_t*) new_stackptr) = oldsigmask;
+
         // Кладем в стек адрес возврата, 
         // на который будет передаваться управление после выхода из функции обработчика
         new_stackptr -= 8;
@@ -100,6 +117,11 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
 
         // Копирование старого фрейма
         memcpy(new_stackptr, old_frame, sizeof(thread_frame_t));
+
+        // Кладем в стек старую маску блокированных сигналов, 
+        // чтобы восстановить ее при выходе из обработчика в sigreturn
+        new_stackptr -= sizeof(sigset_t);
+        *((sigset_t*) new_stackptr) = oldsigmask;
 
         // Кладем в стек адрес возврата, 
         // на который будет передаваться управление после выхода из функции обработчика
@@ -156,6 +178,11 @@ void arch_signal_handler(struct thread* thr, int signum, int caller, void* frame
         save_frame->rflags = old_frame->rflags;
         save_frame->ss = old_frame->ss;
         save_frame->cs = old_frame->cs;
+
+        // Кладем в стек старую маску блокированных сигналов, 
+        // чтобы восстановить ее при выходе из обработчика в sigreturn
+        new_stackptr -= sizeof(sigset_t);
+        *((sigset_t*) new_stackptr) = oldsigmask;
 
         // Кладем в стек адрес возврата, 
         // на который будет передаваться управление после выхода из функции обработчика
@@ -223,6 +250,13 @@ void arch_sigreturn()
 {
     struct thread* thr = cpu_get_current_thread();
     thread_frame_t old_frame;
+
+    // извлекаем из стека сохраненную маску сигналов
+    sigset_t oldmask = *((sigset_t*) this_core->user_stack);
+    // и возвращаем ее потоку
+    sigcopyset(&thr->blocked_signals, &oldmask);
+
+    this_core->user_stack += sizeof(sigset_t);
     
     // чтобы не менять состояние в стеке процесса скопируем контекст сюда
     memcpy(&old_frame, this_core->user_stack, sizeof(thread_frame_t));

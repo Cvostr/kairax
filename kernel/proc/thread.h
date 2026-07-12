@@ -41,6 +41,7 @@ struct thread {
     int                 is_userspace;
     struct blocker*     blocker;
     int                 timeslice;
+    sigset_t            blocked_signals;
     sigset_t            pending_signals;
     // Указатель на объект таймера спящего потока
     void                *timer; 

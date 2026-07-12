@@ -13,7 +13,8 @@
 pid_t sys_fork() 
 {
     size_t i;
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread *calling_thread = cpu_get_current_thread(); 
+    struct process* process = calling_thread->process;
 
     // Создать новый процесс
     struct process* new_process = create_new_process(process);
@@ -33,9 +34,6 @@ pid_t sys_fork()
         new_process->pwd = process->pwd;
         dentry_open(new_process->pwd);
     }
-
-    // Процесс наследует блокированные сигналы
-    new_process->blocked_signals = process->blocked_signals;
 
     // Процесс наследует ID пользователя
     new_process->uid = process->uid;
@@ -95,6 +93,9 @@ pid_t sys_fork()
     // Создание главного потока без стека, т.к стек установим дальше
     struct thread* thr = create_thread(new_process, syscall_frame->rcx, 0, -1, NULL);
     thread_frame_t* ctx = thr->context;
+
+    // Поток наследует блокированные сигналы потока, вызвавшего fork
+    sigcopyset(&thr->blocked_signals, &calling_thread->blocked_signals);
 
     ctx->rax = 0;   
     ctx->rbx = syscall_frame->rbx;

@@ -210,7 +210,8 @@ exit:
 
 pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
 {
-    struct process* process = cpu_get_current_thread()->process;
+    struct thread *calling_thread = cpu_get_current_thread(); 
+    struct process* process = calling_thread->process;
     struct thread* thread;
 
     if (stack_size > MAX_STACK_SIZE) 
@@ -224,6 +225,9 @@ pid_t sys_create_thread(void* entry_ptr, void* arg, size_t stack_size)
         return -ENOMEM;
     }
 
+    // новый поток наследует блокированные сигналы потока, создавшего его
+    sigcopyset(&thread->blocked_signals, &calling_thread->blocked_signals);
+    
     // Добавить в список и назначить pid
     process_add_to_list((struct thread *) thread);
     // добавить к планировщику

@@ -54,6 +54,23 @@ void sigaction_reset(struct proc_sigact *action)
     action->sigmask = 0;
 }
 
+int sigaddset (sigset_t *set, int sig)
+{
+    if ((sig < 1)) {
+        return -1;
+    }
+
+    *set |= (1ULL << sig);
+
+    return 0; 
+}
+
+int sigcopyset(sigset_t *dst, sigset_t *set)
+{
+    *dst = *set;
+    return 0;
+}
+
 int sigact_should_discard(struct sigaction *action, int signal)
 {
     if (action->sa_handler == SIG_DFL && signals_table[signal] == SIG_IGNORE)
