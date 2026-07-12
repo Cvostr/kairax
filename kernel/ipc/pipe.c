@@ -285,6 +285,7 @@ int pipe_bootstrap_open(struct inode *inode, struct file *file)
     // нагло подменяем структуру операций для уже созданного file
     file->ops = &namedpipe_fops;
 
+    acquire_spinlock(&pipe->lock);
     if (read == TRUE)
         pipe->nreadfds ++;
     if (write == TRUE)
@@ -293,6 +294,7 @@ int pipe_bootstrap_open(struct inode *inode, struct file *file)
     if ((read == TRUE && pipe->nwritefds == 0) || (write == TRUE && pipe->nreadfds == 0))
     {
         // компаньон еще не присоединен
+        release_spinlock(&pipe->lock);
         if (scheduler_sleep_on(&pipe->connb) == WAKE_SIGNAL)
         {
             // Нас разбудили сигналом - выходим
@@ -301,12 +303,16 @@ int pipe_bootstrap_open(struct inode *inode, struct file *file)
             // всё, что нужно, будет сделано в pipe_namedfile_close
             return -EINTR;
         }
+
+        acquire_spinlock(&pipe->lock);
     } 
     else
     {
         // Будим ожидающих подключения
         scheduler_wake(&pipe->connb, INT_MAX);
     }
+
+    release_spinlock(&pipe->lock);
 
     return 0;
 }
@@ -331,17 +337,17 @@ int pipe_namedfile_close(struct inode *inode, struct file *file)
         // намеренно никого не будим
     }
 
-    // Будим наблюдающих
-    poll_wakeall(&p->poll_wq);
-
-    // уменьшение ссылок на объект pipe
-    free_pipe(p);
-
     if (p->nwritefds == 0 && p->nreadfds == 0)
     {
         inode->private_data = NULL;
         free_pipe(p);
     }
+
+    // Будим наблюдающих
+    poll_wakeall(&p->poll_wq);
+
+    // уменьшение ссылок на объект pipe
+    free_pipe(p);
 
     return 0;
 }
