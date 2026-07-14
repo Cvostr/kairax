@@ -133,11 +133,6 @@ int main(int argc, char** argv, char** envp)
         sact.sa_handler = chldhandle;
         sigemptyset(&sact.sa_mask);
 
-        if (argc > 2 && strcmp(argv[2], "no") == 0)
-        {
-            sact.sa_flags = SA_NOCLDSTOP;
-        }
-
         if (sigaction(SIGCHLD, &sact, &oldact) != 0)
         {
             perror("sigaction error");

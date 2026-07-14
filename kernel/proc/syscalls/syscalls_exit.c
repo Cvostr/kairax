@@ -35,10 +35,10 @@ void exit_process(int code)
     process->state = STATE_ZOMBIE;
 
     // отправить SIGCHLD родителю, если NOCLDSTOP не установлен у родителя
-    if ((parent_process->sigactions[SIGCHLD].flags & SA_NOCLDSTOP) == 0)
-    {
+    //if ((parent_process->sigactions[SIGCHLD].flags & SA_NOCLDSTOP) == 0)
+    //{
         process_send_signal(parent_process, SIGCHLD);
-    }
+    //}
 
     // Разбудить потоки, ждущие pid
     scheduler_wake(&parent_process->wait_blocker, INT_MAX);
