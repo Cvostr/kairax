@@ -36,9 +36,9 @@ enum {
 };
 
 typedef struct {
-    int lock;
-    int type;
-    int owner;
+    int     lock;
+    int     type;
+    void    *owner;
 } mtx_t;
 
 int mtx_init(mtx_t* mutex, int type);

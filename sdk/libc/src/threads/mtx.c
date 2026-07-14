@@ -2,12 +2,15 @@
 #include "sys/futex.h"
 #include "errno.h"
 
+#define THREAD_SELF __errno_location()
+
 int __mtx_trylock(mtx_t* mutex, int* lockval);
 
 int mtx_init(mtx_t* mutex, int type)
 {
     mutex->lock = 0;
     mutex->type = type;
+    mutex->owner = 0;
     return thrd_success;
 }
 
@@ -48,12 +51,15 @@ int mtx_timedlock(mtx_t* mutex, const struct timespec* time)
 
 int __mtx_trylock(mtx_t* mutex, int* lockval)
 {
+    void *self = THREAD_SELF;
+
     int lockv;
     if ((lockv = __sync_val_compare_and_swap(&mutex->lock, 0, 1)) == 0) {
+        mutex->owner = self;
 		return thrd_success;
     }
 
-    if ((mutex->type & mtx_recursive) /*&&  проверка владения*/) {
+    if ((mutex->type & mtx_recursive) && mutex->owner == self) {
         if (__sync_add_and_fetch(&mutex->lock, 1) > 1000) {
             __sync_add_and_fetch(&mutex->lock, -1);
             return thrd_error;
@@ -78,9 +84,10 @@ int mtx_unlock(mtx_t* mutex)
         return thrd_error;
     }
 
-    if (mutex->type & mtx_recursive /*&& проверить владение*/) {
+    if (mutex->type & mtx_recursive && mutex->owner == THREAD_SELF) {
 
         if (__sync_add_and_fetch(&mutex->lock, -1) == 0) {
+            mutex->owner = 0;
             futex(&mutex->lock, FUTEX_WAKE, 1, NULL);
         }
 

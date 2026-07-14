@@ -78,6 +78,7 @@ FILE *__fdopen(int fd, int uflags)
     memset(fil, 0, sizeof(struct IO_FILE));
 
     fil->_fileno = fd;
+    mtx_init(&fil->_lock, mtx_recursive);
     fil->_buf_len = STDIO_BUFFER_LENGTH;
     fil->_buffer = malloc(STDIO_BUFFER_LENGTH);
     if (fil->_buffer == NULL)

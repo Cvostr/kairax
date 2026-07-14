@@ -12,7 +12,7 @@ static FILE __stderr = {
     ._next = NULL,
     ._popen_pid = 0,
     ._ungotten = 0,
-    ._lock = {.type = mtx_plain, .lock = 0}
+    ._lock = {.type = mtx_recursive, .lock = 0, .owner = 0}
 };
 
 static FILE __stdout = {
@@ -23,7 +23,7 @@ static FILE __stdout = {
     ._next = NULL,
     ._popen_pid = 0,
     ._ungotten = 0,
-    ._lock = {.type = mtx_plain, .lock = 0}
+    ._lock = {.type = mtx_recursive, .lock = 0, .owner = 0}
 };
 
 static FILE __stdin = {
@@ -34,7 +34,7 @@ static FILE __stdin = {
     ._next = NULL,
     ._popen_pid = 0,
     ._ungotten = 0,
-    ._lock = {.type = mtx_plain, .lock = 0}
+    ._lock = {.type = mtx_recursive, .lock = 0, .owner = 0}
 };
 
 FILE *stderr = &__stderr;
