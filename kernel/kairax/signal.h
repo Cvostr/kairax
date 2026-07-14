@@ -80,6 +80,7 @@ struct sigaction {
     void (*sa_trampoline)(void);
 };
 
+#define SA_NOCLDSTOP	0x00000001
 #define SA_SIGINFO	    0x00000004
 #define SA_RESTORER	    0x04000000
 #define SA_ONSTACK	    0x08000000

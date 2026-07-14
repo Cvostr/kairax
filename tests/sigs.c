@@ -128,7 +128,22 @@ int main(int argc, char** argv, char** envp)
 
     if (argc > 1 && strcmp(argv[1], "chld") == 0)
     {
-        signal(SIGCHLD, chldhandle);
+        struct sigaction sact, oldact;
+        sact.sa_flags = 0;
+        sact.sa_handler = chldhandle;
+        sigemptyset(&sact.sa_mask);
+
+        if (argc > 2 && strcmp(argv[2], "no") == 0)
+        {
+            sact.sa_flags = SA_NOCLDSTOP;
+        }
+
+        if (sigaction(SIGCHLD, &sact, &oldact) != 0)
+        {
+            perror("sigaction error");
+            return 1;
+        }
+
         pid_t ch = fork();
         if (ch == 0)
         {

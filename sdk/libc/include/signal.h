@@ -47,6 +47,7 @@ typedef sighandler_t sig_t;
 #define SIGPROF         27
 #define SIGWINCH        28
 
+#define SA_NOCLDSTOP	0x00000001
 #define SA_SIGINFO	    0x00000004
 #define SA_RESTORER	    0x04000000
 #define SA_NODEFER	    0x40000000
