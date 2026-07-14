@@ -86,6 +86,8 @@ void thread_clear_stack_tls(struct thread* thread);
 void thread_become_zombie(struct thread* thread);
 void thread_destroy(struct thread* thread);
 
+int thread_is_signal_blocked(struct thread* thread, int signal);
+
 /// @brief Отправляет сигнал потоку, при необходимости будит его
 /// @param thread объект потока
 /// @param signal номер сигнала

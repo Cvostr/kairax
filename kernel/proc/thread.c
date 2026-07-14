@@ -46,6 +46,15 @@ void thread_destroy(struct thread* thread)
     kfree(thread);
 }
 
+int thread_is_signal_blocked(struct thread* thread, int signal)
+{
+    sigset_t shifted = 1ULL << signal;
+    int blocked = (thread->blocked_signals & shifted) == shifted;
+    int nonmaskable = signal == SIGKILL || signal == SIGSTOP; 
+
+    return (blocked && !nonmaskable);
+}
+
 int thread_send_signal(struct thread* thread, int signal)
 {
     if (thread == NULL)
@@ -53,27 +62,23 @@ int thread_send_signal(struct thread* thread, int signal)
         return -EINVAL;
     }
 
-    sigset_t shifted = 1 << signal;
+    sigset_t shifted = 1ULL << signal;
 
     struct process *proc = thread->process;
-
-    int blocked = (thread->blocked_signals & shifted) == shifted;
-    int nonmaskable = signal == SIGKILL || signal == SIGSTOP; 
-
-    if (blocked && !nonmaskable) {
-        return 0;
-    }
-
     struct proc_sigact* sigact = &proc->sigactions[signal];
+    
     if (sigact_should_discard(sigact, signal) == TRUE)
         return 0;
 
     thread->pending_signals |= shifted;
 
-    if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
+    if (thread_is_signal_blocked(thread, signal) == FALSE)
     {
-        thread->wake_reason = WAKE_SIGNAL;
-        scheduler_wakeup1(thread);
+        if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
+        {
+            thread->wake_reason = WAKE_SIGNAL;
+            scheduler_wakeup1(thread);
+        }
     }
 
     return 0;

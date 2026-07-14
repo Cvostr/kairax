@@ -110,35 +110,52 @@ void process_handle_signals(int caller, void* frame)
         return;
     }
 
-    // Найти первый сигнал для обработки
     int signal = 0;
-    while (((sigs >> signal) & 1) == 0)
+    
+    while (1)
     {
-        signal++;
-    }
-
-    // Снять сигнал
-    thread->pending_signals &= ~(1ULL << signal);
-
-    struct proc_sigact* sigact = &process->sigactions[signal];
-    sighandler_t handler = sigact->handler;
-
-    if (handler == SIG_IGN)
-    {
-        ;
-    } 
-    else if (handler == SIG_DFL)
-    {
-        // Действие по умолчанию
-        int sigdefault = signals_table[signal];
-
-        if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) {
-		    //exit_process(MAKETERMCODE(signal));
-            arch_exit_process_from_handler(MAKETERMCODE(signal), caller, frame);
+        // Найти следующий сигнал для обработки
+        while (((sigs >> signal) & 1) == 0)
+        {
+            signal++;
         }
-    } 
-    else
-    {
-        arch_signal_handler(thread, signal, caller, frame);
+
+        if (signal > SIGNALS)
+            break;
+
+        // если сигнал блокирован, то сразу переходим к следующему
+        if (thread_is_signal_blocked(thread, signal) == TRUE)
+        {
+            signal ++;
+            continue;
+        }
+
+        // Снять сигнал
+        thread->pending_signals &= ~(1ULL << signal);
+
+        struct proc_sigact* sigact = &process->sigactions[signal];
+        sighandler_t handler = sigact->handler;
+
+        if (handler == SIG_IGN)
+        {
+            ;
+        } 
+        else if (handler == SIG_DFL)
+        {
+            // Действие по умолчанию
+            int sigdefault = signals_table[signal];
+
+            if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) 
+            {
+                arch_exit_process_from_handler(MAKETERMCODE(signal), caller, frame);
+            }
+        } 
+        else
+        {
+            arch_signal_handler(thread, signal, caller, frame);
+        }
+
+        // сигнал успешно обработан, выходим из цикла
+        break;
     }
 }

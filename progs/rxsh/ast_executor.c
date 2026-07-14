@@ -35,6 +35,9 @@ void print_status(int status)
             case SIGSEGV:
                 printf("Segmentation fault\n");
                 break;
+            case SIGFPE:
+                printf("Floating point error\n");
+                break;
             case SIGINT:
                 printf("\n");
                 break;
