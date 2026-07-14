@@ -674,6 +674,7 @@ void tty_line_discipline_mw(struct pty* p_pty, const char* buffer, size_t count)
             }
             else if (first_char == p_pty->control_characters[VSUSP])
             {
+                sys_send_signal_pg(p_pty->foreground_pg, SIGTSTP);
                 // очищаем canonical буфер
                 pty_canon_clear(p_pty);
                 // для сигналов не добавляем управляющий символ в slave

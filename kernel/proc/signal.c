@@ -104,6 +104,14 @@ void process_handle_signals(int caller, void* frame)
         scheduler_yield(FALSE);
     }
 
+    // проверим, был ли приостановлен процесс
+    // если да, то помечаем поток как приостановленный
+    if (process->state == STATE_STOPPED)
+    {
+        thread->state = STATE_STOPPED;
+        scheduler_yield(TRUE);
+    }
+
     sigset_t sigs = thread->pending_signals;
 
     if (sigs == 0) {
@@ -148,6 +156,10 @@ void process_handle_signals(int caller, void* frame)
             if (sigdefault == SIG_TERMINATE || sigdefault == SIG_CORE) 
             {
                 arch_exit_process_from_handler(MAKETERMCODE(signal), caller, frame);
+            }
+            else if (sigdefault == SIG_STOP)
+            {
+                process_stop(process);
             }
         } 
         else

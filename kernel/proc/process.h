@@ -21,6 +21,7 @@
 #define STATE_INTERRUPTIBLE_SLEEP      2    // В ожидании ресурса
 #define STATE_UNINTERRUPTIBLE_SLEEP    3    // В ожидании ресурса внутри системного вызова
 #define STATE_ZOMBIE                   4    // Завершен, но не обработан родителем
+#define STATE_STOPPED                  5
 
 #define OBJECT_TYPE_PROCESS   1
 #define OBJECT_TYPE_THREAD    2
@@ -145,6 +146,9 @@ void free_process(struct process* process);
 // Отправить сигнал процессу
 // Сигнал дойдет до одного из потоков, функция сама решит до какого
 int process_send_signal(struct process* process, int signal);
+
+void process_stop(struct process* process);
+void process_continue(struct process* process);
 
 // Установить адрес конца памяти процесса
 uintptr_t        process_brk(struct process* process, uint64_t addr);

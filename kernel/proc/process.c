@@ -431,8 +431,55 @@ exit:
 
 int process_send_signal(struct process* process, int signal)
 {
+    if (signal == SIGCONT)
+    {
+        process_continue(process);
+        return 0;
+    }
+
     struct thread *thr = process->main_thread;
     return thread_send_signal(thr, signal);
+}
+
+void process_stop(struct process* process)
+{
+    // просто помечаем процесс как приостановленный
+    // через некоторое время все потоки получат такой же статус 
+    process->state = STATE_STOPPED;
+
+    // отправить SIGCHLD родителю, если NOCLDSTOP не установлен у родителя
+    struct process *parent = process->parent;
+    if ((process->parent->sigactions[SIGCHLD].flags & SA_NOCLDSTOP) == 0)
+    {
+        process_send_signal(parent, SIGCHLD);
+    }
+}
+
+void process_continue(struct process* process)
+{
+    // вернем состояние объекту процесса
+    process->state = STATE_RUNNING;
+
+    // вернем состояние потокам процесса
+    acquire_spinlock(&process->threads_lock);
+
+    for (size_t i = 0; i < list_size(process->threads); i ++) 
+    {
+        struct thread* child = list_get(process->threads, i);
+        if (child->state == STATE_STOPPED)
+        {
+            child->state = STATE_RUNNABLE;
+        }
+    }
+
+    release_spinlock(&process->threads_lock);
+
+    // отправить SIGCHLD родителю, если NOCLDSTOP не установлен у родителя
+    struct process *parent = process->parent;
+    if ((process->parent->sigactions[SIGCHLD].flags & SA_NOCLDSTOP) == 0)
+    {
+        process_send_signal(parent, SIGCHLD);
+    }
 }
 
 void  process_remove_child(struct process* process, struct process* child)

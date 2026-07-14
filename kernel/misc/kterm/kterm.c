@@ -27,6 +27,7 @@ struct terminal_session* current_session = NULL;
 #define NAK 0x15
 #define ETB 0x17
 #define CAN	0x18
+#define SUB	032
 
 void kterm_process_start()
 {
@@ -227,6 +228,10 @@ void kterm_main()
 									break;
 								case 'x':
 									chr = CAN;
+									sys_write_file(current_session->master, &chr, 1);
+									break;
+								case 'z':
+									chr = SUB;
 									sys_write_file(current_session->master, &chr, 1);
 									break;
 								case 'd':
