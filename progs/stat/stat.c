@@ -35,6 +35,10 @@ char* str_filetype(mode_t mode)
     {
         return "symbolic link";
     }
+    if (S_ISFIFO(mode))
+    {
+        return "fifo";
+    }
     if (S_ISCHR(mode))
     {
         return "character special file";
@@ -84,7 +88,7 @@ int main(int argc, char** argv)
         }
     }
 
-    int openflags = O_RDONLY;
+    int openflags = O_RDONLY | O_NONBLOCK;
     if (dereference == 0)
     {
         openflags |= (O_NOFOLLOW | O_PATH);

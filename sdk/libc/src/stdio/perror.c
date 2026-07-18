@@ -12,7 +12,7 @@ char* __errors_descriptions[] = {
     DEFINE_ERROR(ESRCH, "No such process"),
     DEFINE_ERROR(EINTR, "Interrupted system call"),
     DEFINE_ERROR(EIO, "I/O error"),
-    // ...
+    DEFINE_ERROR(ENXIO, "No such device or address"),
     DEFINE_ERROR(E2BIG, "Arg list too long"),
     DEFINE_ERROR(ENOEXEC, "Exec format error"),
     DEFINE_ERROR(EBADF, "Bad file number"),

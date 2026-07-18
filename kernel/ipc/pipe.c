@@ -294,6 +294,17 @@ int pipe_bootstrap_open(struct inode *inode, struct file *file)
     if ((read == TRUE && pipe->nwritefds == 0) || (write == TRUE && pipe->nreadfds == 0))
     {
         // компаньон еще не присоединен
+
+        // если явно указан неблокирующий режим
+        if ((file->flags & FILE_FLAG_NONBLOCK) == FILE_FLAG_NONBLOCK)
+        {
+            if (read == TRUE) {
+                return 0;
+            } else if (write == TRUE) {
+                return -ENXIO;
+            }
+        }
+
         release_spinlock(&pipe->lock);
         if (scheduler_sleep_on(&pipe->connb) == WAKE_SIGNAL)
         {

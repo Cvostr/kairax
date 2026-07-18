@@ -24,6 +24,10 @@ void sigint_handler(int sig) {
     // Do nothing or set a global volatile flag
 }
 
+void sigstop_handler(int sig) {
+    
+}
+
 ssize_t readline(char *dest, size_t max)
 {
     dest[0] = '\0';
@@ -76,6 +80,15 @@ int main(int argc, char** argv)
     sa.sa_flags = 0;
 
     if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("Error registering sigaction");
+        exit(EXIT_FAILURE);
+    }
+
+    sa.sa_handler = sigstop_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGTSTP, &sa, NULL) == -1) {
         perror("Error registering sigaction");
         exit(EXIT_FAILURE);
     }

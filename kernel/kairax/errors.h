@@ -26,6 +26,7 @@
 #define	ESRCH		                3
 #define	EINTR                       4
 #define EIO		                    5
+#define ENXIO		                6
 #define	E2BIG                       7
 #define	EAGAIN                      11
 #define	ENOMEM                      ERROR_NO_MEMORY
