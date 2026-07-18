@@ -226,7 +226,7 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = NULL;
+    struct inode* inode = NULL;
 
     // Путь может быть пустым
     if (filepath != NULL)
@@ -239,16 +239,15 @@ int sys_stat(int dirfd, const char* filepath, struct stat* statbuf, int flags)
     VALIDATE_USER_POINTER_PROTECTION(process, statbuf, sizeof(struct stat), PAGE_PROTECTION_WRITE_ENABLE)
 
     // Открыть файл относительно папки и флагов
-    rc = process_open_file_relative(process, dirfd, filepath, flags, &file);
+    rc = process_open_inode_relative(process, dirfd, filepath, flags, &inode);
     if (rc != 0) {
         return rc;
     }
 
-    struct inode* inode = file->inode;
     rc = inode_stat(inode, statbuf);
 
     // Закрыть файл
-    file_close(file);
+    inode_close(inode);
 
     return rc;
 }
@@ -257,7 +256,7 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
 {
     int rc = -1;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = NULL;
+    struct inode* inode = NULL;
 
     // Путь может быть пустым
     if (filepath != NULL)
@@ -267,23 +266,22 @@ int sys_set_mode(int dirfd, const char* filepath, mode_t mode, int flags)
     }
     
     // Открыть файл относительно папки и флагов
-    rc = process_open_file_relative(process, dirfd, filepath, flags, &file);
+    rc = process_open_inode_relative(process, dirfd, filepath, flags, &inode);
     if (rc != 0) {
         return rc;
     }
 
-    struct inode* inode = file->inode;
-
     if (inode->uid == process->euid || process->euid == 0)
     {
         rc = inode_chmod(inode, mode);
-    } else 
+    } 
+    else 
     {
         rc = -EPERM;
     }
 
     // Закрыть файл
-    file_close(file);
+    inode_close(inode);
 
     return rc;
 }

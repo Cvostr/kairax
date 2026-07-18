@@ -119,6 +119,7 @@ void process_set_name(struct process* process, const char* name);
 
 int process_get_relative_direntry1(struct process* process, int dirfd, const char* path, struct dentry** result);
 
+int process_open_inode_relative(struct process* process, int dirfd, const char* path, int flags, struct inode** inode);
 int process_open_file_relative(struct process* process, int dirfd, const char* path, int flags, struct file** file);
 
 // получить объект процесса - потомка по pid

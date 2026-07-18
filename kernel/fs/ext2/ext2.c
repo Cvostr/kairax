@@ -12,6 +12,7 @@
 struct inode_operations file_inode_ops;
 struct inode_operations dir_inode_ops;
 struct inode_operations symlink_inode_ops;
+struct inode_operations pipe_inode_ops;
 
 struct file_operations file_ops;
 struct file_operations dir_ops;
@@ -30,6 +31,9 @@ void ext2_init()
     file_inode_ops.chmod = ext2_chmod;
     file_inode_ops.set_datetime = ext2_set_datetime;
     file_inode_ops.truncate = ext2_truncate;
+
+    pipe_inode_ops.chmod = ext2_chmod;
+    pipe_inode_ops.set_datetime = ext2_set_datetime;
 
     dir_inode_ops.mkdir = ext2_mkdir;
     dir_inode_ops.mkfile = ext2_mkfile;
@@ -1189,6 +1193,9 @@ struct inode* ext2_inode_to_vfs_inode(ext2_instance_t* inst, ext2_inode_t* inode
     }
     if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_SYMLINK) {
         result->operations = &symlink_inode_ops;
+    }
+    if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_PIPE) {
+        result->operations = &pipe_inode_ops;
     }
     if ((inode->mode & INODE_TYPE_MASK) == INODE_FLAG_BLOCKDEVICE) {
     

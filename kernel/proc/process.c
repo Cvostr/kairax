@@ -889,3 +889,57 @@ int process_open_file_relative(struct process* process, int dirfd, const char* p
 
     return 0;
 }
+
+int process_open_inode_relative(struct process* process, int dirfd, const char* path, int flags, struct inode** inode)
+{
+    int fopen_flag = 0;
+    struct file *fil;
+    if ((flags & AT_SYMLINK_NOFOLLOW) == AT_SYMLINK_NOFOLLOW)
+    {
+        fopen_flag |= (O_NOFOLLOW | O_PATH);
+    }
+
+    if (flags & AT_EMPTY_PATH) 
+    {
+        // Дескриптор файла передан в dirfd
+        // Получим файл с увеличением счетчика ссылок
+        fil = process_get_file_ex(process, dirfd, TRUE);
+        if (fil == NULL)
+            return -ERROR_BAD_FD;
+
+        // открываем inode
+        *inode = fil->inode;
+        inode_open(fil->inode, 0);
+
+        // закрываем файл
+        file_close(fil);
+        return 0;
+    } 
+    else if (dirfd == FD_CWD && process->pwd) 
+    {
+        // Указан путь относительно рабочей директории
+        return vfs_fopen_ex(process->pwd, path, NULL, inode, fopen_flag);
+    } 
+    else 
+    {
+        // Открываем файл относительно dirfd
+        struct file* dirfile = process_get_file(process, dirfd);
+
+        if (dirfile) 
+        {
+            // проверить тип inode от dirfd
+            if ( !(dirfile->inode->mode & INODE_TYPE_DIRECTORY)) {
+                return -ERROR_NOT_A_DIRECTORY;
+            }
+
+        } else {
+            // Не найден дескриптор dirfd
+            return -ERROR_BAD_FD;
+        }
+
+        // Открыть inode
+        return vfs_fopen_ex(dirfile->dentry, path, NULL, inode, fopen_flag);
+    }
+
+    return -EINVAL;
+}
