@@ -50,9 +50,10 @@ void int_handler(interrupt_frame_t* frame)
 		lapic_eoi();
 	}
 
-	if (this_core->scheduled_tasklets->head != NULL)
+	struct tasklet_list* scheduled_tasklets = this_core->scheduled_tasklets;
+	if (scheduled_tasklets->head != NULL && cpu_get_current_thread() != NULL)
 	{
-		this_core->scheduled_tasklets->changed = 1;
+		scheduled_tasklets->changed = 1;
 		scheduler_yield(TRUE);
 	}
 }

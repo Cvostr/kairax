@@ -179,7 +179,7 @@ int xhci_device_probe(struct device *dev)
 	// Выделим память под кучу записей Event Ring Segment Table Entry
 	cntrl->event_ring = xhci_create_event_ring(XHCI_EVENT_RING_ENTIRIES, 1);
 	
-	tasklet_init(&cntrl->events_handle_tasklet, xhci_controller_handle_events, dev);
+	tasklet_init(&cntrl->events_handle_tasklet, xhci_controller_handle_events, cntrl);
 	
 	uint8_t irq = alloc_irq(0, "xhci");
     printk("XHCI: using IRQ %i\n", irq);
