@@ -179,6 +179,8 @@ int xhci_device_probe(struct device *dev)
 	// Выделим память под кучу записей Event Ring Segment Table Entry
 	cntrl->event_ring = xhci_create_event_ring(XHCI_EVENT_RING_ENTIRIES, 1);
 	
+	tasklet_init(&cntrl->events_handle_tasklet, xhci_controller_handle_events, dev);
+	
 	uint8_t irq = alloc_irq(0, "xhci");
     printk("XHCI: using IRQ %i\n", irq);
     rc = pci_device_set_msi_vector(dev, irq);
@@ -1194,8 +1196,8 @@ void xhci_int_hander(void* regs, struct xhci_controller* data)
 	
 	if ((usbsts & XHCI_STS_EINTERRUPT) == XHCI_STS_EINTERRUPT)
 	{
-		//tasklet_schedule(&data->events_handle_tasklet);
-		xhci_controller_handle_events(data);
+		tasklet_schedule(&data->events_handle_tasklet);
+		//xhci_controller_handle_events(data);
 	}
 
 	if ((usbsts & XHCI_STS_HALT) == XHCI_STS_HALT)

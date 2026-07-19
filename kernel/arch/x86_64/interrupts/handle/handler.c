@@ -6,6 +6,8 @@
 #include "../ioapic.h"
 #include "kairax/signal.h"
 #include "kairax/string.h"
+#include "dev/interrupts.h"
+#include "cpu/cpu_local_x64.h"
 
 typedef void (*interrupt_handler) (interrupt_frame_t*, void*);
 
@@ -46,6 +48,12 @@ void int_handler(interrupt_frame_t* frame)
 
 	if (frame->int_no >= 0x20) {
 		lapic_eoi();
+	}
+
+	if (this_core->scheduled_tasklets->head != NULL)
+	{
+		this_core->scheduled_tasklets->changed = 1;
+		scheduler_yield(TRUE);
 	}
 }
 

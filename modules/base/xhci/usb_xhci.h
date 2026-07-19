@@ -4,6 +4,7 @@
 #include "kairax/types.h"
 #include "dev/bus/usb/usb_descriptors.h"
 #include "dev/bus/usb/usb.h"
+#include "proc/tasklet.h"
 
 #define XHCI_CMD_RUN        (1 << 0)
 #define XHCI_CMD_RESET      (1 << 1)
@@ -569,6 +570,8 @@ struct xhci_controller
 
 	// Указатели на устройства по номерам слотов
 	struct xhci_device** devices_by_slots;
+
+	struct tasklet events_handle_tasklet;
 
 	uintptr_t* dcbaa;
 

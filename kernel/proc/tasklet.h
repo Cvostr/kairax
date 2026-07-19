@@ -10,6 +10,7 @@
 struct tasklet_list {
     struct tasklet* head;
     struct tasklet** tail;
+    int changed;
 };
 
 struct tasklet {

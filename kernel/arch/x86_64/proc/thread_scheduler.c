@@ -164,7 +164,18 @@ int scheduler_handler(thread_frame_t* frame)
     balance();
 
     // Найти следующий поток
-    struct thread* new_thread = scheduler_get_next_runnable_thread();
+    struct thread* new_thread = NULL;
+    
+    if (this_core->scheduled_tasklets->head != NULL && this_core->scheduled_tasklets->changed == 1)
+	{
+        this_core->scheduled_tasklets->changed = 0;
+		new_thread = cpu_get_tasklet_thread();
+	}
+    else
+    {
+        new_thread = scheduler_get_next_runnable_thread();
+    }
+    
     new_thread->state = STATE_RUNNING;
     new_thread->timeslice = DEFAULT_TIMESLICE;
 
