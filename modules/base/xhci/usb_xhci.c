@@ -363,6 +363,7 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	struct xhci_port_desc *port = &controller->ports[port_id];
 	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
 
+	uint16_t tries = 100;
 	int is_usb3 = port->revision_major == 3;
 
 	if (xhci_controller_poweron(controller, port_id) == FALSE)
@@ -378,7 +379,12 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	uint16_t port_link_state = (port_regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
 	if (is_usb3)
 	{
-		printk("XHCI: Port %i link state %i\n", port_id, port_link_state);
+		printk("XHCI: Port %i link state %i PLC %i CSC %i CCS %i\n", port_id,
+			port_link_state,
+			port_regs->status & XHCI_PORTSC_PLC,
+			port_regs->status & XHCI_PORTSC_CSC,
+			port_regs->status & XHCI_PORTSC_CCS);
+
 		int need_to_wpr = (port_link_state == XHCI_PLS_INACTIVE) || (port_link_state == XHCI_PLS_COMPLIANCE_MODE) || (port_link_state == XHCI_PLS_HOT_RESET);
 		if (port_link_state == XHCI_PLS_DISABLED)
 		{
@@ -387,6 +393,22 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 			port_regs->status = (port_regs->status & ~(XHCI_PORTSC_PLS_MASK << XHCI_PORTSC_PLS_SHIFT))
 				| (XHCI_PLS_RXDETECT << XHCI_PORTSC_PLS_SHIFT)
 				| XHCI_PORTSC_LWS;
+
+			printk("Wait for PLC\n");
+			tries = 100;
+			while ((tries > 0) && ((port_regs->status & XHCI_PORTSC_PLC) == 0))
+			{
+				tries--;
+				wait_active_ms(1);
+			}
+
+			// обновить PLS
+			port_link_state = (port_regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
+			printk("XHCI: Port %i new link state %i\n", port_id, port_link_state);
+
+			// сброс PLC
+			xhci_portsc_wr1c(port_regs, XHCI_PORTSC_CSC | XHCI_PORTSC_PEC | XHCI_PORTSC_PRC | XHCI_PORTSC_PLC);
+
 			return TRUE;
 		}
 		else if (need_to_wpr == FALSE)
@@ -402,7 +424,7 @@ int xhci_controller_reset_port(struct xhci_controller* controller, uint8_t port_
 	// Сброс порта
 	port_regs->status |= status_reset_flag;
 
-	uint16_t tries = 100;
+	tries = 100;
 	while ((tries > 0) && ((port_regs->status & status_reset_expect_flag) == 0))
 	{
 		tries--;
