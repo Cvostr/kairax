@@ -494,7 +494,7 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags)
     int rc;
     uid_t uid;
     gid_t gid;
-    struct file* file = NULL;
+    struct inode* inode = NULL;
     struct process* process = cpu_get_current_thread()->process;
 
     if ((mode != F_OK) && (mode > ACCESS_ALL))
@@ -506,12 +506,11 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags)
     VALIDATE_USER_STRING(process, pathname)
 
     // Открыть файл относительно папки и флагов
-    rc = process_open_file_relative(process, dirfd, pathname, flags, &file);
+    rc = process_open_inode_relative(process, dirfd, pathname, flags, &inode);
     if (rc != 0) {
         return rc;
     }
 
-    struct inode* inode = file->inode;
     if ((flags & AT_EACCESS) == AT_EACCESS)
     {
         uid = process->euid;
@@ -550,7 +549,7 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags)
 
 exit:
     // Закрыть файл
-    file_close(file);
+    inode_close(inode);
     return rc;
 }
 
