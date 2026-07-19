@@ -356,7 +356,7 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
 {
     int rc;
     struct process* process = cpu_get_current_thread()->process;
-    struct file* file = NULL;
+    struct inode* inode = NULL;
 
     // Время для установки
     struct timespec _times[2];
@@ -404,12 +404,10 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
     }
 
     // Открыть файл относительно папки и флагов
-    rc = process_open_file_relative(process, fd, path, flag, &file);
+    rc = process_open_inode_relative(process, fd, path, flag, &inode);
     if (rc != 0) {
         return rc;
     }
-
-    struct inode* inode = file->inode;
 
     if (inode->uid == process->euid || process->euid == 0)
     {
@@ -421,7 +419,7 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
     }
 
     // Закрыть файл
-    file_close(file);
+    inode_close(inode);
 
     return rc;
 }

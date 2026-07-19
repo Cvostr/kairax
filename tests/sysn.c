@@ -184,6 +184,12 @@ int main(int argc, char** argv, char** envp) {
         return 0;
     }
 
+    if (argc > 2 && strcmp(argv[1], "access") == 0)
+    {
+        printf("access result %i\n", access(argv[2], R_OK | W_OK | X_OK));
+        return 0;
+    }
+
     if (argc > 1 && strcmp(argv[1], "exit_thr") == 0)
     {
         syscall_thread_exit(12);
