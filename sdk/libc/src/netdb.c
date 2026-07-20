@@ -102,9 +102,9 @@ struct hostent *gethostbyname2(const char *name, int af)
         return NULL;    
     } 
 
-    char nsreq[256];
-    memset(nsreq, 0, sizeof(nsreq));
-    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsreq;
+    char nsbuff[512];
+    memset(nsbuff, 0, sizeof(nsbuff));
+    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsbuff;
     // Формируем DNS заголовок
     nsreq_header->id = 0xAA19;
     nsreq_header->qr = 0;  // Это вопрос
@@ -112,24 +112,24 @@ struct hostent *gethostbyname2(const char *name, int af)
     nsreq_header->rd = 1;  // Разрешена рекурсия
     nsreq_header->qdcount = htons(1); // Всего 1 запрос
     // Формируем вопрос
-    char* dst = nsreq + sizeof(DNS_HEADER);
+    char* dst = nsbuff + sizeof(DNS_HEADER);
     size_t question_sz = ns_form_question(dst, name, QTYPE, CLASS_IN);
 
     size_t total_sz = sizeof(DNS_HEADER) + question_sz;
 
-    sendto(sockfd, (const char *) nsreq, total_sz, 
+    sendto(sockfd, (const char *) nsbuff, total_sz, 
         0, (const struct sockaddr *) &dnssrv_addr,  
             sizeof(dnssrv_addr)); 
            
-    char nsresp[256];
+
     int resp_addr_len = sizeof(dnssrv_addr);
-    size_t ns_resp_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
+    size_t ns_resp_len = recvfrom(sockfd, (char *)nsbuff, sizeof(nsbuff),  
                 0, (struct sockaddr *) &dnssrv_addr, 
                 &resp_addr_len); 
 
     close(sockfd);
     
-    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsresp;
+    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsbuff;
     
     if (nsresp_header->id != nsreq_header->id)
     {
@@ -154,6 +154,13 @@ struct hostent *gethostbyname2(const char *name, int af)
     uint16_t resp_questions = ntohs(nsresp_header->qdcount);
     uint16_t resp_answers = ntohs(nsresp_header->ancount);
 
+    // должен быть хотя бы 1 ответ
+    if (resp_answers == 0)
+    {
+        h_errno = NO_DATA;
+        return NULL;
+    }
+
     size_t hostent_buff_offset = sizeof(struct hostent);
     // Зануляем буфер
     struct hostent *result = (struct hostent *) hostent_buffer;
@@ -170,7 +177,7 @@ struct hostent *gethostbyname2(const char *name, int af)
     //printf("DNS qu %i answ %i\n", resp_questions, resp_answers);
 
     char tempname[256];
-    char* resp_current = nsresp + sizeof(DNS_HEADER);
+    char* resp_current = nsbuff + sizeof(DNS_HEADER);
 
     // Пропустим отзеркленную секцию вопросов
     for (i = 0; i < resp_questions; i ++)
@@ -240,9 +247,9 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type)
         return NULL;    
     } 
 
-    char nsreq[256];
-    memset(nsreq, 0, sizeof(nsreq));
-    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsreq;
+    char nsbuff[512];
+    memset(nsbuff, 0, sizeof(nsbuff));
+    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsbuff;
     // Формируем DNS заголовок
     nsreq_header->id = 0xAA19;
     nsreq_header->qr = 0;  // Это вопрос
@@ -250,7 +257,7 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type)
     nsreq_header->rd = 1;  // Разрешена рекурсия
     nsreq_header->qdcount = htons(1); // Всего 1 запрос
     // Формируем вопрос
-    char* dst = nsreq + sizeof(DNS_HEADER);
+    char* dst = nsbuff + sizeof(DNS_HEADER);
     size_t question_sz = ns_form_question(dst, requested_name, TYPE_PTR, CLASS_IN);
 
     size_t total_sz = sizeof(DNS_HEADER) + question_sz;
@@ -258,17 +265,16 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type)
     connect(sockfd, (const struct sockaddr *) &dnssrv_addr,  
             sizeof(dnssrv_addr));
 
-    send(sockfd, (const char *) nsreq, total_sz, 0); 
+    send(sockfd, (const char *) nsbuff, total_sz, 0); 
            
-    char nsresp[256];
     int resp_addr_len = sizeof(dnssrv_addr);
-    size_t ns_resp_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
+    size_t ns_resp_len = recvfrom(sockfd, (char *)nsbuff, sizeof(nsbuff),  
                 0, (struct sockaddr *) &dnssrv_addr, 
                 &resp_addr_len); 
 
     close(sockfd);
 
-    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsresp;
+    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsbuff;
     
     if (nsresp_header->id != nsreq_header->id)
     {
@@ -293,6 +299,13 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type)
     uint16_t resp_questions = ntohs(nsresp_header->qdcount);
     uint16_t resp_answers = ntohs(nsresp_header->ancount);
 
+    // должен быть хотя бы 1 ответ
+    if (resp_answers == 0)
+    {
+        h_errno = NO_DATA;
+        return NULL;
+    }
+
     size_t hostent_buff_offset = sizeof(struct hostent);
     // Зануляем буфер
     struct hostent *result = (struct hostent *) hostent_buffer;
@@ -307,7 +320,7 @@ struct hostent *gethostbyaddr(const void *addr, socklen_t size, int type)
     memset(result->h_addr_list, 0, addrlist_len);
 
     char tempname[256];
-    char* resp_current = nsresp + sizeof(DNS_HEADER);
+    char* resp_current = nsbuff + sizeof(DNS_HEADER);
 
     // Пропустим отзеркленную секцию вопросов
     for (i = 0; i < resp_questions; i ++)
