@@ -107,6 +107,10 @@ struct cdc_eth_dev {
 	int conn_state;
 };
 
+int usb_cdc_set_eth_packet_filter(struct usb_device* device, struct usb_interface* interface, uint16_t filter);
+int usb_cdc_set_altsetting(struct usb_device* device, struct usb_interface* altinterface);
+void usb_cdc_notify_handler(struct usb_msg* msg);
+
 int usb_cdc_hex2int(char hex) 
 {
     if (hex >= '0' && hex <= '9')
@@ -288,6 +292,7 @@ int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)
 
 	// обновление статистики
 	eth_dev->iface->stats.tx_bytes += size;
+	eth_dev->iface->stats.tx_packets += 1;
 
 	// Очистка
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);

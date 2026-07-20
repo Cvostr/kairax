@@ -178,7 +178,7 @@ int xhci_device_probe(struct device *dev)
 
 	// Выделим память под кучу записей Event Ring Segment Table Entry
 	cntrl->event_ring = xhci_create_event_ring(XHCI_EVENT_RING_ENTIRIES, 1);
-	
+
 	tasklet_init(&cntrl->events_handle_tasklet, xhci_controller_handle_events, cntrl);
 	
 	uint8_t irq = alloc_irq(0, "xhci");
@@ -1028,6 +1028,8 @@ void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_
 	// When software finishes processing an Event TRB, it will write the address of that Event TRB to the ERDP
 	uintptr_t trb_offset = ring->trbs_phys + ring->next_trb_index * sizeof(struct xhci_trb);
 	intr->erdp = trb_offset | XHCI_EVENT_HANDLER_BUSY;
+	// dummy read чтобы дождаться окончания записи
+	volatile uint64_t dummy = intr->erdp;
 }
 
 void xhci_controller_stop(struct xhci_controller* controller)

@@ -497,6 +497,8 @@ struct xhci_event_ring
 
 struct xhci_event_ring *xhci_create_event_ring(size_t ntrbs, size_t segments);
 int xhci_event_ring_deque(struct xhci_event_ring *ring, struct xhci_trb *trb);
+// Обновить ERDP после завершения обработки всех событий TRB
+// Снимает флаг Event Handler Busy
 void xhci_interrupter_upd_erdp(struct xhci_interrupter *intr, struct xhci_event_ring *ring);
 
 struct xhci_transfer_ring_completion

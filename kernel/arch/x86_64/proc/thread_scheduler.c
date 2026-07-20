@@ -162,19 +162,16 @@ int scheduler_handler(thread_frame_t* frame)
     // Вызов простейшего балансировщика между ядрами
     // Закомментируйте, чтобы выключить многоядерность
     balance();
-
-    // Найти следующий поток
-    struct thread* new_thread = NULL;
     
+    // Есть ли новые запланированные тасклеты?
     if (this_core->scheduled_tasklets->head != NULL && this_core->scheduled_tasklets->changed == 1)
 	{
-        this_core->scheduled_tasklets->changed = 0;
-		new_thread = cpu_get_tasklet_thread();
+        // Если да, то выбираем поток тасклетов
+        preemt_to_tasklets();
 	}
-    else
-    {
-        new_thread = scheduler_get_next_runnable_thread();
-    }
+
+    // Найти следующий поток
+    struct thread* new_thread = scheduler_get_next_runnable_thread();;
     
     new_thread->state = STATE_RUNNING;
     new_thread->timeslice = DEFAULT_TIMESLICE;
@@ -220,6 +217,25 @@ int scheduler_handler(thread_frame_t* frame)
         // Чтобы нормально работало переключение 
         cpu_set_current_vm_table(NULL);
     }
+
+    scheduler_exit(thread_frame);
+}
+
+void preemt_to_tasklets()
+{
+    this_core->scheduled_tasklets->changed = 0;
+	struct thread *thread = cpu_get_tasklet_thread();
+
+    // Сохранить указатель на новый поток в локальной структуре ядра
+    cpu_set_current_thread(thread);
+
+    thread->state = STATE_RUNNING;
+    thread->timeslice = DEFAULT_TIMESLICE;
+
+    thread_frame_t* thread_frame = (thread_frame_t*)thread->context;
+    
+    // Разрешить прерывания
+    thread_frame->rflags |= 0x200;
 
     scheduler_exit(thread_frame);
 }
