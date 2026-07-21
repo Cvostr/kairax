@@ -4,6 +4,9 @@
 #include "vfs.h"
 #include "kairax/limits.h"
 
+// Пустая структура специально для случая, когда указан O_PATH
+struct file_operations empty_fops = {0,};
+
 int file_allow_read(struct file* file)
 {
     int masked_flags = file->flags & FILE_OPEN_MODE_MASK;
@@ -190,7 +193,8 @@ int file_open_ex(struct dentry* dir, const char* path, int flags, int mode, stru
     file->flags = flags;
     file->pos = 0;
     file->dentry = dentry;
-    file->ops = inode->file_ops;
+    // если указан O_PATH, то с файлом ничего нельзя делать
+    file->ops = ((flags & O_PATH) == 0) ? inode->file_ops : &empty_fops;
 
     // Проверяем, есть ли функция open()
     if (file->ops != NULL && file->ops->open) 
