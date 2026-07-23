@@ -64,7 +64,7 @@ void timer_handle()
                     {
                         thr->timer = NULL;
                         thr->wake_reason = WAKE_TIMER;
-                        scheduler_wakeup1(thr);
+                        scheduler_wakeup(thr);
                     }
                 }
                 
@@ -110,7 +110,7 @@ void bind_to_timer(struct event_timer* timer)
 int sleep_on_timer(struct event_timer* timer)
 {   
     bind_to_timer(timer);
-    return scheduler_sleep1();
+    return scheduler_sleep();
 }
 
 void register_event_timer(struct event_timer* timer)

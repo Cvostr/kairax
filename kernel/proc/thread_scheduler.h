@@ -49,8 +49,8 @@ int thread_sleep(time_t tv_sec, long int tv_nsec);
 // Используется в случаях, когда необходимо зарегистрировать поток перед сном
 // Например в семафоре
 int scheduler_prepare_sleep(struct thread* thr);
-int scheduler_sleep1();
-void scheduler_wakeup1(struct thread* thread);
+int scheduler_sleep();
+void scheduler_wakeup(struct thread* thread);
 void scheduler_unblock(struct thread* thread);
 
 // Получить порядковый номер наиболее свободного процессора

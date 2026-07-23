@@ -37,7 +37,7 @@ exit:
 
 int sys_pause()
 {
-    scheduler_sleep1();
+    scheduler_sleep();
     return -EINTR;
 }
 

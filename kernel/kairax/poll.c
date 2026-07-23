@@ -98,7 +98,7 @@ void poll_wakeall(struct poll_wait_queue* q)
     acquire_spinlock(&q->lock);
     while ((thr = list_dequeue(&q->threads)) != NULL)
     {
-        scheduler_wakeup1(thr);
+        scheduler_wakeup(thr);
     }
     release_spinlock(&q->lock);
 }

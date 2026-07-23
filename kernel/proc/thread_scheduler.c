@@ -221,7 +221,7 @@ int scheduler_get_wake_reason(struct thread* thr)
     return wake_rsn;
 }
 
-int scheduler_sleep1()
+int scheduler_sleep()
 {
     struct sched_wq* wq = cpu_get_wq();
     struct thread* thr = cpu_get_current_thread();
@@ -247,7 +247,7 @@ int scheduler_sleep1()
     return 0;
 }
 
-void scheduler_wakeup1(struct thread* thread)
+void scheduler_wakeup(struct thread* thread)
 {
     struct sched_wq* wq = cpu_get_wq();
 

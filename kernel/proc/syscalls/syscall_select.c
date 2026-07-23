@@ -112,7 +112,7 @@ int sys_select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, stru
         if (timeout == NULL)
         {
             // timeout = NULL - бесконечный сон
-            wake_reason = scheduler_sleep1(); 
+            wake_reason = scheduler_sleep(); 
         }
         else
         {

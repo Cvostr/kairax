@@ -91,6 +91,6 @@ void thread_prepare_for_kill(struct thread* thread)
     if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
     {
         thread->wake_reason = WAKE_SIGNAL;
-        scheduler_wakeup1(thread);
+        scheduler_wakeup(thread);
     }
 }
