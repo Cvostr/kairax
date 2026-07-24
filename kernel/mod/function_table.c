@@ -17,6 +17,7 @@
 #include "net/net_buffer.h"
 #include "dev/type/audio_endpoint.h"
 #include "proc/tasklet.h"
+#include "sync/event.h"
 #include "kairax/kstdlib.h"
 #include "dev/device_man.h"
 #include "cpu/cpu.h"
@@ -91,6 +92,9 @@ struct kernel_function functions[] = {
     KFUNCTION(mouse_add_event),
     KFUNCTION(wait_active_ms),
     KFUNCTION(thread_sleep),
+    KFUNCTION(event_init),
+    KFUNCTION(event_wait),
+    KFUNCTION(event_complete),
     // usb
     KFUNCTION(new_usb_msg),
     KFUNCTION(new_usb_device),

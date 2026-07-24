@@ -176,6 +176,7 @@ gcc $GCC_ARGS ipc/local_socket.c -o ./bin/local_socket.o
 #generic sync
 gcc $GCC_ARGS sync/semaphore.c -o ./bin/semaphore.o
 gcc $GCC_ARGS sync/spinlock.c -o ./bin/spinlock.o
+gcc $GCC_ARGS sync/event.c -o ./bin/event.o
 
 #generic memory
 gcc $GCC_ARGS mem/paging.c -o ./bin/paging.o
