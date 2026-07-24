@@ -79,7 +79,7 @@ int sys_poll(struct pollfd *ufds, nfds_t nfds, int timeout)
         if (timeout < 0)
         {
             // Отрицательный таймаут - бесконечный сон
-            wake_reason = scheduler_sleep1();
+            wake_reason = scheduler_sleep();
         }
         else if (timeout == 0)
         {

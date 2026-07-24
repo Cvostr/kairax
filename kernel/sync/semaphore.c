@@ -100,6 +100,6 @@ void semaphore_release(struct semaphore* sem)
         }
 
         // Разблокировка потока
-        scheduler_wakeup1(first_thread);
+        scheduler_wakeup(first_thread);
     }
 }

@@ -77,7 +77,7 @@ int thread_send_signal(struct thread* thread, int signal)
         if (thread->state == STATE_INTERRUPTIBLE_SLEEP)
         {
             thread->wake_reason = WAKE_SIGNAL;
-            scheduler_wakeup1(thread);
+            scheduler_wakeup(thread);
         }
     }
 
