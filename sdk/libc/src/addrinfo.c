@@ -91,6 +91,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     uint8_t total_questions = 0;
     size_t total_req_sz = sizeof(DNS_HEADER);
     size_t total_struct_sz;
+    ssize_t ns_response_len = 0;
     struct sockaddr_in     dnssrv_addr; 
 
     // Выставление параметров из hints или по умолчанию 
@@ -226,16 +227,16 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     dnssrv_addr.sin_addr.s_addr = inet_addr(NSSERV); 
 
     // Формирование запроса
-    char nsreq[256];
-    memset(nsreq, 0, sizeof(nsreq));
-    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsreq;
+    char nsbuffer[512];
+    memset(nsbuffer, 0, sizeof(nsbuffer));
+    DNS_HEADER* nsreq_header = (DNS_HEADER*) nsbuffer;
     // Формируем DNS заголовок
     nsreq_header->id = 0xAA19;
     nsreq_header->qr = 0;  // Это вопрос
     nsreq_header->opcode = OP_QUERY;
     nsreq_header->rd = 1;  // Разрешена рекурсия
     // Формируем вопросы
-    char* dst = nsreq + sizeof(DNS_HEADER);
+    char* dst = nsbuffer + sizeof(DNS_HEADER);
 
     // Запрос A записи, если IPv4 разрешен
     if (ai_family == AF_INET || ai_family == AF_UNSPEC)
@@ -258,22 +259,24 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     // Добавляем в заголовок количество вопросов
     nsreq_header->qdcount = htons(total_questions);
 
-    // Буфер ответа
-    char nsresp[256];
-    ssize_t ns_response_len = 0;
-
     // Сокет и отправка DNS запроса
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
     { 
         return EAI_SYSTEM;    
     } 
 
-    sendto(sockfd, (const char *) nsreq, total_req_sz, 
+    // Отправка запроса
+    ssize_t send_rc = sendto(sockfd, (const char *) nsbuffer, total_req_sz, 
         0, (const struct sockaddr *) &dnssrv_addr,  
             sizeof(dnssrv_addr)); 
+    if (send_rc < 0)
+    {
+        return EAI_SYSTEM;
+    }
 
+    // Получение ответа
     int resp_addr_len = sizeof(dnssrv_addr);
-    ns_response_len = recvfrom(sockfd, (char *)nsresp, sizeof(nsresp),  
+    ns_response_len = recvfrom(sockfd, (char *)nsbuffer, sizeof(nsbuffer),  
             0, (struct sockaddr *) &dnssrv_addr, 
             &resp_addr_len); 
 
@@ -284,7 +287,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 
     close(sockfd);
 
-    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsresp;
+    DNS_HEADER* nsresp_header = (DNS_HEADER*) nsbuffer;
     
     if ((nsresp_header->id != nsreq_header->id) || (nsresp_header->qr != 1))
     {
@@ -307,9 +310,15 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
     // Считаем колво запросов и ответов
     uint16_t resp_questions = ntohs(nsresp_header->qdcount);
     uint16_t resp_answers = ntohs(nsresp_header->ancount);
+    
+    // Странный кейс, но надо обработать
+    if (resp_answers == 0)
+    {
+        return EAI_NONAME;
+    }
 
     char tempname[256];
-    char* resp_current = nsresp + sizeof(DNS_HEADER);
+    char* resp_current = nsbuffer + sizeof(DNS_HEADER);
 
     // Пропустим отзеркленную секцию вопросов
     for (i = 0; i < resp_questions; i ++)
@@ -329,7 +338,7 @@ int getaddrinfo(const char *node, const char *service, const struct addrinfo *hi
 
         // Считать имя
         uint16_t nameoffset = answ->name & 0x3FFF;
-        ns_read_name(nsresp + nameoffset, tempname);
+        ns_read_name(nsbuffer + nameoffset, tempname);
         size_t namelen = strlen(tempname);
 
         int resp_ai_family = 0;

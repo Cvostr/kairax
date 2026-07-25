@@ -9,6 +9,7 @@
 #include "errno.h"
 #include "netdb.h"
 #include <stdlib.h>
+#include <getopt.h>
 #include "signal.h"
 #include "sys/time.h"
 
@@ -36,27 +37,27 @@ int main(int argc, char** argv)
     int ping_times = 4;
     struct timeval stop, start;
 
-    for (int i = 1; i < argc; i ++)
-    {
-        char* arg = argv[i];
-        if (arg[0] == '-') 
-        {
-            // параметр
-        } else {
-            addr = arg;
+    int opt;
+    while ((opt = getopt(argc, argv, "c:")) != -1) {
+        switch (opt) {
+            case 'c':
+                ping_times = atoi(optarg);
+                break;
         }
     }
+
+    if (optind == argc) 
+    {
+        printf("ping: Address not specified\n");
+        return 1;
+    }
+
+    addr = argv[optind];
 
     int sockfamily = AF_INET;
     socklen_t ping_addr_size = 0;
     struct sockaddr* ping_addr = NULL;
 
-    if (addr == NULL) 
-    {
-        printf("ping: Address not specified\n");
-        return 1;
-    } 
-    else 
     {
         ip4_addr = inet_addr(addr);
         if (ip4_addr != (in_addr_t) - 1) 
