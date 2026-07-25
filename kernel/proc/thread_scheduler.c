@@ -283,6 +283,43 @@ int thread_sleep(time_t tv_sec, long int tv_nsec)
     return sys_sleep(tv_sec, tv_nsec);
 }
 
+struct thread *scheduler_next_realtime_thread(struct sched_wq* wq)
+{
+    struct thread* thread = wq->head;
+    // Счетчик проверенных потоков
+    int checked_threads = 0;
+
+    if (thread == NULL)
+        return NULL;
+
+    while (1) 
+    {
+        if (checked_threads == wq->size)
+        {
+            // Проверили все потоки, но не нашли ни одного, выходим
+            return NULL;
+        }
+
+        thread = thread->next;
+
+        if (thread == NULL) {
+            thread = wq->head;
+        }
+
+        int match = (thread->state == STATE_RUNNABLE) && (thread->sched_mode == SCHED_MODE_REALTIME);
+
+        if (match == FALSE) 
+        {
+            checked_threads++;
+            continue;
+        }
+
+        break;
+    }
+
+    return thread;
+}
+
 struct thread* scheduler_get_next_runnable_thread()
 {
     struct sched_wq* wq = cpu_get_wq();
@@ -293,6 +330,10 @@ struct thread* scheduler_get_next_runnable_thread()
         // Очередь пуста, возвращаем IDLE задачу
         return cpu_get_idle_thread();
     }
+
+    thread = scheduler_next_realtime_thread(wq);
+    if (thread != NULL)
+        return thread;
 
     thread = cpu_get_current_thread();
 

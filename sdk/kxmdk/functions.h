@@ -26,10 +26,8 @@ struct process;
 struct thread;
 
 struct process*  create_new_process(struct process* parent);
-struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
 
 void process_set_name(struct process* process, const char* name);
-void thread_set_name(struct thread* thread, const char* name);
 
 void scheduler_add_thread(struct thread* thread);
 pid_t process_add_to_list(struct process* process);
@@ -37,6 +35,13 @@ pid_t process_add_to_list(struct process* process);
 void eth_handle_frame(struct net_buffer* nbuffer);
 
 void wait_active_ms(uint64_t ms);
+
+
+#define SCHED_MODE_NORMAL    0
+#define SCHED_MODE_REALTIME  1
+struct thread* create_kthread(struct process* process, void (*function)(void), void* arg);
 int thread_sleep(time_t tv_sec, long int tv_nsec);
+void thread_set_name(struct thread* thread, const char* name);
+void thread_set_sched_mode(struct thread* thread, int mode);
 
 #endif

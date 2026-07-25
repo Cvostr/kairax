@@ -14,6 +14,9 @@
 #define WAKE_SIGNAL 1
 #define WAKE_TIMER  2
 
+#define SCHED_MODE_NORMAL    0
+#define SCHED_MODE_REALTIME  1
+
 struct thread {
     // Тип объекта
     int                 type;
@@ -53,6 +56,7 @@ struct thread {
     struct thread*      next;
 
     struct event_timer  alarm_timer;
+    int                 sched_mode;
     int                 wake_reason;
     int                 balance_forbidden;
     int                 killing;
@@ -74,6 +78,7 @@ struct main_thread_create_info {
 
 struct thread* new_thread(struct process* process);
 void thread_set_name(struct thread* thread, const char* name);
+void thread_set_sched_mode(struct thread* thread, int mode);
 
 /// @brief Создать новый поток пространства ядра и добавить его к процессу
 /// @param process объект процесса

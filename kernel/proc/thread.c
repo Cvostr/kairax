@@ -26,6 +26,11 @@ void thread_set_name(struct thread* thread, const char* name)
     strncpy(thread->name, name, PROCESS_NAME_MAX_LEN - 1);
 }
 
+void thread_set_sched_mode(struct thread* thread, int mode)
+{
+    thread->sched_mode = mode;
+}
+
 void thread_become_zombie(struct thread* thread)
 {
     thread->state = STATE_ZOMBIE;

@@ -537,6 +537,7 @@ int usb_cdc_device_probe(struct device *dev)
 
 	struct process* proc = create_new_process(NULL);
     struct thread* thr = create_kthread(proc, usb_cdc_rx_thread, eth_dev);
+	thread_set_sched_mode(thr, SCHED_MODE_REALTIME);
     scheduler_add_thread(thr);
 	
 	return 0;
