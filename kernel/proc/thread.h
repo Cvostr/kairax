@@ -48,6 +48,7 @@ struct thread {
     int                 in_queue;
     // Следующий поток при блокировке на семафоре
     struct thread*      sem_next;
+    struct thread*      sem_prev;
     struct thread*      prev;
     struct thread*      next;
 
