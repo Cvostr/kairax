@@ -7,7 +7,7 @@
 #include "kairax/string.h"
 #include "cdc_eth.h"
 #include "kairax/errors.h"
-//#include "dev/bus/usb/usb.h"
+#include "sync/event.h"
 
 #define CDC_COMMUNICATIONS 0x2
 #define CDC_DATA 0xA
@@ -104,9 +104,12 @@ struct cdc_eth_dev {
 	uintptr_t rx_data_buffer_phys;
     uintptr_t rx_data_buffer;
 
+	struct event rx_event;
+
 	int conn_state;
 };
 
+int usb_cdc_device_probe(struct device *dev);
 int usb_cdc_set_eth_packet_filter(struct usb_device* device, struct usb_interface* interface, uint16_t filter);
 int usb_cdc_set_altsetting(struct usb_device* device, struct usb_interface* altinterface);
 void usb_cdc_notify_handler(struct usb_msg* msg);
@@ -181,7 +184,8 @@ void usb_cdc_notify_handler(struct usb_msg* msg)
 
 void usb_cdc_rx_callback(struct usb_msg* msg)
 {
-	printk("CDC Rx callback");
+	struct cdc_eth_dev* eth_dev = msg->private;
+	event_complete(&eth_dev->rx_event);
 }
 
 void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
@@ -196,17 +200,14 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 	struct usb_msg *msg = new_usb_msg();
 	msg->data = eth_dev->rx_data_buffer_phys;
 	msg->length = MTU;
-	//msg->callback = usb_cdc_rx_callback;
+	msg->callback = usb_cdc_rx_callback;
 	msg->private = eth_dev;
 
 	while (1)
 	{
 		int rc = usb_send_async_msg(eth_dev->usbdev, eth_dev->data_in, msg);
 
-		while (msg->status == -EINPROGRESS)
-		{
-
-		}
+		event_wait(&eth_dev->rx_event);
 
 		if (msg->status != 0)
 		{
@@ -522,6 +523,8 @@ int usb_cdc_device_probe(struct device *dev)
 	// Rx буфер
 	eth_dev->rx_data_buffer_phys = (uintptr_t) pmm_alloc(MTU, &eth_dev->rx_pages);
     eth_dev->rx_data_buffer = map_io_region(eth_dev->rx_data_buffer_phys, eth_dev->rx_pages * PAGE_SIZE);
+
+	event_init(&eth_dev->rx_event, 0);
 
 	struct usb_msg* msg = new_usb_msg();
     msg->data = eth_dev->report_buffer_phys;
