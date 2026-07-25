@@ -1010,6 +1010,7 @@ void ehci_irq_handler(void* regs, struct ehci_controller* dev)
 	if ((usbsts & EHCI_USBSTS_PORT_CHANGE_DETECT) == EHCI_USBSTS_PORT_CHANGE_DETECT)
 	{
 		dev->port_status_changed = 1;
+		event_complete(&dev->port_status_upd_event);
 	}
 
 	if ((usbsts & EHCI_USBSTS_HOST_SYSTEM_ERROR) == EHCI_USBSTS_HOST_SYSTEM_ERROR)
@@ -1030,9 +1031,6 @@ void ehci_event_thread_routine(struct ehci_controller* hci)
 	int rc;
 	while (1)
 	{
-		// немного поспим, чтобы не грузить процессор
-		thread_sleep(0, 500);
-
 		if (hci->port_status_changed == 1) 
 		{
 			printk("EHCI: Port Change Detect\n");
@@ -1040,6 +1038,9 @@ void ehci_event_thread_routine(struct ehci_controller* hci)
 
 			hci->port_status_changed = 0;
 		}
+	
+		// ждем следующего события
+		event_wait(&hci->port_status_upd_event);
 	}
 }
 

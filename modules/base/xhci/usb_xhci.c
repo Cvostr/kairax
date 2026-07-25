@@ -180,6 +180,8 @@ int xhci_device_probe(struct device *dev)
 	cntrl->event_ring = xhci_create_event_ring(XHCI_EVENT_RING_ENTIRIES, 1);
 
 	tasklet_init(&cntrl->events_handle_tasklet, xhci_controller_handle_events, cntrl);
+
+	event_init(&cntrl->port_status_upd_event, 0);
 	
 	uint8_t irq = alloc_irq(0, "xhci");
     printk("XHCI: using IRQ %i\n", irq);
@@ -251,9 +253,6 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 	int rc;
 	while (1)
 	{
-		// немного поспим, чтобы не грузить процессор
-		thread_sleep(0, 500);
-
 		if (controller->port_status_changed == 1) 
 		{
 			for (uint8_t port_id = 0; port_id < controller->ports_num; port_id ++)
@@ -323,6 +322,9 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 
 			controller->port_status_changed = 0;
 		}
+
+		// ждем следующего события
+		event_wait(&controller->port_status_upd_event);
 	}
 }
 
@@ -550,6 +552,7 @@ void xhci_controller_process_event(struct xhci_controller* controller, struct xh
 #endif
 			controller->ports[port_id - 1].status_changed = 1;
 			controller->port_status_changed = 1;
+			event_complete(&controller->port_status_upd_event);
 			break;
 		case XHCI_TRB_CMD_COMPLETION_EVENT:
 			size_t cmd_trb_index = (event->cmd_completion.cmd_trb_ptr - controller->cmdring->trbs_phys) / sizeof(struct xhci_trb);

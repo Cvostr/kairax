@@ -4,6 +4,7 @@
 #include "kairax/types.h"
 #include "dev/bus/usb/usb_descriptors.h"
 #include "dev/bus/usb/usb.h"
+#include "sync/event.h"
 
 // CAP REGS
 #define EHCI_REG_CAPLENGTH              0x00
@@ -257,6 +258,7 @@ struct ehci_controller
     // Поддерживаются ли контроллером 64 битные адреса
     int mode64;
 
+    struct event port_status_upd_event;
     int port_status_changed;
 
     uint8_t device_address_counter;

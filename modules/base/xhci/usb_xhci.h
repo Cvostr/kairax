@@ -5,6 +5,7 @@
 #include "dev/bus/usb/usb_descriptors.h"
 #include "dev/bus/usb/usb.h"
 #include "proc/tasklet.h"
+#include "sync/event.h"
 
 #define XHCI_CMD_RUN        (1 << 0)
 #define XHCI_CMD_RESET      (1 << 1)
@@ -577,6 +578,7 @@ struct xhci_controller
 
 	uintptr_t* dcbaa;
 
+	struct event port_status_upd_event;
 	int port_status_changed;
 };
 
