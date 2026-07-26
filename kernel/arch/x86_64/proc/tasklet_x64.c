@@ -23,7 +23,7 @@ void x64_tasklet_routine()
 
     while (1)
     {
-        if (scheduled->raise_cnt == 0);
+        while (scheduled->raise_cnt == 0)
         {
             // Выходим (и, вероятно, блокируемся)
             disable_interrupts();
