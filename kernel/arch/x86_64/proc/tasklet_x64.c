@@ -7,9 +7,13 @@ struct process *tasklet_process = NULL;
 
 void tasklet_schedule(struct tasklet* tasklet)
 {
+    struct tasklet_list* scheduled_tasklets = this_core->scheduled_tasklets;
     struct thread* thread = cpu_get_tasklet_thread();
+
+    tasklet_schedule_generic(scheduled_tasklets, tasklet);
+
+    __sync_add_and_fetch(&scheduled_tasklets->raise_cnt, 1);
     thread->state = STATE_RUNNABLE;
-    tasklet_schedule_generic(this_core->scheduled_tasklets, tasklet);
 }
 
 void x64_tasklet_routine()
@@ -19,23 +23,20 @@ void x64_tasklet_routine()
 
     while (1)
     {
-        // Выполнить тасклеты
-        tasklet_list_execute(scheduled);
-
-        // Выходим (и, вероятно, блокируемся)
-        disable_interrupts();
-
-        if (scheduled->head == NULL)
+        if (scheduled->raise_cnt == 0);
         {
+            // Выходим (и, вероятно, блокируемся)
+            disable_interrupts();
             // Если задачи не появились, то блокируемся
             thread->state = STATE_INTERRUPTIBLE_SLEEP;
             // Переходим к другому потоку
             scheduler_yield(TRUE);
-        }   
-        else 
-        {
-            enable_interrupts();
-        }
+        }  
+
+        __sync_sub_and_fetch(&scheduled->raise_cnt, 1);
+
+        // Выполнить тасклеты
+        tasklet_list_execute(scheduled);
     }
 }
 

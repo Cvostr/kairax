@@ -51,6 +51,9 @@ struct tasklet_list* new_tasklet_list()
     // изначально записываем туда указатель на указатель на первый элемент
     // так как тасклетов еще нет
     tlist->tail = &tlist->head;
+    
+    tlist->changed = 0;
+    tlist->raise_cnt = 0;
 
     return tlist;
 }

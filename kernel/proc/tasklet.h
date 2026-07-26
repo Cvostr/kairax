@@ -11,6 +11,7 @@ struct tasklet_list {
     struct tasklet* head;
     struct tasklet** tail;
     int changed;
+    int raise_cnt;
 };
 
 struct tasklet {
