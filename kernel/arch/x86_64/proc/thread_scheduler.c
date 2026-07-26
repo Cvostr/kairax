@@ -23,7 +23,7 @@ int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
 extern struct cpu_local_x64** cpus;
-extern size_t cpus_num; 
+extern size_t cpus_num;
 
 #define DEFAULT_TIMESLICE 3
 #define BALANCE_PERIOD      100
@@ -66,7 +66,7 @@ void cpu_put_thread(uint32_t icpu, struct thread* thread)
     thread->cpu = icpu;
 
     acquire_spinlock(&cpu->migration_lock);
-    
+
     cpu->migration_thread = thread;
     lapic_send_ipi(cpu->lapic_id, IPI_DST_BY_ID, IPI_TYPE_FIXED, INTERRUPT_VEC_RES);
 }
@@ -206,17 +206,20 @@ int scheduler_handler(thread_frame_t* frame)
         process_handle_signals(CALLER_SCHEDULER, thread_frame);
     }
 
-    // Заменить таблицу виртуальной памяти процесса
-    if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
-        cpu_set_current_vm_table(process->vmemory_table);
-        switch_pml4(V2P(process->vmemory_table->arch_table));
-    } 
-    else if (process->vmemory_table == NULL) {
-        // Процесс завершается
-        // Используем основную таблицу ядра
-        vmm_use_kernel_vm();
-        // Чтобы нормально работало переключение 
-        cpu_set_current_vm_table(NULL);
+    if (new_thread->is_userspace)
+    {
+        // Если это не поток ядра, то надо заменить таблицу виртуальной памяти процесса
+        if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
+            cpu_set_current_vm_table(process->vmemory_table);
+            switch_pml4(V2P(process->vmemory_table->arch_table));
+        } 
+        else if (process->vmemory_table == NULL) {
+            // Процесс завершается
+            // Используем основную таблицу ядра
+            vmm_use_kernel_vm();
+            // Чтобы нормально работало переключение 
+            cpu_set_current_vm_table(NULL);
+        }
     }
 
     scheduler_exit(thread_frame);

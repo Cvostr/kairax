@@ -53,6 +53,8 @@ void* create_tasklet_thread()
     struct thread* thr = create_kthread(tasklet_process, x64_tasklet_routine, NULL);
     // Запретить потоку переходить на другие ядра
     thr->balance_forbidden = TRUE;
+    // Сразу же зададим ID процессора, на котором это исполняется
+    thr->cpu = cpu_get_id();
 
     struct sched_wq* wq = this_core->wq;
 

@@ -162,6 +162,11 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 		goto fatal_error;
 	}
 
+	register_interrupt_handler(INTERRUPT_VEC_RES, cpu_reschedule_ipi, 0);
+	register_interrupt_handler(INTERRUPT_VEC_HLT, x64_full_halt, 0);
+	register_interrupt_handler(INTERRUPT_VEC_TLB, cpu_tlb_shootdown_ipi, 0);
+
+
 	printk("Reading PCI devices\n");
 	load_pci_devices_list();	
 
@@ -190,19 +195,15 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	null_init();
 	local_sock_init();
 	net_init();
+	vga_init_dev();
+	init_ps2();
+
 
 	procfs_init_kernel_cmdline(P2V(kboot_info->command_line));
 	// Загружаем все необходимые модули multiboot2								
 	mb2_load_modules(P2V(multiboot_struct_ptr));
 	// Освобождаем регион с данными multiboot2
 	pmm_free_pages(multiboot_struct_ptr, align(mb2_info_sz, PAGE_SIZE) / PAGE_SIZE);
-
-	vga_init_dev();
-	init_ps2();
-	
-	register_interrupt_handler(INTERRUPT_VEC_RES, cpu_reschedule_ipi, 0);
-	register_interrupt_handler(INTERRUPT_VEC_HLT, x64_full_halt, 0);
-	register_interrupt_handler(INTERRUPT_VEC_TLB, cpu_tlb_shootdown_ipi, 0);
 
 	printk("Reading disks partition tables...\n");
 
