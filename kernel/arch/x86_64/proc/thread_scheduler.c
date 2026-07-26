@@ -28,7 +28,7 @@ extern size_t cpus_num;
 #define DEFAULT_TIMESLICE 3
 #define BALANCE_PERIOD      100
 
-uint32_t scheduler_get_less_loaded()
+uint32_t scheduler_get_less_loaded_cpu_id()
 {
     uint32_t min = UINT32_MAX;
     uint32_t pos = 0;
@@ -62,6 +62,8 @@ void cpu_reshedule_handler()
 void cpu_put_thread(uint32_t icpu, struct thread* thread)
 {
     struct cpu_local_x64* cpu = cpus[icpu];
+
+    thread->cpu = icpu;
 
     acquire_spinlock(&cpu->migration_lock);
     
@@ -103,7 +105,7 @@ void balance()
         return;
     }
 
-    uint32_t index = scheduler_get_less_loaded();
+    uint32_t index = scheduler_get_less_loaded_cpu_id();
     int id = cpu_get_id();
     if (index != id)
     { 
@@ -112,7 +114,6 @@ void balance()
         if (last->balance_forbidden == FALSE)
         {
             wq_remove_thread(wq, last);
-            last->cpu = index;
             cpu_put_thread(index, last);
         }
         //printk("balanced from %i to %i\n", id, index);

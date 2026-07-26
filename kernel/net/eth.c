@@ -9,6 +9,7 @@
 
 //#define ETH_IN_LOGGING
 //#define ETH_OUT_LOGGING
+//#define ETH_UNKNOWN_TYPE_LOGGING
 
 int mac_is_broadcast(uint8_t* mac) 
 {
@@ -49,7 +50,9 @@ void eth_handle_frame(struct net_buffer* nbuffer)
         ip4_handle_packet(nbuffer);
         break;
     default:
+#ifdef ETH_UNKNOWN_TYPE_LOGGING
         printk("ETH type: %i\n", type);
+#endif
         break;
     }
 

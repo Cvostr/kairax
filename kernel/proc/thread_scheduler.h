@@ -54,7 +54,7 @@ void scheduler_wakeup(struct thread* thread);
 void scheduler_unblock(struct thread* thread);
 
 // Получить порядковый номер наиболее свободного процессора
-uint32_t scheduler_get_less_loaded();
+uint32_t scheduler_get_less_loaded_cpu_id();
 
 int scheduler_get_wake_reason(struct thread* thr);
 

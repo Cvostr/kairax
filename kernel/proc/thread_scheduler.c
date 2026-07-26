@@ -160,12 +160,12 @@ void wq_add_thread(struct sched_wq* wq, struct thread* thread)
 
 void wq_remove_thread(struct sched_wq* wq, struct thread* thread)
 {
-    if (wq->size == 0) {
-        printk("wq_remove_thread(): wq->size == 0, pid %i\n", thread->id);
+    if (thread->in_queue == 0) {
         return;
     }
 
-    if (thread->in_queue == 0) {
+    if (wq->size == 0) {
+        printk("wq_remove_thread(): wq->size == 0, pid %i\n", thread->id);
         return;
     }
 

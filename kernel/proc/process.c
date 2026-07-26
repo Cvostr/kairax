@@ -907,6 +907,14 @@ int process_open_inode_relative(struct process* process, int dirfd, const char* 
         if (fil == NULL)
             return -ERROR_BAD_FD;
 
+        // на всякий случай проверим, есть ли у файла вообще inode
+        if (fil->inode == NULL)
+        {
+            // закрываем файл
+            file_close(fil);
+            return -ERROR_BAD_FD;
+        }
+
         // открываем inode
         *inode = fil->inode;
         inode_open(fil->inode, 0);
