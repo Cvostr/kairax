@@ -172,7 +172,7 @@ int scheduler_handler(thread_frame_t* frame)
 	}
 
     // Найти следующий поток
-    struct thread* new_thread = scheduler_get_next_runnable_thread();;
+    struct thread* new_thread = scheduler_get_next_runnable_thread();
     
     new_thread->state = STATE_RUNNING;
     new_thread->timeslice = DEFAULT_TIMESLICE;
@@ -206,20 +206,17 @@ int scheduler_handler(thread_frame_t* frame)
         process_handle_signals(CALLER_SCHEDULER, thread_frame);
     }
 
-    if (new_thread->is_userspace)
-    {
-        // Если это не поток ядра, то надо заменить таблицу виртуальной памяти процесса
-        if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
-            cpu_set_current_vm_table(process->vmemory_table);
-            switch_pml4(V2P(process->vmemory_table->arch_table));
-        } 
-        else if (process->vmemory_table == NULL) {
-            // Процесс завершается
-            // Используем основную таблицу ядра
-            vmm_use_kernel_vm();
-            // Чтобы нормально работало переключение 
-            cpu_set_current_vm_table(NULL);
-        }
+    // Заменить таблицу виртуальной памяти процесса
+    if (cpu_get_current_vm_table() != process->vmemory_table && process->vmemory_table != NULL) {  
+        cpu_set_current_vm_table(process->vmemory_table);
+        switch_pml4(V2P(process->vmemory_table->arch_table));
+    } 
+    else if (process->vmemory_table == NULL) {
+        // Процесс завершается
+        // Используем основную таблицу ядра
+        vmm_use_kernel_vm();
+        // Чтобы нормально работало переключение 
+        cpu_set_current_vm_table(NULL);
     }
 
     scheduler_exit(thread_frame);
