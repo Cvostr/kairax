@@ -327,6 +327,8 @@ void set_cc(cc_t *c_cc, char *chrname, int chrid, char** argv, int *argpos)
 int main(int argc, char** argv) 
 {
     struct termios tmi;
+    struct winsize wsize;
+    char *endptr;
     int rc;
     int fd;
     int arg_i = 1;
@@ -414,10 +416,47 @@ int main(int argc, char** argv)
 
         if (strcmp(arg, "size") == 0)
         {
-            struct winsize wsize;
             ioctl(TTY_FD, TIOCGWINSZ, &wsize);
             printf("%d %d\n", wsize.ws_row, wsize.ws_col);
             continue;
+        }
+
+        if (strcmp(arg, "rows") == 0)
+        {
+            arg = argv[++arg_i];
+            int rows = strtol(arg, &endptr, 10);
+    
+            if (*endptr == '\0') 
+            {
+                ioctl(TTY_FD, TIOCGWINSZ, &wsize);
+                wsize.ws_row = rows;
+                ioctl(TTY_FD, TIOCSWINSZ, &wsize);
+                continue;
+            }
+            else
+            {
+                printf("stty: Invalid argument '%s'\n", arg);
+                return 1;
+            }
+        }
+
+        if (strcmp(arg, "cols") == 0)
+        {
+            arg = argv[++arg_i];
+            int cols = strtol(arg, &endptr, 10);
+    
+            if (*endptr == '\0') 
+            {
+                ioctl(TTY_FD, TIOCGWINSZ, &wsize);
+                wsize.ws_col = cols;
+                ioctl(TTY_FD, TIOCSWINSZ, &wsize);
+                continue;
+            }
+            else
+            {
+                printf("stty: Invalid argument '%s'\n", arg);
+                return 1;
+            }
         }
 
         if (arg[0] >= '0' && arg[0] < '9') 

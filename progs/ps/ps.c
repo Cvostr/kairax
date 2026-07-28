@@ -14,7 +14,7 @@
 struct process_desc {
     pid_t pid;
     uid_t uid;
-    int status;
+    int state;
     char *name;
 };
 
@@ -35,6 +35,26 @@ int to_pid(const char *str, pid_t *pid)
     }
 
     return FALSE;
+}
+
+char *state_to_str(int state)
+{
+    switch (state)
+    {
+    case 0:
+    case 1:
+        return "R";
+    case 2:
+        return "S";
+    case 3:
+        return "D";
+    case 4:
+        return "Z";
+    case 5:
+        return "T";
+    default:
+        return "U";
+    }
 }
 
 int desc_append(struct process_desc ***descs, size_t *ndescs, struct process_desc *desc)
@@ -84,6 +104,19 @@ ssize_t read_str_from_virtual_file(FILE *f, char **out)
     return total;
 }
 
+int parse_status_file(FILE *f, struct process_desc *desc)
+{
+    char line[200];
+    while (fgets(line, sizeof(line), f)) 
+    {
+        // Ищем строку со статусом
+        if (strncmp(line, "State:", 6) == 0) 
+        {
+            sscanf(line, "State: %i", &desc->state);
+        }
+    }
+}
+
 int process_make_desc(ino_t ino, pid_t pid, struct process_desc *desc) 
 {
     int statusfd;
@@ -111,7 +144,7 @@ int process_make_desc(ino_t ino, pid_t pid, struct process_desc *desc)
 
     // приводим statusfd к libc типу и читаем строку
     FILE *fstatus = fdopen(statusfd, "r");
-    //read_str_from_virtual_file(statusfd, &desc->name);
+    parse_status_file(fstatus, desc);
     fclose(fstatus);
 
     return 0;
@@ -168,11 +201,11 @@ int main(int argc, char** argv)
     }
 
     //printf("total processes %i\n", ndescs);
-    printf("    PID  CMD\n");
+    printf("    PID STAT CMD\n");
     for (size_t i = 0; i < ndescs; i ++)
     {
         struct process_desc *desc = descs[i];
-        printf("%7i  %s\n", desc->pid, desc->name);
+        printf("%7i %4s %s\n", desc->pid, state_to_str(desc->state), desc->name);
     }
 
     return 0;

@@ -443,6 +443,9 @@ int process_send_signal(struct process* process, int signal)
 
 void process_stop(struct process* process)
 {
+    if (process->state == STATE_ZOMBIE || process->state == STATE_STOPPED)
+        return;
+
     // просто помечаем процесс как приостановленный
     // через некоторое время все потоки получат такой же статус 
     process->state = STATE_STOPPED;
@@ -457,6 +460,9 @@ void process_stop(struct process* process)
 
 void process_continue(struct process* process)
 {
+    if (process->state != STATE_STOPPED)
+        return;
+        
     // вернем состояние объекту процесса
     process->state = STATE_RUNNING;
 
