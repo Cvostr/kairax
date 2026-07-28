@@ -17,10 +17,10 @@
 #define XHCI_EVENT_RING_ENTIRIES 256
 
 // Для переключения чипсетов Panther Point
-#define USB3_PSSEN 	0xd0
+#define USB3_PSSEN 	0xD8
 #define USB2PRM		0xD4
 #define USB3PRM		0xDC
-#define XUSB2PR    	0xd8
+#define XUSB2PR    	0xD0
 
 static const char* xhci_speed_string[7] = {
 	"Invalid",
@@ -56,20 +56,17 @@ int xhci_device_probe(struct device *dev)
 	// Этот особый контроллер (Panther Point) обычно делит порты с EHCI
 	if (device_desc->vendor_id == 0x8086 && device_desc->device_id == 0x1E31)
 	{
-		printk("XHCI: Panther Point chipset detected, may not work properly!\n");	
+		printk("XHCI: Panther Point chipset detected, starting port reclaim!\n");	
 
 		uint32_t ports = pci_config_read32(dev, USB3PRM);
 		printk("XHCI: USB3 ports: %i\n", ports);
 		// Передать их XHCI
-		//pci_config_write32(dev, USB3_PSSEN, ports);
+		pci_config_write32(dev, USB3_PSSEN, ports);
 
 		ports = pci_config_read32(dev, USB2PRM);
 		printk("XHCI: USB2 ports: %i\n", ports);
 		// Передать их XHCI
-		//pci_config_write32(dev, XUSB2PR, ports);
-
-		// TODO: Закоменченные действия уже сломали BIOS компу
-		// Разобраться
+		pci_config_write32(dev, XUSB2PR, ports);
 	}
 
 	int msi_capable = pci_device_is_msi_capable(dev->pci_info);
