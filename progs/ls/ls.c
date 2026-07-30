@@ -7,10 +7,49 @@
 #include "sys/stat.h"
 #include "string.h"
 #include "time.h"
+#include "stdint.h"
 
 // Режим работы
 int verbose = 0;
 int all = 0;
+int humanread = 0;
+
+char linkbuff[300] = {0,};
+char sizebuff[30];
+
+char dimensions[] = {
+    'B',
+    'k',
+    'M',
+    'G',
+    'T'
+};
+#define NDIMENSIONS (sizeof(dimensions) / sizeof(char))
+
+void to_str_size(uint64_t size)
+{
+    if (humanread == 1 && size >= 1024)
+    {
+        int dim_counter = 0;
+        uint64_t last_val = size;
+        uint64_t divisor = 1;
+
+        while ((last_val / 1024) > 0)
+        {
+            last_val /= 1024;
+            dim_counter++;
+            divisor *= 1024;
+        }
+
+        char dimc = dimensions[dim_counter];
+        double normalized = ((double) size) / ((double)divisor);
+
+        sprintf(sizebuff, "%.1f%c", normalized, dimc);
+        return;
+    }
+
+    sprintf(sizebuff, "%i", size);
+}
 
 char to_filetype(int dentry_type)
 {
@@ -43,8 +82,6 @@ void stringify_perm(int perm, char* str)
     // Exec
     str[2] = ((perm & 1) == 1) ? 'x' : '-';
 }
-
-char linkbuff[300] = {0,};
 
 int printdir(const char *path) 
 {
@@ -100,12 +137,14 @@ int printdir(const char *path)
                 linkbuff[0] = 0;
             }
 
-            printf("%c%s %4i %4i %9i %02i:%02i:%02i %02i-%02i-%i %s %s\n", 
+            to_str_size(file_stat.st_size);
+
+            printf("%c%s %4i %4i %9s %02i:%02i:%02i %02i-%02i-%i %s %s\n", 
                 to_filetype(dr->d_type),
                 perm_str,
                 file_stat.st_uid,
                 file_stat.st_gid,
-                file_stat.st_size,
+                sizebuff,
                 t->tm_hour, 
 				t->tm_min,
 				t->tm_sec,
@@ -131,13 +170,16 @@ int main(int argc, char** argv)
     int opt;
     int rc;
 
-    while ((opt = getopt(argc, argv, "la")) != -1) {
+    while ((opt = getopt(argc, argv, "lah")) != -1) {
         switch (opt) {
             case 'l': 
                 verbose = 1;
                 break;
             case 'a':
                 all = 1;
+                break;
+            case 'h':
+                humanread = 1;
                 break;
         }
     }
