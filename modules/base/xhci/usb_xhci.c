@@ -36,6 +36,7 @@ static const char* xhci_speed_string[7] = {
 //#define XHCI_LOG_PORT_RESET_SUCCESS
 //#define XHCI_LOG_PORT_STATUS_CHANGE
 //#define XHCI_LOG_PORT_DISCONNECT
+//#define XHCI_LOG_ALLOCATED_SLOT
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -644,7 +645,10 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 		printk("XHCI: xhci_controller_alloc_slot() returned invalid slot (%i)\n", slot);
 		return -1;
 	}
+
+#ifdef XHCI_LOG_ALLOCATED_SLOT
 	printk("XHCI: allocated slot (%i)\n", slot);
+#endif
 
 	// Создать объект устройства
 	struct xhci_device* device = new_xhci_device(controller, port_id, slot);
