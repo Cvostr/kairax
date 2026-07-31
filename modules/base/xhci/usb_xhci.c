@@ -128,7 +128,7 @@ int xhci_device_probe(struct device *dev)
 	// Остановка и сброс контроллера
 	xhci_controller_stop(cntrl);
 	wait_active_ms(1);
-	if (rc = xhci_controller_reset(cntrl))
+	if ((rc = xhci_controller_reset(cntrl)) != 0)
 	{
 		printk("XHCI: Error during controller reset: %i\n", rc);
         return -1;
