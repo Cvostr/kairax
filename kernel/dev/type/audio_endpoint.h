@@ -27,7 +27,7 @@ struct audio_endpoint {
     int             is_input;
     void*           private_data;
 
-    int             is_acquired; // Открыт символьный файл или нет
+    volatile int    is_acquired; // Открыт символьный файл или нет
 
     struct audio_operations ops;
 };
@@ -36,7 +36,7 @@ struct audio_endpoint {
 
 struct audio_endpoint* new_audio_endpoint(struct audio_endpoint_creation_args *args);
 void free_audio_endpoint(struct audio_endpoint* ep);
-void register_audio_endpoint(struct audio_endpoint* ep);
+int register_audio_endpoint(struct audio_endpoint* ep);
 
 size_t audio_endpoint_gather_samples(struct audio_endpoint* ep, char* out, size_t len);
 

@@ -19,6 +19,8 @@ struct file_operations audio_input_widget_fops = {
     .close = audio_endpoint_file_close,
     .ioctl = audio_endpoint_ioctl
 };
+
+#define MAX_REGISTERED_ESPS 100
 int registered_audio_eps = 0;
 
 struct audio_endpoint* new_audio_endpoint(struct audio_endpoint_creation_args *args)
@@ -58,17 +60,22 @@ void free_audio_endpoint(struct audio_endpoint* ep)
     kfree(ep);
 }
 
-void register_audio_endpoint(struct audio_endpoint* ep)
+int register_audio_endpoint(struct audio_endpoint* ep)
 {
-    char name[6];
-    strcpy(name, "aud");
-    // TODO: Переделать это говно!!!
-    name[3] = (registered_audio_eps++) + 0x30;
-    name[4] = 0;
+    if (registered_audio_eps == MAX_REGISTERED_ESPS)
+    {
+        return -E2BIG;
+    }
+
+    // сформировать имя для аудиокарты
+    char name[20];
+    sprintf(name, sizeof(name), "aud%i", registered_audio_eps++);
 
     struct file_operations* ops = ep->is_input ? &audio_input_widget_fops : &audio_output_widget_fops;
 
     devfs_add_char_device(name, ops, ep);
+
+    return 0;
 }
 
 size_t audio_endpoint_gather_samples(struct audio_endpoint* ep, char* out, size_t len)
@@ -99,22 +106,29 @@ int audio_endpoint_file_open(struct inode *inode, struct file *file)
 {
     struct audio_endpoint* ep = inode->private_data;
 
-    if (ep->is_acquired == TRUE)
+    // Попытаемся занять устройство
+    if (__sync_bool_compare_and_swap(&ep->is_acquired, FALSE, TRUE) == FALSE)
+    {
         return -ENOTEMPTY;
+    }
 
-    ep->is_acquired = TRUE;
-
+    file->private_data = ep;
     return 0;
 }
 
 int audio_endpoint_file_close(struct inode *inode, struct file *file)
 {
     struct audio_endpoint* ep = inode->private_data;
+
     // Файл снова можно открыть
-    ep->is_acquired = FALSE;
-    // Сбросить счетчики
-    ep->read_offset = 0;
-    ep->write_offset = 0;
+    if (ep->is_acquired == TRUE && file->private_data != NULL)
+    {
+        ep->is_acquired = FALSE;
+        // Сбросить счетчики
+        ep->read_offset = 0;
+        ep->write_offset = 0;
+    }
+
     return 0;
 }
 
