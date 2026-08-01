@@ -345,6 +345,7 @@ int nvme_ctlr_device_probe(struct device *dev)
 
 		struct device* drive_dev = new_device();
 		drive_dev->dev_type = DEVICE_TYPE_DRIVE;
+		device_set_name(drive_dev, device->controller_id.model);
 		device_set_parent(drive_dev, dev);
 		drive_dev->dev_data = ns;
 		drive_dev->drive_info = drive_info;

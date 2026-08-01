@@ -110,6 +110,7 @@ struct cdc_eth_dev {
 };
 
 int usb_cdc_device_probe(struct device *dev);
+void usb_cdc_device_remove(struct device *dev);
 int usb_cdc_set_eth_packet_filter(struct usb_device* device, struct usb_interface* interface, uint16_t filter);
 int usb_cdc_set_altsetting(struct usb_device* device, struct usb_interface* altinterface);
 void usb_cdc_notify_handler(struct usb_msg* msg);
@@ -195,7 +196,7 @@ void usb_cdc_rx_callback(struct usb_msg* msg)
 void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 {
 	// Определим MTU
-	int MTU = eth_dev->iface->mtu;
+	uint32_t MTU = eth_dev->iface->mtu;
 	// Определим wMaxPacketSize для In Bulk Endpoint
 	int in_max_pack_size = eth_dev->data_in->descriptor.wMaxPacketSize;
 
@@ -210,6 +211,11 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 	while (1)
 	{
 		int rc = usb_send_async_msg(eth_dev->usbdev, eth_dev->data_in, msg);
+		if (rc == -ENODEV)
+		{
+			printk("CDC: usb_send_async_msg: no device!\n");
+			break;
+		}
 
 		event_wait(&eth_dev->rx_event);
 
@@ -254,6 +260,10 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 			net_buffer_free(nb);
 			nb = NULL;
 		}
+	}
+
+	while (1) {
+
 	}
 }
 
@@ -547,10 +557,15 @@ int usb_cdc_device_probe(struct device *dev)
 	return 0;
 }
 
+void usb_cdc_device_remove(struct device *dev) 
+{
+	printk("USB CDC Device Remove\n");
+}
+
 struct device_driver_ops cdc_eth_ops = {
 
     .probe = usb_cdc_device_probe,
-    //.remove = usb_mass_device_remove
+    .remove = usb_cdc_device_remove
     //void (*shutdown) (struct device *dev);
 };
 

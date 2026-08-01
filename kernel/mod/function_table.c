@@ -70,6 +70,7 @@ struct kernel_function functions[] = {
     KFUNCTION(process_add_to_list),
     KFUNCTION(new_nic),
     KFUNCTION(register_nic),
+    KFUNCTION(unregister_nic),
     KFUNCTION(eth_handle_frame),
     KFUNCTION(new_net_buffer),
     KFUNCTION(new_net_buffer_in),

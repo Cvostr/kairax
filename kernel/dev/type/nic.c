@@ -79,6 +79,16 @@ exit:
     return 0;
 }
 
+int unregister_nic(struct nic* nic)
+{
+    // TODO: доделать
+    // 1. Удалять таблицы маршрутизации???
+    // 2. Учесть проходящий в данный момент трафик
+    acquire_spinlock(&nic_lock);
+    list_remove(&nic_list, nic);
+    release_spinlock(&nic_lock);
+}
+
 int nic_set_addr_ip4(struct nic* nic, uint32_t addr)
 {
     if (nic->flags & NIC_FLAG_LOOPBACK) {
