@@ -98,6 +98,32 @@ telnet_client_t *create_client(int clientsockfd)
     return state;
 }
 
+void terminate_client(telnet_client_t *client)
+{
+    int rc;
+
+    // Закрытие сетевого сокета-клиента
+    rc = close(client->sockfd);
+    if (rc == -1){
+        printf("Error close(client_sock): %i\n", errno);
+    }
+
+    // Завершение дочерних процессов
+    rc = ioctl(client->pty_masterfd, TIOCNOTTY, 0);
+    if (rc != 0)
+    {
+        perror("ioctl(TIOCNOTTY)");
+    }
+
+    // Ожидание завершения дочернего процесса
+    int status;
+    rc = waitpid(client->child, &status, 0);
+    printf("Process finished with status %i\n", status);
+
+    // Закрытие Master TTY чтобы завершить уничтожение объекта TTY
+    close(client->pty_masterfd);
+}
+
 void handle_data_from_client(telnet_client_t * client, const char *data, size_t len)
 {
     unsigned char c;
@@ -257,37 +283,14 @@ int main(int argc, char** argv)
 
     printf("Terminating...\n");
 
-    // Посылаем байт в TTY чтобы разблокировать поток чтения
-    char term_sym = 0x30;
-    rc = ioctl(client_state->pty_masterfd, TIOCSTI, &term_sym);
-    if (rc != 0)
-    {
-        perror("ioctl(TIOCSTI)");
-    }
+    terminate_client(client_state);
 
-    rc = close(client_sock);
-    if (rc == -1){
-        printf("Error close(client_sock): %i\n", errno);
-    }
-
+    // Закрытие сокета-сервера
     rc = close(sockfd);
     if (rc == -1){
         printf("Error close(sockfd): %i\n", errno);
     }
 
-    // Завершение дочерних процессов
-    rc = ioctl(client_state->pty_masterfd, TIOCNOTTY, 0);
-    if (rc != 0)
-    {
-        perror("ioctl(TIOCNOTTY)");
-    }
-
-    // Ожидание завершения дочернего процесса
-    int status;
-    rc = waitpid(client_state->child, &status, 0);
-    printf("Process finished with status %i\n", status);
-
-    close(client_state->pty_masterfd);
 
     return 0;    
 }

@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     printf("Status: %i\n", exec_args("netctl", netctl_args));
 
     printf("Setting Default Route\n");
-    char* route_args[3] = {"route", "add", 0};
+    char* route_args[8] = {"route", "add", "default", "gw", "10.0.2.2", "dev", "eth0", 0};
     printf("Status: %i\n", exec_args("route", route_args));
 
     return 0;
