@@ -207,6 +207,11 @@ int xhci_device_probe(struct device *dev)
 		// TODO: Clear everything
 		return -1;
 	}
+
+	// После запуска настроим все порты
+	// Чтобы в дальнейшем не было проблем с USB3.0 устройствами
+	xhci_controller_init_ports(cntrl);
+
 	// Сохранить указатель на структуру
 	dev->dev_data = cntrl;
 
@@ -257,7 +262,15 @@ void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 			{
 				struct xhci_port_desc* port = &controller->ports[port_id];
 
-				if (port->status_changed == 1)
+				if (port->force_init_device == 1)
+				{
+					// Это бывает для USB 3 устройств, которые уже были вставлены в разъем
+					// на момент инициализации xhci
+					// просто сразу инициализируем устройство
+					xhci_controller_init_device(controller, port_id);
+					port->force_init_device = 0;
+				}
+				else if (port->status_changed == 1)
 				{
 					struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
 					if ((port_regs->status & XHCI_PORTSC_CSC) == XHCI_PORTSC_CSC)
@@ -1091,6 +1104,67 @@ int xhci_controller_start(struct xhci_controller* controller)
 
 	return 0;
 }
+
+int xhci_controller_init_ports(struct xhci_controller* controller)
+{
+	int i;
+	struct xhci_port_desc *desc;
+	struct xhci_port_regs *regs;
+	int call_port_change_event = 0;
+
+	// включаем все порты
+	for (i = 0; i < controller->ports_num; i ++)
+	{
+		regs = &controller->ports_regs[i];
+		if ((regs->status & XHCI_PORTSC_PORTPOWER) == 0)
+		{
+			xhci_portsc_wr1c(regs, XHCI_PORTSC_PORTPOWER);
+		}
+	}
+
+	// Советуют подождать 100 мс
+	// Даем время портам включиться
+	wait_active_ms(100);
+
+	// проверяем все порты
+	for (i = 0; i < controller->ports_num; i ++)
+	{
+		desc = &controller->ports[i];
+		int is_usb3 = desc->revision_major == 3;
+
+		if (is_usb3)
+		{
+			regs = &controller->ports_regs[i];
+			uint16_t port_link_state = (regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
+			int ccs = (regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS;
+			int csc = (regs->status & XHCI_PORTSC_CSC) == regs->status & XHCI_PORTSC_CSC;
+
+			if ((port_link_state == XHCI_PLS_U0) && (ccs == 1) && (csc == 0))
+			{
+				// Устройство уже было вставлено на момент влючения xhci
+				// И оно уже сконфигурировано контроллером
+				// Но при этом прерывания сгенерировано не будет (CSC = 0)
+				// Поэтому устанавливаем force_init_device
+				desc->force_init_device = 1;
+				// и триггерим поток обработки событий подключений
+				controller->port_status_changed == 1;
+				call_port_change_event = 1;
+
+				// На всякий случай сбросим флаги изменений состояния
+				// Чтобы не было проблем с получением событий об извлечении устройства
+				xhci_portsc_wr1c(regs, XHCI_PORTSC_PRC | XHCI_PORTSC_WRC | XHCI_PORTSC_CSC | XHCI_PORTSC_PEC);
+			}
+		}
+	}
+
+	if (call_port_change_event == 1)
+	{
+		event_complete(&controller->port_status_upd_event);
+	}
+
+	return 0;
+}
+
 
 int xhci_controller_check_ext_caps(struct xhci_controller* controller)
 {

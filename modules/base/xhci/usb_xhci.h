@@ -539,6 +539,7 @@ struct xhci_port_desc
 	struct xhci_port_regs*  	port_regs;
 	struct xhci_device* 		bound_device;
 	
+	int force_init_device;
 	int status_changed; // flag
 };
 
@@ -592,7 +593,7 @@ int xhci_controller_init_scratchpad(struct xhci_controller* controller);
 int xhci_controller_init_interrupts(struct xhci_controller* controller, struct xhci_event_ring* event_ring);
 void xhci_controller_handle_events(struct xhci_controller* controller);
 void xhci_controller_process_event(struct xhci_controller* controller, struct xhci_trb* event);
-void xhci_controller_init_ports(struct xhci_controller* controller);
+int xhci_controller_init_ports(struct xhci_controller* controller);
 
 #define XHCI_DEVICE_EPS_ARRAY_SIZE	30
 
