@@ -252,7 +252,6 @@ int xhci_controller_enqueue_cmd_wait(struct xhci_controller* controller, struct 
 
 void xhci_controller_event_thread_routine(struct xhci_controller* controller)
 {
-	struct xhci_interrupter* interrupter = &controller->runtime->interrupters[0];
 	int rc;
 	while (1)
 	{
@@ -1137,7 +1136,7 @@ int xhci_controller_init_ports(struct xhci_controller* controller)
 			regs = &controller->ports_regs[i];
 			uint16_t port_link_state = (regs->status >> XHCI_PORTSC_PLS_SHIFT) & XHCI_PORTSC_PLS_MASK;
 			int ccs = (regs->status & XHCI_PORTSC_CCS) == XHCI_PORTSC_CCS;
-			int csc = (regs->status & XHCI_PORTSC_CSC) == regs->status & XHCI_PORTSC_CSC;
+			int csc = (regs->status & XHCI_PORTSC_CSC) == XHCI_PORTSC_CSC;
 
 			if ((port_link_state == XHCI_PLS_U0) && (ccs == 1) && (csc == 0))
 			{
@@ -1147,7 +1146,7 @@ int xhci_controller_init_ports(struct xhci_controller* controller)
 				// Поэтому устанавливаем force_init_device
 				desc->force_init_device = 1;
 				// и триггерим поток обработки событий подключений
-				controller->port_status_changed == 1;
+				controller->port_status_changed = 1;
 				call_port_change_event = 1;
 
 				// На всякий случай сбросим флаги изменений состояния
