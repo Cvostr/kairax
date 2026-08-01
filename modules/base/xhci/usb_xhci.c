@@ -631,7 +631,7 @@ enum usb_device_speed xhci_map_device_speed(uint8_t port_speed)
 			speed = USB_SPEED_SUPER;
 			break;
 		case XHCI_USB_SPEED_SUPER_SPEED_PLUS:
-			speed = XHCI_USB_SPEED_SUPER_SPEED_PLUS;
+			speed = USB_SPEED_SUPER_PLUS;
 			break;
 		default:
 			speed = USB_SPEED_NONE;
@@ -706,8 +706,8 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	// Теперь получим настоящий максимальный размер пакета
 	uint16_t actual_max_packet_size = device_descriptor.bMaxPacketSize0;  
 	
-	// Вроде как, если устройство USB3.0, то оно отдаст значение в виде 2^x
-	if (port_speed == XHCI_USB_SPEED_SUPER_SPEED)
+	// Вроде как, если устройство USB3.0+, то оно отдаст значение в виде 2^x
+	if (port_speed == XHCI_USB_SPEED_SUPER_SPEED || port_speed == XHCI_USB_SPEED_SUPER_SPEED_PLUS)
 	{
 		actual_max_packet_size = (1 << device_descriptor.bMaxPacketSize0);
 	}
