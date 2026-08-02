@@ -8,6 +8,7 @@
 #include "kairax/string.h"
 #include "dev/interrupts.h"
 #include "cpu/cpu_local_x64.h"
+#include "mem/kheap.h"
 
 typedef void (*interrupt_handler) (interrupt_frame_t*, void*);
 
@@ -15,6 +16,7 @@ struct irq_handler
 {
 	interrupt_handler handler;
 	void* data;
+	struct irq_handler *next;
 };
 
 struct irq_handler irq_handlers[256];
@@ -36,11 +38,20 @@ void int_handler(interrupt_frame_t* frame)
 		return;
 	}
 
-	interrupt_handler handler = irq_handlers[frame->int_no].handler;
-	void* data = irq_handlers[frame->int_no].data;
+	// Получаем первый обработчик в цепочке
+	struct irq_handler *ihandler = &irq_handlers[frame->int_no];
 
-	if (handler)
-		handler(frame, data);
+	// Вызываем все обработчики в этой цепочке
+	while (ihandler != NULL) 
+	{
+		interrupt_handler handler = ihandler->handler;
+		void* data = ihandler->data;
+		
+		if (handler)
+			handler(frame, data);
+
+		ihandler = ihandler->next;
+	}
 
 	if (frame->cs == 0x23) {
 		process_handle_signals(CALLER_INTERRUPT, frame);
@@ -62,8 +73,31 @@ int register_interrupt_handler(int interrupt_num, void* handler_func, void* data
 {
 	if (interrupt_num <= 255) 
 	{
-		irq_handlers[interrupt_num].handler = handler_func;
-		irq_handlers[interrupt_num].data = data; 
+		if (irq_handlers[interrupt_num].handler == NULL)
+		{
+			irq_handlers[interrupt_num].handler = handler_func;
+			irq_handlers[interrupt_num].data = data; 
+		}
+		else
+		{
+			// Обработчик уже был назначен на этот вектор прерывания
+			// Создаем объект нового обработчика
+			struct irq_handler *new_handler = kmalloc(sizeof(struct irq_handler));
+			if (new_handler == NULL)
+				return -ENOMEM;
+				
+			new_handler->handler = handler_func;
+			new_handler->data = data; 
+			new_handler->next = NULL;
+
+			// Ищем последний объект в цепочке
+			struct irq_handler *parent = &irq_handlers[interrupt_num];
+			while (parent->next != NULL)
+				parent = parent->next;
+
+			// Добавляем созданный объект в цепочку	
+			parent->next = new_handler;
+		}
 
 		return 0;
 	}
