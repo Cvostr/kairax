@@ -335,6 +335,12 @@ void e1000_irq_handler(void* regs, struct e1000* dev)
 	uint32_t status = e1000_read32(dev, E1000_REG_ICR);
 	e1000_write32(dev, E1000_REG_ICR, status);
 
+	if (status == 0)
+	{
+		// Это не из-за нас прерывание, выходим
+		return;
+	}
+
 	//printk("E1000: IRQ Handled! %i\n", status);
 
 	if (status & ICR_TXDW)
