@@ -1804,12 +1804,17 @@ int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name
 
 struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
 {
+    int rc;
     struct inode* vfs_inode = dir->inode;
     struct dirent* result = NULL;
     ext2_instance_t* inst = (ext2_instance_t*)vfs_inode->sb->fs_info;
+
     // Получить родительскую иноду
     ext2_inode_t parent_inode;
-    ext2_inode(inst, &parent_inode, vfs_inode->inode);
+    rc = ext2_inode(inst, &parent_inode, vfs_inode->inode);
+    if (rc != 0)
+        return NULL;
+
     //Переменные
     uint32_t curr_offset = 0;
     uint32_t block_offset = 0;
@@ -1818,14 +1823,23 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
     //Прочитать начальный блок иноды
-    ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+    rc = ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+    if (rc != 0) {
+        result = NULL;
+        goto exit;
+    }
+
     //Проверка, не прочитан ли весь блок?
     while (curr_offset < parent_inode.size) {
 
         if (in_block_offset >= inst->block_size) {
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+            rc = ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+            if (rc != 0) {
+                result = NULL;
+                goto exit;
+            }
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
@@ -1919,6 +1933,7 @@ int ext2_statfs(struct superblock *sb, struct statfs* stat)
 
 uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode, const char *name, int* type)
 {
+    int rc;
     uint64_t result = WRONG_INODE_INDEX;
     ext2_instance_t* inst = (ext2_instance_t*)sb->fs_info;
     
@@ -1926,7 +1941,10 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
 
     //Получить родительскую иноду
     ext2_inode_t parent_inode;
-    ext2_inode(inst, &parent_inode, vfs_parent_inode->inode);
+    rc = ext2_inode(inst, &parent_inode, vfs_parent_inode->inode);
+    if (rc != 0) {
+        return WRONG_INODE_INDEX;
+    }
 
     //Переменные
     uint32_t curr_offset = 0;
@@ -1937,7 +1955,12 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
     char* buffer = kmalloc(inst->block_size);
     
     // Прочитать начальный блок иноды
-    ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+    rc = ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+    if (rc != 0) {
+        result = WRONG_INODE_INDEX;
+        goto exit;
+    }
+
     // Пока не прочитаны все блоки
     while (curr_offset < parent_inode.size) 
     {
@@ -1945,7 +1968,11 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
         if(in_block_offset >= inst->block_size){
             block_offset++;
             in_block_offset = 0;
-            ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+            rc = ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
+            if (rc != 0) {
+                result = WRONG_INODE_INDEX;
+                goto exit;
+            }
         }
 
         // Считанный dirent
