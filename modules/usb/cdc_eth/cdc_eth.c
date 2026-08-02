@@ -511,6 +511,7 @@ int usb_cdc_device_probe(struct device *dev)
 	printk("CDC ECM: Bulk OUT EP max packet size %i\n", data_out->descriptor.wMaxPacketSize);
 
 	struct cdc_eth_dev* eth_dev = kmalloc(sizeof(struct cdc_eth_dev));
+	memset(eth_dev, 0, sizeof(struct cdc_eth_dev));
 	eth_dev->interrupt_in = interrupt_in;
 	eth_dev->data_in = data_in;
 	eth_dev->data_out = data_out;

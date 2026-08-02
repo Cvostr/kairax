@@ -87,6 +87,7 @@ int unregister_nic(struct nic* nic)
     acquire_spinlock(&nic_lock);
     list_remove(&nic_list, nic);
     release_spinlock(&nic_lock);
+    return 0;
 }
 
 int nic_set_addr_ip4(struct nic* nic, uint32_t addr)

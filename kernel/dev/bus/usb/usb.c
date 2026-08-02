@@ -42,6 +42,11 @@ struct usb_msg *new_usb_msg()
     return msg;
 }
 
+enum usb_device_state usb_device_get_state(struct usb_device* device)
+{
+    return device->state;
+}
+
 int usb_device_send_request(struct usb_device* device, struct usb_device_request* req, void* out, uint32_t length)
 {
     if (device->state == USB_STATE_DISCONNECTED)
