@@ -148,6 +148,7 @@ void kterm_main()
 					current_session->ctrl_hold = (state == 0);
 					break;
 				case KRXK_LSHIFT:
+				case KRXK_RSHIFT:
 					current_session->shift_hold = (state == 0);
 					break;
 				case KRXK_UP:
@@ -293,6 +294,8 @@ char keyboard_get_key_ascii(int shifted, char keycode)
 			return '{';
 		case KRXK_RBRACE:
 			return '}';
+		case KRXK_QUOTES:
+			return '"';
 		default:
 			char upcase = keyboard_get_key_ascii_normal(keycode);
 			if ((upcase >= 'a' && upcase <= 'z'))

@@ -13,6 +13,7 @@ int ps2kbd_tag_F0 = 0;
 
 uint8_t kbd_set2_ext_mappings[256] = {
     [0x11] = KRXK_RALT,
+    [0x14] = KRXK_RCTRL,
     [0x27] = KRXK_RSUPER,
     [0x6B] = KRXK_LEFT,
     [0x71] = KRXK_DEL,
