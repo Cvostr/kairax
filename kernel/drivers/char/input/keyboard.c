@@ -2,6 +2,7 @@
 #include "fs/devfs/devfs.h"
 #include "mem/kheap.h"
 #include "kairax/string.h"
+#include "proc/thread_scheduler.h"
 
 struct file_operations keyboard_fops;
 
@@ -99,20 +100,29 @@ void keyboard_add_event(uint8_t key, uint8_t action)
 
             buffer->buffer[buffer->end] = event_code;
             buffer->end += 1;
+
+            scheduler_wake(&buffer->blk, 1);
         }
     }
 }
 
 short keyboard_get_key_from_buffer(struct keyboard_buffer* buffer)
 {
-    if (buffer->start != buffer->end) {
-        if (buffer->start >= KEY_BUFFER_SIZE) buffer->start = 0;
-            buffer->start++;
-    } else {
-        return 0;
+    while (1) 
+    {
+        if (buffer->start != buffer->end) 
+        {
+            if (buffer->start >= KEY_BUFFER_SIZE) 
+                buffer->start = 0;
+            break;
+        } 
+        else 
+        {
+            scheduler_sleep_on(&buffer->blk);
+        }
     }
 
-    return buffer->buffer[buffer->start - 1];
+    return buffer->buffer[buffer->start++];
 }
 
 short keyboard_get_key()
