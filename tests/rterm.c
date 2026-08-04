@@ -17,8 +17,8 @@
 
 #define TELNET_IAC		0xFF
 #define TELNET_WILL		0xFB
-#define TELNET_DO		0xFC
-#define TELNET_WONT		0xFD
+#define TELNET_DO		0xFD
+#define TELNET_WONT		0xFC
 #define TELNET_DONT     0xFE
 #define TELNET_ECHO		0x01
 #define TELNET_LINEMODE 0x22
@@ -127,6 +127,7 @@ void terminate_client(telnet_client_t *client)
 void handle_data_from_client(telnet_client_t * client, const char *data, size_t len)
 {
     unsigned char c;
+    unsigned char iac_next;
     size_t pos = 0;
     while (pos < len)
     {
@@ -134,7 +135,14 @@ void handle_data_from_client(telnet_client_t * client, const char *data, size_t 
 
         if (c == TELNET_IAC)
         {
-            pos += 3;
+            pos ++;
+
+            iac_next = (unsigned char) data[pos];
+            pos ++;
+
+            if (iac_next == TELNET_WILL || iac_next == TELNET_DO || iac_next == TELNET_DONT || iac_next == TELNET_WONT)
+                pos ++;
+
             continue;
         }
 

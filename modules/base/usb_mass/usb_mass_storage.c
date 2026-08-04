@@ -147,11 +147,18 @@ int usb_mass_device_reset(struct usb_device* device, struct usb_interface* inter
 int usb_mass_device_get_max_lun(struct usb_device* device, struct usb_interface* interface, uint8_t* max_lun);
 int usb_mass_reset_recovery(struct usb_mass_storage_device* dev);
 int usb_mass_bulk_msg_with_stall_recovery(struct usb_device* device, struct usb_endpoint* endpoint, void* data, uint32_t length);
+void usb_mass_find_endpoints(struct usb_interface* interface, struct usb_endpoint** builk_in, struct usb_endpoint** builk_out);
 
 int usb_mass_inquiry(struct usb_mass_storage_device* dev, struct inquiry_block_result* inq_result);
 int usb_mass_test_unit_ready(struct usb_mass_storage_device* dev);
 int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks, uint32_t* block_size);
 int usb_mass_request_sense6(struct usb_mass_storage_device* dev, void* result);
+
+int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out);
+int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, const char* out);
+
+int usb_mass_device_probe(struct device *dev);
+void usb_mass_device_remove(struct device *dev);
 
 int usb_mass_device_reset(struct usb_device* device, struct usb_interface* interface)
 {
@@ -588,12 +595,12 @@ int usb_mass_get_capacity(struct usb_mass_storage_device* dev, uint64_t* blocks,
 	return 0;
 }
 
-int usb_mass_device_read_lba(struct device *device, uint64_t start, uint64_t count, const char *buf)
+int usb_mass_device_read_lba(struct device *device, uint64_t start, uint64_t count, char *buf)
 {
 	return usb_mass_read(device->dev_data, start, (uint32_t) count, buf);
 }
 
-int usb_mass_device_write_lba(struct device *device, uint64_t start, uint64_t count, char *buf)
+int usb_mass_device_write_lba(struct device *device, uint64_t start, uint64_t count, const char *buf)
 {
 	return usb_mass_write(device->dev_data, start, (uint32_t) count, buf);
 }
