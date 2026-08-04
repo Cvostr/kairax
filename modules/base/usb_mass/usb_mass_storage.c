@@ -7,6 +7,7 @@
 #include "kairax/in.h"
 #include "kairax/stdio.h"
 #include "kairax/errors.h"
+#include "sync/semaphore.h"
 
 struct command_block_wrapper {
     uint32_t signature;
@@ -125,6 +126,9 @@ struct usb_mass_storage_device {
 
 	uint32_t blocksize;
 	atomic_t cbw_tag;
+
+	// одновременно может выполняться только 1 запрос
+	struct semaphore request_lock;
 
 	uint8_t peripheral_device_type : 5;
 	uint8_t peripheral_qualifier   : 3;
@@ -390,6 +394,10 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	size_t reqd_bytes = CBW_SIZE;
 	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
 	reqd_bytes = MAX(reqd_bytes, bytes_per_packet);
+
+	// Допускается только 1 одновременный запрос
+	semaphore_acquire(&dev->request_lock);
+
 	// Выделить временную память с запретом кэширования
 	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
     uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
@@ -425,6 +433,7 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 exit:
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
     pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
+	semaphore_release(&dev->request_lock);
 
 	return rc;
 }
@@ -447,7 +456,6 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 	uint32_t blocks_per_packet = max_urb_size / dev->blocksize;
 	// Сколько байт можем считать за один запрос
 	uint32_t bytes_per_packet = max_urb_size;
-
 	
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
@@ -462,6 +470,10 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 	size_t reqd_bytes = CBW_SIZE;
 	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
 	reqd_bytes = MAX(reqd_bytes, bytes_per_packet);
+
+	// Допускается только 1 одновременный запрос
+	semaphore_acquire(&dev->request_lock);
+
 	// Выделить временную память с запретом кэширования
 	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
     uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
@@ -497,6 +509,7 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 exit:
 	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
     pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
+	semaphore_release(&dev->request_lock);
 
 	return rc;
 }
@@ -720,6 +733,7 @@ int usb_mass_device_probe(struct device *dev)
 		usb_mass->usb_dev = device;
 		usb_mass->usb_iface = interface;
 		usb_mass->cbw_tag.counter = 0x60996ea7;
+		semaphore_init(&usb_mass->request_lock, 1);
 
 		// Сначала запросим информацию
 		rc = usb_mass_inquiry(usb_mass, inq_result);
