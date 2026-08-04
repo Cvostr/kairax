@@ -157,6 +157,9 @@ int usb_mass_request_sense6(struct usb_mass_storage_device* dev, void* result);
 int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out);
 int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, const char* out);
 
+void usb_scsi_fill_cmd_read10(unsigned char *cmd, uint32_t sector, uint16_t sectors);
+void usb_scsi_fill_cmd_write10(unsigned char *cmd, uint32_t sector, uint16_t sectors);
+
 int usb_mass_device_probe(struct device *dev);
 void usb_mass_device_remove(struct device *dev);
 
@@ -271,7 +274,7 @@ int usb_mass_exec_cmd_mem(struct usb_mass_storage_device* dev,
 		goto cleanup_exit;
 	}
 
-	struct command_status_wrapper* csw = (tmp_data_buffer);
+	struct command_status_wrapper* csw = (struct command_status_wrapper*)(tmp_data_buffer);
 	if (csw->signature != CSW_SIGNATURE)
 	{
 		printk("CSW Signature incorrect!\n");
@@ -322,7 +325,7 @@ int usb_mass_exec_cmd(struct usb_mass_storage_device* dev, struct command_block_
 	return rc;
 }
 
-void usb_scsi_fill_cmd_read10(char *cmd, uint32_t sector, uint16_t sectors)
+void usb_scsi_fill_cmd_read10(unsigned char *cmd, uint32_t sector, uint16_t sectors)
 {
 	cmd[0] = SCSI_READ_10;
 	// reserved
@@ -338,7 +341,7 @@ void usb_scsi_fill_cmd_read10(char *cmd, uint32_t sector, uint16_t sectors)
 	cmd[8] = (uint8_t) ((sectors) & 0xFF);
 }
 
-void usb_scsi_fill_cmd_write10(char *cmd, uint32_t sector, uint16_t sectors)
+void usb_scsi_fill_cmd_write10(unsigned char *cmd, uint32_t sector, uint16_t sectors)
 {
 	cmd[0] = SCSI_WRITE_10;
 	// reserved
@@ -356,14 +359,22 @@ void usb_scsi_fill_cmd_write10(char *cmd, uint32_t sector, uint16_t sectors)
 
 int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, char* out)
 {
-	size_t max_pckt_sz = dev->in_ep->descriptor.wMaxPacketSize;
 	int rc = 0;
+	uint16_t usb_max_pckt_sz = dev->in_ep->descriptor.wMaxPacketSize;
 
-	// Сколько блоков можем считать за один пакет
-	uint32_t blocks_per_packet = max_pckt_sz / dev->blocksize;
-	// Сколько байт можем считать за один пакет
-	// Вычисляем, потому что значение wMaxPacketSize может быть не кратно dev->blocksize
-	uint32_t bytes_per_packet = blocks_per_packet * dev->blocksize;
+	// Вычисляем выравнивание из wMaxPacketSize и размера SCSI блока
+	// Так как они всегда степени 2, это делать просто
+	// Просто берем наибольшее из них
+	uint32_t alignment = usb_max_pckt_sz > dev->blocksize ? usb_max_pckt_sz : dev->blocksize;
+
+	// Вычисляем размер для одного USB запроса
+	// Пока что отталкиваемся от 4кб (размер страницы памяти), но выравним по тому, что посчитали выше
+	size_t max_urb_size = align(4096, alignment);
+
+	// Сколько блоков можем считать за один запрос
+	uint32_t blocks_per_packet = max_urb_size / dev->blocksize;
+	// Сколько байт можем считать за один запрос
+	uint32_t bytes_per_packet = max_urb_size;
 
 	// Начальный заголовок CBW
 	struct command_block_wrapper cbw;
@@ -420,15 +431,24 @@ exit:
 
 int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t count, const char* out)
 {
-	size_t max_pckt_sz = dev->out_ep->descriptor.wMaxPacketSize;
 	int rc = 0;
+	uint16_t usb_max_pckt_sz = dev->in_ep->descriptor.wMaxPacketSize;
 
-	// Сколько блоков можем считать за один пакет
-	uint32_t blocks_per_packet = max_pckt_sz / dev->blocksize;
-	// Сколько байт можем считать за один пакет
-	// Вычисляем, потому что значение wMaxPacketSize может быть не кратно dev->blocksize
-	uint32_t bytes_per_packet = blocks_per_packet * dev->blocksize;
+	// Вычисляем выравнивание из wMaxPacketSize и размера SCSI блока
+	// Так как они всегда степени 2, это делать просто
+	// Просто берем наибольшее из них
+	uint32_t alignment = usb_max_pckt_sz > dev->blocksize ? usb_max_pckt_sz : dev->blocksize;
 
+	// Вычисляем размер для одного USB запроса
+	// Пока что отталкиваемся от 4кб (размер страницы памяти), но выравним по тому, что посчитали выше
+	size_t max_urb_size = align(4096, alignment);
+
+	// Сколько блоков можем считать за один запрос
+	uint32_t blocks_per_packet = max_urb_size / dev->blocksize;
+	// Сколько байт можем считать за один запрос
+	uint32_t bytes_per_packet = max_urb_size;
+
+	
 	struct command_block_wrapper cbw;
 	cbw.signature = CBW_SIGNATURE;
 	cbw.tag = atomic_inc_and_get(&dev->cbw_tag);
@@ -750,8 +770,8 @@ int usb_mass_device_probe(struct device *dev)
 		device_set_parent(lun_dev, dev);
 		device_set_data(lun_dev, usb_mass);
 		lun_dev->drive_info = drive_info;
-		strncpy(lun_dev->dev_name, inq_result->t10_vendor_identification, sizeof(lun_dev->dev_name));
-		strncat(lun_dev->dev_name, inq_result->product_identification, sizeof(lun_dev->dev_name));
+		strncpy(lun_dev->dev_name, inq_result->t10_vendor_identification, DEVICE_NAME_LEN);
+		strncat(lun_dev->dev_name, inq_result->product_identification, DEVICE_NAME_LEN - strlen(lun_dev->dev_name));
 
 		register_device(lun_dev);
 
