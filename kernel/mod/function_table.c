@@ -18,6 +18,7 @@
 #include "dev/type/audio_endpoint.h"
 #include "proc/tasklet.h"
 #include "sync/event.h"
+#include "sync/semaphore.h"
 #include "kairax/kstdlib.h"
 #include "dev/device_man.h"
 #include "cpu/cpu.h"
@@ -123,6 +124,13 @@ struct kernel_function functions[] = {
     // partition
     KFUNCTION(register_drive),
     KFUNCTION(partition_read),
+    // semaphore
+    KFUNCTION(new_semaphore),
+    KFUNCTION(new_mutex),
+    KFUNCTION(free_semaphore),
+    KFUNCTION(semaphore_init),
+    KFUNCTION(semaphore_acquire),
+    KFUNCTION(semaphore_release),
     // kairax std
     KFUNCTION(memset),
     KFUNCTION(memcpy),

@@ -1,9 +1,8 @@
 #ifndef _SEMAPHORE_H
 #define _SEMAPHORE_H
 
-#include "atomic.h"
+#include "kairax/atomic.h"
 #include "spinlock.h"
-#include "proc/blocker.h"
 
 struct thread;
 
