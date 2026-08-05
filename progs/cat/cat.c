@@ -4,7 +4,7 @@
 #include "string.h"
 #include "errno.h"
 
-#define REGION_LEN 512
+#define REGION_LEN 4096
 char region[REGION_LEN];
 
 int main(int argc, char** argv) 

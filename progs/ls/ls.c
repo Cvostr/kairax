@@ -87,9 +87,14 @@ int printdir(const char *path)
 {
     int rc;
     int dirfd = open(path, O_RDONLY, 0);
-    DIR* dir = opendir(path);
-
     if (dirfd == -1) 
+    {
+        printf("ls: Can't open '%s': %s\n", path, strerror(errno));
+        return 1;
+    }
+
+    DIR* dir = opendir(path);
+    if (dir == NULL) 
     {
         printf("ls: Can't open '%s': %s\n", path, strerror(errno));
         return 1;

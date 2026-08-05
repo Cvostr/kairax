@@ -8,7 +8,7 @@
 #include "kstdlib.h"
 #include "sync/semaphore.h"
 
-#define KHEAP_INIT_SIZE 4096000
+#define KHEAP_INIT_SIZE 8192000
 
 kheap_t kheap;
 spinlock_t kheap_lock;
