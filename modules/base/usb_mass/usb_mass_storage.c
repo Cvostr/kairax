@@ -130,6 +130,11 @@ struct usb_mass_storage_device {
 	// одновременно может выполняться только 1 запрос
 	struct semaphore request_lock;
 
+	size_t dma_allocated;
+	size_t dma_allocated_pages;
+	uintptr_t dma_buffer_phys;
+    uintptr_t dma_buffer;
+
 	uint8_t peripheral_device_type : 5;
 	uint8_t peripheral_qualifier   : 3;
 };
@@ -389,7 +394,6 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	cbw.lun = dev->lun_id;
 
 	// выделяем память
-	size_t reqd_pages = 0;
 	// Сосчитать необходимую память
 	size_t reqd_bytes = CBW_SIZE;
 	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
@@ -399,8 +403,18 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	semaphore_acquire(&dev->request_lock);
 
 	// Выделить временную память с запретом кэширования
-	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
-    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
+	if (dev->dma_allocated < reqd_bytes)
+	{
+		if (dev->dma_allocated != 0)
+		{
+			unmap_io_region(dev->dma_buffer, dev->dma_allocated_pages * PAGE_SIZE);
+    		pmm_free_pages(dev->dma_buffer_phys, dev->dma_allocated_pages);
+		}
+
+		dev->dma_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &dev->dma_allocated_pages);
+    	dev->dma_buffer = map_io_region(dev->dma_buffer_phys, dev->dma_allocated_pages * PAGE_SIZE);
+		dev->dma_allocated = dev->dma_allocated_pages * PAGE_SIZE;
+	}
 
 	// Сколько осталось блоков LBA
 	uint32_t remaining_blocks = count;
@@ -418,7 +432,7 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 		usb_scsi_fill_cmd_read10(cbw.data, sector, blocks_for_read);
 
 		// Выполним команду
-		rc = usb_mass_exec_cmd_mem(dev, &cbw, FALSE, out + i * bytes_per_packet, bytes_for_read, tmp_data_buffer_phys, tmp_data_buffer);
+		rc = usb_mass_exec_cmd_mem(dev, &cbw, FALSE, out + i * bytes_per_packet, bytes_for_read, dev->dma_buffer_phys, dev->dma_buffer);
 		if (rc != 0)
 		{
 			rc = -EIO;
@@ -431,8 +445,6 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 	}
 
 exit:
-	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
-    pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
 	semaphore_release(&dev->request_lock);
 
 	return rc;
@@ -464,8 +476,6 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
     cbw.command_len = 10;
 	cbw.lun = dev->lun_id;
 
-	// выделяем память
-	size_t reqd_pages = 0;
 	// Сосчитать необходимую память
 	size_t reqd_bytes = CBW_SIZE;
 	reqd_bytes = MAX(reqd_bytes, sizeof(struct command_status_wrapper));
@@ -475,8 +485,18 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 	semaphore_acquire(&dev->request_lock);
 
 	// Выделить временную память с запретом кэширования
-	uintptr_t tmp_data_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &reqd_pages);
-    uintptr_t tmp_data_buffer = map_io_region(tmp_data_buffer_phys, reqd_pages * PAGE_SIZE);
+	if (dev->dma_allocated < reqd_bytes)
+	{
+		if (dev->dma_allocated != 0)
+		{
+			unmap_io_region(dev->dma_buffer, dev->dma_allocated_pages * PAGE_SIZE);
+    		pmm_free_pages(dev->dma_buffer_phys, dev->dma_allocated_pages);
+		}
+
+		dev->dma_buffer_phys = (uintptr_t) pmm_alloc(reqd_bytes, &dev->dma_allocated_pages);
+    	dev->dma_buffer = map_io_region(dev->dma_buffer_phys, dev->dma_allocated_pages * PAGE_SIZE);
+		dev->dma_allocated = dev->dma_allocated_pages * PAGE_SIZE;
+	}
 
 	// Сколько осталось блоков LBA
 	uint32_t remaining_blocks = count;
@@ -494,7 +514,7 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 		usb_scsi_fill_cmd_write10(cbw.data, sector, blocks_for_write);
 
 		// Выполним команду
-		rc = usb_mass_exec_cmd_mem(dev, &cbw, TRUE, out + i * bytes_per_packet, bytes_for_write, tmp_data_buffer_phys, tmp_data_buffer);
+		rc = usb_mass_exec_cmd_mem(dev, &cbw, TRUE, out + i * bytes_per_packet, bytes_for_write, dev->dma_buffer_phys, dev->dma_buffer);
 		if (rc != 0)
 		{
 			rc = -EIO;
@@ -507,8 +527,6 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 	}
 
 exit:
-	unmap_io_region(tmp_data_buffer, reqd_pages * PAGE_SIZE);
-    pmm_free_pages(tmp_data_buffer_phys, reqd_pages);
 	semaphore_release(&dev->request_lock);
 
 	return rc;
@@ -733,6 +751,7 @@ int usb_mass_device_probe(struct device *dev)
 		usb_mass->usb_dev = device;
 		usb_mass->usb_iface = interface;
 		usb_mass->cbw_tag.counter = 0x60996ea7;
+		usb_mass->dma_allocated = 0;
 		semaphore_init(&usb_mass->request_lock, 1);
 
 		// Сначала запросим информацию
