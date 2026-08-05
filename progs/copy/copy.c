@@ -3,9 +3,9 @@
 #include "unistd.h"
 #include "fcntl.h"
 #include "string.h"
+#include "stdlib.h"
 
-#define REGION_LEN 4096 * 3
-char region[REGION_LEN];
+#define REGION_LEN (4096 * 64)
 
 int main(int argc, char** argv) {
 
@@ -32,22 +32,39 @@ int main(int argc, char** argv) {
         return 3;
     }
 
+    // Выделим память под регион
+    char *buffer = malloc(REGION_LEN);
+    if (buffer == NULL) 
+    {
+        printf("cp: failed to allocate memory\n");
+        return 1;
+    }
+
     ssize_t readed = 0, written = 0;
     size_t total_written = 0;
-    while ((readed = read(srcfd, region, REGION_LEN)) > 0) 
+    while ((readed = read(srcfd, buffer, REGION_LEN)) > 0) 
     {
-        written = write(dstfd, region, readed);
+        written = write(dstfd, buffer, readed);
         if (written < 0)
         {
             printf("cp: error writing to destination file '%s': %s\n", dest, strerror(errno));
+            free(buffer);
             return 1;
         }
 
         total_written += written;
     }
 
-    printf("File copied, written %i bytes", total_written);
+    if (readed < 0)
+    {
+        printf("cp: error reading from source file '%s': %s\n", dest, strerror(errno));
+        free(buffer);
+        return 1;
+    }
 
+    //printf("File copied, written %i bytes", total_written);
+
+    free(buffer);
     close(srcfd);
     close(dstfd);
 
