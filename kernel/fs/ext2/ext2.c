@@ -363,12 +363,9 @@ int ext2_write_inode_block_virt(ext2_instance_t* inst, ext2_inode_t* inode, uint
     if (inode_block_abs == 0)
     {
         // блок для этого индекса не был выделен - значит выделяем
-        rc = ext2_alloc_inode_block(inst, inode, inode_num, inode_block);
+        rc = ext2_alloc_inode_block(inst, inode, inode_num, inode_block, &inode_block_abs);
         if (rc != 0)
             return rc;
-
-        // получим номер выделенного блока
-        inode_block_abs = ext2_inode_block_absolute(inst, inode, inode_block);
     }
 
     return ext2_partition_write_block_virt(inst, inode_block_abs, 1, buffer);
@@ -731,7 +728,7 @@ exit:
     return 0;
 }
 
-int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index)
+int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index, uint32_t *allocated_block_idx)
 {
     // Выделить блок
     uint64_t new_block = ext2_alloc_block(inst);
@@ -748,6 +745,9 @@ int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t 
 
     // Перезаписать inode
     ext2_write_inode_metadata(inst, inode, node_num);
+
+    if (allocated_block_idx != NULL)
+        *allocated_block_idx = new_block;
 
     return 0;
 }
@@ -814,7 +814,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
         if (in_block_offset + dirent_len >= inst->block_size) {
             // Не хватает места в inode - расширяем
             block_index++;
-            ext2_alloc_inode_block(inst, e2_inode, parent->inode, block_index);
+            ext2_alloc_inode_block(inst, e2_inode, parent->inode, block_index, NULL);
             
             in_block_offset = 0;
 
@@ -1534,7 +1534,7 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     // Записать изменения на диск
     ext2_write_inode_metadata(inst, inode, inode_num);
 
-    ext2_alloc_inode_block(inst, inode, inode_num, 0);
+    ext2_alloc_inode_block(inst, inode, inode_num, 0, NULL);
 
     // Добавить иноду в директорию
     ext2_create_dentry(inst, parent, dir_name, inode_num, EXT2_DT_DIR);

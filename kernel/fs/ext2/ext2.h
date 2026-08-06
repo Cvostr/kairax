@@ -196,7 +196,7 @@ int ext2_free_block_tree(ext2_instance_t* inst, uint64_t root, int level);
 int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx);
 
 // Выделить блок для иноды
-int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index);
+int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_num, uint32_t block_index, uint32_t *allocated_block_idx);
 
 // Создать direntry в иноде на другую inode с указанным типом
 int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode, int type);
