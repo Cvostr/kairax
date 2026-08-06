@@ -432,13 +432,30 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
     // Если больше - то номер блока BGD - 1
     instance->bgd_start_block = (instance->block_size == 1024) ? 2 : 1;
     //Чтение BGD
-    ext2_partition_read_block_virt(instance, 
+    rc = ext2_partition_read_block_virt(instance, 
         instance->bgd_start_block,
         instance->bgds_blocks, 
         instance->bgds);
+    if (rc != 0)
+    {
+        kfree(instance->bgds);
+        kfree(instance->superblock);
+        kfree(instance);
+        return NULL;
+    }
+
     //Чтение корневой иноды с индексом 2
     ext2_inode_t* ext2_inode_root = new_ext2_inode();
-    ext2_inode(instance, ext2_inode_root, 2);
+    rc = ext2_inode(instance, ext2_inode_root, 2);
+    if (rc != 0)
+    {
+        kfree(ext2_inode_root);
+        kfree(instance->bgds);
+        kfree(instance->superblock);
+        kfree(instance);
+        return NULL;
+    }
+    
     //Создать объект VFS корневой иноды файловой системы 
     struct inode* result = ext2_inode_to_vfs_inode(instance, ext2_inode_root, 2);
 

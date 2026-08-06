@@ -103,7 +103,16 @@ int mkfile(struct dentry* dir, const char* path, int mode)
     // Разделить путь на путь директории имя файла
     split_path(path, &directory_path, &filename);
 
-    if (strlen(filename) > NAME_MAX)
+    size_t filename_len = strlen(filename);
+
+    if (filename_len == 0)
+    {
+        // имя создаваемого файла не может быть пустым
+        rc = -EINVAL;
+        goto exit;
+    }
+
+    if (filename_len > NAME_MAX)
     {
         // Слишком длинное имя создаваемого файла
         rc = -ENAMETOOLONG;

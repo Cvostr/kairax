@@ -4,6 +4,8 @@
 #include "fcntl.h"
 #include "string.h"
 #include "stdlib.h"
+#include "limits.h"
+#include "libgen.h"
 
 #define REGION_LEN (4096 * 64)
 
@@ -27,9 +29,28 @@ int main(int argc, char** argv) {
     // Создаем файл
     int dstfd = creat(dest, 0777);
 
-    if (dstfd == -1) {
-        printf("cp: can't open destination file '%s': %s\n", dest, strerror(errno));
-        return 3;
+    if (dstfd == -1) 
+    {
+        if (errno == EISDIR)
+        {
+            // получим имя исходного файла
+            // !!! src будет изменена !!!
+            char *src_fname = basename(src);
+            // память под временную строку нового пути
+            char *newpath = malloc(PATH_MAX);
+            // склеим строки
+            snprintf(newpath, PATH_MAX, "%s/%s", dest, src_fname);
+            // пробуем еще раз открыть новый файл
+            dstfd = creat(newpath, 0777);
+            // временная строка - новый путь назначения
+            dest = newpath;
+        }
+        
+        if (dstfd == -1)
+        {
+            printf("cp: can't open destination file '%s': %s\n", dest, strerror(errno));
+            return 3;
+        }
     }
 
     // Выделим память под регион
