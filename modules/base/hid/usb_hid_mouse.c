@@ -24,6 +24,7 @@ struct usb_hid_mouse {
     // Старое состояние
     uint8_t buttons[8];
 
+    struct usb_msg                      *report_msg;
     size_t                              report_buffer_pages;
     uintptr_t                           report_buffer_phys;
     void*                               report_buffer;
@@ -200,11 +201,15 @@ int usb_hid_mouse_device_probe(struct device *dev)
     // Сохранить адрес объекта мыши в устройстве
     dev->dev_data = mouse;
 
+    // usb_msg для запросов прерываний
     struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
     msg->data = mouse->report_buffer_phys;
     msg->length = max_packet_sz;
     msg->callback = mouse_event_callback;
     msg->private = mouse;
+
+    // сохраним этот адрес для удаления при отсоединении устройства
+    mouse->report_msg = msg;
 
     usb_send_async_msg(device, interrupt_in_ep, msg);
 
@@ -214,6 +219,19 @@ int usb_hid_mouse_device_probe(struct device *dev)
 void usb_hid_mouse_device_remove(struct device *dev) 
 {
 	printk("HID Mouse: Device Remove\n");
+    struct usb_hid_mouse* mouse = dev->dev_data;
+
+    if (mouse)
+    {
+        unmap_io_region(mouse->report_buffer, mouse->report_buffer_pages * PAGE_SIZE);
+        pmm_free_pages(mouse->report_buffer_phys, mouse->report_buffer_pages);
+
+        hid_free_report_items(&mouse->report_items);
+
+        kfree(mouse->report_msg);
+
+        kfree(mouse);
+    }
 }
 
 struct device_driver_ops usb_hid_mouse_ops = {

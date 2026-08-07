@@ -129,6 +129,7 @@ struct usb_hid_kbd {
     struct usb_endpoint* ep;
     struct usb_interface* interface;
 
+    struct usb_msg  *report_msg;
     // для приема отчета
     size_t       report_buffer_pages;
     uintptr_t    report_buffer_phys;
@@ -370,6 +371,9 @@ int usb_hid_kbd_device_probe(struct device *dev)
     msg->callback = hid_kbd_event_callback;
     msg->private = kbd;
 
+    // сохраним этот адрес для удаления при отсоединении устройства
+    kbd->report_msg = msg;
+
     // ожидание первого прерывания
     usb_send_async_msg(device, interrupt_in_ep, msg);
 
@@ -391,6 +395,19 @@ int usb_hid_kbd_device_probe(struct device *dev)
 void usb_hid_kbd_device_remove(struct device *dev) 
 {
 	printk("HID KBD: Device Remove\n");
+    struct usb_hid_kbd* kbd = dev->dev_data;
+
+    if (kbd) 
+    {
+        unmap_io_region(kbd->report_buffer, kbd->report_buffer_pages * PAGE_SIZE);
+        pmm_free_pages(kbd->report_buffer_phys, kbd->report_buffer_pages);
+
+        hid_free_report_items(&kbd->report_items);
+
+        kfree(kbd->report_msg);
+
+        kfree(kbd);
+    }
 }
 
 struct device_driver_ops usb_hid_kbd_ops = {

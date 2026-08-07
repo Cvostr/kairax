@@ -91,6 +91,7 @@ uint16_t hid_report_read16u(uint8_t *report, size_t pos, uint8_t bSize);
 int32_t hid_report_read32(uint8_t *report, size_t pos, uint8_t bSize);
 uint32_t hid_report_read32u(uint8_t *report, size_t pos, uint8_t bSize);
 void hid_parse_report(uint8_t* report, size_t length, list_t *items);
+void hid_free_report_items(list_t *items);
 
 int usb_hid_set_idle(struct usb_device* device, struct usb_interface* interface);
 int usb_hid_get_report(struct usb_device* device, struct usb_interface* interface, uint8_t report_type, uint8_t report_id, void* report, uint32_t report_length);

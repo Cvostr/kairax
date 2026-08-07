@@ -411,6 +411,21 @@ void hid_parse_report(uint8_t* report, size_t length, list_t *items)
     }
 }
 
+void hid_free_report_items(list_t *items)
+{
+    struct list_node* current = items->head;
+
+    for (size_t i = 0; i < items->size; i++)
+    {
+        struct list_node* temp = current;
+        if (current) {
+            current = current->next;
+			kfree(temp->element);
+            kfree(temp);
+        }
+    }
+}
+
 uint32_t hid_get_bits_unsigned(uint8_t *report, size_t offset, size_t size)
 {
 	uint32_t result = 0;

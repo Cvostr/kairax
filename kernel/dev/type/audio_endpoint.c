@@ -2,7 +2,7 @@
 #include "mem/kheap.h"
 #include "kairax/string.h"
 #include "fs/devfs/devfs.h"
-#include "kairax/string.h"
+#include "kairax/stdio.h"
 
 int audio_endpoint_file_open(struct inode *inode, struct file *file);
 int audio_endpoint_file_close(struct inode *inode, struct file *file);
