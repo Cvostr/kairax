@@ -160,16 +160,16 @@ int scheduler_handler(thread_frame_t* frame)
         }
     }
 
-    // Вызов простейшего балансировщика между ядрами
-    // Закомментируйте, чтобы выключить многоядерность
-    balance();
-    
     // Есть ли новые запланированные тасклеты?
     if (this_core->scheduled_tasklets->head != NULL && this_core->scheduled_tasklets->changed == 1)
 	{
         // Если да, то выбираем поток тасклетов
         preemt_to_tasklets();
 	}
+
+    // Вызов простейшего балансировщика между ядрами
+    // Закомментируйте, чтобы выключить многоядерность
+    balance();
 
     // Найти следующий поток
     struct thread* new_thread = scheduler_get_next_runnable_thread();
