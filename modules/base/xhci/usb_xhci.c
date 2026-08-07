@@ -10,8 +10,6 @@
 #include "kairax/string.h"
 #include "kairax/stdio.h"
 #include "kairax/kstdlib.h"
-//#include "proc/process.h"
-//#include "proc/thread.h"
 
 #define XHCI_CRCR_ENTRIES 256
 #define XHCI_EVENT_RING_ENTIRIES 256
@@ -37,6 +35,9 @@ static const char* xhci_speed_string[7] = {
 //#define XHCI_LOG_PORT_STATUS_CHANGE
 //#define XHCI_LOG_PORT_DISCONNECT
 //#define XHCI_LOG_ALLOCATED_SLOT
+
+// IMOD - Максимальное число прерываний в секунду
+#define XHCI_IRQ_MAX_FREQ	(200)
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -535,8 +536,7 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 	// Включить прерывания на этом interrupter
 	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING | XHCI_IMAN_INTERRUPT_ENABLE;
 
-	int freq = 100;		// 100 в секунду
-	uint16_t imodi = 4000000 / freq;
+	uint16_t imodi = 4000000 / XHCI_IRQ_MAX_FREQ;
 	interrupter->imod = imodi;
 
 	// Сбросить флаг прерывания (если было необработанное прерывание)
