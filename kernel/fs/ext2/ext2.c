@@ -1346,9 +1346,12 @@ int ext2_chmod(struct inode * inode, uint32_t mode)
 
 int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const struct timespec* mtime)
 {
+    int rc;
+
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
-    ext2_inode_t* e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, inode->inode);
+    ext2_inode_t e2_inode;
+    if ((rc = ext2_inode(inst, &e2_inode, inode->inode)) != 0)
+        return rc;
 
     time_t new_atime_sec = inode->access_time.tv_sec;
     time_t new_mtime_sec = inode->modify_time.tv_sec;
@@ -1362,11 +1365,12 @@ int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const s
         new_mtime_sec = mtime->tv_sec;
     }
 
-    e2_inode->atime = new_atime_sec;
-    e2_inode->mtime = new_mtime_sec;
+    e2_inode.atime = new_atime_sec;
+    e2_inode.mtime = new_mtime_sec;
 
-    ext2_write_inode_metadata(inst, e2_inode, inode->inode);
-    kfree(e2_inode);
+    // Перезапишем inode
+    if ((rc = ext2_write_inode_metadata(inst, &e2_inode, inode->inode)) != 0)
+        return rc;
 
     inode->access_time.tv_sec = new_atime_sec;
     inode->modify_time.tv_sec = new_mtime_sec;
@@ -1376,11 +1380,13 @@ int ext2_set_datetime(struct inode* inode, const struct timespec* atime, const s
 
 int ext2_unlink(struct inode* parent, struct dentry* dent)
 {
+    int rc = 0;
     ext2_instance_t* inst = (ext2_instance_t*)parent->sb->fs_info;
 
     // Считать ext2 - inode директории, из которой удаляем
     ext2_inode_t* e2_parent_inode = new_ext2_inode();
-    ext2_inode(inst, e2_parent_inode, parent->inode);
+    if ((rc = ext2_inode(inst, e2_parent_inode, parent->inode)) != 0)
+        return rc;
 
     // Получить удаляемую inode
     uint32_t unlink_inode_idx = 0;
@@ -1391,12 +1397,11 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
 
     // Считать ext2 - inode, для которой делаем unlink
     ext2_inode_t* e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, unlink_inode_idx);
-
-    //printk("UNLINK: INODE %i SIZE %i BLOCKS %i\n", unlink_inode_idx, e2_inode->size, e2_inode->num_blocks);
+    if ((rc = ext2_inode(inst, e2_inode, unlink_inode_idx)) != 0)
+        goto exit;
 
     // Удалить dentry из родительской inode
-    if (ext2_remove_dentry(inst, parent, dent->name, NULL) != 0) {
+    if ((rc = ext2_remove_dentry(inst, parent, dent->name, NULL)) != 0) {
         goto exit;
     }
 
@@ -1404,7 +1409,8 @@ int ext2_unlink(struct inode* parent, struct dentry* dent)
     e2_inode->hard_links--;
 
     // Перезаписать inode
-    ext2_write_inode_metadata(inst, e2_inode, unlink_inode_idx);
+    if ((rc = ext2_write_inode_metadata(inst, e2_inode, unlink_inode_idx)) != 0)
+        goto exit;
 
     // Уменьшить количество ссылок на выбранную inode в VFS
     dent->d_inode->hard_links--;
@@ -1413,7 +1419,7 @@ exit:
     kfree(e2_parent_inode);
     kfree(e2_inode);
 
-    return 0;
+    return rc;
 }
 
 int ext2_rmdir(struct inode* inode, struct dentry* dentry)
@@ -1887,7 +1893,10 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 {
     int rc = -1;
     ext2_inode_t*    e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, parent->inode);
+    if ((rc = ext2_inode(inst, e2_inode, parent->inode)) != 0) {
+        kfree(e2_inode);
+        return rc;
+    }
 
     // Подготовить буфер для блоков
     char* buffer = kmalloc(inst->block_size);
@@ -1899,7 +1908,8 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     size_t name_len = strlen(name);
 
     // Считать первый блок
-    ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
+    if ((rc = ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer)) != 0)
+        goto exit;
 
     while (offset < e2_inode->size) {
         
