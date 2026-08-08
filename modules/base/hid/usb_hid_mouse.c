@@ -36,6 +36,11 @@ uint8_t hid_buttons_mappings[3] = {
     MOUSE_BUTTON_MIDDLE
 };
 
+void mouse_hid_report_handler(void* private_data, uint16_t usage_page, uint16_t usage_id, int64_t val);
+void mouse_event_callback(struct usb_msg* msg);
+int usb_hid_mouse_device_probe(struct device *dev);
+void usb_hid_mouse_device_remove(struct device *dev);
+
 void mouse_hid_report_handler(void* private_data, uint16_t usage_page, uint16_t usage_id, int64_t val) 
 {
     struct usb_hid_mouse* mouse = private_data;
@@ -196,14 +201,14 @@ int usb_hid_mouse_device_probe(struct device *dev)
 
     // Выделить память под буфер report
     mouse->report_buffer_phys = (uintptr_t) pmm_alloc(max_packet_sz, &mouse->report_buffer_pages);
-    mouse->report_buffer = map_io_region(mouse->report_buffer_phys, mouse->report_buffer_pages * PAGE_SIZE);
+    mouse->report_buffer = (void*) map_io_region(mouse->report_buffer_phys, mouse->report_buffer_pages * PAGE_SIZE);
 
     // Сохранить адрес объекта мыши в устройстве
     dev->dev_data = mouse;
 
     // usb_msg для запросов прерываний
     struct usb_msg* msg = kmalloc(sizeof(struct usb_msg));
-    msg->data = mouse->report_buffer_phys;
+    msg->data = (void*) mouse->report_buffer_phys;
     msg->length = max_packet_sz;
     msg->callback = mouse_event_callback;
     msg->private = mouse;
@@ -223,8 +228,8 @@ void usb_hid_mouse_device_remove(struct device *dev)
 
     if (mouse)
     {
-        unmap_io_region(mouse->report_buffer, mouse->report_buffer_pages * PAGE_SIZE);
-        pmm_free_pages(mouse->report_buffer_phys, mouse->report_buffer_pages);
+        unmap_io_region((uintptr_t) mouse->report_buffer, mouse->report_buffer_pages * PAGE_SIZE);
+        pmm_free_pages((void*) mouse->report_buffer_phys, mouse->report_buffer_pages);
 
         hid_free_report_items(&mouse->report_items);
 

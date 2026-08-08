@@ -202,7 +202,7 @@ void hid_add_report_item(enum hid_report_item_type type, uint32_t val, list_t *i
 			// Вычитаем кол-во полей
 			remaining_report_cnt -= report_count;
 
-			uint32_t usage = list_dequeue(&local_state->usages_stack);
+			uint32_t usage = (uint32_t) list_dequeue(&local_state->usages_stack);
 			uint16_t usage_page = (usage >> 16);
 
 			item = kmalloc(sizeof(struct hid_report_item));
@@ -386,7 +386,7 @@ void hid_parse_report(uint8_t* report, size_t length, list_t *items)
 #ifdef HID_LOG_LOCAL_ITEMS
 				printk("USAGE %i\n", usage);
 #endif
-				list_add(&local_state.usages_stack, usage);
+				list_add(&local_state.usages_stack, (void*) usage);
                 break;
             case 0b0001:
                 // usage minimum

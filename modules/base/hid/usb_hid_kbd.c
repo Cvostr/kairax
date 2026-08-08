@@ -399,8 +399,8 @@ void usb_hid_kbd_device_remove(struct device *dev)
 
     if (kbd) 
     {
-        unmap_io_region(kbd->report_buffer, kbd->report_buffer_pages * PAGE_SIZE);
-        pmm_free_pages(kbd->report_buffer_phys, kbd->report_buffer_pages);
+        unmap_io_region((uintptr_t) kbd->report_buffer, kbd->report_buffer_pages * PAGE_SIZE);
+        pmm_free_pages((void*) kbd->report_buffer_phys, kbd->report_buffer_pages);
 
         hid_free_report_items(&kbd->report_items);
 
