@@ -1440,6 +1440,7 @@ int ext2_rmdir(struct inode* inode, struct dentry* dentry)
 {
     int rc = 0;
 
+    ext2_inode_t* dir_inode = NULL;
     ext2_instance_t* inst = (ext2_instance_t*) inode->sb->fs_info;
 
     if (dentry->d_inode->hard_links > 2) {
@@ -1447,9 +1448,11 @@ int ext2_rmdir(struct inode* inode, struct dentry* dentry)
         goto exit;
     }
 
-    //Получить ext2 иноду удаляемой директории
-    ext2_inode_t* dir_inode = new_ext2_inode();
-    ext2_inode(inst, dir_inode, dentry->d_inode->inode);
+    // Получить ext2 иноду удаляемой директории
+    dir_inode = new_ext2_inode();
+    if ((rc = ext2_inode(inst, dir_inode, dentry->d_inode->inode)) != 0) {
+        goto exit;
+    }
 
     // ------ Проверяем директорию, чтобы она была пустой ------------------
     //Переменные
@@ -1524,7 +1527,7 @@ int ext2_rmdir(struct inode* inode, struct dentry* dentry)
     kfree(parent_inode);
 
 exit:
-    kfree(dir_inode);
+    KFREE_SAFE(dir_inode);
     return rc;
 }
 
