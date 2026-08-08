@@ -771,9 +771,13 @@ int ext2_alloc_inode_block(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t 
 
 int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, uint32_t inode, int type)
 {
+    int rc;
     // Считать родительскую inode
     ext2_inode_t*    e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, parent->inode);
+    if ((rc = ext2_inode(inst, e2_inode, parent->inode)) != 0) {
+        kfree(e2_inode);
+        return rc;
+    }
 
     if (((e2_inode->mode & EXT2_DT_CHR) == 0) || (name == NULL)) {
         kfree(e2_inode);
@@ -860,7 +864,7 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     kfree(buffer);
     kfree(e2_inode);
 
-    return 1;
+    return 0;
 }
 
 ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf)
@@ -1065,6 +1069,7 @@ exit:
 
 int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32_t node_index)
 {
+    int rc = 0;
     node_index--;
     //Группа, к которой принадлежит инода с указанным индексом
     uint32_t inode_group = node_index / inst->superblock->inodes_per_group;
@@ -1076,20 +1081,26 @@ int ext2_write_inode_metadata(ext2_instance_t* inst, ext2_inode_t* inode, uint32
     uint32_t block_offset = idx_in_group * inst->superblock->inode_size / inst->block_size;
     uint32_t offset_in_block = idx_in_group - block_offset * (inst->block_size / inst->superblock->inode_size);
 
-    // Считать целый блок
+    // Выделить память под блок с inode
     char* buffer = kmalloc(inst->block_size);
     if (buffer == NULL)
         return -ENOMEM;
 
-    ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer);
+    // прочитать блок с изменяемой inode с диска
+    if ((rc = ext2_partition_read_block_virt(inst, inode_table_block + block_offset, 1, buffer)) != 0)
+        goto exit;
+
     // Заменить в нем область байт данной inode
     memcpy(buffer + offset_in_block * inst->superblock->inode_size, inode, sizeof(ext2_inode_t));
+    
     // Записать измененный блок обратно на диск
-    ext2_partition_write_block_virt(inst, inode_table_block + block_offset, 1, buffer);
+    if ((rc = ext2_partition_write_block_virt(inst, inode_table_block + block_offset, 1, buffer)) != 0)
+        goto exit;
+
+exit:
     //Освободить временный буфер
     kfree(buffer);
-
-    return 0;
+    return rc;
 }
 
 struct inode* ext2_read_node(struct superblock* sb, uint64_t ino_num)

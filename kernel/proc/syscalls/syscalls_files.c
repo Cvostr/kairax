@@ -735,13 +735,23 @@ int sys_linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newp
 
     // Получить inode - директорию старого файла
     old_parent_inode = vfs_fopen_parent(old_dentry);
+    if (old_parent_inode == NULL) 
+    {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
 
     // Разделить новый путь на путь директории и имя файла
     split_path(newpath, &new_directory_path, &new_filename);
 
     // Открыть inode директории нового пути
     new_parent_inode = vfs_fopen(newdir_dentry, new_directory_path, &new_parent_dentry);
-
+    if (new_parent_inode == NULL) 
+    {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
+    
     // Инода, старый и новый родители должны быть на одном устройстве
     if (old_inode->device != new_parent_inode->device || old_parent_inode->device != new_parent_inode->device) 
     {
@@ -965,6 +975,10 @@ int sys_rename(int olddirfd, const char* oldpath, int newdirfd, const char* newp
 
     // Получить inode - директорию старого файла
     old_parent_inode = vfs_fopen_parent(old_dentry);
+    if (old_parent_inode == NULL) {
+        rc = -ERROR_NO_FILE;
+        goto exit;
+    }
 
     // Разделить новый путь на путь директории и имя файла
     split_path(newpath, &new_directory_path, &new_filename);
