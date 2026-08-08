@@ -34,7 +34,21 @@ struct xhci_device* new_xhci_device(struct xhci_controller* controller, uint8_t 
 
 void xhci_free_device(struct xhci_device* dev)
 {
+    // Освобождение памяти Transfer Ring для основого control endpoint
     xhci_free_transfer_ring(dev->control_transfer_ring);
+
+    // Освобождение памяти Transfer Ring для остальных endpoints
+    for (int i = 0; i < XHCI_DEVICE_EPS_ARRAY_SIZE; i ++) 
+    {
+        struct usb_endpoint *ep = dev->eps[i];
+        if (ep != NULL)
+        {
+            if (ep->transfer_ring) {
+                xhci_free_transfer_ring(ep->transfer_ring);
+            }
+        }
+    }
+
 
     // free contexts
     unmap_io_region(dev->input_ctx, dev->input_ctx_pages * PAGE_SIZE);
