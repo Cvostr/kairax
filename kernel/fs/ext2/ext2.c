@@ -1311,6 +1311,7 @@ int ext2_truncate(struct inode* inode, size_t len)
 
 int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inode* newparent, const char* newname)
 {
+    int rc;
     ext2_instance_t* oldpinst = (ext2_instance_t*)oldparent->sb->fs_info;
     ext2_instance_t* newpinst = (ext2_instance_t*)newparent->sb->fs_info;
 
@@ -1323,14 +1324,16 @@ int ext2_rename(struct inode* oldparent, struct dentry* orig_dentry, struct inod
     }
 
     int orig_type = 0;
-    int rc = ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
-    if (rc != 0)
-    {
+    rc = ext2_remove_dentry(oldpinst, oldparent, orig_dentry->name, &orig_type);
+    if (rc != 0) {
         // Почему-то не смогли удалить dentry из старого родителя - лучше выйти с ошибкой
-        return -ENOENT;
+        return rc;
     }
 
-    ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->d_inode->inode, orig_type);
+    rc = ext2_create_dentry(oldpinst, newparent, newname, orig_dentry->d_inode->inode, orig_type);
+    if (rc != 0) {
+        return rc;
+    }
 
     return 0;
 }
@@ -1808,8 +1811,9 @@ ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
     return readable;
 }
 
-int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name)
+int ext2_linkat(struct dentry* src, struct inode* dst_dir, const char* dst_name)
 {
+    int rc = 0;
     ext2_instance_t* inst = (ext2_instance_t*) dst_dir->sb->fs_info;
 
     if (ext2_find_dentry(dst_dir->sb, dst_dir, dst_name, NULL) != WRONG_INODE_INDEX) 
@@ -1823,21 +1827,26 @@ int ext2_linkat (struct dentry* src, struct inode* dst_dir, const char* dst_name
     // Тип dentry из типа inode
     int dentry_type = vfs_inode_mode_to_ext2_dentry_type(src_inode->mode);
     // Добавить иноду в директорию
-    ext2_create_dentry(inst, dst_dir, dst_name, inode_idx, dentry_type); // TODO: correct dentry type
+    if ((rc = ext2_create_dentry(inst, dst_dir, dst_name, inode_idx, dentry_type)) != 0) // TODO: correct dentry type 
+        return rc;
 
     // Считать ext2 - inode, для которой делаем unlink
     ext2_inode_t* e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, inode_idx);
+    if ((rc = ext2_inode(inst, e2_inode, inode_idx)) != 0)
+        goto exit;
+
     // Увеличить количество ссылок на выбранную inode
     e2_inode->hard_links++;
     // Перезаписать inode
-    ext2_write_inode_metadata(inst, e2_inode, inode_idx);
+    if ((rc = ext2_write_inode_metadata(inst, e2_inode, inode_idx)) != 0)
+        goto exit;
 
     // Увеличить количество жестких ссылок объекта inode VFS
     src_inode->hard_links++;
 
+exit:
     kfree(e2_inode);
-    return 0;
+    return rc;
 }
 
 struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
@@ -1902,7 +1911,8 @@ exit:
 
 int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, int* orig_type)
 {
-    int rc = -1;
+    // по умолчанию код ошибки - файл отсутствует, если он не будет найден
+    int rc = -ENOENT;
     ext2_inode_t*    e2_inode = new_ext2_inode();
     if ((rc = ext2_inode(inst, e2_inode, parent->inode)) != 0) {
         kfree(e2_inode);
