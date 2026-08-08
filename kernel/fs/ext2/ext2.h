@@ -6,6 +6,7 @@
 #include "../vfs/file.h"
 #include "../vfs/superblock.h"
 #include "../vfs/dentry.h"
+#include "sync/semaphore.h"
 
 #define EXT2_DIRECT_BLOCKS 12
 
@@ -112,11 +113,12 @@ typedef struct PACKED {
     char os_specific2[12];
 } ext2_inode_t;
 
-typedef struct PACKED {
+typedef struct {
     drive_partition_t*  partition;
     ext2_superblock_t*  superblock;
     struct superblock*  vfs_sb;
     ext2_bgd_t*         bgds;
+    struct semaphore    fs_lock;
 
     size_t              block_size;
     uint64_t            total_groups;

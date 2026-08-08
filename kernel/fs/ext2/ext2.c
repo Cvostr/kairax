@@ -461,7 +461,8 @@ struct inode* ext2_mount(drive_partition_t* drive, struct superblock* sb)
 
     kfree(ext2_inode_root);
 
-    //printk("Block size %i\n", instance->block_size);
+    // инициализируем мьютекс для блокировок BGD и Inode
+    semaphore_init(&instance->fs_lock, 1);
 
     // Данные суперблока
     sb->fs_info = instance;
@@ -490,7 +491,12 @@ int ext2_alloc_inode(ext2_instance_t* inst, uint32_t *inode_num)
 {
     int rc = 0;
     int created = FALSE;
+    // память под блоки групп inode
     uint32_t* bitmap_buffer = (uint32_t*)kmalloc(inst->block_size);
+
+    // только один поток может исполнять этот код
+    semaphore_acquire(&inst->fs_lock);
+
     // Найти свободный номер inode в битовой карте
     for (uint32_t bgd_i = 0; bgd_i < inst->total_groups; bgd_i++) {
 
@@ -540,6 +546,7 @@ int ext2_alloc_inode(ext2_instance_t* inst, uint32_t *inode_num)
         rc = -ERROR_NO_SPACE;
 
 exit:
+    semaphore_release(&inst->fs_lock);
     kfree(bitmap_buffer);
 
     return rc;
@@ -605,6 +612,9 @@ skip_block_purge:
     // Выделение памяти под временный буфер для блока
     uint8_t* buffer = (uint8_t*) kmalloc(inst->block_size);
 
+    // только один поток может исполнять этот код
+    semaphore_acquire(&inst->fs_lock);
+
     // Обновить битмапу с inodes
     ext2_partition_read_block_virt(inst, inst->bgds[inode_group_idx].inode_bitmap, 1, buffer);
 
@@ -621,6 +631,9 @@ skip_block_purge:
     // Перезаписать на диск BGD и суперблок
     ext2_write_bgds(inst);
     ext2_rewrite_superblock(inst);
+
+    // только один поток может исполнять этот код
+    semaphore_release(&inst->fs_lock);
 
 exit:
     kfree(ext2_rem_inode);
@@ -639,6 +652,9 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
 
     // Выделить временную память под буфер
     uint8_t* buffer = (uint8_t*)kmalloc(inst->block_size);
+
+    // только один поток может исполнять этот код
+    semaphore_acquire(&inst->fs_lock);
 
     for (uint64_t bgd_i = 0; bgd_i < inst->total_groups; bgd_i ++) {
         if (inst->bgds[bgd_i].free_blocks > 0) {
@@ -683,6 +699,7 @@ uint64_t ext2_alloc_block(ext2_instance_t* inst)
     ext2_partition_write_block_virt(inst, block_index, 1, buffer);
 
 exit:
+    semaphore_release(&inst->fs_lock);
     kfree(buffer);
     return block_index;
 }
@@ -725,6 +742,9 @@ int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
     uint64_t block_bgd_idx = (block_idx / inst->superblock->blocks_per_group);
 
     uint8_t* buffer = (uint8_t*) kmalloc(inst->block_size);
+    
+    // только один поток может исполнять этот код
+    semaphore_acquire(&inst->fs_lock);
 
     // Считать блок с BGD
     ext2_partition_read_block_virt(inst, inst->bgds[block_bgd_idx].block_bitmap, 1, buffer);
@@ -741,6 +761,7 @@ int ext2_free_block(ext2_instance_t* inst, uint64_t block_idx)
     inst->superblock->free_blocks++;
 
 exit:
+    semaphore_release(&inst->fs_lock);
     kfree(buffer);
     return 0;
 }
