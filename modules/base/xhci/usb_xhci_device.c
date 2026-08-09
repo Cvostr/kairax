@@ -49,6 +49,7 @@ void xhci_free_device(struct xhci_device* dev)
         }
     }
 
+    free_usb_device(dev->usb_device);
 
     // free contexts
     unmap_io_region(dev->input_ctx, dev->input_ctx_pages * PAGE_SIZE);
