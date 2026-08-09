@@ -11,6 +11,14 @@ int loopback_tx(struct nic* nic, const unsigned char* buffer, size_t size)
     // todo : плохо
     struct net_buffer* nb = new_net_buffer(buffer, size, nic);
     eth_handle_frame(nb);
+
+    // обновление статистики
+    nic->stats.tx_packets++;
+    nic->stats.tx_bytes += size;
+    
+    nic->stats.rx_packets++;
+    nic->stats.rx_bytes += size;
+
     return 0;
 }
 

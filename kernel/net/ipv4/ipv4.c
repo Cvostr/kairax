@@ -91,9 +91,9 @@ void ip4_handle_packet(struct net_buffer* nbuffer)
 
 uint8_t* ip4_get_destination_mac(struct route4* route, uint32_t dest_addr)
 {
-	if (route->netmask == 0 /* это маршрут по умолчанию */
-		|| (dest_addr & route->netmask) != (route->dest & route->netmask) /* адрес назначения не входит в сеть маршрута */) 
+	if (route->gateway != 0)
 	{
+		// если маршрут использует gateway, то возвращаем MAC адрес этого gateway
 		return arp_get_ip4(route->interface, route->gateway);
 	}
 	
