@@ -152,6 +152,12 @@ void usb_cdc_notify_handler(struct usb_msg* msg)
     struct cdc_eth_dev* ethdev = msg->private;
 	struct cdc_notification_header *header = ethdev->notification_buffer;
 
+	if (msg->status != 0)
+	{
+		printk("CDC: interrupt status %i (%i)\n", -msg->status, msg->status);
+		return;
+	}
+
 	switch (header->bNotificationCode)
 	{
 		case NETWORK_CONNECTION:
@@ -218,6 +224,9 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 		}
 
 		event_wait(&eth_dev->rx_event);
+
+		if (usb_device_get_state(eth_dev->usbdev) == USB_STATE_DISCONNECTED)
+			break;
 
 		if (msg->status != 0)
 		{
@@ -553,6 +562,8 @@ int usb_cdc_device_probe(struct device *dev)
 	struct process* proc = create_new_process(NULL);
     struct thread* thr = create_kthread(proc, usb_cdc_rx_thread, eth_dev);
 	thread_set_sched_mode(thr, SCHED_MODE_REALTIME);
+	thread_set_name(thr, "cdc: rx thread");
+	process_add_to_list((struct process*) thr);
     scheduler_add_thread(thr);
 	
 	return 0;
@@ -560,7 +571,29 @@ int usb_cdc_device_probe(struct device *dev)
 
 void usb_cdc_device_remove(struct device *dev) 
 {
+	struct cdc_eth_dev* eth_dev = dev->dev_data;
+	
 	printk("USB CDC Device Remove\n");
+
+	if (eth_dev) 
+	{
+		// будим rx поток, чтобы он завершился
+		event_complete(&eth_dev->rx_event);
+
+		// освобождение памяти под rx буфер
+		unmap_io_region((uintptr_t) eth_dev->rx_data_buffer, eth_dev->rx_pages * PAGE_SIZE);
+        pmm_free_pages((void*) eth_dev->rx_data_buffer_phys, eth_dev->rx_pages);
+
+		// освобождение памяти под notification буфер
+		unmap_io_region((uintptr_t) eth_dev->notification_buffer, eth_dev->report_buffer_pages * PAGE_SIZE);
+        pmm_free_pages((void*) eth_dev->report_buffer_phys, eth_dev->report_buffer_pages);
+
+		// удаление сетевого интерфейса из системы
+		if (dev->nic && dev->dev_type == DEVICE_TYPE_NETWORK_ADAPTER)
+			unregister_nic(dev->nic);
+	}
+
+	printk("USB CDC Device Removal completed!\n");
 }
 
 struct device_driver_ops cdc_eth_ops = {
