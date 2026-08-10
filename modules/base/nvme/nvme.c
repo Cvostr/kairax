@@ -164,6 +164,10 @@ struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size
 	queue->submission_doorbell = nvme_calc_submission_doorbell_addr(controller, queue_id);
 	queue->completion_doorbell = nvme_calc_completion_doorbell_addr(controller, queue_id);
 
+	// Временный буфер для работы с данными
+	queue->buffer_phys = (uintptr_t) pmm_alloc_page();
+	queue->buffer = (char*) map_io_region(queue->buffer_phys, PAGE_SIZE);
+
 	return queue;
 }
 
@@ -390,8 +394,20 @@ int nvme_controller_identify(struct nvme_controller* controller)
 
 struct nvme_queue* nvme_ctrlr_acquire_queue(struct nvme_controller* controller)
 {
-	// TODO: блокировка, выбор многих
-	return controller->io_queues[0];
+	// Крутимся до тех пор, пока не найдем свободную очередь
+	while (1)
+	{
+		for (size_t i = 0; i < controller->allocated_io_queues; i ++)
+		{
+			struct nvme_queue* queue = controller->io_queues[i];
+			if (__sync_bool_compare_and_swap(&queue->acquired, FALSE, TRUE) != 0)
+			{
+				return queue;
+			}
+		}
+	}
+
+	return NULL;
 }
 
 void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl)

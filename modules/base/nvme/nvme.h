@@ -300,12 +300,17 @@ struct nvme_queue
     uint32_t*   completion_doorbell; 
 
     int awaited_phase_flag;
+    volatile int acquired;
 
     volatile struct nvme_command *submit;
     volatile struct nvme_completion *completion;
 
     uintptr_t submit_phys;
     uintptr_t completion_phys;
+
+    // Временный буфер для работы с данными
+    uintptr_t   buffer_phys;
+    char*       buffer;
 };
 
 #define NVME_CONTROLLER_MAX_IO_QUEUES 32
@@ -332,11 +337,6 @@ struct nvme_namespace {
     uint8_t     lba_size;
     uint64_t    block_size;
     size_t      disk_size;
-
-    uintptr_t   buffer_phys;
-    char*       buffer;
-
-    spinlock_t  lock;
 };
 
 void nvme_irq_handler(void* frame, void* data);
