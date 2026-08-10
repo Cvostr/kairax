@@ -366,7 +366,7 @@ void usb_config_put_interface(struct usb_config* config, struct usb_interface* i
 void free_usb_config(struct usb_config* config)
 {
     // TODO: implement
-    for (size_t i = 0; i < config->descriptor.bNumInterfaces; i ++)
+    for (size_t i = 0; i < config->interfaces_num; i ++)
     {
         free_usb_interface(config->interfaces[i]);
     }

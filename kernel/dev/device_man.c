@@ -75,6 +75,9 @@ void _remove_device(struct device* dev)
         // Переход на следующий элемент
         current_node = current_node->next;
     }
+
+    // Уничтожение объекта устройства
+    kfree(dev);
 }
 
 

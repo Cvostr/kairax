@@ -134,7 +134,7 @@ int usb_hid_mouse_device_probe(struct device *dev)
     max_packet_sz = interrupt_in_ep->descriptor.wMaxPacketSize & 0x07FF;
     printk("HID: interrupt ep max pack size %i\n", interrupt_in_ep->descriptor.wMaxPacketSize);
 
-    // Пока используем Boot
+    // используем Report Protocol
     int rc = usb_hid_set_protocol(device, interface, HID_PROTOCOL_REPORT);
     if (rc != 0)
     {
