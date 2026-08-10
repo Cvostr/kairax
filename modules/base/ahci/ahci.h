@@ -40,7 +40,7 @@ typedef struct {
 } ahci_controller_t;
 
 char* ahci_link_speed_str(int speed);
-void ahci_form_disk_name(char* dst, int controller_i, int disk_i);
+void ahci_form_disk_name(char* dst, size_t len, int controller_i, int disk_i);
 void ahci_controller_probe_ports(ahci_controller_t* controller);
 
 int ahci_device_probe(struct device *dev);

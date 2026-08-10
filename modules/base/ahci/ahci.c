@@ -34,12 +34,9 @@ char* ahci_link_speed_str(int speed)
 	return NULL;
 }
 
-void ahci_form_disk_name(char* dst, int controller_i, int disk_i)
+void ahci_form_disk_name(char* dst, size_t len, int controller_i, int disk_i)
 {
-	strcpy(dst, "ahci");
-	strcat(dst, itoa(controller_i, 10));
-	strcat(dst, "n");
-	strcat(dst, itoa(disk_i, 10));
+	sprintf(dst, len, "ahci%in%i", controller_i, disk_i);
 }
 
 void ahci_controller_probe_ports(ahci_controller_t* controller)
@@ -237,21 +234,23 @@ int ahci_device_probe(struct device *dev)
 			drive_dev->drive_info = drive_info;
 
 			// Разобрать строку информации
+			uint32_t nsectors;
 			parse_identity_buffer(identity_buffer_virt, 
 									&type,
 									&capabilities,
 									&cmd_sets,
-									&drive_info->sectors,
+									&nsectors,
 									drive_dev->dev_name,
 									drive_info->serial);
 
 			drive_info->block_size = 512;
+			drive_info->sectors = nsectors;
 			drive_info->nbytes = drive_info->sectors * drive_info->block_size;
 			drive_info->uses_lba48 = cmd_sets & (1 << 26);
 			drive_info->dev = drive_dev;
 			drive_info->write = ahci_write_lba;
 			drive_info->read = ahci_read_lba;
-			ahci_form_disk_name(drive_info->blockdev_name, 0, i);
+			ahci_form_disk_name(drive_info->blockdev_name, BLOCKDEV_NAMELEN, 0, i);
 
 			register_device(drive_dev);
 		}
