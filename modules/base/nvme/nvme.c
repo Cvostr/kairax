@@ -338,10 +338,8 @@ int nvme_ctlr_device_probe(struct device *dev)
 		drive_info->read = nvme_read_lba;
 		drive_info->write = nvme_write_lba;
 
-		strcpy(drive_info->blockdev_name, "nvme");
-		strcat(drive_info->blockdev_name, itoa(device->index, 10));
-		strcat(drive_info->blockdev_name, "n");
-		strcat(drive_info->blockdev_name, itoa(ns->namespace_id, 10));
+		// Формирование имени блочного устройства
+		sprintf(drive_info->blockdev_name, BLOCKDEV_NAMELEN, "nvme%in%i", device->index, ns->namespace_id);
 
 		struct device* drive_dev = new_device();
 		drive_dev->dev_type = DEVICE_TYPE_DRIVE;
