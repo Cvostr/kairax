@@ -323,6 +323,12 @@ void hid_parse_report(uint8_t* report, size_t length, list_t *items)
                 break;
             }
 
+			// в стеке могли остаться данные, очистим их чтобы не было утечек
+			if (local_state.usages_stack.size != 0) {
+				//printk("HID: Warning - usage stack is not empty!\n");
+				list_clear(&local_state.usages_stack);
+			}
+
 			// Надо сбросить local state
 			memset(&local_state, 0, sizeof(struct hid_local_state));
         }
@@ -409,6 +415,12 @@ void hid_parse_report(uint8_t* report, size_t length, list_t *items)
 
         pos += (bSize);
     }
+
+	// в стеке могли остаться данные, очистим их чтобы не было утечек
+	if (global_state_stack.size != 0) {
+		list_clear(&global_state_stack);
+		//printk("HID: Warning - global state stack is not empty!\n");
+	}
 }
 
 void hid_free_report_items(list_t *items)

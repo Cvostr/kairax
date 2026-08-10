@@ -13,7 +13,16 @@ list_t* create_list()
 
 void free_list(list_t* list)
 {
+    list_clear(list);
+    kfree(list);
+}
+
+void list_clear(list_t* list)
+{
     struct list_node* current = list->head;
+
+    list->head = NULL;
+    list->tail = NULL;
 
     for (size_t i = 0; i < list->size; i++)
     {
@@ -23,8 +32,6 @@ void free_list(list_t* list)
             kfree(temp);
         }
     }
-
-    kfree(list);
 }
 
 size_t list_size(list_t* list)

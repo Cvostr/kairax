@@ -150,7 +150,8 @@ struct kernel_function functions[] = {
     KFUNCTION(list_size),
     KFUNCTION(list_dequeue),
     KFUNCTION(list_add),
-    KFUNCTION(list_pop)
+    KFUNCTION(list_pop),
+    KFUNCTION(list_clear)
 };
 
 void* kfunctions_get_by_name(const char* name)
