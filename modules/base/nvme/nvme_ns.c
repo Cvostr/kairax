@@ -6,6 +6,7 @@
 #include "mem/vmm.h"
 #include "kairax/stdio.h"
 #include "kairax/errors.h"
+#include "kairax/kstdlib.h"
 
 struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32_t id, struct nvme_namespace_id* nsid)
 {
@@ -34,25 +35,46 @@ int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count,
     // Захватываем свободную очередь
     struct nvme_queue *queue = nvme_ctrlr_acquire_queue(ns->controller);
 
-    // Формируем команду
-    memset(&read_cmd, 0, sizeof(struct nvme_command));
-	read_cmd.opcode = NVME_CMD_IO_READ;
-    read_cmd.namespace_id = ns->namespace_id;
-	read_cmd.rdcmd.start_lba = lba;
-    read_cmd.rdcmd.block_count = count - 1;
-    read_cmd.prp[0] = queue->buffer_phys;
+    size_t blocksize = ns->block_size;
+    // сколько байт можно максимум считать одной командой
+    size_t cmd_max_bytes = 4096;
+    // сколько блоков можно считать одной командой
+    size_t lba_per_cmd = cmd_max_bytes / blocksize;
 
-    // Отправить на выполнение и ожидать завершения
-    memset(&completion, 0, sizeof(struct nvme_completion));
-    nvme_queue_submit_wait(queue, &read_cmd, &completion);
+    size_t remain_lba = count;
+    size_t readed_lba = 0;
 
-    if (completion.status > 0) {
-        printk("NVME: Error reading lba %i, count %i\n", lba, count);
-        nvme_release_queue(queue);
-        return -EIO;
+    while (remain_lba > 0)
+    {
+        // сколько читаем за этот раз
+        size_t lba_to_read = MIN(remain_lba, lba_per_cmd);
+
+        // Формируем команду
+        memset(&read_cmd, 0, sizeof(struct nvme_command));
+        read_cmd.opcode = NVME_CMD_IO_READ;
+        read_cmd.namespace_id = ns->namespace_id;
+        read_cmd.rdcmd.start_lba = lba;
+        read_cmd.rdcmd.block_count = lba_to_read - 1;
+        read_cmd.prp[0] = queue->buffer_phys;
+
+        // Отправить на выполнение и ожидать завершения
+        memset(&completion, 0, sizeof(struct nvme_completion));
+        nvme_queue_submit_wait(queue, &read_cmd, &completion);
+
+        if (completion.status > 0) {
+            printk("NVME: Error reading %i. lba %i, count %i\n", completion.status, lba, lba_to_read);
+            nvme_release_queue(queue);
+            return -EIO;
+        }
+
+        // копирование из промежуточной страницы 
+        memcpy(out + readed_lba * blocksize, queue->buffer, lba_to_read * blocksize);
+
+        // обновить счетчики
+        lba += lba_to_read;
+        remain_lba -= lba_to_read;
+        readed_lba += lba_to_read;
     }
-
-    memcpy(out, queue->buffer, count * 512);
 
     // освобождаем очередь
     nvme_release_queue(queue);
@@ -76,7 +98,7 @@ int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count
     write_cmd.wrcmd.block_count = count - 1;
     write_cmd.prp[0] = queue->buffer_phys;
 
-
+    // копирование в промежуточную страницу
     memcpy(queue->buffer, in, count * 512);
 
     // Отправить на выполнение и ожидать завершения
@@ -84,7 +106,7 @@ int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count
     nvme_queue_submit_wait(queue, &write_cmd, &completion);
 
     if (completion.status > 0) {
-        printk("NVME: Error writing lba %i, count %i\n", lba, count);
+        printk("NVME: Error writing %i. lba %i, count %i\n", completion.status, lba, count);
         nvme_release_queue(queue);
         return -EIO;
     }
