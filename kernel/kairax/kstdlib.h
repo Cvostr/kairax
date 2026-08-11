@@ -11,7 +11,6 @@ void seize_str(uint16_t* in, char* out);
 
 void reverse(char *str);
 
-char* itoa(int64 number, int base);
 char* ulltoa(uint64_t number, char* str, int base);
 char* lltoa(long long number, char* str, int base);
 

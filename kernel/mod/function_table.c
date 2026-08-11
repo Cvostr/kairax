@@ -145,7 +145,6 @@ struct kernel_function functions[] = {
     KFUNCTION(strrchr),
     KFUNCTION(align),
     KFUNCTION(tolower),
-    KFUNCTION(itoa),
     KFUNCTION(sprintf),
     // kairax list
     KFUNCTION(list_size),

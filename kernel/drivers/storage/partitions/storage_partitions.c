@@ -76,9 +76,8 @@ int add_partitions_from_drive(struct drive_device_info* drive)
             partition->start_lba = mbr_partition->lba_start;
             partition->sectors = mbr_partition->lba_sectors;
 
-            strcpy(partition->name, drive->blockdev_name);
-			strcat(partition->name, "p");
-			strcat(partition->name, itoa(i, 10));
+            // Формирование имени раздела
+            sprintf(partition->name, sizeof(partition->name), "%sp%i", drive->blockdev_name, i);
 
             add_partition_header(partition);
         }
@@ -119,10 +118,8 @@ int add_partitions_from_drive(struct drive_device_info* drive)
                 partition->start_lba = entry->start_lba;
                 partition->sectors = (entry->end_lba - entry->start_lba) + 1;
 
-                //Формирование имени раздела
-                strcpy(partition->name, drive->blockdev_name);
-                strcat(partition->name, "p");
-                strcat(partition->name, itoa(found_partitions, 10));
+                // Формирование имени раздела
+                sprintf(partition->name, sizeof(partition->name), "%sp%i", drive->blockdev_name, found_partitions);
 
                 add_partition_header(partition);
                 found_partitions++;
