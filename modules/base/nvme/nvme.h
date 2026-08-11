@@ -357,6 +357,7 @@ int nvme_allocate_io_queues(struct nvme_controller* controller, int count, int* 
 struct nvme_queue* nvme_create_admin_queue(struct nvme_controller* controller, size_t slots);
 struct nvme_queue* nvme_create_io_queue(struct nvme_controller* controller, size_t slots);
 struct nvme_queue* nvme_ctrlr_acquire_queue(struct nvme_controller* controller);
+void nvme_release_queue(struct nvme_queue* queue);
 
 uint32_t* nvme_calc_submission_doorbell_addr(struct nvme_controller* controller, int id);
 uint32_t* nvme_calc_completion_doorbell_addr(struct nvme_controller* controller, int id);

@@ -410,6 +410,11 @@ struct nvme_queue* nvme_ctrlr_acquire_queue(struct nvme_controller* controller)
 	return NULL;
 }
 
+void nvme_release_queue(struct nvme_queue* queue)
+{
+	queue->acquired = FALSE;
+}
+
 void nvme_queue_submit_wait(struct nvme_queue* queue, struct nvme_command* cmd, struct nvme_completion* compl)
 {
 	cmd->cmd_id = queue->next_cmd_id++;

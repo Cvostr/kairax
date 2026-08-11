@@ -28,10 +28,13 @@ struct nvme_namespace* nvme_namespace(struct nvme_controller* controller, uint32
 
 int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count, unsigned char* out)
 {
+    struct nvme_command read_cmd;
+    struct nvme_completion completion;
+
     // Захватываем свободную очередь
     struct nvme_queue *queue = nvme_ctrlr_acquire_queue(ns->controller);
 
-    struct nvme_command read_cmd;
+    // Формируем команду
     memset(&read_cmd, 0, sizeof(struct nvme_command));
 	read_cmd.opcode = NVME_CMD_IO_READ;
     read_cmd.namespace_id = ns->namespace_id;
@@ -39,51 +42,55 @@ int nvme_namespace_read(struct nvme_namespace* ns, uint64_t lba, uint64_t count,
     read_cmd.rdcmd.block_count = count - 1;
     read_cmd.prp[0] = queue->buffer_phys;
 
-	struct nvme_completion completion;
+    // Отправить на выполнение и ожидать завершения
     memset(&completion, 0, sizeof(struct nvme_completion));
-
     nvme_queue_submit_wait(queue, &read_cmd, &completion);
 
     if (completion.status > 0) {
-        printk("NVME: Error reading\n");
+        printk("NVME: Error reading lba %i, count %i\n", lba, count);
+        nvme_release_queue(queue);
         return -EIO;
     }
 
     memcpy(out, queue->buffer, count * 512);
 
     // освобождаем очередь
-    queue->acquired = FALSE;
+    nvme_release_queue(queue);
 
     return 0;
 }
 
 int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count, const unsigned char* in)
 {
+    struct nvme_command write_cmd;
+    struct nvme_completion completion;
+
     // Захватываем свободную очередь
     struct nvme_queue *queue = nvme_ctrlr_acquire_queue(ns->controller);
 
-    struct nvme_command read_cmd;
-    memset(&read_cmd, 0, sizeof(struct nvme_command));
-    read_cmd.opcode = NVME_CMD_IO_WRITE;
-    read_cmd.namespace_id = ns->namespace_id;
-    read_cmd.wrcmd.start_lba = lba;
-    read_cmd.wrcmd.block_count = count - 1;
-    read_cmd.prp[0] = queue->buffer_phys;
+    // Формируем команду
+    memset(&write_cmd, 0, sizeof(struct nvme_command));
+    write_cmd.opcode = NVME_CMD_IO_WRITE;
+    write_cmd.namespace_id = ns->namespace_id;
+    write_cmd.wrcmd.start_lba = lba;
+    write_cmd.wrcmd.block_count = count - 1;
+    write_cmd.prp[0] = queue->buffer_phys;
 
-    struct nvme_completion completion;
-    memset(&completion, 0, sizeof(struct nvme_completion));
 
     memcpy(queue->buffer, in, count * 512);
 
-    nvme_queue_submit_wait(queue, &read_cmd, &completion);
+    // Отправить на выполнение и ожидать завершения
+    memset(&completion, 0, sizeof(struct nvme_completion));
+    nvme_queue_submit_wait(queue, &write_cmd, &completion);
 
     if (completion.status > 0) {
-        printk("NVME: Error writing\n");
+        printk("NVME: Error writing lba %i, count %i\n", lba, count);
+        nvme_release_queue(queue);
         return -EIO;
     }
 
     // освобождаем очередь
-    queue->acquired = FALSE;
+    nvme_release_queue(queue);
 
     return 0;
 }
