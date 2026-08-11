@@ -16,7 +16,8 @@ struct file_operations procfs_process_dir_ops = {
 
 struct super_operations procfs_sb_ops = {
     .read_inode = procfs_read_node,
-    .find_dentry = procfs_find_dentry
+    .find_dentry = procfs_find_dentry,
+    .stat = procfs_statfs
 };
 
 struct procfs_procdir_dentry {
@@ -366,4 +367,18 @@ uint64_t procfs_find_dentry(struct superblock* sb, struct inode* vfs_parent_inod
 struct inode* procfs_read_node(struct superblock* sb, ino_t ino_num)
 {
     return procfs_makeinode(sb, ino_num);
+}
+
+int procfs_statfs(struct superblock *sb, struct statfs* stat)
+{
+    stat->fstype = 0x9FA0;
+    stat->blocksize = 0;
+
+    stat->blocks = 0;
+    stat->blocks_free = 0;
+
+    stat->inodes = 0;
+    stat->inodes_free = 0;
+
+    return 0;
 }

@@ -58,6 +58,7 @@ void devfs_init()
 
     devfs_sb_ops.read_inode = devfs_read_node;
     devfs_sb_ops.find_dentry = devfs_find_dentry;
+    devfs_sb_ops.stat = devfs_statfs;
 
     memset(&dev_inode_ops, 0, sizeof(struct inode_operations));
 
@@ -275,4 +276,18 @@ uint64 devfs_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
     }
 
     return inode;
+}
+
+int devfs_statfs(struct superblock *sb, struct statfs* stat)
+{
+    stat->fstype = 0x1373;
+    stat->blocksize = 0;
+
+    stat->blocks = 0;
+    stat->blocks_free = 0;
+
+    stat->inodes = 0;
+    stat->inodes_free = 0;
+
+    return 0;
 }

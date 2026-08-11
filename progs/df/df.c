@@ -8,6 +8,9 @@
 #include "stdlib.h"
 #include "math.h"
 
+#define DEVFS_FSTYPE    0x1373
+#define PROCFS_FSTYPE   0x9FA0
+
 #define MOUNT_STRLEN 1024
 const static char MOUNTS_PATH[] = "/proc/mounts";
 
@@ -54,15 +57,19 @@ void fill_inodes_info(struct statfs *stat, uint64_t *total, uint64_t *free, uint
 
 int main(int argc, char** argv) 
 {
+    int show_all = 0;
     int show_inodes = 0;
     int POWER = 1;
 
     int c;
-    while ((c = getopt (argc, argv, "ihH")) != -1)
+    while ((c = getopt (argc, argv, "iahH")) != -1)
     switch (c)
     {
         case 'i':
             show_inodes = 1;
+            break;
+        case 'a':
+            show_all = 1;
             break;
         case 'h':
             POWER = 1024;
@@ -96,6 +103,11 @@ int main(int argc, char** argv)
             continue;
         }
 
+        // по умолчанию, без -a не выводим информацию о devfs и procfs
+        long fstype = statf.f_type;
+        if ((show_all == 0) && (fstype == DEVFS_FSTYPE || fstype == PROCFS_FSTYPE))
+            continue;
+
         uint64_t totalsz;
         uint64_t free;
         uint64_t used;
@@ -109,7 +121,11 @@ int main(int argc, char** argv)
             fill_blocks_info(&statf, &totalsz, &free, &used);
         }
 
-        int usage_percent = ((double) used / totalsz) * 100;
+        // % используемого места
+        int usage_percent = 0;
+        // считаем отношение, только если полный размер диска не 0
+        if (totalsz != 0)
+            usage_percent = ((double) used / totalsz) * 100;
 
         if (POWER == 1)
         {

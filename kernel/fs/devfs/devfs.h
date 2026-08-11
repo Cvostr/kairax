@@ -22,8 +22,8 @@ void devfs_open(struct inode* inode, uint32_t flags);
 struct dirent* devfs_readdir(struct file* dir, uint32_t index);
 
 struct inode* devfs_read_node(struct superblock* sb, uint64_t ino_num);
-
 uint64 devfs_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type);
+int devfs_statfs(struct superblock *sb, struct statfs* stat);
 
 int devfs_add_char_device(const char* name, struct file_operations* fops, void* private_data);
 
