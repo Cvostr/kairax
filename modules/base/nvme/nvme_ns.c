@@ -90,25 +90,45 @@ int nvme_namespace_write(struct nvme_namespace* ns, uint64_t lba, uint64_t count
     // Захватываем свободную очередь
     struct nvme_queue *queue = nvme_ctrlr_acquire_queue(ns->controller);
 
-    // Формируем команду
-    memset(&write_cmd, 0, sizeof(struct nvme_command));
-    write_cmd.opcode = NVME_CMD_IO_WRITE;
-    write_cmd.namespace_id = ns->namespace_id;
-    write_cmd.wrcmd.start_lba = lba;
-    write_cmd.wrcmd.block_count = count - 1;
-    write_cmd.prp[0] = queue->buffer_phys;
+    size_t blocksize = ns->block_size;
+    // сколько байт можно максимум записать одной командой
+    size_t cmd_max_bytes = 4096;
+    // сколько блоков можно записать одной командой
+    size_t lba_per_cmd = cmd_max_bytes / blocksize;
 
-    // копирование в промежуточную страницу
-    memcpy(queue->buffer, in, count * 512);
+    size_t remain_lba = count;
+    size_t written_lba = 0;
 
-    // Отправить на выполнение и ожидать завершения
-    memset(&completion, 0, sizeof(struct nvme_completion));
-    nvme_queue_submit_wait(queue, &write_cmd, &completion);
+    while (remain_lba > 0)
+    {
+        // сколько читаем за этот раз
+        size_t lba_to_write = MIN(remain_lba, lba_per_cmd);
 
-    if (completion.status > 0) {
-        printk("NVME: Error writing %i. lba %i, count %i\n", completion.status, lba, count);
-        nvme_release_queue(queue);
-        return -EIO;
+        // Формируем команду
+        memset(&write_cmd, 0, sizeof(struct nvme_command));
+        write_cmd.opcode = NVME_CMD_IO_WRITE;
+        write_cmd.namespace_id = ns->namespace_id;
+        write_cmd.wrcmd.start_lba = lba;
+        write_cmd.wrcmd.block_count = lba_to_write - 1;
+        write_cmd.prp[0] = queue->buffer_phys;
+
+        // копирование в промежуточную страницу
+        memcpy(queue->buffer, in + written_lba * blocksize, lba_to_write * blocksize);
+
+        // Отправить на выполнение и ожидать завершения
+        memset(&completion, 0, sizeof(struct nvme_completion));
+        nvme_queue_submit_wait(queue, &write_cmd, &completion);
+
+        if (completion.status > 0) {
+            printk("NVME: Error writing %i. lba %i, count %i\n", completion.status, lba, count);
+            nvme_release_queue(queue);
+            return -EIO;
+        }
+
+        // обновить счетчики
+        lba += lba_to_write;
+        remain_lba -= lba_to_write;
+        written_lba += lba_to_write;
     }
 
     // освобождаем очередь
