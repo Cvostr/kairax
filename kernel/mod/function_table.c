@@ -125,6 +125,7 @@ struct kernel_function functions[] = {
     // partition
     KFUNCTION(register_drive),
     KFUNCTION(partition_read),
+    KFUNCTION(partition_write),
     // semaphore
     KFUNCTION(new_semaphore),
     KFUNCTION(new_mutex),

@@ -168,6 +168,7 @@ void fat_exit(void);
 
 time_t fat_date_to_epoch(struct fat_date* date, struct fat_time* time);
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
+int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
 int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer);
 
 void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname);
@@ -194,12 +195,20 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb);
 // Вызывается при размонтировании
 int fat_unmount(struct superblock* sb);
 
+int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry);
+int fat_write_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry);
+
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num);
 uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type);
 int fat_statfs(struct superblock *sb, struct statfs* stat);
 
+// directory ops
 struct dirent* fat_file_readdir(struct file* dir, uint32_t index);
 
+// file ops
 ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
+
+// file inode ops
+int fat_truncate(struct inode* inode, size_t len);
 
 #endif

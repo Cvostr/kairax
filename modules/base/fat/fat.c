@@ -41,6 +41,8 @@ int fat_init(void)
     memset(&fat_file_ops, 0, sizeof(struct file_operations));
     fat_file_ops.read = fat_file_read;
 
+    fat_file_inode_ops.truncate = fat_truncate;
+
     return 0;
 }
 
@@ -64,6 +66,21 @@ int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t s
     uint64_t    lba_count = sectors * bps / 512;
     
     return partition_read(inst->partition, start_lba, lba_count, buffer);
+}
+
+int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer)
+{
+    if (first_sector >= inst->sectors_count)
+    {   
+        printk("FAT: Sector %i is outside of disk\n", first_sector);
+        return -E2BIG;
+    }
+
+    uint32_t    bps = inst->bytes_per_sector;
+    uint64_t    start_lba = first_sector * bps / 512;
+    uint64_t    lba_count = sectors * bps / 512;
+    
+    return partition_write(inst->partition, start_lba, lba_count, buffer);
 }
 
 int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
@@ -395,6 +412,49 @@ int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_di
     }
 
     memcpy(dentry, d_ptr, sizeof(struct fat_direntry));
+    kfree(sector_buffer);
+    return 0;
+}
+
+int fat_write_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry) 
+{
+    if (inode_num == WRONG_INODE_INDEX)
+    {
+        return -ENOENT;
+    }
+
+    uint32_t sector = inode_num >> 32;
+    uint32_t offset = inode_num & UINT32_MAX;
+
+    if (offset % 32 != 0)
+    {
+        return -ENOENT;
+    }
+
+    char* sector_buffer = kmalloc(inst->bytes_per_sector);
+    if (sector_buffer == NULL)
+    {
+        return -ENOMEM;
+    }
+
+    int rc = fat_read_sector(inst, sector, 1, sector_buffer);
+    if (rc != 0)
+    {
+        kfree(sector_buffer);
+        return rc;
+    }
+
+    struct fat_direntry* d_ptr = (struct fat_direntry*) (sector_buffer + offset);
+
+    memcpy(d_ptr, dentry, sizeof(struct fat_direntry));
+
+    rc = fat_write_sector(inst, sector, 1, sector_buffer);
+    if (rc != 0)
+    {
+        kfree(sector_buffer);
+        return rc;
+    }
+
     kfree(sector_buffer);
     return 0;
 }
@@ -945,6 +1005,36 @@ exit:
     kfree(fat_buffer);
     kfree(cluster_buffer);
     return readed;
+}
+
+int fat_truncate(struct inode* inode, size_t len)
+{
+    struct fat_instance* inst = inode->sb->fs_info;
+
+    struct fat_direntry direntry;
+    int rc = fat_read_dentry(inst, inode->inode, &direntry);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    // установка размера
+    direntry.file_size = (uint32_t) len;
+
+    if (len == 0)
+    {
+        direntry.first_cluster_lo = 0;
+        direntry.first_cluster_hi = 0;
+        // TODO: освобождение блоков по размеру
+    }
+
+    rc = fat_write_dentry(inst, inode->inode, &direntry);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    return 0;
 }
 
 int fat_statfs(struct superblock *sb, struct statfs* stat)
