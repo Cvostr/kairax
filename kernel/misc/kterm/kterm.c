@@ -137,7 +137,7 @@ void kterm_main()
 			char keycode = (keycode_ext) & 0xFF;
 			int state = (keycode_ext >> 8) & 0xFF;
 
-			if (keycode >= KRXK_F1 && keycode <= KRXK_F12) {
+			if ((current_session->ctrl_hold) && (keycode >= KRXK_F1 && keycode <= KRXK_F12)) {
 				int index = keycode - KRXK_F1; 
 				kterm_change_to(index);
 			}

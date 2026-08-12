@@ -3,8 +3,10 @@
 
 #include "dev/device.h"
 
-typedef struct PACKED {
-    char                    name[15];       //Имя устройства в системе  
+#define PARTITION_NAMELEN    23
+
+typedef struct {
+    char                    name[PARTITION_NAMELEN + 1];       //Имя устройства в системе  
     struct drive_device_info *drive;
     uint32_t                index;
 
