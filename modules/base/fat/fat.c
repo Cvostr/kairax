@@ -40,6 +40,7 @@ int fat_init(void)
 
     memset(&fat_file_ops, 0, sizeof(struct file_operations));
     fat_file_ops.read = fat_file_read;
+    fat_file_ops.write = fat_file_write;
 
     fat_file_inode_ops.truncate = fat_truncate;
 
@@ -102,6 +103,27 @@ int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
     uint64_t    lba_count = bpc / 512;
 
     return partition_read(inst->partition, start_lba, lba_count, buffer);
+}
+
+int fat_write_cluster(struct fat_instance* inst, uint32_t cluster, const char* buffer)
+{
+    if (cluster < 2 || cluster >= inst->total_clusters)
+    {   
+        printk("FAT: Cluster %i is outside of disk\n", cluster);
+        return -E2BIG;
+    }
+
+    uint32_t    spc = inst->bpb->sectors_per_cluster;
+    uint32_t    bps = inst->bytes_per_sector;
+    uint32_t    bpc = spc * bps;
+
+    // Перевод номера кластера в адрес сектора
+    uint32_t    first_sector = ((cluster - 2) * spc) + inst->first_data_sector;
+
+    uint64_t    start_lba = first_sector * bps / 512;
+    uint64_t    lba_count = bpc / 512;
+
+    return partition_write(inst->partition, start_lba, lba_count, buffer);
 }
 
 uint32_t fat_get_first_cluster_idx(struct fat_instance* inst, struct fat_direntry* entry)
@@ -459,16 +481,16 @@ int fat_write_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_d
     return 0;
 }
 
-uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster)
+int fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t *next_cluster)
 {
-    uint32_t result;
+    int rc;
     uint32_t sector;
     // Выделить буфер под FAT
     char* fat_buffer = kmalloc(inst->fat_buffer_size);
-    fat_get_next_cluster_ex(inst, cluster, fat_buffer, &sector, &result);
+    rc = fat_get_next_cluster_ex(inst, cluster, fat_buffer, &sector, next_cluster);
     KFREE_SAFE(fat_buffer);
 
-    return result;
+    return rc;
 }
 
 int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer, uint32_t* last_sector, uint32_t *next_cluster)
@@ -526,6 +548,100 @@ int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* f
     *last_sector = fat_sector;
 
     return 0;
+}
+
+int fat_set_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t next_cluster)
+{
+    int rc = 0;
+    uint32_t fat_offset = 0;    // Смещение внутри таблицы FAT в байтах
+    uint32_t fat_sector = 0;    // Номер сектора в таблице FAT (Смещение внутри таблицы FAT в секторах)
+    uint32_t sector_offset = 0; // Смещение внутри сектора таблицы FAT
+
+    char* fat_buffer = kmalloc(inst->fat_buffer_size);
+    if (fat_buffer == NULL)
+        return -ENOMEM;
+
+    switch (inst->fs_type)
+    {
+        case FS_FAT12:
+            fat_offset = cluster + (cluster / 2);  
+            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector); 
+            sector_offset = fat_offset % inst->bytes_per_sector;
+        
+            if ((rc = fat_read_sector(inst, fat_sector, 2, fat_buffer)) != 0)
+                goto exit;
+            
+            //result = *((uint16_t*) &fat_buffer[sector_offset]);
+            //result = (cluster & 1) ? result >> 4 : result & 0xfff;
+            rc = -ENOTSUP;
+            break;
+        case FS_FAT16:
+            fat_offset = cluster * sizeof(uint16_t);
+            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
+            sector_offset = fat_offset % inst->bytes_per_sector;
+
+            if ((rc = fat_read_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                goto exit;
+
+            *((uint16_t*) &fat_buffer[sector_offset]) = (uint16_t) next_cluster;
+
+            if ((rc = fat_write_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                goto exit;
+
+            break;
+        case FS_FAT32:
+        case FS_EXFAT:
+            fat_offset = cluster * sizeof(uint32_t);
+            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
+            sector_offset = fat_offset % inst->bytes_per_sector;
+
+            if ((rc = fat_read_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                goto exit;
+
+            if (inst->fs_type == FS_FAT32) {
+                next_cluster &= 0x0FFFFFFF;
+            }
+
+            *((uint32_t*) &fat_buffer[sector_offset]) = next_cluster;
+
+            if ((rc = fat_write_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                goto exit;
+
+            break;
+    }
+
+exit:
+    kfree(fat_buffer);
+    return rc;
+}
+
+int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
+{
+    int rc = 0;
+    // Выделить буфер под FAT
+    char* fat_buffer = kmalloc(inst->fat_buffer_size);
+
+    uint32_t next;
+    uint32_t last_sector = 0;
+
+    for (uint32_t i = 2; i < inst->total_clusters; i ++)
+    {
+        rc = fat_get_next_cluster_ex(inst, i, fat_buffer, &last_sector, &next);
+        if (rc != 0)
+            return rc;
+
+        // Если кластер свободен, терминируем его
+        if (next == 0)
+        {
+            *cluster_id = i;
+            rc = fat_set_next_cluster(inst, i, inst->eoc_value);
+            break;
+        }
+    }
+
+exit:
+    kfree(fat_buffer);
+    return rc;
 }
 
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
@@ -612,7 +728,7 @@ int fat_read_directory_cluster( struct fat_instance* inst,
     // Вычислим номер нужного кластера
     for (uint32_t i = 0; i < index; i ++)
     {
-        current_cluster = fat_get_next_cluster(inst, current_cluster);
+        fat_get_next_cluster(inst, current_cluster, &current_cluster);
     }
 
     uint32_t EOC = inst->eoc_value;
@@ -1005,6 +1121,162 @@ exit:
     kfree(fat_buffer);
     kfree(cluster_buffer);
     return readed;
+}
+
+ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff_t offset)
+{
+    struct inode* vfs_inode = file->inode;
+    struct fat_instance* inst = vfs_inode->sb->fs_info;
+
+    struct fat_direntry direntry;
+    int rc = fat_read_dentry(inst, vfs_inode->inode, &direntry);
+    if (rc != 0)
+    {
+        return rc;
+    }
+
+    if (count == 0)
+    {
+        // Нечего записывать - выходим
+        return 0;
+    }
+
+    // Буфер под кластер
+    uint32_t cluster_sz = inst->bytes_per_cluster;
+    char* cluster_buffer = kmalloc(cluster_sz);
+    if (cluster_buffer == NULL)
+    {
+        return -ENOMEM;
+    }
+
+    // Текущий кластер (номер в FAT)
+    uint32_t current_cluster = fat_get_first_cluster_idx(inst, &direntry);
+    uint32_t next_cluster;
+
+    // порядковый номер кластера, с которого надо начать читать с учетом смещения
+    uint32_t first_cluster = offset / cluster_sz;
+    // Смещение внутри первого кластера, с которого надо начать читать
+    uint32_t cluster_offset = offset % cluster_sz;
+    // Порядковый номер текущего кластера
+    uint32_t current_cluster_num = 0;
+
+    uint32_t new_cluster_id;
+
+    uint32_t EOC = inst->eoc_value;
+    ssize_t written = 0;
+
+    // Сразу проверим, не пустой ли файл
+    if (current_cluster == 0)
+    {
+        //printk("Alloc first cluster\n");
+        // Файл не имел ни одного кластера
+        // Не проблема - выделяем кластер
+        rc = fat_alloc_cluster(inst, &new_cluster_id);
+        if (rc != 0) {
+            written = rc;
+            goto exit;
+        }
+
+        // Запишем выделенный кластер первым для файла
+        direntry.first_cluster_lo = (new_cluster_id & 0xFFFF);
+        direntry.first_cluster_hi = (new_cluster_id >> 16) & 0xFFFF;
+
+        current_cluster = new_cluster_id;
+    }
+
+    while ((count - written) > 0)
+    {
+        // надо добраться до нужного кластера
+        if (current_cluster_num >= first_cluster)
+        {
+            rc = fat_read_cluster(inst, current_cluster, cluster_buffer);
+            if (rc != 0)
+            {
+                written = rc;
+                goto exit;   
+            }
+            
+            ssize_t available_data = MIN(count - written, cluster_sz - cluster_offset);
+            
+            // Копирование в буфер кластера новых данных для записи
+            memcpy(cluster_buffer + cluster_offset, buffer + written, available_data);
+            cluster_offset = 0;
+
+            //printk("Writing to cluster %i\n", current_cluster);
+            // запишем новые данные кластера
+            rc = fat_write_cluster(inst, current_cluster, cluster_buffer);
+            if (rc != 0)
+            {
+                written = rc;
+                goto exit;   
+            }
+
+            written += available_data;
+        }
+
+        if ((count - written) <= 0)
+        {
+            break;
+        }
+
+        // Получить номер следующего кластера
+        rc = fat_get_next_cluster(inst, current_cluster, &next_cluster);
+        if (rc != 0)
+        {
+            written = rc;
+            goto exit;
+        }
+
+        //printk("Next cluster %i (%p)\n", next_cluster, next_cluster);
+
+        // следующего кластера еще нет
+        if (next_cluster == EOC)
+        {
+            //printk("Alloc cluster\n");
+            // выделить кластер
+            rc = fat_alloc_cluster(inst, &new_cluster_id);
+            if (rc != 0) {
+                written = rc;
+                goto exit;
+            }
+
+            //printk("Allocated cluster %i\n", new_cluster_id);
+
+            // и добавить к файлу
+            rc = fat_set_next_cluster(inst, current_cluster, new_cluster_id);
+            if (rc != 0) {
+                written = rc;
+                goto exit;
+            }
+
+            // Следующий кластер - новый кластер
+            next_cluster = new_cluster_id;
+        }
+
+        // Переходим на следующий кластер
+        current_cluster = next_cluster;
+
+        // Увеличиваем порядковый номер кластера внутри файла
+        current_cluster_num ++;
+    }
+
+    // обновить размер, если необходимо
+    if (direntry.file_size < offset + count)
+        direntry.file_size = offset + count;
+
+    // Перезаписать на диск
+    fat_write_dentry(inst, vfs_inode->inode, &direntry);
+
+    // обновить размер vfs inode
+    vfs_inode->size = direntry.file_size;
+    //inode->blocks = e2_inode.num_blocks;
+
+    // Сдвинуть
+    file->pos += written;
+
+exit:
+    kfree(cluster_buffer);
+    return written;
 }
 
 int fat_truncate(struct inode* inode, size_t len)

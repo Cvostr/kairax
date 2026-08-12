@@ -167,16 +167,22 @@ int fat_init(void);
 void fat_exit(void);
 
 time_t fat_date_to_epoch(struct fat_date* date, struct fat_time* time);
+uint32_t fat_get_first_cluster_idx(struct fat_instance* inst, struct fat_direntry* entry);
+
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
 int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
 int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer);
+int fat_write_cluster(struct fat_instance* inst, uint32_t cluster, const char* buffer);
 
 void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname);
 void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn);
 
 // Функции для получения номера следующего кластера в цепочке
 int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer, uint32_t* last_sector, uint32_t *next_cluster);
-uint32_t fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster);
+int fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t *next_cluster);
+// Установить для кластера номер следующего кластера 
+int fat_set_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t next_cluster);
+int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id);
 
 int fat_read_directory_cluster( struct fat_instance* inst, 
                                 struct fat_direntry* direntry,
@@ -207,6 +213,7 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index);
 
 // file ops
 ssize_t fat_file_read(struct file* file, char* buffer, size_t count, loff_t offset);
+ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff_t offset);
 
 // file inode ops
 int fat_truncate(struct inode* inode, size_t len);
