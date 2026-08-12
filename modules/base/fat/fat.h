@@ -183,6 +183,7 @@ int fat_get_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t *
 // Установить для кластера номер следующего кластера 
 int fat_set_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t next_cluster);
 int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id);
+int fat_free_cluster(struct fat_instance* inst, uint32_t cluster_id);
 
 int fat_read_directory_cluster( struct fat_instance* inst, 
                                 struct fat_direntry* direntry,

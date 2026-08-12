@@ -637,11 +637,18 @@ int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
             rc = fat_set_next_cluster(inst, i, inst->eoc_value);
             break;
         }
+
+        //inst->fsinfo32->last_free_cluster_count -= 1;
     }
 
 exit:
     kfree(fat_buffer);
     return rc;
+}
+
+int fat_free_cluster(struct fat_instance* inst, uint32_t cluster_id)
+{
+    return fat_set_next_cluster(inst, cluster_id, 0);
 }
 
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)
@@ -1290,14 +1297,48 @@ int fat_truncate(struct inode* inode, size_t len)
         return rc;
     }
 
+    uint32_t old_size = direntry.file_size;
     // установка размера
     direntry.file_size = (uint32_t) len;
+
+    // старое количество кластеров
+    uint32_t old_clusters_count = align(old_size, inst->bytes_per_cluster) / inst->bytes_per_cluster;
+    // новое количество кластеров
+    uint32_t new_clusters_count = (len == 0) ? 0 : align(len, inst->bytes_per_cluster) / inst->bytes_per_cluster;
+    // номер первого кластера
+    uint32_t current_cluster = fat_get_first_cluster_idx(inst, &direntry);
+    uint32_t next_cluster;
+    uint32_t current_cluster_pos = 0;
+
+    //printk("new len %i old %i. new clusters %i old %i\n", len, old_size, new_clusters_count, old_clusters_count);
 
     if (len == 0)
     {
         direntry.first_cluster_lo = 0;
         direntry.first_cluster_hi = 0;
-        // TODO: освобождение блоков по размеру
+    }
+
+    if (new_clusters_count < old_clusters_count)
+    {
+        // Если количество кластеров для нового размера меньше, чем было
+        // Освобождаем выделенные файлу блоки
+        while (current_cluster != 0 && current_cluster != inst->eoc_value) 
+        {
+            // получаем номер следующего кластера
+            if ((rc = fat_get_next_cluster(inst, current_cluster, &next_cluster)) != 0)
+                return rc;
+
+            // освобождаем блоки, сверх того размера, который нужно оставить
+            if (current_cluster_pos >= new_clusters_count)
+            {
+                //printk("freeing cluster %i at pos %i\n", current_cluster, current_cluster_pos);
+                if ((rc = fat_free_cluster(inst, current_cluster)) != 0)
+                    return rc;
+            }
+
+            current_cluster = next_cluster;
+            current_cluster_pos ++;
+        }
     }
 
     rc = fat_write_dentry(inst, inode->inode, &direntry);
@@ -1305,6 +1346,9 @@ int fat_truncate(struct inode* inode, size_t len)
     {
         return rc;
     }
+
+    // обновить размер inode
+    inode->size = len;
 
     return 0;
 }
