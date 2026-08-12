@@ -80,7 +80,10 @@ int sys_open_file(int dirfd, const char* path, int flags, int mode)
 
     // TODO: может делать это после попытки добавить к процессу?
     if ((file->inode->mode & INODE_TYPE_FILE) && (flags & FILE_OPEN_FLAG_TRUNCATE) && file_allow_write(file)) {
-        inode_truncate(file->inode, 0);
+        if ((fd = inode_truncate(file->inode, 0)) != 0) {
+            file_close(file);
+            goto exit;
+        }
     }
 
     // Добавить файл к процессу

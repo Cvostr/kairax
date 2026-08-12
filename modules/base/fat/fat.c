@@ -637,8 +637,6 @@ int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
             rc = fat_set_next_cluster(inst, i, inst->eoc_value);
             break;
         }
-
-        //inst->fsinfo32->last_free_cluster_count -= 1;
     }
 
 exit:
