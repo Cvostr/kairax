@@ -1166,6 +1166,7 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
     uint32_t current_cluster_num = 0;
 
     uint32_t new_cluster_id;
+    int cluster_was_allocated = 0;
 
     uint32_t EOC = inst->eoc_value;
     ssize_t written = 0;
@@ -1173,11 +1174,9 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
     // Сразу проверим, не пустой ли файл
     if (current_cluster == 0)
     {
-        //printk("Alloc first cluster\n");
         // Файл не имел ни одного кластера
         // Не проблема - выделяем кластер
-        rc = fat_alloc_cluster(inst, &new_cluster_id);
-        if (rc != 0) {
+        if ((rc = fat_alloc_cluster(inst, &new_cluster_id)) != 0) {
             written = rc;
             goto exit;
         }
@@ -1186,6 +1185,7 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
         direntry.first_cluster_lo = (new_cluster_id & 0xFFFF);
         direntry.first_cluster_hi = (new_cluster_id >> 16) & 0xFFFF;
 
+        cluster_was_allocated = TRUE;
         current_cluster = new_cluster_id;
     }
 
@@ -1194,11 +1194,13 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
         // надо добраться до нужного кластера
         if (current_cluster_num >= first_cluster)
         {
-            rc = fat_read_cluster(inst, current_cluster, cluster_buffer);
-            if (rc != 0)
+            if (cluster_was_allocated == FALSE)
             {
-                written = rc;
-                goto exit;   
+                // для ускорения работы, считываем старые данные кластера, только если он уже существовал в файле
+                if ((rc = fat_read_cluster(inst, current_cluster, cluster_buffer)) != 0) {
+                    written = rc;
+                    goto exit;   
+                }
             }
             
             ssize_t available_data = MIN(count - written, cluster_sz - cluster_offset);
@@ -1209,9 +1211,7 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
 
             //printk("Writing to cluster %i\n", current_cluster);
             // запишем новые данные кластера
-            rc = fat_write_cluster(inst, current_cluster, cluster_buffer);
-            if (rc != 0)
-            {
+            if ((rc = fat_write_cluster(inst, current_cluster, cluster_buffer)) != 0) {
                 written = rc;
                 goto exit;   
             }
@@ -1223,6 +1223,9 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
         {
             break;
         }
+
+        // Заранее снимаем флаг того, что последний кластер - новый
+        cluster_was_allocated = FALSE;
 
         // Получить номер следующего кластера
         rc = fat_get_next_cluster(inst, current_cluster, &next_cluster);
@@ -1254,6 +1257,7 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
                 goto exit;
             }
 
+            cluster_was_allocated = TRUE;
             // Следующий кластер - новый кластер
             next_cluster = new_cluster_id;
         }

@@ -200,7 +200,7 @@ void ast_exec_func(struct ast_node* node, struct ast_exec_ctx *ctx)
 
                 int fd = open(redir_curr->fname, mode, 0666);
                 if (fd == -1) {
-                    printf("rxsh: %s: %s", redir_curr->fname, strerror(errno));
+                    printf("rxsh: %s: %s\n", redir_curr->fname, strerror(errno));
                     _exit(127);
                 }
 
