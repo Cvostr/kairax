@@ -807,6 +807,19 @@ void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname)
                 first_space[i] = last_space[i];
         }    
     }
+    else
+    {
+        // пробелов нет, значит имя и расширение слеплены вместе
+        // например, для $RECYCLE.BIN будет такое : $RECYCLEBIN
+        // надо разъединить и поставить точку
+
+        // сдвигаем расширение на 1 символ вперед
+        for (i = strlen(sfname); i >= 8; i --)
+            sfname[i + 1] = sfname[i];
+
+        // ставим точку на освободившуюся позицию 8
+        sfname[8] = '.';
+    }
 
     // Снизить регистр имени, если установлен соответствующий флаг
     if (direntry->nt_reserved & FILE_NTRES_NAME_LOWERCASE) {
