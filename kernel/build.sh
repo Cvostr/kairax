@@ -71,6 +71,7 @@ gcc $GCC_ARGS $KAIRAX_PATH/guid/guid.c -o ./bin/guid.o
 #generic kairax
 gcc $GCC_ARGS $KAIRAX_PATH/elf.c -o ./bin/elf.o
 gcc $GCC_ARGS $KAIRAX_PATH/string.c -o ./bin/stdc_string.o
+gcc $GCC_ARGS $KAIRAX_PATH/str_conv.c -o ./bin/str_conv.o
 gcc $GCC_ARGS $KAIRAX_PATH/stdlib.c -o ./bin/stdc_stdlib.o
 gcc $GCC_ARGS $KAIRAX_PATH/ctype.c -o ./bin/stdc_ctype.o
 gcc $GCC_ARGS $KAIRAX_PATH/stdio.c -o ./bin/stdc_stdio.o

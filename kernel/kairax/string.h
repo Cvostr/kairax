@@ -26,4 +26,6 @@ void* memcpy(void* __restrict, const void* __restrict, size_t);
 void* memmove(void*, const void*, size_t);
 void* memset(void*, int, size_t);
 
+int str_utf16_to_utf8(char *dest, const uint16_t *src, size_t isize, size_t dsize, size_t *written);
+
 #endif
