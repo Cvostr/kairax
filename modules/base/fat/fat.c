@@ -749,16 +749,7 @@ int fat_read_directory_cluster( struct fat_instance* inst,
     return fat_read_cluster(inst, current_cluster, buffer);
 }
 
-void fat_nseize_str(uint16_t* in, size_t len, char* out)
-{
-    for (size_t i = 0; i < len; i ++)
-    {
-        uint16_t val = in[i];
-        out[i] = (char) val;
-    }
-}
-
-void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn)
+void fat_apply_lfn(uint16_t *namebuffer16, char* namebuffer, struct fat_lfn* lfn)
 {
     uint8_t order = lfn->order & (~0x40); 
 
@@ -766,18 +757,17 @@ void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn)
         return;
 
     uint32_t lfn_pos = (order - 1) * 13;
+    size_t utf8_len = 0;
 
-    // TODO: Unicode?
-    fat_nseize_str(lfn->name_0, sizeof(lfn->name_0) / 2, namebuffer + lfn_pos);
-    lfn_pos += sizeof(lfn->name_0) / 2;
-    fat_nseize_str(lfn->name_1, sizeof(lfn->name_1) / 2, namebuffer + lfn_pos);
-    lfn_pos += sizeof(lfn->name_1) / 2;
-    fat_nseize_str(lfn->name_2, sizeof(lfn->name_2) / 2, namebuffer + lfn_pos);
-    lfn_pos += sizeof(lfn->name_2) / 2;
+    // для удобства соберем фрагменты строки воедино
+    uint16_t *utf16_str = &namebuffer16[lfn_pos];
+    memcpy(utf16_str, lfn->name_0, sizeof(lfn->name_0));
+    memcpy(&utf16_str[5], lfn->name_1, sizeof(lfn->name_1));
+    memcpy(&utf16_str[11], lfn->name_2, sizeof(lfn->name_2));
 
-    if ((lfn->order & 0x40) == 0x40)
-    {
-        namebuffer[lfn_pos] = '\0';
+    if (order == 1) {
+        // конвертация в родной для системы UTF-8
+        str_utf16_to_utf8(namebuffer, namebuffer16, FAT_LFN_MAX_SZ, FAT_LFN_MAX_SZ, &utf8_len);
     }
 }
 
@@ -837,13 +827,15 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
 {
     struct fat_instance* inst = sb->fs_info;
 
-    char* checking_name = NULL;
-    char* cluster_buffer = NULL;
+    // имя для проверки в UTF-16
+    uint16_t *namebuffer16 = NULL;
+    // имя для проверки в UTF-8
+    char *checking_name = NULL;
+    // буфер под кластер
+    char *cluster_buffer = NULL;
 
     int is_root_directory = parent_inode == inst->vfs_root_inode;
     uint64_t result_inode = WRONG_INODE_INDEX;
-
-    //printk("fat_find_dentry (ino %i (root = %i) name %s)\n", parent_inode->inode, is_root_directory, name);
 
     // Найти и считать direntry
     struct fat_direntry dir_direntry;
@@ -864,6 +856,14 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
         result_inode = WRONG_INODE_INDEX;
         goto exit;
     }
+
+    // Буфер под имя UTF-16
+    namebuffer16 = kmalloc(FAT_LFN_MAX_SZ * sizeof(uint16_t));
+    if (namebuffer16 == NULL) {
+        result_inode = WRONG_INODE_INDEX;
+        goto exit;
+    }
+    
     // буфер под кластер
     cluster_buffer = kmalloc(cluster_sz);
     if (cluster_buffer == NULL) {
@@ -888,10 +888,11 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
 
             if (d_ptr->attr == FILE_ATTR_LFN) {
                 // Встретилась запись LFN
-                fat_apply_lfn(checking_name, (struct fat_lfn*) d_ptr);
+                fat_apply_lfn(namebuffer16, checking_name, (struct fat_lfn*) d_ptr);
                 pos += sizeof(struct fat_lfn);
-            } else {
-
+            } 
+            else 
+            {
                 if (strlen(checking_name) == 0)
                 {
                     // Если не было LFN, используем SFN
@@ -929,6 +930,7 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
 
 exit:
     KFREE_SAFE(checking_name)
+    KFREE_SAFE(namebuffer16)
     KFREE_SAFE(cluster_buffer)
     return result_inode;
 }
@@ -940,10 +942,15 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     struct fat_instance* inst = sb->fs_info;
 
     struct dirent* result = NULL;
-    char* cluster_buffer = NULL;
-    char* checking_name = NULL;
     int is_root_directory = vfs_inode == inst->vfs_root_inode;
     
+    // имя для проверки в UTF-16
+    uint16_t *namebuffer16 = NULL;
+    // буфер под кластер
+    char *cluster_buffer = NULL;
+    // имя для проверки в UTF-8
+    char *checking_name = NULL;
+
     // Считать direntry
     struct fat_direntry direntry;
     if (is_root_directory == FALSE) 
@@ -968,6 +975,13 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     if (checking_name == NULL) {
         goto exit;
     }
+
+    // Буфер под имя UTF-16
+    namebuffer16 = kmalloc(FAT_LFN_MAX_SZ * sizeof(uint16_t));
+    if (namebuffer16 == NULL) {
+        goto exit;
+    }
+
     checking_name[0] = '\0';
 
     uint32_t current_cluster_idx = 0;
@@ -986,10 +1000,11 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
             if (d_ptr->attr == FILE_ATTR_LFN) 
             {
                 // Встретилась запись LFN
-                fat_apply_lfn(checking_name, (struct fat_lfn*) d_ptr);
+                fat_apply_lfn(namebuffer16, checking_name, (struct fat_lfn*) d_ptr);
                 pos += sizeof(struct fat_lfn);
-            } else {
-
+            } 
+            else
+            {
                 if (strlen(checking_name) == 0)
                 {
                     // Если не было LFN, используем SFN
@@ -1013,7 +1028,7 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
 
                         result = new_vfs_dirent();
                         result->inode = fat_to_inode_num_sector(inst, base_sector, pos);
-                        strncpy(result->name, checking_name, FAT_LFN_MAX_SZ);
+                        strncpy(result->name, checking_name, MAX_DIRENT_NAME_LEN - 1);
                         result->type = is_dir ? DT_DIR : DT_REG;
 
                         goto exit;
@@ -1032,6 +1047,7 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
 
 exit:
     KFREE_SAFE(checking_name)
+    KFREE_SAFE(namebuffer16)
     KFREE_SAFE(cluster_buffer)
     return result;
 }

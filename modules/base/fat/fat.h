@@ -134,7 +134,7 @@ struct fat_instance {
 #define BOOTABLE_PARTITION_SIGNATURE	0xAA55
 
 #define FAT_DIRENTRY_SZ		32
-#define FAT_LFN_MAX_SZ		256
+#define FAT_LFN_MAX_SZ		260
 
 #define FAT12_EOC	0xFF8
 #define FAT12_BAD	0xFF7
@@ -175,7 +175,7 @@ int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer);
 int fat_write_cluster(struct fat_instance* inst, uint32_t cluster, const char* buffer);
 
 void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname);
-void fat_apply_lfn(char* namebuffer, struct fat_lfn* lfn);
+void fat_apply_lfn(uint16_t *namebuffer16, char* namebuffer, struct fat_lfn* lfn);
 
 // Функции для получения номера следующего кластера в цепочке
 int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* fat_buffer, uint32_t* last_sector, uint32_t *next_cluster);
