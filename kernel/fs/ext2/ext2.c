@@ -1295,9 +1295,13 @@ ssize_t ext2_file_write(struct file* file, const char* buffer, size_t count, lof
 
 int ext2_truncate(struct inode* inode, size_t len)
 {
+    int rc = 0;
     ext2_instance_t* inst = (ext2_instance_t*)inode->sb->fs_info;
-    ext2_inode_t* e2_inode = new_ext2_inode();
-    ext2_inode(inst, e2_inode, inode->inode);
+    ext2_inode_t *e2_inode = new_ext2_inode();
+    
+    // чтение inode
+    if ((rc = ext2_inode(inst, e2_inode, inode->inode)) != 0)
+        goto exit;
     
     // Освобождение direct блоков
     for (int block_i = 0; block_i < EXT2_DIRECT_BLOCKS; block_i ++) {
@@ -1324,9 +1328,11 @@ int ext2_truncate(struct inode* inode, size_t len)
     inode->size = 0;
     inode->blocks = 0;
 
-    ext2_write_inode_metadata(inst, e2_inode, inode->inode);
-    kfree(e2_inode);
+    // перезапись измененной информации об inode
+    rc = ext2_write_inode_metadata(inst, e2_inode, inode->inode);
 
+exit:
+    kfree(e2_inode);
     return 0;
 }
 
@@ -1627,9 +1633,13 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     kfree(block_temp);
 
     // Увеличить количество ссылок родительской иноды
-    ext2_inode(inst, &inode, parent->inode);
+    if ((rc = ext2_inode(inst, &inode, parent->inode)) != 0)
+        return rc;
+
     inode.hard_links++;
-    ext2_write_inode_metadata(inst, &inode, parent->inode);
+    
+    if ((rc = ext2_write_inode_metadata(inst, &inode, parent->inode)) != 0)
+        return rc;
 
     // Увеличить количество ссылок vfs inode родителя
     parent->hard_links++;
@@ -1637,9 +1647,10 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     // Обновить информацию о свободных папках в bgds
     uint32_t new_inode_group = (inode_num - 1) / inst->superblock->inodes_per_group;
 	inst->bgds[new_inode_group].used_dirs++;
-	ext2_write_bgds(inst);
+    // перезапись BGDS
+	rc = ext2_write_bgds(inst);
 
-    return 0;
+    return rc;
 }
 
 int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
@@ -1762,48 +1773,48 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
         return rc;
         
     // Прочитать inode
-    ext2_inode_t *inode = new_ext2_inode();
-    ext2_inode(inst, inode, inode_num);
+    ext2_inode_t inode;
+    if ((rc = ext2_inode(inst, &inode, inode_num)) != 0)
+        return rc;
 
     struct timeval current_time;
     sys_get_time_epoch(&current_time);
 
     // подготовить структуру inode
-    inode->mode = INODE_FLAG_SYMLINK | (0777);
-    inode->atime = current_time.tv_sec;
-    inode->ctime = current_time.tv_sec;
-    inode->mtime = current_time.tv_sec;
-    inode->dtime = 0;
-    inode->gid = 0;
-    inode->userid = 0;
-    inode->flags = 0;
-    inode->hard_links = 1;
-    inode->num_blocks = 0;
-    inode->os_specific1 = 0;
-    memset(inode->blocks, 0, sizeof(inode->blocks));
-    memset(inode->os_specific2, 0, sizeof(inode->os_specific2));
-    inode->generation = 0;
-    inode->file_acl = 0;
-    inode->dir_acl = 0;
-    inode->faddr = 0;
-    inode->size = target_len;
+    inode.mode = INODE_FLAG_SYMLINK | (0777);
+    inode.atime = current_time.tv_sec;
+    inode.ctime = current_time.tv_sec;
+    inode.mtime = current_time.tv_sec;
+    inode.dtime = 0;
+    inode.gid = 0;
+    inode.userid = 0;
+    inode.flags = 0;
+    inode.hard_links = 1;
+    inode.num_blocks = 0;
+    inode.os_specific1 = 0;
+    memset(inode.blocks, 0, sizeof(inode.blocks));
+    memset(inode.os_specific2, 0, sizeof(inode.os_specific2));
+    inode.generation = 0;
+    inode.file_acl = 0;
+    inode.dir_acl = 0;
+    inode.faddr = 0;
+    inode.size = target_len;
 
     if (target_len <= 60)
     {
-        memcpy(inode->blocks, target, target_len);
+        memcpy(inode.blocks, target, target_len);
     }
     else 
     {
-        write_inode_filedata(inst, inode, inode_num, 0, target_len, target);
+        write_inode_filedata(inst, &inode, inode_num, 0, target_len, target);
     }
 
     // Записать изменения на диск
-    ext2_write_inode_metadata(inst, inode, inode_num);
+    if ((rc = ext2_write_inode_metadata(inst, &inode, inode_num)) != 0)
+        return rc;
 
     // Добавить иноду в директорию
     ext2_create_dentry(inst, parent, name, inode_num, EXT2_DT_SYMLINK);
-
-    kfree(inode);
 
     return 0;
 }

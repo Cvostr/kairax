@@ -19,6 +19,7 @@
 
 extern void scheduler_yield_entry();
 extern void scheduler_exit(thread_frame_t* ctx);
+void preemt_to_tasklets();
 int scheduler_handler(thread_frame_t* frame);
 int scheduler_enabled = 0;
 
