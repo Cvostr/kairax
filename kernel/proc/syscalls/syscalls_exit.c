@@ -45,11 +45,11 @@ void exit_process(int code)
     // поэтому их надо делать с выключенными прерываниями
     disable_interrupts();
 
-    // Пометим поток как зомби, чтобы планировщик не пытался его исполнить
-    thr->state = STATE_ZOMBIE;
-
     // Удалить текущий оставшийся поток из планировщика
     scheduler_remove_thread(thr);
+
+    // Пометим поток как зомби, чтобы планировщик не пытался его исполнить
+    thr->state = STATE_ZOMBIE;
 
     scheduler_yield(FALSE);
 }

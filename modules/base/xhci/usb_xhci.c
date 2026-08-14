@@ -536,7 +536,7 @@ int xhci_controller_init_interrupts(struct xhci_controller* controller, struct x
 	// Включить прерывания на этом interrupter
 	interrupter->iman = interrupter->iman | XHCI_IMAN_INTERRUPT_PENDING | XHCI_IMAN_INTERRUPT_ENABLE;
 
-	uint16_t imodi = 4000000 / XHCI_IRQ_MAX_FREQ;
+	uint32_t imodi = 4000000 / XHCI_IRQ_MAX_FREQ;
 	interrupter->imod = imodi;
 
 	// Сбросить флаг прерывания (если было необработанное прерывание)
