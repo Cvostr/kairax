@@ -630,11 +630,19 @@ int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
         if (rc != 0)
             return rc;
 
-        // Если кластер свободен, терминируем его
+        // Если кластер свободен
         if (next == 0)
         {
             *cluster_id = i;
-            rc = fat_set_next_cluster(inst, i, inst->eoc_value);
+            // Терминируем кластер
+            if ((rc = fat_set_next_cluster(inst, i, inst->eoc_value)) != 0)
+                goto exit;
+
+            // Если есть структура FSinfo32, то в ней надо уменьшить количество свободных кластеров
+            if (inst->fsinfo32) {
+                inst->fsinfo32->last_free_cluster_count --;
+            }
+
             break;
         }
     }
@@ -646,7 +654,14 @@ exit:
 
 int fat_free_cluster(struct fat_instance* inst, uint32_t cluster_id)
 {
-    return fat_set_next_cluster(inst, cluster_id, 0);
+    int rc = fat_set_next_cluster(inst, cluster_id, 0);
+
+    // Если есть структура FSinfo32, то в ней надо увеличить количество свободных кластеров
+    if (rc == 0 && inst->fsinfo32) {
+        inst->fsinfo32->last_free_cluster_count ++;
+    }
+
+    return rc;
 }
 
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num)

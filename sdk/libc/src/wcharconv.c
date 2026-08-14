@@ -169,7 +169,6 @@ size_t mbrtowc(wchar_t *pwc, const char *s, size_t n, mbstate_t *ps)
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t dsize, mbstate_t *ps)
 {
     wchar_t c;
-    size_t pos = 0;
     char buf[6];
     size_t written = 0;
     size_t seg_len;
