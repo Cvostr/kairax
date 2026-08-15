@@ -11,7 +11,7 @@
 //#define LOG_ENABLED
 //#define ON_RECEIVE_LOG_ENABLED
 //#define IRQ_LOG_ENABLED
-#define FAILURE_LOG_ENABLED
+//#define FAILURE_LOG_ENABLED
 
 void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev);
 
@@ -21,6 +21,7 @@ uint8_t TSD[4] = {0x10, 0x14, 0x18, 0x1C};
 void routine(struct rtl8139* rtl_dev) {
 
     while(1) {
+        event_wait(&rtl_dev->rx_event);
         rtl8139_rx(rtl_dev);
     }
 }
@@ -30,6 +31,8 @@ int rtl8139_device_probe(struct device *dev)
     struct rtl8139* rtl_dev = kmalloc(sizeof(struct rtl8139));
     memset(rtl_dev, 0, sizeof(struct rtl8139));
     rtl_dev->dev = dev;
+
+    event_init(&rtl_dev->rx_event, 0);
 
     int rx_pages = 3;
 
@@ -111,6 +114,7 @@ int rtl8139_device_probe(struct device *dev)
 
     struct process* proc = create_new_process(NULL);
     struct thread* thr = create_kthread(proc, routine, rtl_dev);
+    thread_set_sched_mode(thr, SCHED_MODE_REALTIME);
     scheduler_add_thread(thr);
 
     return 0;
@@ -264,7 +268,7 @@ void rtl8139_irq_handler(void* regs, struct rtl8139* rtl_dev)
         rtl_dev->int_tx_pos = int_tx_pos;
 	}
 	if (status & (RTL1839_RXOK)) {
-        //rtl8139_rx(rtl_dev);
+        event_complete(&rtl_dev->rx_event);
 	}
 }
 

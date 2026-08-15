@@ -2,6 +2,7 @@
 #define _RTL8139_H_
 
 #include "kairax/types.h"
+#include "sync/event.h"
 
 #define RX_BUFFER_SIZE 8192
 #define RX_BUFFER_WRAP (RX_BUFFER + 1500 + 16)
@@ -50,6 +51,7 @@ struct rtl8139 {
     char* recv_buffer;
     char* tx_buffers[TX_BUFFERS];
 
+    struct event rx_event;
     uint16_t rx_pos;
     uint32_t  tx_pos;
 
