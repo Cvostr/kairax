@@ -640,11 +640,15 @@ exit:
 int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
 {
     int rc = 0;
+    
     // Выделить буфер под FAT
     char* fat_buffer = kmalloc(inst->fat_buffer_size);
+    if (fat_buffer == NULL)
+        return -ENOMEM;
 
     uint32_t next;
     uint32_t last_sector = 0;
+    int found = FALSE;
 
     for (uint32_t i = 2; i < inst->total_clusters; i ++)
     {
@@ -655,6 +659,7 @@ int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
         // Если кластер свободен
         if (next == 0)
         {
+            found = TRUE;
             *cluster_id = i;
             // Терминируем кластер
             if ((rc = fat_set_next_cluster(inst, i, inst->eoc_value)) != 0)
@@ -668,6 +673,10 @@ int fat_alloc_cluster(struct fat_instance* inst, uint32_t *cluster_id)
             break;
         }
     }
+
+    // не нашли ни одного свободного кластера - значит места на диске не осталось
+    if (found == FALSE)
+        rc = -ENOSPC;
 
 exit:
     kfree(fat_buffer);
@@ -861,8 +870,10 @@ void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname)
         for (i = strlen(sfname); i >= 8; i --)
             sfname[i + 1] = sfname[i];
 
+        // Если у файла есть расширение (длина имени больше 8)
         // ставим точку на освободившуюся позицию 8
-        sfname[8] = '.';
+        if (strlen(sfname) > 8)
+            sfname[8] = '.';
     }
 
     // Снизить регистр имени, если установлен соответствующий флаг
