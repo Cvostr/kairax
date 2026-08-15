@@ -126,6 +126,7 @@ struct fat_instance {
 	uint32_t 			total_clusters;
 	uint32_t 			free_clusters;
 	int 				fs_type;
+	uint32_t 			bad_value;
 	uint32_t			eoc_value;
 };
 
@@ -136,14 +137,18 @@ struct fat_instance {
 #define FAT_DIRENTRY_SZ		32
 #define FAT_LFN_MAX_SZ		260
 
-#define FAT12_EOC	0xFF8
-#define FAT12_BAD	0xFF7
-#define FAT16_EOC	0xFFF8
-#define FAT16_BAD	0xFFF7
-#define FAT32_EOC	0x0FFFFFF8
-#define FAT32_BAD	0x0FFFFFF7
-#define EXFAT_EOC	0xFFFFFFF8
-#define EXFAT_BAD	0xFFFFFFF7
+#define FAT12_BAD		0xFF7
+#define FAT16_BAD		0xFFF7
+#define FAT32_BAD		0x0FFFFFF7
+#define EXFAT_BAD		0xFFFFFFF7
+
+#define FAT12_EOC_MIN	0xFF8
+#define FAT12_EOC_MAX	0xFFF
+#define FAT16_EOC_MIN	0xFFF8
+#define FAT16_EOC_MAX	0xFFFF
+#define FAT32_EOC_MIN	0x0FFFFFF8
+#define FAT32_EOC_MAX	0x0FFFFFFF
+#define EXFAT_EOC		0xFFFFFFFF
 
 #define FS_FAT12 	1
 #define FS_FAT16	2
@@ -171,6 +176,7 @@ uint32_t fat_get_first_cluster_idx(struct fat_instance* inst, struct fat_direntr
 uint64_t fat_to_inode_num_sector(struct fat_instance* inst, uint32_t sector, uint32_t offset);
 uint64_t fat_to_inode_num(struct fat_instance* inst, uint32_t cluster, uint32_t offset);
 uint32_t fat_get_directory_buffer_size(struct fat_instance* inst, int is_root);
+int fat_is_eoc(struct fat_instance* inst, uint32_t cluster_id);
 
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
 int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
@@ -193,7 +199,9 @@ int fat_read_directory_cluster( struct fat_instance* inst,
                                 int is_root,
                                 uint32_t index,
                                 char* buffer,
-                                uint64_t* first_sector);
+                                uint64_t* first_sector,
+								uint32_t *cluster_id);
+int fat_write_directory_cluster(struct fat_instance* inst, int is_root, uint32_t cluster_id, const char *cluster_data);
 
 int fat_calc_free_clusters(struct fat_instance* inst, uint32_t *free_clusters);
 
@@ -207,6 +215,7 @@ int fat_unmount(struct superblock* sb);
 
 int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry);
 int fat_write_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry);
+int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry *parent,  struct fat_direntry *new_direntry);
 
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num);
 uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type);
@@ -221,5 +230,8 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
 
 // file inode ops
 int fat_truncate(struct inode* inode, size_t len);
+
+// directory inode ops
+int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
 
 #endif
