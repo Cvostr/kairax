@@ -1462,10 +1462,29 @@ int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry
     {
         rc = fat_read_directory_cluster(inst, parent, is_root, current_cluster_idx ++, cluster_buffer, &base_sector, &current_cluster_id);
 
-        if (rc == FAT_DIR_LAST_CLUSTER) {
-            // TODO: сделать расширение, если не хватает места
-            rc = -ENOSPC;
-            goto exit;
+        if (rc == FAT_DIR_LAST_CLUSTER) {            
+            // Места в папке нет
+            if (is_root && (inst->fs_type == FS_FAT16 || inst->fs_type == FS_FAT12)) {
+                // если это FAT12 или FAT16, то корневая директория состоит из определенного 
+                // количества секторов и не является расширяемой
+                rc = -ENOSPC;
+                goto exit;
+            }
+
+            // выделяем новый кластер
+            uint32_t new_cluster_id;
+            if ((rc = fat_alloc_cluster(inst, &new_cluster_id)) != 0)
+                goto exit;
+
+            // добавляем выделенный кластер к папке
+            if ((rc = fat_set_next_cluster(inst, current_cluster_id, new_cluster_id)) != 0)
+                goto exit;
+
+            // зануляем буфер
+            memset(cluster_buffer, 0, cluster_sz);
+
+            // новый кластер делаем текущим
+            current_cluster_id = new_cluster_id;
         } else if (rc != 0) {
             goto exit;
         }
