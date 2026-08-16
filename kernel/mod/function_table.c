@@ -34,6 +34,8 @@ struct kernel_function functions[] = {
     KFUNCTION(kmalloc),
     KFUNCTION(kfree),
     KFUNCTION(tm_to_epoch),
+    KFUNCTION(epoch_to_tm),
+    KFUNCTION(get_time_epoch),
     KFUNCTION(register_pci_device_driver),
     KFUNCTION(pci_config_read16),
     KFUNCTION(pci_config_read32),

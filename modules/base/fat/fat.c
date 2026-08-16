@@ -197,6 +197,24 @@ time_t fat_date_to_epoch(struct fat_date* date, struct fat_time* time)
     return tm_to_epoch(&datetime);
 }
 
+void fat_epoch_to_datetime(time_t epoch, struct fat_date* date, struct fat_time* time)
+{
+    struct tm datetime;
+    epoch_to_tm(&epoch, &datetime);
+
+    // fat 1980 -> 2107, tm - 1900 +
+    date->year = (datetime.tm_year - 80) % 128;
+    date->month = datetime.tm_mon + 1;
+    date->day = datetime.tm_mday;
+
+    if (time) 
+    {
+        time->hour = datetime.tm_hour;
+        time->minute = datetime.tm_min;
+        time->second = datetime.tm_sec / 2;
+    }
+}
+
 void fat_free_instance(struct fat_instance* instance)
 {
     KFREE_SAFE(instance->bpb)
@@ -1537,6 +1555,10 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
         }
     }
 
+    // получим текущее время
+    struct timespec current_time;
+    get_time_epoch(&current_time);
+
     // заполним создаваемую direntry
     struct fat_direntry new_direntry;
     new_direntry.attr = 0;
@@ -1544,6 +1566,10 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     new_direntry.file_size = 0;
     new_direntry.first_cluster_hi = 0;
     new_direntry.first_cluster_lo = 0;
+    // заполняем время
+    fat_epoch_to_datetime(current_time.tv_sec, &new_direntry.creat_date, &new_direntry.creat_time);
+    fat_epoch_to_datetime(current_time.tv_sec, &new_direntry.write_date, &new_direntry.write_time);
+    fat_epoch_to_datetime(current_time.tv_sec, &new_direntry.last_access_date, NULL);
     // предварительно заполняем SFN пробелами
     memset(new_direntry.name, ' ', sizeof(new_direntry.name));
 
