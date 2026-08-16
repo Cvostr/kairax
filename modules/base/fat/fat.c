@@ -368,11 +368,7 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         break;
     }
 
-/*
-    struct fat_direntry root_direntry;
-    fat_read_dentry(instance, ino_num, &root_direntry);
-    printk("FAT: Root dentry name %s sector %i sectors %i\n", root_direntry.name, instance->root_dir_sector, instance->root_dir_sectors);
-*/
+    // создание VFS объекта для root inode
     struct inode* result = new_vfs_inode();
     instance->vfs_root_inode = result;
     result->inode = ino_num;

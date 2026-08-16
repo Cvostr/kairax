@@ -7,6 +7,7 @@
 #include "mem/pmm.h"
 #include "kstdlib.h"
 #include "string.h"
+#include "kairax/time.h"
 #include "ipc/pipe.h"
 #include "fs/vfs/superblock.h"
 
@@ -354,7 +355,6 @@ exit:
     return rc;
 }
 
-void arch_get_timespec(struct timespec *ts);
 int sys_set_fdate(int fd, const char* path, const struct timespec *times, int flag)
 {
     int rc;
@@ -379,7 +379,7 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
             if (nsec == UTIME_NOW)
             {
                 // текущее время
-                arch_get_timespec(&_times[i]);
+                get_time_epoch(&_times[i]);
             }
             else
             {
@@ -395,8 +395,8 @@ int sys_set_fdate(int fd, const char* path, const struct timespec *times, int fl
     else
     {
         // получить текущее
-        arch_get_timespec(&_times[0]);
-        arch_get_timespec(&_times[1]);
+        get_time_epoch(&_times[0]);
+        get_time_epoch(&_times[1]);
     }
 
     // Путь может быть пустым

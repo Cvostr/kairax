@@ -1,5 +1,8 @@
 #include "time.h"
 
+// Архитектурно-специфично
+void arch_get_timespec(struct timespec *ts);
+
 const short days_in_month[13] =
 { 
     0,
@@ -80,11 +83,11 @@ time_t tm_to_epoch(struct tm *tm)
     time_t years = tm->tm_year - 70;
 
     if (tm->tm_sec > 60) { tm->tm_min += tm->tm_sec / 60; tm->tm_sec %= 60; }
-    if (tm->tm_min>60) { tm->tm_hour += tm->tm_min/60; tm->tm_min%=60; }
-    if (tm->tm_hour>60) { tm->tm_mday += tm->tm_hour/60; tm->tm_hour%=60; }
-    if (tm->tm_mon>12) { tm->tm_year += tm->tm_mon/12; tm->tm_mon%=12; }
-    if (tm->tm_mon<0) 
-        tm->tm_mon=0;
+    if (tm->tm_min > 60) { tm->tm_hour += tm->tm_min / 60; tm->tm_min %= 60; }
+    if (tm->tm_hour > 60) { tm->tm_mday += tm->tm_hour / 60; tm->tm_hour %= 60; }
+    if (tm->tm_mon > 12) { tm->tm_year += tm->tm_mon / 12; tm->tm_mon %= 12; }
+    if (tm->tm_mon < 0) 
+        tm->tm_mon = 0;
 
     while (tm->tm_mday>days_in_month[1 + tm->tm_mon]) {
         
@@ -155,4 +158,10 @@ struct tm* epoch_to_tm(const time_t* time, struct tm* r)
     r->tm_mday += work - days_in_month[i];
     
     return r;
+}
+
+int get_time_epoch(struct timespec *ts)
+{
+    arch_get_timespec(ts);
+    return 0;
 }

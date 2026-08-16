@@ -3,6 +3,7 @@
 #include "string.h"
 #include "kstdlib.h"
 #include "mem/pmm.h"
+#include "kairax/time.h"
 
 struct file_operations tmpfs_file_ops = {
     .read = tmpfs_file_read,
@@ -412,9 +413,9 @@ int tmpfs_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     new_inode->hard_links = 1;
 
     // Установка времени
-    arch_get_timespec(&new_inode->ctime);
-    arch_get_timespec(&new_inode->atime);
-    arch_get_timespec(&new_inode->mtime);
+    get_time_epoch(&new_inode->ctime);
+    get_time_epoch(&new_inode->atime);
+    get_time_epoch(&new_inode->mtime);
 
     // Добавляем inode в список
     ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);
@@ -453,9 +454,9 @@ int tmpfs_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     new_inode->hard_links = 2;
 
     // Установка времени
-    arch_get_timespec(&new_inode->ctime);
-    arch_get_timespec(&new_inode->atime);
-    arch_get_timespec(&new_inode->mtime);
+    get_time_epoch(&new_inode->ctime);
+    get_time_epoch(&new_inode->atime);
+    get_time_epoch(&new_inode->mtime);
 
     // Добавляем inode в список
     ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);
@@ -522,9 +523,9 @@ int tmpfs_mknod(struct inode* parent, const char* name, mode_t mode)
     new_inode->hard_links = 1;
 
     // Установка времени
-    arch_get_timespec(&new_inode->ctime);
-    arch_get_timespec(&new_inode->atime);
-    arch_get_timespec(&new_inode->mtime);
+    get_time_epoch(&new_inode->ctime);
+    get_time_epoch(&new_inode->atime);
+    get_time_epoch(&new_inode->mtime);
 
     // Добавляем inode в список
     ino_t ino_idx = tmpfs_instance_add_inode(inst, new_inode, 0);

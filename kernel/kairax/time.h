@@ -48,4 +48,6 @@ void timespec_add(struct timespec* t1, struct timespec* t2);
 void timespec_sub(struct timespec* t1, struct timespec* t2);
 int timespec_is_zero(struct timespec* t1);
 
+int get_time_epoch(struct timespec *ts);
+
 #endif

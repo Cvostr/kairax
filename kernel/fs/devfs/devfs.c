@@ -22,7 +22,6 @@ uint64_t inode_index = DEVFS_ROOT_INODE;
 
 spinlock_t  devfs_lock;
 
-void arch_get_timespec(struct timespec *ts);
 int devfs_add_shm_dir();
 
 void devfs_init()
@@ -30,7 +29,7 @@ void devfs_init()
     devfs_devices = create_list();
 
     struct timespec current_time;
-    arch_get_timespec(&current_time);
+    get_time_epoch(&current_time);
 
     // Заранее создать корневую inode
     devfs_root_inode = new_vfs_inode();
@@ -118,7 +117,7 @@ int devfs_add_char_device(const char* name, struct file_operations* fops, void* 
     struct devfs_device* device = new_devfs_device_struct();
 
     struct timespec current_time;
-    arch_get_timespec(&current_time);
+    get_time_epoch(&current_time);
 
     // Создание inode
     device->inode = new_vfs_inode();
@@ -157,7 +156,7 @@ int devfs_add_shm_dir()
     struct devfs_device* device = new_devfs_device_struct();
 
     struct timespec current_time;
-    arch_get_timespec(&current_time);
+    get_time_epoch(&current_time);
 
     // Создание inode
     device->inode = new_vfs_inode();
