@@ -597,8 +597,8 @@ skip_block_purge:
     ext2_rem_inode->num_blocks = 0;
 
     // Запишем deletion time, равный текущему времени
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    get_time_epoch(&current_time);
     ext2_rem_inode->dtime = current_time.tv_sec;
 
     // Перезапись
@@ -1577,8 +1577,8 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
     if ((rc = ext2_inode(inst, &inode, inode_num)) != 0)
         return rc;
 
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    get_time_epoch(&current_time);
 
     inode.mode = INODE_TYPE_DIRECTORY | (0xFFF & mode);
     inode.atime = current_time.tv_sec;
@@ -1672,8 +1672,8 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     if ((rc = ext2_inode(inst, &inode, inode_num)) != 0)
         return rc;
 
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    get_time_epoch(&current_time);
 
     inode.mode = INODE_TYPE_FILE | (0xFFF & mode);
     inode.atime = current_time.tv_sec;
@@ -1723,8 +1723,8 @@ int ext2_mknod(struct inode* parent, const char* name, mode_t mode)
     if ((rc = ext2_inode(inst, &inode, inode_num)) != 0)
         return rc;
 
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    get_time_epoch(&current_time);
 
     inode.mode = mode;
     inode.atime = current_time.tv_sec;
@@ -1777,8 +1777,8 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
     if ((rc = ext2_inode(inst, &inode, inode_num)) != 0)
         return rc;
 
-    struct timeval current_time;
-    sys_get_time_epoch(&current_time);
+    struct timespec current_time;
+    get_time_epoch(&current_time);
 
     // подготовить структуру inode
     inode.mode = INODE_FLAG_SYMLINK | (0777);

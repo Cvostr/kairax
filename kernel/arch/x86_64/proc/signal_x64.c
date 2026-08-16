@@ -3,6 +3,7 @@
 #include "kairax/intctl.h"
 #include "x64_context.h"
 #include "memory/mem_layout.h"
+#include "memory/paging.h"
 #include "kairax/string.h"
 #include "interrupts/handle/handler.h"
 

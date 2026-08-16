@@ -363,8 +363,8 @@ void tcp_ip4_handle_fin(struct socket* sock, struct net_buffer* nbuffer, int has
 uint32_t tcp_ip4_make_syn_cookie(uint32_t saddr, uint32_t destaddr, uint16_t srcport, uint16_t dstport, uint32_t seq)
 {
     // Получаем текущее время
-    struct timeval tv;
-    arch_get_time_epoch(&tv);
+    struct timespec tv;
+    get_time_epoch(&tv);
 
     uint32_t ports = ((uint32_t) srcport) << 16 | dstport; 
 
