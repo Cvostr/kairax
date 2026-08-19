@@ -130,6 +130,9 @@ struct usb_mass_storage_device {
 	// одновременно может выполняться только 1 запрос
 	struct semaphore request_lock;
 
+	// структура ядра, описывающая диск
+	struct drive_device_info* drive_info;
+
 	size_t dma_allocated;
 	size_t dma_allocated_pages;
 	uintptr_t dma_buffer_phys;
@@ -137,6 +140,11 @@ struct usb_mass_storage_device {
 
 	uint8_t peripheral_device_type : 5;
 	uint8_t peripheral_qualifier   : 3;
+};
+
+struct usb_generic_device_data {
+	uint8_t lun_count;
+	struct usb_mass_storage_device *luns[];
 };
 
 struct usb_device_id usb_mass_ids[] = {
@@ -741,6 +749,13 @@ int usb_mass_device_probe(struct device *dev)
 	rc = usb_clear_endpoint_halt(device, builk_in);
 	rc = usb_clear_endpoint_halt(device, builk_out);
 
+	// выделим массив под общую информацию
+	size_t generic_data_size = sizeof(struct usb_generic_device_data) + sizeof(struct inquiry_block_result *) * (max_lun + 1);
+	struct usb_generic_device_data *generic_data = kmalloc(generic_data_size);
+	memset(generic_data, 0, generic_data_size);
+	generic_data->lun_count = max_lun + 1;
+	device_set_data(dev, generic_data);
+
 	struct inquiry_block_result *inq_result = kmalloc(sizeof(struct inquiry_block_result));
 	for (uint8_t lun_i = 0; lun_i < max_lun + 1; lun_i ++)
 	{
@@ -753,6 +768,8 @@ int usb_mass_device_probe(struct device *dev)
 		usb_mass->cbw_tag.counter = 0x60996ea7;
 		usb_mass->dma_allocated = 0;
 		semaphore_init(&usb_mass->request_lock, 1);
+
+		generic_data->luns[lun_i] = usb_mass;
 
 		// Сначала запросим информацию
 		rc = usb_mass_inquiry(usb_mass, inq_result);
@@ -798,6 +815,9 @@ int usb_mass_device_probe(struct device *dev)
 		drive_info->write = usb_mass_device_write_lba;
 		strncpy(drive_info->blockdev_name, "usbX", BLOCKDEV_NAMELEN);
 
+		usb_mass->drive_info = drive_info;
+
+		// собрать структуру устройства
 		struct device* lun_dev = new_device();
 		lun_dev->dev_type = DEVICE_TYPE_DRIVE;
 		device_set_parent(lun_dev, dev);
@@ -806,10 +826,9 @@ int usb_mass_device_probe(struct device *dev)
 		strncpy(lun_dev->dev_name, inq_result->t10_vendor_identification, DEVICE_NAME_LEN);
 		strncat(lun_dev->dev_name, inq_result->product_identification, DEVICE_NAME_LEN - strlen(lun_dev->dev_name));
 
-		register_device(lun_dev);
-
 		drive_info->dev = lun_dev;
 
+		register_device(lun_dev);
 		register_drive(drive_info);
 	}
 
@@ -821,6 +840,19 @@ int usb_mass_device_probe(struct device *dev)
 void usb_mass_device_remove(struct device *dev) 
 {
 	printk("USB BBB Device Remove\n");
+	struct usb_generic_device_data *generic_data = dev->dev_data;
+	for (uint8_t lun_i = 0; lun_i < generic_data->lun_count; lun_i ++)
+	{
+		struct usb_mass_storage_device* lun = generic_data->luns[lun_i];
+
+		// освобождение DMA
+		unmap_io_region((uintptr_t) lun->dma_buffer, lun->dma_allocated_pages * PAGE_SIZE);
+        pmm_free_pages((void*) lun->dma_buffer_phys, lun->dma_allocated_pages);
+
+		//kfree(lun);
+	}
+
+	kfree(generic_data);
 }
 
 struct device_driver_ops usb_mass_ops = {
