@@ -1381,6 +1381,9 @@ ssize_t fat_file_write(struct file* file, const char* buffer, size_t count, loff
     if (direntry.file_size < offset + count)
         direntry.file_size = offset + count;
 
+    // добавить флаг "готов к архивированию", так как мы изменили файл
+    direntry.attr |= FILE_ATTR_ARCHIVE;
+
     // Перезаписать на диск
     fat_write_dentry(inst, vfs_inode->inode, &direntry);
 
@@ -1410,6 +1413,8 @@ int fat_truncate(struct inode* inode, size_t len)
     uint32_t old_size = direntry.file_size;
     // установка размера
     direntry.file_size = (uint32_t) len;
+    // добавить флаг "готов к архивированию", так как мы изменили файл
+    direntry.attr |= FILE_ATTR_ARCHIVE;
 
     // старое количество кластеров
     uint32_t old_clusters_count = align(old_size, inst->bytes_per_cluster) / inst->bytes_per_cluster;
@@ -1561,7 +1566,9 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
     // заполним создаваемую direntry
     struct fat_direntry new_direntry;
-    new_direntry.attr = 0;
+    // по умолчанию все созданные файлы должны быть готовы для архивирования
+    // в данном случае имеется в виду именно резервное копирование, а не сжатие
+    new_direntry.attr = FILE_ATTR_ARCHIVE;
     new_direntry.nt_reserved = 0;
     new_direntry.file_size = 0;
     new_direntry.first_cluster_hi = 0;
