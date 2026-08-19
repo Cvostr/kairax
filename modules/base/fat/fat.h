@@ -120,7 +120,8 @@ struct fat_instance {
 	uint32_t 			fat_size;
 	uint32_t			root_dir_sector;
 	uint32_t			root_dir_sectors;
-	uint32_t 			first_fat_sector;
+	uint32_t			fats_count;				// здесь может быть максимум 2
+	uint32_t			first_fats_sectors[2];
 	uint32_t			first_data_sector;
 	uint32_t			data_sectors;
 	uint32_t 			total_clusters;

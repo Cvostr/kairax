@@ -289,7 +289,13 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     // Размер корневой директории в секторах (FAT12 FAT16)
     instance->root_dir_sectors = ((bpb->root_entry_count * 32) + (bpb->bytes_per_sector - 1)) / bpb->bytes_per_sector;
 
-    instance->first_fat_sector = bpb->reserved_sector_count;
+    // максимум учитываем в работе первые два FATs
+    instance->fats_count = MIN(instance->bpb->fats_count, 2);
+    // сразу рассчитаем первые сектора для таблиц FAT
+    for (uint32_t fat_i = 0; fat_i < instance->fats_count; fat_i ++) {
+        instance->first_fats_sectors[fat_i] = bpb->reserved_sector_count + (fat_i * instance->fat_size);
+    }
+
     instance->first_data_sector = bpb->reserved_sector_count + (bpb->fats_count * instance->fat_size) + instance->root_dir_sectors;
 
     // Количество секторов, отведенных под данные (вычитаем все FATs, зарезервированные и корневую директорию)
@@ -360,11 +366,10 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
     }
 
 #ifdef FAT_MOUNT_LOG
-    printk("FAT: type %i FATs %i FAT size %i FirstFat %i sectors %i BPS %i Clusters %i Free %i SPC %i BPC %i FatBufferSz %i\n", 
+    printk("FAT: type %i FATs %i FAT size %i sectors %i BPS %i Clusters %i Free %i SPC %i BPC %i FatBufferSz %i\n", 
         instance->fs_type, 
         bpb->fats_count,
         instance->fat_size,
-        instance->first_fat_sector,
         instance->sectors_count,
         bpb->bytes_per_sector,
         instance->total_clusters,
@@ -372,6 +377,10 @@ struct inode* fat_mount(drive_partition_t* drive, struct superblock* sb)
         bpb->sectors_per_cluster,
         instance->bytes_per_cluster,
         instance->fat_buffer_size);
+
+    for (uint32_t fat_i = 0; fat_i < instance->fats_count; fat_i ++) {
+        printk("FAT %i first sector %i\n", fat_i, instance->first_fats_sectors[fat_i]);
+    }
 #endif
 
     uint64_t ino_num = 0;
@@ -537,11 +546,13 @@ int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* f
     uint32_t fat_sector = 0;    // Номер сектора в таблице FAT (Смещение внутри таблицы FAT в секторах)
     uint32_t sector_offset = 0; // Смещение внутри сектора таблицы FAT
 
+    uint32_t first_fat_sector = inst->first_fats_sectors[0];
+
     switch (inst->fs_type)
     {
         case FS_FAT12:
             fat_offset = cluster + (cluster / 2);  
-            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector); 
+            fat_sector = first_fat_sector + (fat_offset / inst->bytes_per_sector); 
             sector_offset = fat_offset % inst->bytes_per_sector;
             
             if (*last_sector != fat_sector)
@@ -553,7 +564,7 @@ int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* f
             break;
         case FS_FAT16:
             fat_offset = cluster * sizeof(uint16_t);
-            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
+            fat_sector = first_fat_sector + (fat_offset / inst->bytes_per_sector);
             sector_offset = fat_offset % inst->bytes_per_sector;
 
             if (*last_sector != fat_sector)
@@ -565,7 +576,7 @@ int fat_get_next_cluster_ex(struct fat_instance* inst, uint32_t cluster, char* f
         case FS_FAT32:
         case FS_EXFAT:
             fat_offset = cluster * sizeof(uint32_t);
-            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
+            fat_sector = first_fat_sector + (fat_offset / inst->bytes_per_sector);
             sector_offset = fat_offset % inst->bytes_per_sector;
 
             if (*last_sector != fat_sector)
@@ -597,53 +608,58 @@ int fat_set_next_cluster(struct fat_instance* inst, uint32_t cluster, uint32_t n
     if (fat_buffer == NULL)
         return -ENOMEM;
 
-    switch (inst->fs_type)
+    // запись надо выполнить в несколько FAT, если их несколько
+    for (uint32_t fat_i = 0; fat_i < inst->fats_count; fat_i ++) 
     {
-        case FS_FAT12:
-            fat_offset = cluster + (cluster / 2);  
-            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector); 
-            sector_offset = fat_offset % inst->bytes_per_sector;
-        
-            if ((rc = fat_read_sector(inst, fat_sector, 2, fat_buffer)) != 0)
-                goto exit;
+        uint32_t first_fat_sector = inst->first_fats_sectors[fat_i];
+        switch (inst->fs_type)
+        {
+            case FS_FAT12:
+                fat_offset = cluster + (cluster / 2);  
+                fat_sector = first_fat_sector + (fat_offset / inst->bytes_per_sector); 
+                sector_offset = fat_offset % inst->bytes_per_sector;
             
-            //result = *((uint16_t*) &fat_buffer[sector_offset]);
-            //result = (cluster & 1) ? result >> 4 : result & 0xfff;
-            rc = -ENOTSUP;
-            break;
-        case FS_FAT16:
-            fat_offset = cluster * sizeof(uint16_t);
-            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
-            sector_offset = fat_offset % inst->bytes_per_sector;
+                if ((rc = fat_read_sector(inst, fat_sector, 2, fat_buffer)) != 0)
+                    goto exit;
+                
+                //result = *((uint16_t*) &fat_buffer[sector_offset]);
+                //result = (cluster & 1) ? result >> 4 : result & 0xfff;
+                rc = -ENOTSUP;
+                break;
+            case FS_FAT16:
+                fat_offset = cluster * sizeof(uint16_t);
+                fat_sector = first_fat_sector + (fat_offset / inst->bytes_per_sector);
+                sector_offset = fat_offset % inst->bytes_per_sector;
 
-            if ((rc = fat_read_sector(inst, fat_sector, 1, fat_buffer)) != 0)
-                goto exit;
+                if ((rc = fat_read_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                    goto exit;
 
-            *((uint16_t*) &fat_buffer[sector_offset]) = (uint16_t) next_cluster;
+                *((uint16_t*) &fat_buffer[sector_offset]) = (uint16_t) next_cluster;
 
-            if ((rc = fat_write_sector(inst, fat_sector, 1, fat_buffer)) != 0)
-                goto exit;
+                if ((rc = fat_write_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                    goto exit;
 
-            break;
-        case FS_FAT32:
-        case FS_EXFAT:
-            fat_offset = cluster * sizeof(uint32_t);
-            fat_sector = inst->first_fat_sector + (fat_offset / inst->bytes_per_sector);
-            sector_offset = fat_offset % inst->bytes_per_sector;
+                break;
+            case FS_FAT32:
+            case FS_EXFAT:
+                fat_offset = cluster * sizeof(uint32_t);
+                fat_sector = first_fat_sector + (fat_offset / inst->bytes_per_sector);
+                sector_offset = fat_offset % inst->bytes_per_sector;
 
-            if ((rc = fat_read_sector(inst, fat_sector, 1, fat_buffer)) != 0)
-                goto exit;
+                if ((rc = fat_read_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                    goto exit;
 
-            if (inst->fs_type == FS_FAT32) {
-                next_cluster &= 0x0FFFFFFF;
-            }
+                if (inst->fs_type == FS_FAT32) {
+                    next_cluster &= 0x0FFFFFFF;
+                }
 
-            *((uint32_t*) &fat_buffer[sector_offset]) = next_cluster;
+                *((uint32_t*) &fat_buffer[sector_offset]) = next_cluster;
 
-            if ((rc = fat_write_sector(inst, fat_sector, 1, fat_buffer)) != 0)
-                goto exit;
+                if ((rc = fat_write_sector(inst, fat_sector, 1, fat_buffer)) != 0)
+                    goto exit;
 
-            break;
+                break;
+        }
     }
 
 exit:
