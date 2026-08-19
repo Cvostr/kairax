@@ -677,16 +677,16 @@ struct pci_device_driver hda_driver = {
 	.ops = &hda_ops
 };
 
-int init(void)
+int hda_init(void)
 {
     register_pci_device_driver(&hda_driver);
 	
 	return 0;
 }
 
-void exit(void)
+void hda_exit(void)
 {
 
 }
 
-DEFINE_MODULE("hda", init, exit)
+DEFINE_MODULE("hda", hda_init, hda_exit)

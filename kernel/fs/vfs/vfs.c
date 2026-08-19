@@ -39,6 +39,7 @@ void dentry_debug_tree()
 
 int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const char* fsname)
 {
+    struct superblock *sb;
     struct dentry* mount_dent = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
 
     if (mount_dent == NULL) {
@@ -55,13 +56,29 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         return -ERROR_BUSY;
     }
 
+    // проверка, не смонтирована ли уже эта partition?
+    struct list_node* cur_mount = vfs_mounts->head;
+    while (cur_mount != NULL)
+    {   
+        sb = cur_mount->element;
+        if (sb->partition == partition) {
+            return -ERROR_BUSY;
+        }
+
+        cur_mount = cur_mount->next;
+    }
+
     filesystem_t *filesystem = filesystem_get_by_name(fsname); 
     if (filesystem == NULL)
     {
         return -ENODEV;
     }
 
-    struct superblock* sb = new_superblock();
+    // создание объекта суперблока
+    sb = new_superblock();
+    if (sb == NULL)
+        return -ENOMEM;
+
     sb->filesystem = filesystem; 
     sb->partition = partition;
 
@@ -69,7 +86,7 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
     if (sb->filesystem->mount) {
         struct inode* root_inode = sb->filesystem->mount(partition, sb);
 
-        if(root_inode == NULL) {
+        if (root_inode == NULL) {
             free_superblock(sb);
             //Ошибка при процессе монтирования, считаем как поврежденный superblock
             return -ERROR_INVALID_VALUE;

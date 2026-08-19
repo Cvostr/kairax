@@ -210,6 +210,7 @@ struct hda_dev {
 #define HDA_PCM_48_0            (1 << 6)
 #define HDA_PCM_88_2            (1 << 7)
 
+struct audio_endpoint;
 int hda_set_volume(struct audio_endpoint* ep, uint8_t left, uint8_t right);
 
 uint32_t hda_stream_write(struct hda_stream* stream, char* mem, uint32_t offset, uint32_t size);
@@ -224,8 +225,14 @@ int hda_codec_send_verb(struct hda_dev* dev, uint32_t verb, uint64_t* out);
 struct hda_codec* hda_determine_codec(struct hda_dev* dev, int codec);
 struct hda_widget* hda_determine_widget(struct hda_dev* dev, struct hda_codec* cd, int codec, int node, int nest);
 struct hda_widget* hda_codec_get_widget(struct hda_codec* codec, int node_num);
+struct hda_stream* hda_device_init_stream(struct hda_dev* dev, uint32_t index, int type, uint16_t format);
 
+int hda_device_probe(struct device *dev);
+void hda_setup_corb_rirb(struct hda_dev* dev_data);
 int hda_controller_reset(struct hda_dev* dev);
+
+int hda_init(void);
+void hda_exit(void);
 
 static inline void hda_outd(struct hda_dev* dev, uintptr_t base, uint32_t value) 
 {

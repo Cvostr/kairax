@@ -1,5 +1,5 @@
 CINCL=-isystem ../../sdk/kxmdk -isystem ../../kernel -DMODULE
-CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector
+CWARN=-W -Wall -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector -Wno-error=int-conversion -Wno-error=incompatible-pointer-types
 CFLAGS=-c $(CWARN) $(CINCL) 
 COMPILER=gcc
 
