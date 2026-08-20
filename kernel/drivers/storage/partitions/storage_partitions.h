@@ -20,6 +20,8 @@ drive_partition_t* new_drive_partition_header();
 int add_partitions_from_device(struct device* device);
 int add_partitions_from_drive(struct drive_device_info* drive);
 
+int detach_partitions_from_drive(struct drive_device_info* drive);
+
 void add_partition_header(drive_partition_t* partition_header);
 //Количество разделов, подключенных в данный момент
 uint32_t get_partitions_count();

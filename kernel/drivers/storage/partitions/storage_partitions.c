@@ -3,6 +3,7 @@
 #include "list/list.h"
 #include "mem/vmm.h"
 #include "string.h"
+#include "fs/vfs/vfs.h"
 
 #include "formats/mbr.h"
 #include "formats/gpt.h"
@@ -133,6 +134,31 @@ int add_partitions_from_drive(struct drive_device_info* drive)
 
     kfree(first_sector);
     kfree(second_sector);
+
+    return 0;
+}
+
+int detach_partitions_from_drive(struct drive_device_info* drive)
+{
+    struct list_node* current = partitions->head;
+
+    while (current != NULL)
+    {
+        drive_partition_t* partition = current->element;
+        struct list_node* next = current->next;
+
+        if (partition != NULL && partition->drive == drive)
+        {
+            // отмонтируем все связанные монтирования
+            vfs_detach(partition);
+            list_unlink(partitions, current);
+            // освобождение памяти
+            kfree(current);
+            kfree(partition);
+        }  
+
+        current = next;
+    }
 
     return 0;
 }

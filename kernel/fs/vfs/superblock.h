@@ -16,6 +16,7 @@ struct superblock {
     struct super_operations*    operations; // операции
     void*                       fs_info; // Указатель на объект ФС
     size_t                      blocksize;
+    int                         detached;
 
     drive_partition_t*          partition;  // потом надо бы заменить на block_device
     filesystem_t*               filesystem; // Информация о ФС

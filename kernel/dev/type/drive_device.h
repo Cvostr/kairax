@@ -28,6 +28,7 @@ struct drive_device_info {
 struct drive_device_info* new_drive_device_info();
 
 int register_drive(struct drive_device_info* drive);
+int unregister_drive(struct drive_device_info* drive);
 
 int drive_device_read(  struct drive_device_info* drive,
                         uint64_t start_lba,

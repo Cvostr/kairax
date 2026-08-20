@@ -163,13 +163,31 @@ int vfs_unmount(const char *mount_path)
     return 0;
 }
 
+int vfs_detach(drive_partition_t* partition)
+{
+    struct superblock *sb;
+    struct list_node* cur_mount = vfs_mounts->head;
+
+    while (cur_mount != NULL)
+    {   
+        sb = cur_mount->element;
+        if (sb->partition == partition) 
+        {
+            sb->detached = TRUE;
+            sb->partition = NULL;
+            break;
+        }
+
+        cur_mount = cur_mount->next;
+    }
+}
+
 struct superblock* vfs_get_mounted_partition(const char* mount_path)
 {
     struct dentry* path_dentry = vfs_dentry_traverse_path(root_dentry, mount_path, 0);
 
     return path_dentry->sb;
 }
-
 
 struct superblock* vfs_get_mounted_sb(int index)
 {

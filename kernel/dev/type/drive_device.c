@@ -101,3 +101,12 @@ exit:
     add_partitions_from_drive(drive);
     return 0;
 }
+
+int unregister_drive(struct drive_device_info* drive)
+{
+    acquire_spinlock(&drive_list_lock);
+    list_remove(&drive_list, drive);
+    release_spinlock(&drive_list_lock);
+
+    return detach_partitions_from_drive(drive);
+}

@@ -849,10 +849,20 @@ void usb_mass_device_remove(struct device *dev)
 		unmap_io_region((uintptr_t) lun->dma_buffer, lun->dma_allocated_pages * PAGE_SIZE);
         pmm_free_pages((void*) lun->dma_buffer_phys, lun->dma_allocated_pages);
 
-		//kfree(lun);
+		struct drive_device_info* drive_info = lun->drive_info;
+
+		// удалить диск из системы
+		unregister_drive(drive_info);
+
+		// освободить память
+		kfree(drive_info);
+
+		kfree(lun);
 	}
 
 	kfree(generic_data);
+
+	//printk("USB BBB Device Remove Completed\n");
 }
 
 struct device_driver_ops usb_mass_ops = {

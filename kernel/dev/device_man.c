@@ -70,6 +70,9 @@ void _remove_device(struct device* dev)
         if (idev->dev_parent == dev)
         {
             _remove_device(idev);
+            // возврат на начало
+            current_node = devices_list.head;
+            continue;
         }
         
         // Переход на следующий элемент

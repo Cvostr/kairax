@@ -126,6 +126,7 @@ struct kernel_function functions[] = {
     KFUNCTION(new_vfs_dirent),
     // partition
     KFUNCTION(register_drive),
+    KFUNCTION(unregister_drive),
     KFUNCTION(partition_read),
     KFUNCTION(partition_write),
     // semaphore
