@@ -70,6 +70,9 @@ ext2_inode_t* new_ext2_inode()
 
 int ext2_partition_read_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
 {
+    if (inst->vfs_sb->detached == TRUE)
+        return -EIO;
+
     uint64_t    start_lba = block_start * (inst->block_size / 512);
     uint64_t    lba_count = blocks  * (inst->block_size / 512);
     return partition_read(inst->partition, start_lba, lba_count, buffer);
@@ -77,6 +80,9 @@ int ext2_partition_read_block_virt(ext2_instance_t* inst, uint64_t block_start, 
 
 int ext2_partition_write_block_virt(ext2_instance_t* inst, uint64_t block_start, uint64_t blocks, char* buffer)
 {
+    if (inst->vfs_sb->detached == TRUE)
+        return -EIO;
+
     uint64_t    start_lba = block_start * inst->block_size / 512;
     uint64_t    lba_count = blocks  * inst->block_size / 512;
     return partition_write(inst->partition, start_lba, lba_count, buffer);

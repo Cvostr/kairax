@@ -56,16 +56,19 @@ int vfs_mount_fs(const char* mount_path, drive_partition_t* partition, const cha
         return -ERROR_BUSY;
     }
 
-    // проверка, не смонтирована ли уже эта partition?
-    struct list_node* cur_mount = vfs_mounts->head;
-    while (cur_mount != NULL)
-    {   
-        sb = cur_mount->element;
-        if (sb->partition == partition) {
-            return -ERROR_BUSY;
-        }
+    if (partition != NULL)
+    {
+        // проверка, не смонтирована ли уже эта partition?
+        struct list_node* cur_mount = vfs_mounts->head;
+        while (cur_mount != NULL)
+        {   
+            sb = cur_mount->element;
+            if (sb->partition == partition) {
+                return -ERROR_BUSY;
+            }
 
-        cur_mount = cur_mount->next;
+            cur_mount = cur_mount->next;
+        }
     }
 
     filesystem_t *filesystem = filesystem_get_by_name(fsname); 

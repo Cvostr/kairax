@@ -58,6 +58,9 @@ DEFINE_MODULE("fat", fat_init, fat_exit)
 
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer)
 {
+    if (inst->vfs_sb->detached == TRUE)
+        return -EIO;
+
     if (first_sector >= inst->sectors_count)
     {   
         printk("FAT: Sector %i is outside of disk\n", first_sector);
@@ -73,6 +76,9 @@ int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t s
 
 int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer)
 {
+    if (inst->vfs_sb->detached == TRUE)
+        return -EIO;
+
     if (first_sector >= inst->sectors_count)
     {   
         printk("FAT: Sector %i is outside of disk\n", first_sector);
@@ -88,6 +94,9 @@ int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t 
 
 int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
 {
+    if (inst->vfs_sb->detached == TRUE)
+        return -EIO;
+
     if (cluster < 2 || cluster >= inst->total_clusters)
     {   
         printk("FAT: Cluster %i is outside of disk\n", cluster);
@@ -109,6 +118,9 @@ int fat_read_cluster(struct fat_instance* inst, uint32_t cluster, char* buffer)
 
 int fat_write_cluster(struct fat_instance* inst, uint32_t cluster, const char* buffer)
 {
+    if (inst->vfs_sb->detached == TRUE)
+        return -EIO;
+        
     if (cluster < 2 || cluster >= inst->total_clusters)
     {   
         printk("FAT: Cluster %i is outside of disk\n", cluster);

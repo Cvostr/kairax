@@ -386,7 +386,7 @@ int usb_mass_read(struct usb_mass_storage_device* dev, uint64_t sector, uint16_t
 
 	// Вычисляем размер для одного USB запроса
 	// Пока что отталкиваемся от 4кб (размер страницы памяти), но выравним по тому, что посчитали выше
-	size_t max_urb_size = align(4096, alignment);
+	size_t max_urb_size = align(8192, alignment);
 
 	// Сколько блоков можем считать за один запрос
 	uint32_t blocks_per_packet = max_urb_size / dev->blocksize;
@@ -470,7 +470,7 @@ int usb_mass_write(struct usb_mass_storage_device* dev, uint64_t sector, uint16_
 
 	// Вычисляем размер для одного USB запроса
 	// Пока что отталкиваемся от 4кб (размер страницы памяти), но выравним по тому, что посчитали выше
-	size_t max_urb_size = align(4096, alignment);
+	size_t max_urb_size = align(8192, alignment);
 
 	// Сколько блоков можем считать за один запрос
 	uint32_t blocks_per_packet = max_urb_size / dev->blocksize;
