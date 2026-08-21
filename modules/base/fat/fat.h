@@ -178,6 +178,7 @@ uint64_t fat_to_inode_num_sector(struct fat_instance* inst, uint32_t sector, uin
 uint64_t fat_to_inode_num(struct fat_instance* inst, uint32_t cluster, uint32_t offset);
 uint32_t fat_get_directory_buffer_size(struct fat_instance* inst, int is_root);
 int fat_is_eoc(struct fat_instance* inst, uint32_t cluster_id);
+uint8_t fat_get_lfn_checksum(const uint8_t *sfn);
 void fat_toupper(uint8_t *str, size_t len);
 
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
@@ -217,7 +218,7 @@ int fat_unmount(struct superblock* sb);
 
 int fat_read_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry);
 int fat_write_dentry(struct fat_instance* inst, uint64_t inode_num, struct fat_direntry* dentry);
-int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry *parent,  struct fat_direntry *new_direntry);
+int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry *parent, struct fat_direntry *new_direntry, uint16_t *lfn_buffer, size_t lfn_len);
 
 struct inode* fat_read_node(struct superblock* sb, uint64_t ino_num);
 uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type);

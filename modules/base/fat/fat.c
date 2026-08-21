@@ -227,6 +227,28 @@ void fat_epoch_to_datetime(time_t epoch, struct fat_date* date, struct fat_time*
     }
 }
 
+uint8_t fat_get_lfn_checksum(const uint8_t *sfn) 
+{
+    uint8_t checksum = 0;
+
+    for (int i = 0; i < 11; i++) {
+        checksum = ((checksum & 1) << 7) | (checksum >> 1);
+        checksum += sfn[i];
+    }
+
+    return checksum;
+}
+
+void fat_toupper(uint8_t *str, size_t len)
+{
+    for (size_t i = 0; i < len; i ++)
+    {
+        uint8_t c = str[i];
+        if ('a' <= c && c <= 'z')
+    	    str[i] += 'A' - 'a';
+    }
+}
+
 void fat_free_instance(struct fat_instance* instance)
 {
     KFREE_SAFE(instance->bpb)
@@ -1496,7 +1518,7 @@ int fat_truncate(struct inode* inode, size_t len)
     return 0;
 }
 
-int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry *parent,  struct fat_direntry *new_direntry) 
+int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry *parent, struct fat_direntry *new_direntry, uint16_t *lfn_buffer, size_t lfn_len) 
 {   
     int rc = -ENOSPC;
     // буфер под кластер
@@ -1515,6 +1537,11 @@ int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry
     uint32_t current_cluster_id = 0;
     uint64_t base_sector = 0;
     struct fat_direntry*    d_ptr;
+    struct fat_direntry*    first_free;
+
+    uint16_t lfn_part[13];
+    // рассчитать количество необходимых данных для хранения LFN
+    size_t required_lfn_len = ((lfn_len + 13 - 1) / 13);
     
     while (1)
     {
@@ -1548,15 +1575,63 @@ int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry
         }
 
         uint32_t pos = 0;
+        size_t free_records = 0;
 
         while (pos < cluster_sz) 
         {
             d_ptr = (struct fat_direntry*) &cluster_buffer[pos];
 
-            // dentry удалена или свободна
+            // Проверяем, свободен ли direntry
             if (d_ptr->name[0] == 0xE5 || d_ptr->name[0] == 0x00)
+                free_records ++;
+            else 
+                free_records = 0;
+
+            // нашли достаточно свободных блоков по 32 байта
+            if (free_records == (required_lfn_len + 1)) 
             {
+                // в самый последний блок (d_ptr) запишем SFN
                 memcpy(d_ptr, new_direntry, sizeof(struct fat_direntry));
+
+                // первый блок, в который пишем LFN
+                first_free = d_ptr - free_records + 1;
+
+                for (size_t lfn_i = 0; lfn_i < required_lfn_len; lfn_i ++) 
+                {
+                    struct fat_lfn *lfn_ptr = &first_free[lfn_i];
+                    lfn_ptr->attr = FILE_ATTR_LFN;
+                    // номера в обратном порядке
+                    lfn_ptr->order = (required_lfn_len - lfn_i);
+                    // для первого LFN ставим 0x40
+                    if (lfn_i == 0) 
+                        lfn_ptr->order |= 0x40;
+                    // считаем checksum из SFN
+                    lfn_ptr->checksum = fat_get_lfn_checksum(new_direntry->name);
+                    // тут должны быть нули
+                    lfn_ptr->type = 0x0;
+                    lfn_ptr->zero = 0x0000;
+
+                    // заполним LFN часть 0xFF
+                    memset(lfn_part, 0xFF, 13 * sizeof(uint16_t));
+                    // LFN располагаются в обратном порядке
+                    size_t namepart_offset = (required_lfn_len - lfn_i - 1) * 13;
+                    uint16_t *name_offset = &lfn_buffer[namepart_offset];
+                    // размер строки в текущем LFN блоке
+                    size_t namepart_len = MIN(lfn_len - namepart_offset, 13);
+                    // копируем часть строки
+                    memcpy(lfn_part, name_offset, sizeof(uint16_t) * namepart_len);
+                    // терминируем строку
+                    if (namepart_len < 13) 
+                        lfn_part[namepart_len] = 0x0;
+
+                    //printk("namepart_offset %i namepart_len %i\n", namepart_offset, namepart_len);
+
+                    // копируем UTF-16 строку по частям
+                    memcpy(lfn_ptr->name_0, lfn_part, sizeof(lfn_ptr->name_0));   
+                    memcpy(lfn_ptr->name_1, &lfn_part[5], sizeof(lfn_ptr->name_1));   
+                    memcpy(lfn_ptr->name_2, &lfn_part[11], sizeof(lfn_ptr->name_2));   
+                }
+
                 // перезапишем измененный кластер
                 rc = fat_write_directory_cluster(inst, is_root, current_cluster_id, cluster_buffer);
                 goto exit;
@@ -1570,16 +1645,6 @@ int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry
 exit:
     KFREE_SAFE(cluster_buffer)
     return rc;
-}
-
-void fat_toupper(uint8_t *str, size_t len)
-{
-    for (size_t i = 0; i < len; i ++)
-    {
-        uint8_t c = str[i];
-        if ('a' <= c && c <= 'z')
-    	    str[i] += 'A' - 'a';
-    }
 }
 
 int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
@@ -1647,7 +1712,15 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     // винда очень хочет, чтобы SFN содержала только большие буквы
     fat_toupper(new_direntry.name, 11);
 
-    rc = fat_add_direntry(inst, is_root_directory, &parent_direntry, &new_direntry);
+    // TODO: нормальная конвертация в UTF-16
+    uint16_t *utf16_buffer = kmalloc(FAT_LFN_MAX_SZ);
+    for (size_t i = 0; i < strlen(file_name); i ++) {
+        utf16_buffer[i] = file_name[i];
+    }
+
+    rc = fat_add_direntry(inst, is_root_directory, &parent_direntry, &new_direntry, utf16_buffer, strlen(file_name));
+
+    kfree(utf16_buffer);
 
     return rc;
 }
