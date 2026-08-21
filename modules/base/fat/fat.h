@@ -178,6 +178,7 @@ uint64_t fat_to_inode_num_sector(struct fat_instance* inst, uint32_t sector, uin
 uint64_t fat_to_inode_num(struct fat_instance* inst, uint32_t cluster, uint32_t offset);
 uint32_t fat_get_directory_buffer_size(struct fat_instance* inst, int is_root);
 int fat_is_eoc(struct fat_instance* inst, uint32_t cluster_id);
+void fat_toupper(uint8_t *str, size_t len);
 
 int fat_read_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);
 int fat_write_sector(struct fat_instance* inst, uint64_t first_sector, uint64_t sectors, char* buffer);

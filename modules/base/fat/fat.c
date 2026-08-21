@@ -1572,6 +1572,16 @@ exit:
     return rc;
 }
 
+void fat_toupper(uint8_t *str, size_t len)
+{
+    for (size_t i = 0; i < len; i ++)
+    {
+        uint8_t c = str[i];
+        if ('a' <= c && c <= 'z')
+    	    str[i] += 'A' - 'a';
+    }
+}
+
 int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 {
     int rc;
@@ -1633,6 +1643,9 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
         // TODO: проверять, нет ли уже таких SFN в этой папке
         new_direntry.name[7] = '1';
     }
+
+    // винда очень хочет, чтобы SFN содержала только большие буквы
+    fat_toupper(new_direntry.name, 11);
 
     rc = fat_add_direntry(inst, is_root_directory, &parent_direntry, &new_direntry);
 
