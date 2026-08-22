@@ -646,6 +646,12 @@ int xhci_controller_init_device(struct xhci_controller* controller, uint8_t port
 	struct xhci_port_regs *port_regs = &controller->ports_regs[port_id];
 
 	uint8_t port_speed = (port_regs->status >> 10) & 0b1111;
+	if (port_speed == 0) {
+		// скорее всего устройство криво вставлено, работать оно уже точно не будет
+		printk("XHCI: Incorrect device: port speed is 0!\n");
+		return -1;
+	}
+
 	printk("XHCI: port speed: %s\n", xhci_speed_string[port_speed]);
 
 	uint16_t max_initial_packet_size = xhci_get_device_max_initial_packet_size(port_speed);

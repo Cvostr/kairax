@@ -1598,7 +1598,7 @@ int fat_add_direntry(struct fat_instance* inst, int is_root, struct fat_direntry
 
                 for (size_t lfn_i = 0; lfn_i < required_lfn_len; lfn_i ++) 
                 {
-                    struct fat_lfn *lfn_ptr = &first_free[lfn_i];
+                    struct fat_lfn *lfn_ptr = (struct fat_lfn*) &first_free[lfn_i];
                     lfn_ptr->attr = FILE_ATTR_LFN;
                     // номера в обратном порядке
                     lfn_ptr->order = (required_lfn_len - lfn_i);
