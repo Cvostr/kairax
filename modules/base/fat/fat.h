@@ -236,5 +236,6 @@ int fat_truncate(struct inode* inode, size_t len);
 
 // directory inode ops
 int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode);
+int fat_mkdir(struct inode* parent, const char* dir_name, uint32_t mode);
 
 #endif

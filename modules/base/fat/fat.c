@@ -45,6 +45,7 @@ int fat_init(void)
     fat_file_inode_ops.truncate = fat_truncate;
 
     fat_dir_inode_ops.mkfile = fat_mkfile;
+    fat_dir_inode_ops.mkdir = fat_mkdir;
 
     return 0;
 }
@@ -1713,7 +1714,7 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
     fat_toupper(new_direntry.name, 11);
 
     // TODO: нормальная конвертация в UTF-16
-    uint16_t *utf16_buffer = kmalloc(FAT_LFN_MAX_SZ);
+    uint16_t *utf16_buffer = kmalloc(sizeof(uint16_t) * FAT_LFN_MAX_SZ);
     for (size_t i = 0; i < strlen(file_name); i ++) {
         utf16_buffer[i] = file_name[i];
     }
@@ -1722,6 +1723,147 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
     kfree(utf16_buffer);
 
+    return rc;
+}
+
+
+int fat_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
+{
+    int rc;
+    struct fat_instance* inst = parent->sb->fs_info;
+
+    size_t name_len;
+    int is_root_directory = parent == inst->vfs_root_inode;
+
+    uint16_t *lfn_buffer = NULL;
+    void *cluster_buffer = NULL;
+
+    // родительская директория
+    struct fat_direntry parent_direntry;
+    if (is_root_directory == FALSE) {
+        if ((rc = fat_read_dentry(inst, parent->inode, &parent_direntry)) != 0) {
+            return rc;
+        }
+    }
+
+    // получим текущее время
+    struct timespec current_time;
+    get_time_epoch(&current_time);
+
+    // заполним создаваемую direntry
+    struct fat_direntry new_direntry;
+    // по умолчанию все созданные файлы должны быть готовы для архивирования
+    // в данном случае имеется в виду именно резервное копирование, а не сжатие
+    new_direntry.attr = FILE_ATTR_DIRECTORY | FILE_ATTR_ARCHIVE;
+    new_direntry.nt_reserved = 0;
+    new_direntry.file_size = 0;
+    // заполняем время
+    fat_epoch_to_datetime(current_time.tv_sec, &new_direntry.creat_date, &new_direntry.creat_time);
+    fat_epoch_to_datetime(current_time.tv_sec, &new_direntry.write_date, &new_direntry.write_time);
+    fat_epoch_to_datetime(current_time.tv_sec, &new_direntry.last_access_date, NULL);
+    // предварительно заполняем SFN пробелами
+    memset(new_direntry.name, ' ', sizeof(new_direntry.name));
+
+    // Генерация SFN
+    char *file_name_dot_ptr = strchr(dir_name, '.');
+    if (file_name_dot_ptr) 
+    {
+        name_len = file_name_dot_ptr - dir_name;
+        // длина расширения
+        size_t ext_len = dir_name + strlen(dir_name) - file_name_dot_ptr - 1;
+        // обрезаем расширение до 3 знаков
+        ext_len = MIN(ext_len, 3);
+        // копируем расширение
+        memcpy(&new_direntry.name[8], file_name_dot_ptr + 1, ext_len);
+    }
+    else 
+    {
+        name_len = strlen(dir_name);
+    }
+
+    // копируем имя
+    memcpy(new_direntry.name, dir_name, MIN(name_len, 8));
+    if (name_len > 8) 
+    {
+        new_direntry.name[6] = '~';
+        // TODO: проверять, нет ли уже таких SFN в этой папке
+        new_direntry.name[7] = '1';
+    }
+
+    // винда очень хочет, чтобы SFN содержала только большие буквы
+    fat_toupper(new_direntry.name, 11);
+
+    // TODO: нормальная конвертация в UTF-16
+    lfn_buffer = kmalloc(sizeof(uint16_t) * FAT_LFN_MAX_SZ);
+    for (size_t i = 0; i < strlen(dir_name); i ++) {
+        lfn_buffer[i] = dir_name[i];
+    }
+
+    // заранее выделим память под кластер перед любыми изменениями на диске
+    size_t cluster_buffer_sz = fat_get_directory_buffer_size(inst, FALSE);
+    cluster_buffer = kmalloc(cluster_buffer_sz);
+    if (cluster_buffer == NULL) {
+        rc = -ENOMEM;
+        goto exit;
+    }
+
+    // занулим выделенную память, чтобы на диск ни в коем случае не попал ни один секретик
+    memset(cluster_buffer, 0, cluster_buffer_sz);
+    struct fat_direntry *cluster_dirents = (struct fat_direntry*) cluster_buffer;
+
+    // 1. выделяем первый кластер для создаваемой директории
+    uint32_t directory_cluster;
+    if ((rc = fat_alloc_cluster(inst, &directory_cluster)) != 0)
+        goto exit;
+
+    // записать первый кластер в создаваемую direntry
+    new_direntry.first_cluster_hi = (directory_cluster >> 16) & 0xFFFF;
+    new_direntry.first_cluster_lo = (directory_cluster & 0xFFFF);
+
+    // заполним direntry для этой же директории
+    memset(cluster_dirents[0].name, ' ', 11);
+    cluster_dirents[0].name[0] = '.';
+    cluster_dirents[0].attr = FILE_ATTR_DIRECTORY | FILE_ATTR_ARCHIVE;
+    cluster_dirents[0].nt_reserved = 0;
+    cluster_dirents[0].file_size = 0;
+    cluster_dirents[0].first_cluster_hi = (directory_cluster >> 16) & 0xFFFF;
+    cluster_dirents[0].first_cluster_lo = (directory_cluster & 0xFFFF);
+
+    // заполним direntry для директории (..), в которой создаем новую директорию
+    memset(cluster_dirents[1].name, ' ', 11);
+    cluster_dirents[1].name[0] = '.';
+    cluster_dirents[1].name[1] = '.';
+    cluster_dirents[1].attr = FILE_ATTR_DIRECTORY | FILE_ATTR_ARCHIVE;
+    cluster_dirents[1].nt_reserved = 0;
+    cluster_dirents[1].file_size = 0;
+    if (is_root_directory == TRUE) 
+    {
+        // для FAT12, FAT16 корневая директория состоит из секторов, а не из кластеров
+        if (inst->fs_type == FS_FAT12 || inst->fs_type == FS_FAT16) {
+            cluster_dirents[1].first_cluster_lo = 0;
+            cluster_dirents[1].first_cluster_hi = 0;
+        } else if (inst->fs_type == FS_FAT32) {
+            cluster_dirents[1].first_cluster_lo = (inst->bpb->ext_32.root_cluster & 0xFFFF);
+            cluster_dirents[1].first_cluster_hi = (inst->bpb->ext_32.root_cluster >> 16) & 0xFFFF;
+        }
+    }
+    else 
+    {
+        cluster_dirents[1].first_cluster_lo = parent_direntry.first_cluster_lo;
+        cluster_dirents[1].first_cluster_hi = parent_direntry.first_cluster_hi;
+    }
+
+    // 2. записываем первый кластер
+    if ((rc = fat_write_cluster(inst, directory_cluster, cluster_buffer)) != 0)
+        goto exit;
+
+    // 3. добавляем direntry в родительскую директорию
+    if ((rc = fat_add_direntry(inst, is_root_directory, &parent_direntry, &new_direntry, lfn_buffer, strlen(dir_name))) != 0)
+        goto exit;
+
+exit:
+    KFREE_SAFE(lfn_buffer);
+    KFREE_SAFE(cluster_buffer);
     return rc;
 }
 
