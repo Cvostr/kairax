@@ -955,6 +955,7 @@ void fat_normalize_sfn(struct fat_direntry* direntry, char* sfname)
 
 uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, const char *name, int* type) 
 {
+    int rc;
     struct fat_instance* inst = sb->fs_info;
 
     // имя для проверки в UTF-16
@@ -1007,11 +1008,21 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
 
     checking_name[0] = '\0';
 
-    while (fat_read_directory_cluster(inst, &dir_direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &base_sector, &current_cluster_id) != FAT_DIR_LAST_CLUSTER)
+    while (1)
     {
         uint32_t pos = 0;
-
         struct fat_direntry*    d_ptr;
+
+        // считать следующий кластер директории
+        rc = fat_read_directory_cluster(inst, &dir_direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &base_sector, &current_cluster_id);
+        if (rc == FAT_DIR_LAST_CLUSTER)
+            // считаны все кластера директории
+            break;
+        else if (rc != 0) {
+            // произошла критическая ошибка чтения
+            result_inode = WRONG_INODE_INDEX;
+            goto exit;
+        }
 
         while (pos < cluster_sz) 
         {
@@ -1068,6 +1079,7 @@ exit:
 
 struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
 {
+    int rc;
     struct inode* vfs_inode = dir->inode;
     struct superblock* sb = vfs_inode->sb;
     struct fat_instance* inst = sb->fs_info;
@@ -1121,9 +1133,20 @@ struct dirent* fat_file_readdir(struct file* dir, uint32_t index)
     uint32_t dentry_iter = 0;
     struct fat_direntry*    d_ptr;
     
-    while (fat_read_directory_cluster(inst, &direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &base_sector, &current_cluster_id) != FAT_DIR_LAST_CLUSTER)
+    while (1)
     {
         uint32_t pos = 0;
+
+        // считать следующий кластер директории
+        rc = fat_read_directory_cluster(inst, &direntry, is_root_directory, current_cluster_idx ++, cluster_buffer, &base_sector, &current_cluster_id);
+        if (rc == FAT_DIR_LAST_CLUSTER)
+            // считаны все кластера директории
+            break;
+        else if (rc != 0) {
+            // произошла критическая ошибка чтения
+            result = NULL;
+            goto exit;
+        }
 
         while (pos < cluster_sz) 
         {
@@ -1650,6 +1673,8 @@ exit:
 
 int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 {
+    (void) mode;
+
     int rc;
     struct fat_instance* inst = parent->sb->fs_info;
 
@@ -1729,6 +1754,8 @@ int fat_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
 
 int fat_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
 {
+    (void) mode;
+
     int rc;
     struct fat_instance* inst = parent->sb->fs_info;
 

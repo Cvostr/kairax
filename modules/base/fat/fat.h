@@ -173,6 +173,7 @@ int fat_init(void);
 void fat_exit(void);
 
 time_t fat_date_to_epoch(struct fat_date* date, struct fat_time* time);
+void fat_epoch_to_datetime(time_t epoch, struct fat_date* date, struct fat_time* time);
 uint32_t fat_get_first_cluster_idx(struct fat_instance* inst, struct fat_direntry* entry);
 uint64_t fat_to_inode_num_sector(struct fat_instance* inst, uint32_t sector, uint32_t offset);
 uint64_t fat_to_inode_num(struct fat_instance* inst, uint32_t cluster, uint32_t offset);

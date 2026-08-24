@@ -2046,6 +2046,9 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
     
     //Выделить временную память под буфер блоков
     char* buffer = kmalloc(inst->block_size);
+    if (buffer == NULL) {
+        return WRONG_INODE_INDEX;
+    }
     
     // Прочитать начальный блок иноды
     rc = ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
