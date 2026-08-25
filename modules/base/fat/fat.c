@@ -1056,7 +1056,8 @@ uint64_t fat_find_dentry(struct superblock* sb, struct inode* parent_inode, cons
                     if (strcmp(checking_name, name) == 0)
                     {
                         int is_dir = ((d_ptr->attr & FILE_ATTR_DIRECTORY) == FILE_ATTR_DIRECTORY);
-                        *type = is_dir ? DT_DIR : DT_REG; 
+                        if (type != NULL)
+                            *type = is_dir ? DT_DIR : DT_REG; 
                         result_inode = fat_to_inode_num_sector(inst, base_sector, pos);
                         goto exit;
                     }
@@ -1771,6 +1772,11 @@ int fat_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
         if ((rc = fat_read_dentry(inst, parent->inode, &parent_direntry)) != 0) {
             return rc;
         }
+    }
+
+    // проверить, нет ли уже такого имени в директории
+    if (fat_find_dentry(parent->sb, parent, dir_name, NULL) != WRONG_INODE_INDEX) {
+        return -ERROR_ALREADY_EXISTS;
     }
 
     // получим текущее время

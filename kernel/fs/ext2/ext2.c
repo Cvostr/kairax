@@ -818,6 +818,8 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 
     // Подготовить буфер для блоков
     char* buffer = kmalloc(inst->block_size);
+    if (buffer == NULL)
+        return -ENOMEM;
 
     uint64_t offset = 0;        // смещение относительно данных inode
     uint64_t in_block_offset = 0;
@@ -826,7 +828,9 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     int modify = -1;
     ext2_direntry_t* previous;
 
-    ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
+    if ((rc = ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer)) != 0) {
+        goto exit;
+    }
 
     while (offset < e2_inode->size) {
         // dirent выравнены по размеру блока
@@ -835,7 +839,8 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
             // Считать следующий блок
             block_index++;
             in_block_offset -= inst->block_size;
-            ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
+            if ((rc = ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer)) != 0)
+                goto exit;
         }
 
         ext2_direntry_t* direntry = (ext2_direntry_t*)(buffer + in_block_offset);
@@ -886,12 +891,13 @@ int ext2_create_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
 	new_direntry->type = type;
 	memcpy(new_direntry->name, name, strlen(name));
     // записать блок
-	ext2_write_inode_block_virt(inst, e2_inode, parent->inode, block_index, buffer);
+	rc = ext2_write_inode_block_virt(inst, e2_inode, parent->inode, block_index, buffer);
 
+exit:
     kfree(buffer);
     kfree(e2_inode);
 
-    return 0;
+    return rc;
 }
 
 ssize_t read_inode_filedata(ext2_instance_t* inst, ext2_inode_t* inode, off_t offset, size_t size, char * buf)
@@ -1613,7 +1619,8 @@ int ext2_mkdir(struct inode* parent, const char* dir_name, uint32_t mode)
         return rc;
 
     // Добавить иноду в директорию
-    ext2_create_dentry(inst, parent, dir_name, inode_num, EXT2_DT_DIR);
+    if ((rc = ext2_create_dentry(inst, parent, dir_name, inode_num, EXT2_DT_DIR)) != 0)
+        return rc;
 
     // Добавить . и .. в новую директорию
     char* block_temp = kmalloc(inst->block_size);
@@ -1705,9 +1712,9 @@ int ext2_mkfile(struct inode* parent, const char* file_name, uint32_t mode)
         return rc;
 
     // Добавить иноду в директорию
-    ext2_create_dentry(inst, parent, file_name, inode_num, EXT2_DT_REG);
+    rc = ext2_create_dentry(inst, parent, file_name, inode_num, EXT2_DT_REG);
 
-    return 0;
+    return rc;
 }
 
 int ext2_mknod(struct inode* parent, const char* name, mode_t mode)
@@ -1757,9 +1764,9 @@ int ext2_mknod(struct inode* parent, const char* name, mode_t mode)
 
     // Добавить иноду в директорию
     int dentry_type = vfs_inode_mode_to_ext2_dentry_type(mode);
-    ext2_create_dentry(inst, parent, name, inode_num, dentry_type);
+    rc = ext2_create_dentry(inst, parent, name, inode_num, dentry_type);
 
-    return 0;
+    return rc;
 }
 
 int ext2_symlink(struct inode* parent, const char* name, const char* target)
@@ -1820,9 +1827,9 @@ int ext2_symlink(struct inode* parent, const char* name, const char* target)
         return rc;
 
     // Добавить иноду в директорию
-    ext2_create_dentry(inst, parent, name, inode_num, EXT2_DT_SYMLINK);
+    rc = ext2_create_dentry(inst, parent, name, inode_num, EXT2_DT_SYMLINK);
 
-    return 0;
+    return rc;
 }
 
 ssize_t ext2_readlink(struct inode* inode, char* pathbuf, size_t pathbuflen)
@@ -1868,7 +1875,7 @@ int ext2_linkat(struct dentry* src, struct inode* dst_dir, const char* dst_name)
     // Тип dentry из типа inode
     int dentry_type = vfs_inode_mode_to_ext2_dentry_type(src_inode->mode);
     // Добавить иноду в директорию
-    if ((rc = ext2_create_dentry(inst, dst_dir, dst_name, inode_idx, dentry_type)) != 0) // TODO: correct dentry type 
+    if ((rc = ext2_create_dentry(inst, dst_dir, dst_name, inode_idx, dentry_type)) != 0)
         return rc;
 
     // Считать ext2 - inode, для которой делаем unlink
@@ -1903,7 +1910,7 @@ struct dirent* ext2_file_readdir(struct file* dir, uint32_t index)
     if (rc != 0)
         return NULL;
 
-    //Переменные
+    // Переменные
     uint32_t curr_offset = 0;
     uint32_t block_offset = 0;
     uint32_t in_block_offset = 0;
@@ -1952,8 +1959,8 @@ exit:
 
 int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* name, int* orig_type)
 {
-    // по умолчанию код ошибки - файл отсутствует, если он не будет найден
-    int rc = -ENOENT;
+    int rc;
+    int found = FALSE;
     ext2_inode_t*    e2_inode = new_ext2_inode();
     if ((rc = ext2_inode(inst, e2_inode, parent->inode)) != 0) {
         kfree(e2_inode);
@@ -1973,33 +1980,40 @@ int ext2_remove_dentry(ext2_instance_t* inst, struct inode* parent, const char* 
     if ((rc = ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer)) != 0)
         goto exit;
 
-    while (offset < e2_inode->size) {
-        
+    while (offset < e2_inode->size) 
+    {    
         // Надо ли считать следующий блок
         if (offset_in_block >= inst->block_size) {
             // Считать следующий блок
             block_index++;
             offset_in_block = 0;
-            ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer);
+            if ((rc = ext2_read_inode_block_virt(inst, e2_inode, block_index, buffer)) != 0)
+                goto exit;
         }
 
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + offset_in_block);
         // Проверка совпадения имени
-        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) {
+        if ((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) 
+        {
+            found = TRUE;
             // инвалидировать dentry
             curr_entry->inode = 0;
             if (orig_type != NULL) {
                 *orig_type = curr_entry->type;
             }
+
             // Записать изменения на диск
-            ext2_write_inode_block_virt(inst, e2_inode, parent->inode, block_index, buffer);
-            rc = 0;
+            rc = ext2_write_inode_block_virt(inst, e2_inode, parent->inode, block_index, buffer);
             goto exit;
         }
 
         offset_in_block += curr_entry->size;
         offset += curr_entry->size;
     }
+
+    // было ли найдено имя
+    if (found == FALSE)
+        rc = -ENOENT;
 
 exit:
     kfree(buffer);
@@ -2039,7 +2053,7 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
         return WRONG_INODE_INDEX;
     }
 
-    //Переменные
+    // Переменные
     uint32_t curr_offset = 0;
     uint32_t block_offset = 0;
     uint32_t in_block_offset = 0;
@@ -2060,8 +2074,8 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
     // Пока не прочитаны все блоки
     while (curr_offset < parent_inode.size) 
     {
-        //Проверка, не прочитан ли весь блок?
-        if(in_block_offset >= inst->block_size){
+        // Проверка, не прочитан ли весь блок?
+        if (in_block_offset >= inst->block_size) {
             block_offset++;
             in_block_offset = 0;
             rc = ext2_read_inode_block_virt(inst, &parent_inode, block_offset, buffer);
@@ -2074,7 +2088,7 @@ uint64_t ext2_find_dentry(struct superblock* sb, struct inode* vfs_parent_inode,
         // Считанный dirent
         ext2_direntry_t* curr_entry = (ext2_direntry_t*)(buffer + in_block_offset);
         // Проверка совпадения имени
-        if((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) {
+        if ((curr_entry->inode != 0) && (strncmp(curr_entry->name, name, curr_entry->name_len) == 0) && name_len == curr_entry->name_len) {
             result = curr_entry->inode;
 
             if (type != NULL) {
