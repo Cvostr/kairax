@@ -155,7 +155,7 @@ void xhci_device_configure_control_endpoint_ctx(struct xhci_device* dev, uint16_
     ctrl_endpoint_ctx->dcs = dev->control_transfer_ring->cycle_bit;
     ctrl_endpoint_ctx->max_esit_payload_lo = 0;
     ctrl_endpoint_ctx->max_esit_payload_hi = 0;
-    //ctrl_endpoint_ctx->average_trb_length = XHCI_CONTROL_EP_AVG_TRB_LEN;
+    ctrl_endpoint_ctx->average_trb_length = XHCI_CONTROL_EP_AVG_TRB_LEN;
     ctrl_endpoint_ctx->mult = 0;
 }
 

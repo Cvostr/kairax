@@ -7,7 +7,7 @@
 int audio_endpoint_file_open(struct inode *inode, struct file *file);
 int audio_endpoint_file_close(struct inode *inode, struct file *file);
 int audio_endpoint_ioctl(struct file* file, uint64_t request, uint64_t arg);
-ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, size_t offset);
+ssize_t audio_endpoint_fwrite(struct file *file, const char* buffer, size_t count, size_t offset);
 
 struct file_operations audio_output_widget_fops = {
     .open = audio_endpoint_file_open,
@@ -133,7 +133,7 @@ int audio_endpoint_file_close(struct inode *inode, struct file *file)
     return 0;
 }
 
-ssize_t audio_endpoint_fwrite(struct file *file, char* buffer, size_t count, size_t offset)
+ssize_t audio_endpoint_fwrite(struct file *file, const char* buffer, size_t count, size_t offset)
 {
     struct audio_endpoint* ep = file->inode->private_data;
 

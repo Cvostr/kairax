@@ -19,6 +19,9 @@
 #define COM7    0x5E8
 #define COM8    0x4E8
 
+#define SERIAL_IRQ1 4
+#define SERIAL_IRQ2 3
+
 #define SPEED_BASE 115200
 
 // Размер символа
@@ -192,9 +195,9 @@ void serial_init()
     struct thread* serial_sec_thr = create_kthread(serial_process, serial_thread_handler, (void *) COM2);
     scheduler_add_thread(serial_sec_thr);
 
-    
-    register_irq_handler(4, serial_irq_handler, serial_first_thr);
-    register_irq_handler(3, serial_irq_handler, serial_sec_thr);
+    // регистрация обработчиков прерываний
+    register_irq_handler(SERIAL_IRQ1, serial_irq_handler, serial_first_thr);
+    register_irq_handler(SERIAL_IRQ2, serial_irq_handler, serial_sec_thr);
 }
 
 #define SERIAL_PROBE_VALUE  0xAD
