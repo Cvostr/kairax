@@ -3,6 +3,7 @@
 #include "mem/kheap.h"
 #include "string.h"
 #include "thread_scheduler.h"
+#include "cpu/cpu_local.h"
 
 struct thread* new_thread(struct process* process)
 {
@@ -98,4 +99,21 @@ void thread_prepare_for_kill(struct thread* thread)
         thread->wake_reason = WAKE_SIGNAL;
         scheduler_wakeup(thread);
     }
+}
+
+void kthread_exit()
+{
+    struct thread *thr = cpu_get_current_thread();
+
+    // TODO: доработать!!!
+
+    disable_interrupts();
+
+    thread_become_zombie(thr);
+
+    // Убрать поток из списка планировщика
+    scheduler_remove_thread(thr);
+
+    // Выйти
+    scheduler_yield(FALSE);
 }

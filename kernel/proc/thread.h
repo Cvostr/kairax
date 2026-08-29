@@ -79,6 +79,7 @@ struct main_thread_create_info {
 struct thread* new_thread(struct process* process);
 void thread_set_name(struct thread* thread, const char* name);
 void thread_set_sched_mode(struct thread* thread, int mode);
+void kthread_exit();
 
 /// @brief Создать новый поток пространства ядра и добавить его к процессу
 /// @param process объект процесса

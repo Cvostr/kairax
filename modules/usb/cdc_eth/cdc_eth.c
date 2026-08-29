@@ -224,7 +224,7 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 		}
 
 		event_wait(&eth_dev->rx_event);
-
+		
 		if (usb_device_get_state(eth_dev->usbdev) == USB_STATE_DISCONNECTED)
 			break;
 
@@ -271,9 +271,7 @@ void usb_cdc_rx_thread(struct cdc_eth_dev* eth_dev)
 		}
 	}
 
-	while (1) {
-
-	}
+	kthread_exit();
 }
 
 int usb_cdc_tx(struct nic* nic, const unsigned char* buffer, size_t size)

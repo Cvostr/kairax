@@ -70,6 +70,7 @@ struct kernel_function functions[] = {
     KFUNCTION(process_set_name),
     KFUNCTION(thread_set_name),
     KFUNCTION(thread_set_sched_mode),
+    KFUNCTION(kthread_exit),
     KFUNCTION(process_add_to_list),
     KFUNCTION(new_nic),
     KFUNCTION(register_nic),

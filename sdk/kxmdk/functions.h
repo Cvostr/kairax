@@ -43,5 +43,6 @@ struct thread* create_kthread(struct process* process, void (*function)(void), v
 int thread_sleep(time_t tv_sec, long int tv_nsec);
 void thread_set_name(struct thread* thread, const char* name);
 void thread_set_sched_mode(struct thread* thread, int mode);
+void kthread_exit();
 
 #endif
