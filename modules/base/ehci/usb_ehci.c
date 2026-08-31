@@ -16,6 +16,9 @@
 
 #define FRAME_LIST_ELEMENT_NUM (PAGE_SIZE / sizeof(struct ehci_flp))
 
+// время ожидания ответа от XHCI при выполнении команды к контроллеру
+#define EHCI_CONTROL_WAIT_TIMEOUT	(5000)
+
 int ehci_allocate_pool(struct ehci_controller *ehc, size_t qh_pool, size_t td_pool)
 {
 	size_t QH_SIZE = align(sizeof(struct ehci_qh), 32);
@@ -475,7 +478,7 @@ int ehci_control(struct ehci_device *device, struct usb_device_request *request,
 	ehci_enqueue_qh(hci, qh);
 
 	rc = -ETIMEDOUT;
-	int timeout = 1000;
+	int timeout = EHCI_CONTROL_WAIT_TIMEOUT;
 	while ((timeout --) > 0)
 	{
 		if (qh->token.status.halted == 1)
@@ -574,9 +577,8 @@ int ehci_drv_device_bulk_msg(struct usb_device* dev, struct usb_endpoint* endpoi
 	// Отправить QH на выполнение
 	ehci_enqueue_qh(hci, qh);
 
-	rc = -ETIMEDOUT;
-	int timeout = 1000;
-	while ((timeout --) > 0)
+	rc = -EIO;
+	while (1)
 	{
 		if (qh->token.status.halted == 1)
 		{

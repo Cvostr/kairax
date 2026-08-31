@@ -10,6 +10,7 @@
 #include "kairax/string.h"
 #include "kairax/stdio.h"
 #include "kairax/kstdlib.h"
+#include "kairax/errors.h"
 
 #define XHCI_CRCR_ENTRIES 256
 #define XHCI_EVENT_RING_ENTIRIES 256
@@ -38,6 +39,9 @@ static const char* xhci_speed_string[7] = {
 
 // IMOD - Максимальное число прерываний в секунду
 #define XHCI_IRQ_MAX_FREQ	(200)
+
+// время ожидания ответа от XHCI при выполнении команды к контроллеру
+#define XHCI_CMD_WAIT_TIMEOUT	(5000)
 
 int xhci_device_probe(struct device *dev) 
 {
@@ -236,11 +240,21 @@ int xhci_controller_enqueue_cmd_wait(struct xhci_controller* controller, struct 
 
 	controller->doorbell[0].doorbell = XHCI_DOORBELL_COMMAND_RING;
 
-	while (completion_trb->raw.status == 0)
+	// ожидание ответа
+	int timeout = XHCI_CMD_WAIT_TIMEOUT;
+	while ((completion_trb->raw.status == 0) && timeout > 0)
 	{
-		// wait
+		timeout--;
+		wait_active_ms(1);
 	}
 
+	// время закончилось, а команда так и не выполнена
+	if ((completion_trb->raw.status == 0) && (timeout == 0)) 
+	{
+		return -ETIMEDOUT;
+	}
+
+	// Если код завершения не 1, то это ошибка
 	if (completion_trb->cmd_completion.completion_code != 1)
 	{
 		return completion_trb->cmd_completion.completion_code;
