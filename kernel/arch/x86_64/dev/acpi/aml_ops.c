@@ -7,11 +7,13 @@
 //#define AML_DEBUG_NAMED_FIELD
 //#define AML_DEBUG_RESERVED_FIELD
 //#define AML_DEBUG_ALIAS
+#define AML_DEBUG_FIELD
 #define AML_DEBUG_SCOPE
 #define AML_DEBUG_UNKNOWN_STRINGS
 //#define AML_DEBUG_OP_REGION
 //#define AML_DEBUG_METHOD
 //#define AML_DEBUG_DEVICE
+//#define AML_DEBUG_IF_PREDICATE
 //#define AML_OP_BINARY_OP
 
 int aml_op_external_decl(struct aml_ctx *ctx)
@@ -235,7 +237,7 @@ int aml_op_field(struct aml_ctx *ctx)
     int res = 0;
     struct aml_name_string *opregion_name = NULL;
     // Получим длину данных, указатель на начало и сместим курсор
-    size_t len;
+    uint32_t len;
     uint8_t *nested = 0;
     len = aml_ctx_addr_from_pkg(ctx, &nested);
     // Изза особенностей функций мы зависим от aml_ctx. 
@@ -268,7 +270,9 @@ int aml_op_field(struct aml_ctx *ctx)
     // Считаем основные флаги
     uint8_t field_flags = aml_ctx_get_byte(&field_ctx);
 
+#ifdef AML_DEBUG_FIELD
     printk("FIELD OP pkg_len %i name '%s' flags %x\n", len, opregion_name->segments->seg_s, field_flags);
+#endif
 
     struct aml_field_desc desc;
     uint64_t current_offset = 0;
@@ -319,7 +323,7 @@ int aml_op_index_field(struct aml_ctx *ctx)
     struct aml_name_string *index_name;
     struct aml_name_string *data_name;
     // Получим длину данных, указатель на начало и сместим курсор
-    size_t len;
+    uint32_t len;
     uint8_t *nested = 0;
     len = aml_ctx_addr_from_pkg(ctx, &nested);
 
@@ -417,7 +421,7 @@ exit:
 int aml_op_method(struct aml_ctx *ctx)
 {
     int res = 0;
-    size_t len;
+    uint32_t len;
     uint8_t *nested = NULL;
     
     struct aml_name_string *method_name = NULL;
@@ -830,7 +834,7 @@ int aml_op_event(struct aml_ctx *ctx)
 int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
 {
     int rc;
-    size_t len = 0, else_len = 0;
+    uint32_t len = 0, else_len = 0;
     uint8_t *buffer_buf = NULL, *else_buf = NULL;
     struct aml_node *predicate = NULL;
     
@@ -874,7 +878,9 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node)
         goto exit;
     }
 
+#ifdef AML_DEBUG_IF_PREDICATE
     printk("IF OP predicate value %i\n", predicate->int_value);
+#endif
 
     struct aml_node *node;
 

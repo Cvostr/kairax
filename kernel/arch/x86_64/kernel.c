@@ -50,6 +50,7 @@
 extern struct vgaconsole* current_console;
 
 extern void x64_full_halt();
+extern void arch_time_init();
 
 extern int kairax_version_major;
 extern int kairax_version_minor;
