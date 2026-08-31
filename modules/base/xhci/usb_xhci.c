@@ -38,7 +38,7 @@ static const char* xhci_speed_string[7] = {
 //#define XHCI_LOG_ALLOCATED_SLOT
 
 // IMOD - Максимальное число прерываний в секунду
-#define XHCI_IRQ_MAX_FREQ	(200)
+#define XHCI_IRQ_MAX_FREQ	(500)
 
 // время ожидания ответа от XHCI при выполнении команды к контроллеру
 #define XHCI_CMD_WAIT_TIMEOUT	(5000)
