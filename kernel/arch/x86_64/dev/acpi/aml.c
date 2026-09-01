@@ -517,6 +517,12 @@ int aml_parse_next_node(struct aml_ctx *ctx, struct aml_node** node_out)
         case AML_OP_NOT:
             rc = aml_op_not(ctx, &node);
             break;
+        case AML_OP_DEREFOF:
+            rc = aml_op_deref_of(ctx, &node);
+            break;
+        case AML_OP_INDEX:
+            rc = aml_op_index(ctx, &node);
+            break;
         case AML_OP_CREATE_BYTE_FIELD:
             rc = aml_op_create_buffer_field(ctx, 8);
             break;

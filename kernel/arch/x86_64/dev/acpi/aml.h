@@ -35,7 +35,9 @@
 #define AML_OP_NOR          0x7E
 #define AML_OP_XOR          0x7F
 #define AML_OP_NOT          0x80
+#define AML_OP_DEREFOF      0x83
 #define AML_OP_MOD          0x85
+#define AML_OP_INDEX        0x88
 #define AML_OP_CREATE_DWORD_FIELD   0x8A
 #define AML_OP_CREATE_WORD_FIELD    0x8B
 #define AML_OP_CREATE_BYTE_FIELD    0x8C
@@ -133,7 +135,7 @@ int aml_op_processor(struct aml_ctx *ctx);
 int aml_op_mutex(struct aml_ctx *ctx);
 int aml_op_event(struct aml_ctx *ctx);
 int aml_op_external_decl(struct aml_ctx *ctx);
-
+int aml_op_index(struct aml_ctx *ctx, struct aml_node **out);
 int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size);
 
 struct aml_node *aml_op_word(struct aml_ctx *ctx);
@@ -153,6 +155,7 @@ int aml_op_if(struct aml_ctx *ctx, struct aml_node **returned_node);
 int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node);
 int aml_op_return(struct aml_ctx *ctx, struct aml_node **out);
 int aml_op_cond_ref_of(struct aml_ctx *ctx, struct aml_node **out);
+int aml_op_deref_of(struct aml_ctx *ctx, struct aml_node **out);
 int aml_eval_string(struct aml_ctx *ctx, struct aml_node **out);
 int aml_op_local(struct aml_ctx *ctx, uint8_t index, struct aml_node **out);
 int aml_op_arg(struct aml_ctx *ctx, uint8_t index, struct aml_node **out);

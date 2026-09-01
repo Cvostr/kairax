@@ -1706,6 +1706,102 @@ exit:
     return 0;
 }
 
+int aml_op_deref_of(struct aml_ctx *ctx, struct aml_node **out)
+{
+    int res;
+    struct aml_node *value_node = NULL;
+
+    res = aml_parse_next_node(ctx, &value_node);
+    if (res != 0)
+    {
+        printk("ACPI: DerefOfOp: Error reading value node (%i)\n", res);
+        goto exit;
+    }
+
+    if (value_node->type != REFERENCE) {
+        printk("ACPI: DerefOfOp: Argument node type (%i) is not a reference!\n", value_node->type);
+        res = -EINVAL;
+        goto exit;
+    }
+
+    *out = value_node->link;
+    //printk("DerefOfOp: node type %i\n", value_node->type);
+
+exit:
+    aml_free_node(value_node);
+    return res;
+}
+
+int aml_op_index(struct aml_ctx *ctx, struct aml_node **out)
+{
+    int res;
+    struct aml_node *source_node = NULL;
+    struct aml_node *index_node = NULL;
+    struct aml_node *result_node = NULL;
+
+    uint64_t index_value = 0;
+
+    res = aml_parse_next_node(ctx, &source_node);
+    if (res != 0)
+    {
+        printk("ACPI: IndexOp: Error reading source node (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_parse_next_node(ctx, &index_node);
+    if (res != 0)
+    {
+        printk("ACPI: IndexOp: Error reading index node (%i)\n", res);
+        goto exit;
+    }
+
+    res = aml_to_uint64(index_node, &index_value);
+    if (res != 0)
+    {
+        printk("ACPI: IndexOp: Error converting index to int (%i)\n", res);
+        goto exit;
+    }
+
+    printk("IndexOp: source node type %i. Indx node type %i. index val %i\n", source_node->type, index_node->type, index_value);
+
+    switch (source_node->type)
+    {
+    case PACKAGE:
+        if (index_value >= source_node->package.num_elements) {
+            printk("IndexOp: index %i is greater than package elements num!\n", source_node->type);
+            return -EOVERFLOW;
+        }
+
+        result_node = source_node->package.elements[index_value];
+        break;
+    default:
+        printk("IndexOp: source node type %i NOT supported!\n", source_node->type);
+        res = -ENOTSUP;
+        goto exit;
+    }
+
+    struct aml_node *ref_node = aml_make_node(REFERENCE);
+    ref_node->link = result_node;
+    aml_acquire_node(result_node);
+
+    // увеличить число ссылок и вернуть node как результат
+    aml_acquire_node(ref_node);
+    *out = ref_node;
+
+    // Сохранить в target
+    res = aml_store_to_target(ctx, result_node);
+    if (res != 0)
+    {
+        printk("ACPI: NotOp: Error writing to target %i!\n", res);
+        goto exit;
+    }
+
+exit:
+    aml_free_node(source_node);
+    aml_free_node(index_node);
+    return res;
+}
+
 int aml_op_store(struct aml_ctx *ctx)
 {
     int res;
