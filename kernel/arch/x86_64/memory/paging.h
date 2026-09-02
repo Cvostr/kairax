@@ -54,6 +54,8 @@ int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr
 //Получить физический адрес из виртуального для указанной корневой таблицы
 physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_addr);
 
+int map_page_mem_huge(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags);
+
 int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags);
 
 int page_table_mmap_fork(page_table_t* src, page_table_t* dest, struct mmap_range* area, int shared);

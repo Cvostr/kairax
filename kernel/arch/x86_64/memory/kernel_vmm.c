@@ -63,8 +63,14 @@ page_table_t* create_kernel_vm_map()
         uint64_t base = align_down(reg->base, PAGE_SIZE);
         uint64_t len = align(reg->length, PAGE_SIZE);
 		
+        /*
         for (iter = base; iter <= base + len; iter += PAGE_SIZE) {
 		    map_page_mem(root_pml4, (virtual_addr_t)P2V(iter), iter, pageFlags);
+	    }
+        */
+
+        for (iter = base; iter <= base + len; iter += (PAGE_SIZE * 512)) {
+		    map_page_mem_huge(root_pml4, (virtual_addr_t)P2V(iter), iter, pageFlags);
 	    }
 
         reg++;

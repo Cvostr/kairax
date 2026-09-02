@@ -111,6 +111,10 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
         }
         //Записать страницу в родительское дерево
         pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | baseFlags);  
+    } 
+    else if (((pd_table->entries[level2_index]) & PAGE_HUGE) == PAGE_HUGE) 
+    {
+        return PAGING_ERROR_ALREADY_MAPPED;
     }
 
     pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
@@ -124,6 +128,63 @@ int map_page_mem(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_
     return PAGING_ERROR_ALREADY_MAPPED;
 }
 
+int map_page_mem_huge(page_table_t* root, virtual_addr_t virtual_addr, physical_addr_t physical_addr, uint64_t flags)
+{
+    // Вычисление индексов страниц
+    uint16_t level4_index = GET_4_LEVEL_PAGE_INDEX(virtual_addr);
+    uint16_t level3_index = GET_3_LEVEL_PAGE_INDEX(virtual_addr);
+    uint16_t level2_index = GET_2_LEVEL_PAGE_INDEX(virtual_addr);
+    uint16_t level1_index = GET_1_LEVEL_PAGE_INDEX(virtual_addr);
+
+    page_table_t *pdp_table;
+    page_table_t *pd_table;
+
+    uint64_t baseFlags = PAGE_BASE_FLAGS;
+    if ((flags & PAGE_USER_ACCESSIBLE) == PAGE_USER_ACCESSIBLE) {
+        baseFlags |= PAGE_USER_ACCESSIBLE;
+    }
+
+    //Проверим, существует ли страница 4-го уровня
+    if (!(root->entries[level4_index] & (PAGE_PRESENT))) {
+        //Страница не существует
+        //Выделить память под страницу
+        pdp_table = new_page_table();
+        if (pdp_table == NULL) {
+            return ERR_NO_MEM;
+        }
+
+        //Записать страницу в родительское дерево
+        root->entries[level4_index] = ((uint64_t)V2P(pdp_table) | baseFlags);  
+    }
+
+    pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
+    pdp_table = P2V(pdp_table);
+
+    if(!(pdp_table->entries[level3_index] & (PAGE_PRESENT))) {
+        //Выделить память под страницу
+        pd_table = new_page_table();
+        if (pd_table == NULL) {
+            return ERR_NO_MEM;
+        }
+        //Записать страницу в родительское дерево
+        pdp_table->entries[level3_index] = ((uint64_t)V2P(pd_table) | baseFlags);  
+    }
+
+    pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
+    pd_table = P2V(pd_table);
+
+    // выравнивание по 2мб вниз
+    physical_addr &= ~(0xFFFFFULL * 2);
+
+    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))) {
+        //Записать страницу в родительское дерево
+        pd_table->entries[level2_index] = ((uint64_t)physical_addr | flags | PAGE_HUGE); 
+        return 0; 
+    }
+
+    return PAGING_ERROR_ALREADY_MAPPED;
+}
+
 void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page)
 {
     uint64_t flags = 0;
@@ -132,6 +193,35 @@ void arch_vm_unmap(void* arch_table, uint64_t vaddr, int free_page)
     if (rc == 0 && free_page == TRUE) {
         pmm_free_page(phys);
     }
+}
+
+int split_hugepage(page_table_t *pd_table, uint16_t level2_index)
+{
+    uint64_t old_flags = GET_PAGE_FLAGS(pd_table->entries[level2_index]);
+    uint64_t phys_addr = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    if ((old_flags & PAGE_HUGE) == 0)
+    {
+        return -1;
+    }
+
+    // это больше не hugepage
+    old_flags = old_flags & ~((uint64_t)(PAGE_HUGE));
+
+    //Выделить память под страницу
+    page_table_t *pt_table = new_page_table();
+    if (pt_table == NULL) {
+        return ERR_NO_MEM;
+    }
+    
+    //Записать страницу в родительское дерево
+    pd_table->entries[level2_index] = ((uint64_t)V2P(pt_table) | old_flags);  
+
+    for (int i = 0; i < 512; i ++)
+    {
+        pt_table->entries[i] = (phys_addr + PAGE_SIZE * i) | old_flags;
+    }
+
+    return 0;
 }
 
 //Удалить виртуальную страницу
@@ -159,11 +249,17 @@ int unmap_page1(page_table_t* root, uintptr_t virtual_addr, uintptr_t* phys_addr
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
-    if (!(pd_table->entries[level2_index] & PAGE_PRESENT)) {
+
+    uint64_t pdaddr = pd_table->entries[level2_index];
+    if (!(pdaddr & PAGE_PRESENT)) {
         return ERR_NO_PAGE_PRESENT;
     }
+    else if (pdaddr & PAGE_HUGE)
+    {
+        split_hugepage(pd_table, level2_index);
+    }
 
-    page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    page_table_t* pt_table = GET_PAGE_FRAME(pdaddr);
     pt_table = P2V(pt_table);
 
     table_entry_t pt_value = pt_table->entries[level1_index];
@@ -213,11 +309,19 @@ physical_addr_t get_physical_address(page_table_t* root, virtual_addr_t virtual_
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
-    if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
+    uint64_t pdaddr = pd_table->entries[level2_index];
+    if (!(pdaddr & PAGE_PRESENT)) {
         return NULL;
     }
+    else if (pdaddr & PAGE_HUGE)
+    {
+        uint64_t mask = 0xFFFFFULL * 2;
+        pdaddr &= ~(PAGE_EXEC_DISABLE | mask);
+        pdaddr |= (virtual_addr & mask);
+        return pdaddr;
+    }
 
-    page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    page_table_t* pt_table = GET_PAGE_FRAME(pdaddr);
     pt_table = P2V(pt_table);
     if(!(pt_table->entries[level1_index] & PAGE_PRESENT)){
         return NULL;
@@ -240,14 +344,19 @@ int arch_vm_is_mapped(void* arch_table, uint64_t address)
 
     page_table_t * pdp_table = GET_PAGE_FRAME(root->entries[level4_index]);
     pdp_table = P2V(pdp_table);
-    if(!(pdp_table->entries[level3_index] & PAGE_PRESENT)){
+    if (!(pdp_table->entries[level3_index] & PAGE_PRESENT)) {
         return 0;  
     }
 
     page_table_t* pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
-    if(!(pd_table->entries[level2_index] & PAGE_PRESENT)){
+    if (!(pd_table->entries[level2_index] & PAGE_PRESENT))
+    {
         return 0;
+    }
+    else if((pd_table->entries[level2_index] & PAGE_HUGE))
+    {
+        return 1;
     }
 
     page_table_t* pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
@@ -299,16 +408,19 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 
     pd_table = GET_PAGE_FRAME(pdp_table->entries[level3_index]);
     pd_table = P2V(pd_table);
-
-    if(!(pd_table->entries[level2_index] & (PAGE_PRESENT))) {
+    uint64_t pdaddr = pd_table->entries[level2_index];
+    if (!(pdaddr & (PAGE_PRESENT))) 
+    {
         return ERR_NO_PAGE_PRESENT; 
     }
+    else if (pdaddr & PAGE_HUGE)
+    {
+        split_hugepage(pd_table, level2_index);
+    }
 
-    pt_table = GET_PAGE_FRAME(pd_table->entries[level2_index]);
+    pt_table = GET_PAGE_FRAME(pdaddr);
     pt_table = P2V(pt_table);
-
     uintptr_t paddr = GET_PAGE_FRAME(pt_table->entries[level1_index]);
-
     if((pt_table->entries[level1_index] & (PAGE_PRESENT)) == 0) {
         return ERR_NO_PAGE_PRESENT;
     }
