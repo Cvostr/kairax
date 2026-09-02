@@ -317,7 +317,8 @@ int set_page_flags(page_table_t* root, uintptr_t virtual_addr, uint64_t flags)
 
     x64_tlb_shootdown(virtual_addr);
 
-    // TODO: остальные ядра
+    // TODO: сделать сброс TLB более правильным - добавлять в очередь на tlb flush ядра адрес по процессу 
+    lapic_send_ipi(0, IPI_DST_OTHERS, IPI_TYPE_FIXED, INTERRUPT_VEC_TLB);
 
     return 0;
 }
