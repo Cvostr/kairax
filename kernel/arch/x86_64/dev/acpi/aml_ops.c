@@ -13,7 +13,10 @@
 //#define AML_DEBUG_OP_REGION
 //#define AML_DEBUG_METHOD
 //#define AML_DEBUG_DEVICE
+//#define AML_DEBUG_MUTEX
 //#define AML_DEBUG_IF_PREDICATE
+//#define AML_DEBUG_CREATE_FIELD
+//#define AML_DEBUG_COMPARE
 //#define AML_OP_BINARY_OP
 
 int aml_op_external_decl(struct aml_ctx *ctx)
@@ -792,7 +795,9 @@ int aml_op_mutex(struct aml_ctx *ctx)
     // Считаем флаги
     uint8_t mutex_flags = aml_ctx_get_byte(ctx);
 
+#ifdef AML_DEBUG_MUTEX
     printk("MUTEX '%s'\n", mutex_name->segments->seg_s);
+#endif
 
     struct aml_node *mutex_node = aml_make_node(MUTEX);
     mutex_node->mutex.flags = mutex_flags;
@@ -1062,8 +1067,10 @@ int aml_op_create_buffer_field(struct aml_ctx *ctx, size_t field_size)
     // получим название поля
     field_name = aml_read_name_string(ctx);
 
+#ifdef AML_DEBUG_CREATE_FIELD
     printk("CreateFieldOp: %s, Index: %i, FieldName: %s, FieldSize: %i\n",
         aml_debug_namestring(source_buffer_name), index_value, aml_debug_namestring(field_name), field_size);
+#endif
 
     // Сформировать node
     struct aml_node *field_node = aml_make_node(BUFFER_FIELD);
@@ -1604,7 +1611,9 @@ int aml_op_compare(struct aml_ctx *ctx, uint8_t opcode, struct aml_node** node_o
             goto exit;
         }
 
+#ifdef AML_DEBUG_COMPARE
         printk("ACPI: CompareOp: Op1 : %i, Op2: %i\n", op1_ival, op2_ival);
+#endif
 
         switch (opcode)
         {

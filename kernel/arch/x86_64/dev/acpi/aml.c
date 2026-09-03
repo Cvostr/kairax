@@ -348,14 +348,18 @@ int aml_store_to_target(struct aml_ctx *ctx, struct aml_node *value)
     {
     case NAME:
         struct ns_node *ns_node = acpi_ns_get_node(acpi_get_root_ns(), ctx->scope, sname.target.name);
-        kfree(sname.target.name);
         if (ns_node == NULL)
         {
-            printk("ACPI: aml_store_to_target: Can't find node in namespace\n");
+            printk("ACPI: aml_store_to_target: Can't find node %s in namespace\n", aml_debug_namestring(sname.target.name));
+            kfree(sname.target.name);
             return -ENOENT;
         }
     
-        return aml_store_to_node(value, ns_node->object);
+        res = aml_store_to_node(value, ns_node->object);
+        if (res != 0)
+            printk("ACPI: Error storing to node %s\n", aml_debug_namestring(sname.target.name));
+        kfree(sname.target.name);
+        return res;
     case LOCAL:
         return aml_ctx_set_local(ctx, sname.target.index, value);
     default:

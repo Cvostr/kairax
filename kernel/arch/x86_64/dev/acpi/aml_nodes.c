@@ -92,6 +92,23 @@ int aml_store_to_node(struct aml_node *value, struct aml_node *dest)
 
             dest->int_value = converted;
             break;
+        case STRING:
+            switch (value->type)
+            {
+            case STRING:
+                // String to String
+                if (dest->string.str) {
+                    // удаляем старую строку
+                    kfree(dest->string.str);
+                }
+                
+                dest->string.str = strdup(value->string.str);
+                break;
+            default:
+                printk("ACPI: aml_store_to_node: Unsupported conversion to string for type %i\n", value->type);
+                break;
+            }
+            break;
         default:
             printk("ACPI: aml_store_to_node: Unsupported for type %i\n", dest->type);
             return -ENOTSUP;
@@ -457,12 +474,13 @@ int aml_read_integer_from_op_region(struct aml_node *region, size_t offset, uint
 {
     int rc;
     uintptr_t addr_val = region->op_region.offset + offset;
-    //printk("ACPI: aml_read_integer_from_op_region start accsz %i addr %p\n", access_sz, addr_val);
+    //printk("ACPI: aml_read_integer_from_op_region region %p type %i start accsz %i addr %p\n", region, region->op_region.space, access_sz, addr_val);
     switch (region->op_region.space)
     {
         case ACPI_GAS_MEMORY:
-            //printk("ACPI: aml_read_integer_from_op_region: System Memory\n");
+            //printk("ACPI: aml_read_integer_from_op_region: System Memory: %p\n", addr_val);
             void *vaddr = arch_phys_to_virtual_addr(addr_val);
+            //map_page_mem(get_kernel_pml4(), vaddr, addr_val, PAGE_PRESENT | PAGE_WRITABLE | PAGE_GLOBAL);
             switch (access_sz)
             {
                 case 1:
