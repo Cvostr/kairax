@@ -14,9 +14,12 @@
 //#define AML_DEBUG_METHOD
 //#define AML_DEBUG_DEVICE
 //#define AML_DEBUG_MUTEX
+//#define AML_DEBUG_EVENT
 //#define AML_DEBUG_IF_PREDICATE
 //#define AML_DEBUG_CREATE_FIELD
 //#define AML_DEBUG_COMPARE
+//#define AML_DEBUG_INDEX_OP
+//#define AML_DEBUG_INDEX_FIELD_OP
 //#define AML_OP_BINARY_OP
 
 int aml_op_external_decl(struct aml_ctx *ctx)
@@ -372,8 +375,10 @@ int aml_op_index_field(struct aml_ctx *ctx)
     // Считаем основные флаги
     uint8_t field_flags = aml_ctx_get_byte(&field_ctx);
 
+#ifdef AML_DEBUG_INDEX_FIELD_OP
     printk("INDEX FIELD OP pkg_len %i index_name '%s' data_name '%s' flags %x\n", 
         len, index_name->segments->seg_s, data_name->segments->seg_s, field_flags);
+#endif
 
     struct aml_field_desc desc;
     uint64_t current_offset = 0;
@@ -515,7 +520,7 @@ exit:
 struct aml_node *aml_op_package(struct aml_ctx *ctx)
 {
     int rc;
-    size_t len;
+    uint32_t len;
     uint8_t *pkg_buf = NULL;
 
     // Получим длину данных, указатель на начало и сместим курсор
@@ -556,7 +561,7 @@ struct aml_node *aml_op_package(struct aml_ctx *ctx)
 struct aml_node *aml_op_buffer(struct aml_ctx *ctx)
 {
     int rc;
-    size_t len;
+    uint32_t len;
     struct aml_node *result = NULL;
     uint8_t *buffer_buf = NULL;
     
@@ -595,7 +600,7 @@ struct aml_node *aml_op_buffer(struct aml_ctx *ctx)
 int aml_op_device(struct aml_ctx *ctx)
 {
     int rc = 0;
-    size_t len;
+    uint32_t len;
     uint8_t *buffer_buf = NULL;
     struct aml_name_string *device_name = NULL;
     
@@ -820,7 +825,9 @@ int aml_op_event(struct aml_ctx *ctx)
     // Считаем имя
     struct aml_name_string *event_name = aml_read_name_string(ctx);
 
+#ifdef AML_DEBUG_EVENT
     printk("EVENT '%s'\n", event_name->segments->seg_s);
+#endif
 
     struct aml_node *event_node = aml_make_node(EVENT);
     event_node->event.sigcount.counter = 0;
@@ -933,7 +940,7 @@ exit:
 int aml_op_while(struct aml_ctx *ctx, struct aml_node **returned_node)
 {
     int rc;
-    size_t len = 0;
+    uint32_t len = 0;
     uint8_t *buffer_buf = NULL;
     struct aml_node *predicate = NULL;
     uint64_t predicate_int;
@@ -1771,7 +1778,9 @@ int aml_op_index(struct aml_ctx *ctx, struct aml_node **out)
         goto exit;
     }
 
+#ifdef AML_DEBUG_INDEX_OP
     printk("IndexOp: source node type %i. Indx node type %i. index val %i\n", source_node->type, index_node->type, index_value);
+#endif
 
     switch (source_node->type)
     {
