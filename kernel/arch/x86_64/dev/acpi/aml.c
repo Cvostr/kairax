@@ -231,7 +231,7 @@ struct aml_name_string *aml_read_name_string(struct aml_ctx *ctx)
             if (aml_is_namestring_char_valid(v, j == 0) == FALSE)
             {
                 printk("ACPI: NameString segment char is not valid: %c\n", v);
-                return -EINVAL;
+                return NULL;
             }
             res->segments[i].seg_s[j] = v;
         }
@@ -373,7 +373,7 @@ int aml_store_to_target(struct aml_ctx *ctx, struct aml_node *value)
 
 char *aml_debug_namestring(struct aml_name_string *name)
 {
-    return name->segments > 0 ? name->segments->seg_s : "empty";
+    return name->segments > 0 ? (char*)name->segments->seg_s : "empty";
 }
 
 int aml_parse(char *data, uint32_t len)

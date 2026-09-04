@@ -2,6 +2,7 @@
 #include "aml.h"
 #include "mem/kheap.h"
 #include "kairax/string.h"
+#include "kairax/stdio.h"
 
 // глобальный указатель на корневую namespace. больше одной все равно не бывает
 static struct acpi_namespace *acpi_root_namespace = NULL;
@@ -150,7 +151,7 @@ struct ns_node *resolve_parent(struct acpi_namespace *ns, struct ns_node *scope,
 int acpi_ns_add_named_object1(struct acpi_namespace *ns, struct ns_node *scope, const char *name, struct aml_node *node)
 {
     uint8_t buffer[sizeof(struct aml_name_string) + 4];
-    struct aml_name_string *namestr = buffer;
+    struct aml_name_string *namestr = (struct aml_name_string *) buffer;
     namestr->base = 0;
     namestr->from_root = 0;
     namestr->segments_num = 1;
@@ -213,7 +214,7 @@ int acpi_ns_add_named_object_ex(struct acpi_namespace *ns, struct ns_node *scope
 struct ns_node *acpi_ns_get_node1(struct acpi_namespace *ns, struct ns_node *scope, const char *name)
 {
     uint8_t buffer[sizeof(struct aml_name_string) + 4];
-    struct aml_name_string *namestr = buffer;
+    struct aml_name_string *namestr = (struct aml_name_string *) buffer;
     namestr->base = 0;
     namestr->from_root = 0;
     namestr->segments_num = 1;

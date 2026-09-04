@@ -3,6 +3,7 @@
 #include "io.h"
 #include "string.h"
 #include "aml.h"
+#include "kairax/stdio.h"
 
 acpi_header_t* acpi_dsdt;
 
