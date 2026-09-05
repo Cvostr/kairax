@@ -12,6 +12,16 @@
 #include "process_list.h"
 #include "stdio.h"
 
+struct process *__kernel_thread_default_process = NULL;
+
+void __create_kernel_thread_default_process() 
+{
+    // Процесс для потоков - обработчиков
+	__kernel_thread_default_process = create_new_process(NULL);
+	process_set_name(__kernel_thread_default_process, "kernel_thread_process");
+    process_add_to_list(__kernel_thread_default_process);
+}
+
 struct process*  create_new_process(struct process* parent)
 {
     struct process* process = (struct process*)kmalloc(sizeof(struct process));

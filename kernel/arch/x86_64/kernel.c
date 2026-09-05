@@ -51,6 +51,7 @@ extern struct vgaconsole* current_console;
 
 extern void x64_full_halt();
 extern void arch_time_init();
+extern void __create_kernel_thread_default_process();
 
 extern int kairax_version_major;
 extern int kairax_version_minor;
@@ -58,6 +59,18 @@ extern const char* kairax_build_date;
 extern const char* kairax_build_time;
 
 void halt();
+
+void __print_current_time()
+{
+	struct tm datetime;
+	cmos_rtc_get_datetime_tm(&datetime);
+	printk("Current time:  %i:%i:%i   %i:%i:%i\n", datetime.tm_hour, 
+									datetime.tm_min,
+									datetime.tm_sec,
+									datetime.tm_mday,
+									datetime.tm_mon + 1,
+									datetime.tm_year + 1900);
+}
 
 void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 {
@@ -130,6 +143,9 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 
 	printf("Bootloader: %s\n", P2V(kboot_info->bootloader_string));
 
+	// Создаем этот процесс как можно раньше
+	__create_kernel_thread_default_process();
+
 	int rc = 0;
 
 	if (rc = fpu_init() != 0) {
@@ -171,15 +187,7 @@ void kmain(uint32_t multiboot_magic, void* multiboot_struct_ptr)
 	printk("Reading PCI devices\n");
 	load_pci_devices_list();	
 
-	struct tm datetime;
-	cmos_rtc_get_datetime_tm(&datetime);
-	printk("%i:%i:%i   %i:%i:%i\n", datetime.tm_hour, 
-									datetime.tm_min,
-									datetime.tm_sec,
-									datetime.tm_mday,
-									datetime.tm_mon + 1,
-									datetime.tm_year + 1900);
-
+	__print_current_time();
 	arch_time_init();
 
 	vfs_init();

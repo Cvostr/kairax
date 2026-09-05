@@ -185,14 +185,10 @@ void serial_init()
     serial_init_port(3, COM3);
     serial_init_port(4, COM4);
 
-    // Процесс для потоков - обработчиков
-	struct process* serial_process = create_new_process(NULL);
-	process_set_name(serial_process, "serial port proc");
-
-    struct thread* serial_first_thr = create_kthread(serial_process, serial_thread_handler, (void *) COM1);
+    struct thread* serial_first_thr = create_kthread(NULL, serial_thread_handler, (void *) COM1);
     scheduler_add_thread(serial_first_thr);
 
-    struct thread* serial_sec_thr = create_kthread(serial_process, serial_thread_handler, (void *) COM2);
+    struct thread* serial_sec_thr = create_kthread(NULL, serial_thread_handler, (void *) COM2);
     scheduler_add_thread(serial_sec_thr);
 
     // регистрация обработчиков прерываний

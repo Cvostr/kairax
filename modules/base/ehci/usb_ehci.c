@@ -1221,10 +1221,8 @@ int ehci_device_probe(struct device *dev)
 	// на всякий случай запустим скан портов в первый раз руками, потом уже прерываниями
 	cntrl->port_status_changed = 1;
 
-	// Процесс и поток с обраюотчиком событий
-	struct process* ehci_process = create_new_process(NULL);
-	process_set_name(ehci_process, "ehci");
-    struct thread* ehci_event_thr = create_kthread(ehci_process, ehci_event_thread_routine, cntrl);
+	// поток с обработчиком событий
+    struct thread* ehci_event_thr = create_kthread(NULL, ehci_event_thread_routine, cntrl);
 	thread_set_name(ehci_event_thr, "ehci_event_thread");
     scheduler_add_thread(ehci_event_thr);
 	process_add_to_list((struct process*) ehci_event_thr);

@@ -105,7 +105,7 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
                     if (ch == '>') 
                     {
                         // перенаправление
-                        struct redirect *redir = malloc(sizeof(struct ast_node));
+                        struct redirect *redir = malloc(sizeof(struct redirect));
                         redir->next = NULL;
                         if (node->redir_head == NULL) {
                             node->redir_head = redir;
@@ -123,7 +123,7 @@ struct ast_node* read_expression(struct ast_builder_ctx *ctx)
                     else if (ch == '<') 
                     {
                         // перенаправление
-                        struct redirect *redir = malloc(sizeof(struct ast_node));
+                        struct redirect *redir = malloc(sizeof(struct redirect));
                         redir->next = NULL;
                         if (node->redir_head == NULL) {
                             node->redir_head = redir;

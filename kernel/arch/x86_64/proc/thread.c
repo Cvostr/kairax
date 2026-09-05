@@ -14,14 +14,22 @@ struct x64_uthread {
     struct x64_uthread* this;
 };
 
+extern struct process *__kernel_thread_default_process;
+
 void thread_create_tls(struct thread* thread);
 void thread_add_main_thread_info(struct thread* thread, struct main_thread_create_info* info);
 
 struct thread* create_kthread(struct process* process, void (*function)(void), void* arg)
 {
-    if (!process || !function) {
+    if (!function) {
         return NULL;
     }
+
+    if (process == NULL) 
+    {
+        process = __kernel_thread_default_process;
+    }
+
     // Создать объект потока в памяти
     struct thread* thread = new_thread(process);
     
