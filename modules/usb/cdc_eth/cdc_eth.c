@@ -557,8 +557,8 @@ int usb_cdc_device_probe(struct device *dev)
 	// Ожидание прерывания
     usb_send_async_msg(device, interrupt_in, msg);
 
-	struct process* proc = create_new_process(NULL);
-    struct thread* thr = create_kthread(proc, usb_cdc_rx_thread, eth_dev);
+	// Создаем поток для обработки входящих пакетов
+    struct thread* thr = create_kthread(NULL, usb_cdc_rx_thread, eth_dev);
 	thread_set_sched_mode(thr, SCHED_MODE_REALTIME);
 	thread_set_name(thr, "cdc: rx thread");
 	process_add_to_list((struct process*) thr);
