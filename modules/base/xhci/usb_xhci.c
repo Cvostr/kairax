@@ -220,10 +220,8 @@ int xhci_device_probe(struct device *dev)
 	// Сохранить указатель на структуру
 	dev->dev_data = cntrl;
 
-	// Процесс и поток с обраюотчиком событий
-	struct process* xhci_process = create_new_process(NULL);
-	process_set_name(xhci_process, "xhci");
-    struct thread* xhci_event_thr = create_kthread(xhci_process, xhci_controller_event_thread_routine, cntrl);
+	// Поток с обработчиком событий
+    struct thread* xhci_event_thr = create_kthread(NULL, xhci_controller_event_thread_routine, cntrl);
 	thread_set_name(xhci_event_thr, "xhci_event_thread");
     scheduler_add_thread(xhci_event_thr);
 	process_add_to_list((struct process*) xhci_event_thr);
