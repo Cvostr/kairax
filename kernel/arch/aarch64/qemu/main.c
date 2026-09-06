@@ -6,7 +6,14 @@
 #define QEMU_DTB_BASE     0x40000000UL
 #define KERNEL_PHYS_BASE  0x41000000UL
 
-void qemu_write(size_t size, uint8_t * buffer) 
+#define FW_CFG_BASE            0x09020000
+#define FW_CFG_REG_DATA        (FW_CFG_BASE + 0x00)
+#define FW_CFG_REG_SELECTOR    (FW_CFG_BASE + 0x08)
+#define FW_CFG_FILE_DIR        0x0019
+
+#define P2V(x)	(0xffffff8000000000 | x)
+
+void qemu_write(size_t size, char * buffer) 
 {
 	for (unsigned int i = 0; i < size; ++i) 
     {
@@ -14,12 +21,86 @@ void qemu_write(size_t size, uint8_t * buffer)
 	}
 }
 
-void qemu_write1(size_t size, uint8_t * buffer) 
+void qemu_write1(size_t size, char * buffer) 
 {
 	for (unsigned int i = 0; i < size; ++i) 
     {
-		*(volatile unsigned int *)(0xffffff8009000000) = buffer[i];
+		*(volatile unsigned int *)(P2V(0x9000000)) = buffer[i];
 	}
+}
+
+struct qemu_fw_cfg_file {
+    uint32_t size;         // File size (Big Endian)
+    uint16_t select;       // Key selector for file contents (Big Endian)
+    uint16_t reserved;
+    char name[56];         // Null-terminated name string
+};
+
+static inline uint32_t swap32(uint32_t val) 
+{
+    return __builtin_bswap32(val);
+}
+static inline uint16_t swap16(uint16_t val) 
+{
+    return __builtin_bswap16(val);
+}
+
+static int __strcmp(const char *s1, const char *s2) 
+{
+    while (*s1 && (*s1 == *s2)) 
+	{ 
+		s1++; s2++; 
+	}
+
+    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}
+
+int fw_cfg_find_file(const char *target_name, uint16_t *out_select, uint32_t *out_size) 
+{
+    volatile uint16_t *selector = (volatile uint16_t *) P2V(FW_CFG_REG_SELECTOR);
+    volatile uint32_t *data32   = (volatile uint32_t *) P2V(FW_CFG_REG_DATA);
+    volatile uint8_t  *data8    = (volatile uint8_t  *) P2V(FW_CFG_REG_DATA);
+
+    // 1. Select the file directory
+    *selector = swap16(FW_CFG_FILE_DIR);
+
+    // 2. Read total count of files in the catalog
+    uint32_t count = swap32(*data32);
+
+    // 3. Loop through entries and check names
+    struct qemu_fw_cfg_file entry;
+    for (uint32_t i = 0; i < count; i++) {
+        
+        // Stream the struct layout out byte-by-byte from the MMIO data register
+        uint8_t *entry_ptr = (uint8_t *)&entry;
+        for (size_t j = 0; j < sizeof(struct qemu_fw_cfg_file); j++) {
+            entry_ptr[j] = *data8;
+        }
+
+        // Compare target string with the entry name
+        if (__strcmp(entry.name, target_name) == 0) {
+            *out_select = swap16(entry.select);
+            *out_size   = swap32(entry.size);
+            return 1; // Success
+        }
+    }
+
+    return 0; // Not found
+}
+
+void fw_cfg_read_file(uint16_t key, void *buffer, uint32_t size) 
+{
+    volatile uint16_t *selector = (volatile uint16_t *) P2V(FW_CFG_REG_SELECTOR);
+    volatile uint8_t  *data8    = (volatile uint8_t  *) P2V(FW_CFG_REG_DATA);
+    uint8_t *dest = (uint8_t *)buffer;
+
+    // Select the key tied to the file contents
+    *selector = swap16(key);
+
+    // Drain the bytes sequentially into memory
+    for (uint32_t i = 0; i < size; i++) {
+        dest[i] = *data8;
+    }
 }
 
 static struct BaseTables {
@@ -92,6 +173,23 @@ void kmain()
     qemu_write(4, "TEST");
 
     setup_bootstrap_mmu();
+
+	uint16_t key;
+	uint32_t kernel_size;
+	
+	// Explicitly target the literal string given to QEMU's name argument
+    if (fw_cfg_find_file("opt/kairax.kernel", &key, &kernel_size)) {
+        
+        // Ensure you have a target buffer large enough to accommodate file_size bytes
+        uint8_t *kernel_load_address = (uint8_t *)P2V(0x45000000); 
+        
+        fw_cfg_read_file(key, kernel_load_address, kernel_size);
+        
+        // The binary data from kernel.bin is now sitting at 0x45000000
+    } else {
+		qemu_write1(10, "NOTFOUND!");
+        // TODO: halt!
+	}
 
     while(1)
     {
