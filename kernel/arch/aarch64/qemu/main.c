@@ -165,12 +165,12 @@ void setup_bootstrap_mmu()
 	asm volatile ("msr SCTLR_EL1, %0" : : "r"(sctlr));
 	asm volatile ("isb" ::: "memory");
 
-	qemu_write1(27, "bootstub: MMU initialized\n");
+	qemu_write1(18, "MMU initialized\r\n");
 }
 
 void kmain()
 {
-    qemu_write(4, "TEST");
+    qemu_write(28, "Kairax ARM Qemu bootstrap\r\n");
 
     setup_bootstrap_mmu();
 
@@ -187,7 +187,7 @@ void kmain()
         
         // The binary data from kernel.bin is now sitting at 0x45000000
     } else {
-		qemu_write1(10, "NOTFOUND!");
+		qemu_write1(23, "Kernel file not found!");
         // TODO: halt!
 	}
 
